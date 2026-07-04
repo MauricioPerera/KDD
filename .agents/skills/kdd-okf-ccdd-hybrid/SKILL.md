@@ -41,5 +41,20 @@ En lugar de eso, en secciones como `## Intent`, `## Interface`, o `## Constraint
 - **DO:** "Validar formato contra [users_table.md](../data_models/users_table.md)"
 - **DON'T:** "La tabla de usuarios tiene un uuid, un email, un password, y una fecha de creación, y su ID es un string de 36 caracteres..."
 
-## 4. Validación Continua Obligatoria
-Antes de dar un contrato por terminado o pasárselo a un agente efímero, debes invocar obligatoriamente las herramientas CLI locales (`ccdd-lint` y `ccdd-gate`) sobre el archivo híbrido para confirmar que no se violan las reglas estrictas de parsing ni de los tests congelados.
+## 4. Validación Continua Obligatoria (dos niveles)
+Antes de dar un contrato por terminado o pasárselo a un agente efímero, debes validarlo. Hay dos niveles:
+
+- **Nivel 1 (incluido en la plantilla, obligatorio):** `python scripts/validate_contracts.py knowledge/contracts` valida frontmatter, secciones obligatorias y examples; y el `test_command` del contrato debe terminar en verde. Ambos corren local y en CI (`.github/workflows/validate.yml`).
+- **Nivel 2 (opcional, si el entorno lo tiene):** el gate CCDD real vía servidor MCP `ccdd-complexity`, con las tools `lint_task_contract` (lint del contrato) y `run_integration_gate` (gate de complejidad/integración).
+
+Si no hay gate disponible, el nivel 1 es suficiente para considerar el contrato válido.
+
+## 5. Precedencia del Budget
+- **Con gate CCDD disponible (nivel 2):** la config firmada por el gate manda. El `budget` del frontmatter solo puede ser **<=** los topes firmados; ante cualquier conflicto gana la config firmada del gate.
+- **Sin gate (solo nivel 1):** el `budget` del contrato es declarativo/informativo. El validador incluido solo verifica su **presencia** en el frontmatter; no enforced los topes.
+
+## 6. Ciclo de Vida del Contrato
+1. **draft** — contrato redactado en `knowledge/contracts/<task>.md`.
+2. **validated** — `python scripts/validate_contracts.py knowledge/contracts` (y `lint_task_contract` si hay gate) en verde.
+3. **implemented** — `test_command` del contrato en verde.
+4. **verified** — la salida **REAL** de los comandos se pega en `.agents/logs/<task>-REPORT.md`. Ese directorio está gitignorado a propósito: es evidencia local, no parte del repo.
