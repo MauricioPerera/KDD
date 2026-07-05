@@ -190,7 +190,7 @@ def _extract_sections(body):
     buf = []
     for line in body.splitlines():
         s = line.strip()
-        if s.startswith('## ') and not s.startswith('### '):
+        if s.startswith('## '):
             if current is not None:
                 sections[current] = '\n'.join(buf)
             current = s[3:].strip()

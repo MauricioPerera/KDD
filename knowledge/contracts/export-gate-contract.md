@@ -7,7 +7,7 @@ tags: ['ccdd', 'gate', 'nivel-2', 'export']
 task: export-gate-contract
 intent: "Exportar un task contract KDD a una variante ASCII con rutas relativas al export para el gate CCDD nivel 2."
 target: scripts/export_gate_contract.py
-signature: "def export_gate_contract(contract_path: str, out_dir: str) -> str:"
+signature: "def export_gate_contract(contract_path: str, out_dir: str, repo_root: str = '.') -> str:"
 test_command: "python -m unittest tests/test_export_gate_contract.py"
 budget:
   max_cyclomatic_complexity: 10
@@ -27,16 +27,18 @@ Contexto de metodologia: [metodologia-ejecucion](../metodologia-ejecucion.md).
 
 ## Interface
 ```python
-def export_gate_contract(contract_path: str, out_dir: str) -> str:
+def export_gate_contract(contract_path: str, out_dir: str, repo_root: str = '.') -> str:
     """Lee el contrato KDD (UTF-8), emite <out_dir>/<task>.md gate-nativo y devuelve la
     ruta escrita. Transformaciones: (1) normalizacion ASCII de TODO el texto (NFKD sin
     diacriticos; mapeos explicitos: em/en-dash -> '-', flecha -> '->', <= >= comillas
     tipograficas y bullets a ASCII; resto no-ASCII se elimina); (2) target y tests del
     frontmatter reescritos relativos a out_dir (separador '/'); (3) resto verbatim.
     Determinista: mismo input -> bytes identicos. ValueError si falta frontmatter o las
-    claves task/target/tests."""
+    claves task/target/tests. repo_root (default '.', resuelto a absoluto) es la raiz
+    del repo (convencion KDD): las rutas target/tests del contrato se interpretan
+    relativas a el; pasado explicito, el export es INDEPENDIENTE del cwd de invocacion."""
 ```
-CLI: `python scripts/export_gate_contract.py <contrato.md> [--out-dir .agents/gate-exports]`
+CLI: `python scripts/export_gate_contract.py <contrato.md> [--out-dir .agents/gate-exports] [--repo-root .]`
 -> imprime la ruta escrita. Exit 0 ok · 1 I/O · 2 contrato invalido.
 
 ## Invariants

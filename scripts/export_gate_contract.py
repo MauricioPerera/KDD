@@ -43,8 +43,15 @@ Transformaciones (segun ``knowledge/contracts/export-gate-contract.md``):
 Determinista: mismo input -> bytes identicos. ``ValueError`` si falta
 frontmatter o las claves ``task``/``target``/``tests``.
 
+Las rutas ``target``/``tests`` del contrato se interpretan relativas al
+``repo_root`` (convencion KDD: la raiz del repo). ``repo_root`` es explicito
+via ``--repo-root`` (default ``'.'`` = cwd de invocacion), resuelto a ruta
+absoluta; cuando se pasa explicito, el resultado es INDEPENDIENTE del cwd
+desde el que se invoque (la convencion queda fijada, no implicita en getcwd).
+
 Uso:
     python scripts/export_gate_contract.py <contrato.md> [--out-dir DIR]
+            [--repo-root DIR]
 Exit: 0 ok · 1 I/O · 2 contrato invalido.
 """
 
@@ -189,9 +196,10 @@ def _rewrite_path(orig_value: str, out_dir_abs: str, repo_root: str) -> str:
 
     Los contratos KDD declaran ``target``/``tests`` relativos a la raiz del
     repo; el gate los resuelve relativos al ``.md`` del export. ``repo_root``
-    es el directorio desde el que se invoca (convencion KDD). Cuando
-    ``out_dir_abs`` == ``repo_root`` (el default), la salida coincide con la
-    ruta original sin ``..`` — unico caso que el gate real acepta.
+    es la raiz del repo (convencion KDD), pasada explicita (``--repo-root``)
+    o ``'.'`` por defecto, y resuelta a absoluta por el llamador. Cuando
+    ``out_dir_abs`` == ``repo_root`` (el default real), la salida coincide
+    con la ruta original sin ``..`` — unico caso que el gate real acepta.
     """
     target_abs = os.path.normpath(os.path.join(repo_root, orig_value))
     rel = os.path.relpath(target_abs, out_dir_abs)
@@ -223,7 +231,8 @@ def _rewrite_test_command(tests_rw: str, target_rw: str) -> str:
 # Funcion principal del contrato
 # ---------------------------------------------------------------------------
 
-def export_gate_contract(contract_path: str, out_dir: str) -> str:
+def export_gate_contract(contract_path: str, out_dir: str,
+                          repo_root: str = ".") -> str:
     """Lee el contrato KDD (UTF-8), emite ``<out_dir>/<task>.gate.md``
     gate-nativo y devuelve la ruta escrita.
 
@@ -234,6 +243,12 @@ def export_gate_contract(contract_path: str, out_dir: str) -> str:
     ``test_command`` con ``cwd`` = dir del ``target``; el archivo de tests
     debe ser auto-ejecutable con ``unittest.main()``); (3) resto verbatim.
     Determinista: mismo input -> bytes identicos.
+
+    ``repo_root`` es la raiz del repo (convencion KDD): las rutas
+    ``target``/``tests`` del contrato se interpretan relativas a el.
+    Default ``'.'`` = cwd de invocacion, resuelto a absoluto. Pasado
+    explicito, el resultado es INDEPENDIENTE del cwd desde el que se invoque
+    (fija la convencion en vez de depender implicitamente de ``getcwd()``).
 
     El gate CCDD real exige rutas ``target``/``tests`` SIN ``..`` (el lint
     rechaza ``tc-tests-frozen`` si escapan del dir del contrato). El default
@@ -264,10 +279,10 @@ def export_gate_contract(contract_path: str, out_dir: str) -> str:
             "clave(s) requerida(s) ausente(s) en el frontmatter: {}".format(
                 ", ".join(missing)))
 
-    repo_root = os.getcwd()
+    repo_root_abs = os.path.abspath(repo_root)
     out_dir_abs = os.path.abspath(out_dir)
-    target_rw = _rewrite_path(target, out_dir_abs, repo_root)
-    tests_rw = _rewrite_path(tests, out_dir_abs, repo_root)
+    target_rw = _rewrite_path(target, out_dir_abs, repo_root_abs)
+    tests_rw = _rewrite_path(tests, out_dir_abs, repo_root_abs)
     test_command_rw = _rewrite_test_command(tests_rw, target_rw)
 
     # Reemplazar las lineas de target, tests y test_command en el frontmatter
@@ -307,10 +322,17 @@ def main(argv) -> int:
                         help="directorio de salida (default: '.' = raiz del "
                              "repo, que emite <task>.gate.md con rutas "
                              "target/tests SIN '..' como exige el gate real)")
+    parser.add_argument("--repo-root", default=".",
+                        help="raiz del repo (convencion KDD): las rutas "
+                             "target/tests del contrato se interpretan "
+                             "relativas a este dir. Default '.' = cwd de "
+                             "invocacion. Resuelto a absoluto; con valor "
+                             "explicito el export es independiente del cwd.")
     args = parser.parse_args(argv[1:])
 
     try:
-        out_path = export_gate_contract(args.contract, args.out_dir)
+        out_path = export_gate_contract(
+            args.contract, args.out_dir, args.repo_root)
     except ValueError as e:
         print("ERROR (contrato invalido): {}".format(e), file=sys.stderr)
         return 2

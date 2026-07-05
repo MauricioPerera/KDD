@@ -143,10 +143,13 @@ class TestPathRewrite(unittest.TestCase):
         # Default real: out_dir = raiz del repo. El gate rechaza rutas con
         # ".." (tc-tests-frozen); en la raiz las rutas quedan iguales a las
         # originales del contrato y resuelven a archivos existentes.
+        # repo_root explicito (= ROOT): la convencion queda fijada por ruta
+        # explicita, NO por el cwd de invocacion.
         with _tmpdir() as d:
             d = Path(d)
             src = _write_contract(d, "rootprobe")
-            out = egc.export_gate_contract(str(src), str(ROOT))
+            out = egc.export_gate_contract(str(src), str(ROOT),
+                                            repo_root=str(ROOT))
             self.addCleanup(lambda p=Path(out): p.unlink(missing_ok=True))
             content = Path(out).read_text(encoding="utf-8")
             values, _ = _fm_values(content)
@@ -164,14 +167,17 @@ class TestPathRewrite(unittest.TestCase):
     def test_custom_out_dir_rewrites_relative_to_export(self):
         # out_dir fuera de la raiz: la reescritura sigue calculandose relativa
         # al archivo de export (que vive bajo out_dir). Puede introducir "..".
+        # repo_root explicito (= ROOT): el esperado se calcula contra esa
+        # misma ruta explicita, no contra getcwd() — la convencion queda fijada.
         with _tmpdir() as d:
             d = Path(d)
             src = _write_contract(d, "rw")
             out_dir = d / "gate-exports"
-            out = egc.export_gate_contract(str(src), str(out_dir))
+            out = egc.export_gate_contract(str(src), str(out_dir),
+                                          repo_root=str(ROOT))
             content = Path(out).read_text(encoding="utf-8")
             values, _ = _fm_values(content)
-            repo_root = os.getcwd()
+            repo_root = str(ROOT)
             exp_target = os.path.relpath(
                 os.path.join(repo_root, "src", "users.py"),
                 str(out_dir)).replace(os.sep, "/")
@@ -180,6 +186,39 @@ class TestPathRewrite(unittest.TestCase):
                 str(out_dir)).replace(os.sep, "/")
             self.assertEqual(values["target"], exp_target)
             self.assertEqual(values["tests"], exp_tests)
+
+    def test_output_independent_of_invocation_cwd(self):
+        # T9: con --repo-root explicito, el export es INDEPENDIENTE del cwd
+        # desde el que se invoque. Se construye un repo-fixture aislado (con
+        # src/users.py + tests/test_users.py) para no depender de los ejemplo
+        # del repo real (que init elimina). Se invoca la CLI dos veces con el
+        # MISMO --repo-root pero desde cwds distintos -> bytes identicos.
+        with _tmpdir() as d:
+            d = Path(d)
+            repo = d / "repo"
+            (repo / "src").mkdir(parents=True)
+            (repo / "src" / "users.py").write_text("x = 1\n", encoding="utf-8")
+            (repo / "tests").mkdir(parents=True)
+            (repo / "tests" / "test_users.py").write_text(
+                "import unittest\n", encoding="utf-8")
+            src = _write_contract(d, "cwdind")
+            out_dir = d / "exports"
+            elsewhere = d / "elsewhere"
+            elsewhere.mkdir()
+            common = [sys.executable, str(SCRIPT), str(src),
+                      "--out-dir", str(out_dir), "--repo-root", str(repo)]
+            r1 = subprocess.run(common, cwd=str(repo),
+                                capture_output=True, text=True)
+            self.assertEqual(r1.returncode, 0, r1.stderr)
+            self.assertTrue(r1.stdout.strip(), r1.stderr)
+            b1 = Path(r1.stdout.strip()).read_bytes()
+            r2 = subprocess.run(common, cwd=str(elsewhere),
+                                capture_output=True, text=True)
+            self.assertEqual(r2.returncode, 0, r2.stderr)
+            self.assertTrue(r2.stdout.strip(), r2.stderr)
+            b2 = Path(r2.stdout.strip()).read_bytes()
+            self.assertEqual(b1, b2,
+                             "export difiere segun cwd con --repo-root fijo")
 
     def test_rewritten_paths_use_posix_separator(self):
         with _tmpdir() as d:
@@ -268,7 +307,8 @@ class TestRealContractExport(unittest.TestCase):
         self.assertTrue(real.is_file(), "fixture faltante: {}".format(real))
         with _tmpdir() as d:
             out_dir = Path(d) / "gate-exports"
-            out = egc.export_gate_contract(str(real), str(out_dir))
+            out = egc.export_gate_contract(str(real), str(out_dir),
+                                           repo_root=str(ROOT))
             content = Path(out).read_text(encoding="ascii")
             # 100% ASCII
             self.assertTrue(all(ord(c) < 128 for c in content))
@@ -293,7 +333,8 @@ class TestRealContractExport(unittest.TestCase):
         # desde src/ (exit 0): tests/test_users.py es auto-ejecutable.
         real = ROOT / "knowledge" / "contracts" / "validate-user-record.md"
         self.assertTrue(real.is_file(), "fixture faltante: {}".format(real))
-        out = egc.export_gate_contract(str(real), str(ROOT))
+        out = egc.export_gate_contract(str(real), str(ROOT),
+                                      repo_root=str(ROOT))
         self.addCleanup(lambda p=Path(out): p.unlink(missing_ok=True))
         content = Path(out).read_text(encoding="ascii")
         values, _ = _fm_values(content)
