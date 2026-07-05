@@ -58,5 +58,11 @@ declarado ("Use this repository as a Template").
   README (1-2 líneas en "How to use" mencionando el init, EN/ES). NO tocar los ejemplos
   en el repo real, validadores, ensamblador, exportador, knowledge/, .agents/ (salvo
   REPORT), CI.
+- **Excepción acotada (acoplamiento conocido, detectado por el orquestador):** los tests
+  de infra que usan artefactos de EJEMPLO como fixture del repo real
+  (`tests/test_assemble_context.py` con `users_table`, `tests/test_export_gate_contract.py`
+  con `validate-user-record.md`) pueden recibir ÚNICAMENTE un skip-guard mínimo
+  (`skipUnless(<fixture existe>)`) en esos tests puntuales, para que la plantilla íntegra
+  los siga corriendo y un proyecto inicializado los saltee limpio. Cero cambios de lógica.
 - Python stdlib puro en el target; sin red; sin subprocess en el target (los tests sí).
 - NO commitear. Si algo no se puede sin romper otro criterio, PARAR y reportar.
