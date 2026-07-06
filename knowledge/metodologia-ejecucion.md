@@ -39,9 +39,20 @@ Plantillas: `specs/TEMPLATE-CONTRACT.md` y `docs/reports/TEMPLATE-REPORT.md`.
    cumplirse este comando sin cumplir la intención?» y parchear la definición con lo que
    aparezca. Y la pregunta inversa: «¿algún check contradice otra orden de la spec?» —
    un check que choca con una orden propia obliga al agente a un judgment call que la
-   spec prometía no dejarle. Casos reales que este paso previene: búsqueda degradada a
+   spec prometía no dejarle. Para specs de **exponer/subir un método a una fachada o API
+   pública**, dos preguntas más: «¿qué camino PÚBLICO consume esto?» — si la respuesta es
+   «ninguno», la tarea real incluye cablear el consumidor o la feature es decorativa
+   (contrato cumplido, tests verdes, valor cero) — y «¿cuál es el tipo/contenedor EXACTO
+   de retorno en CADA modo?» — fijarlo en la definición de hecho (p. ej.
+   `Array.isArray(...) === true` en todos los modos), no solo la shape del elemento.
+   Casos reales que este paso previene: búsqueda degradada a
    escaneo completo con tests verdes; conteo de parámetros que evade el budget del gate;
-   un grep de verificación que matcheaba el valor exigido por otra orden del mismo plan.
+   un grep de verificación que matcheaba el valor exigido por otra orden del mismo plan;
+   un índice expuesto que ningún camino público usaba (`count` seguía escaneando); un
+   `find` delegado literal que devolvía un cursor lazy en un modo y un array en otro.
+   Complemento verificado: exigir sección de trade-offs en el reporte del agente es el
+   detector más barato de estas clases — ambos casos nuevos se declararon ahí y se
+   cazaron leyendo esa sección + el diff puntual de la zona, nunca el diff entero.
 3. **DELEGAR** — un agente efímero por tarea. Tareas que compartan archivos → secuenciales.
    Las tareas en **paralelo** deben declarar en su spec el conjunto de archivos que tocan,
    y ese conjunto debe ser **disjunto** respecto a otras tareas corriendo al mismo tiempo.
