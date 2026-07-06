@@ -2,7 +2,8 @@
 
 Copias versionadas de las skills operativas que implementan la metodología KDD.
 
-- `pm-glm-ccdd/SKILL.md` — Claude como PM/orquestador con devs GLM efímeros y gate CCDD.
+- `pm-glm-ccdd/SKILL.md` — Claude como PM/orquestador con devs GLM efímeros y gate CCDD (capa de PROYECTO: varias tareas, varios devs, integración).
+- `delegar-glm-ccdd/SKILL.md` — delegación de UNA función/tarea a GLM con gate CCDD (la capa de detalle debajo de pm-glm-ccdd).
 
 ## Relación con la copia operativa
 
