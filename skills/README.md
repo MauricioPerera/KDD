@@ -4,6 +4,7 @@ Copias versionadas de las skills operativas que implementan la metodología KDD.
 
 - `pm-glm-ccdd/SKILL.md` — Claude como PM/orquestador con devs GLM efímeros y gate CCDD (capa de PROYECTO: varias tareas, varios devs, integración).
 - `delegar-glm-ccdd/SKILL.md` — delegación de UNA función/tarea a GLM con gate CCDD (la capa de detalle debajo de pm-glm-ccdd).
+- `pm-native-ccdd/SKILL.md` — variante NATIVA del PM: sub-agentes de la app de Claude (tool Agent, Haiku) en vez de GLM/Ollama; misma metodología, cambia solo el mecanismo de delegación.
 
 ## Relación con la copia operativa
 
