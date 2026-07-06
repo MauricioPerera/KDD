@@ -49,6 +49,15 @@ CLI: `python scripts/export_gate_contract.py <contrato.md> [--out-dir .agents/ga
 - Idempotente y determinista: exportar dos veces -> bytes identicos; exportar el export
   -> ASCII estable.
 - stdlib puro; sin red; sin subprocess; escribe SOLO dentro de out_dir.
+- Caso especial `test_command`: si el contrato declara EXACTAMENTE
+  `python -m unittest <archivo>.py` (4 tokens; el 4to termina en `.py`, ruta de
+  archivo real — no modulo dotted), el export lo reescribe a `python <archivo>.py`
+  (invocacion directa, SIN `-m unittest`). Motivo: los archivos de test Python de
+  este repo son auto-ejecutables (`unittest.main()` bajo `if __name__ == "__main__":`)
+  y `-m unittest` no acepta rutas con `..` (las trata como nombre de modulo y falla
+  con `ValueError: Empty module name`); el gate corre con `cwd` = dir del `target`,
+  que produce rutas con `..`. Para cualquier otro `test_command` (mas tokens,
+  `discover`, modulo dotted, `node`, `cargo`, etc.) el runner se preserva literal.
 
 ## Examples
 - Export de `knowledge/contracts/validate-user-record.md` con out-dir
@@ -87,7 +96,13 @@ reescritura de rutas, determinismo byte a byte, frontmatter preservado, export d
 contrato real de C04 con rutas que resuelven, exit codes del CLI, y cross-drive —
 funcion pura `cross_drive_io_error` con paths literales estilo Windows via `ntpath`
 (corre en CI Linux) + CLI en host Windows: cross-drive -> exit 1 con mensaje que nombra
-ambas unidades, no exit 2.)
+ambas unidades, no exit 2. `test_command` cubre 3 casos: (1) `node --test <rel>`
+preserva el runner node (no se hardcodea `python`); (2) contrato sin `test_command` -> el
+export no agrega la clave; (3) caso especial `python -m unittest <archivo>.py` ->
+`python <archivo>.py` (SIN `-m unittest`), verificado ademas con ejecucion real via
+subprocess desde el dir del target. `discover -s tests` (>4 tokens) y modulo dotted
+(sin `.py`) preservan el runner literal — confirman que el caso especial no se aplica
+por encima.)
 
 ## Constraints
 - PARAR y reportar si... la normalizacion ASCII destruyera informacion semantica critica

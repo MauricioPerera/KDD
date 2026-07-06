@@ -31,13 +31,24 @@ Transformaciones (segun ``knowledge/contracts/export-gate-contract.md``):
   (2) ``target`` y ``tests`` del frontmatter se reescriben relativos al
         archivo de export ``<out_dir>/<task>.gate.md`` (separador '/'); como
         el export vive directo bajo ``out_dir``, equivale a relativo a
-        ``out_dir``. ``test_command`` se reescribe a
-        ``python <ruta-relativa-desde-el-dir-del-target-hasta-el-archivo-
-        de-tests>`` (POSIX): el gate ejecuta ``test_command`` con ``cwd``
-        = directorio del ``target``, y el archivo de tests debe ser
-        auto-ejecutable (``unittest.main()``) — se invoca como
-        ``python <rel>`` (no ``python -m unittest``). El resto del
-        frontmatter va verbatim.
+        ``out_dir``. ``test_command`` se reescribe preservando el RUNNER
+        declarado en el contrato fuente (``python -m unittest``,
+        ``node --test``, etc. — NO se hardcodea ``python``): se toma el
+        valor ORIGINAL de ``test_command`` y se reemplaza dentro de el la
+        aparicion literal del valor ORIGINAL de ``tests`` (relativo a
+        ``repo_root``, antes de reescribirse) por la nueva ruta relativa al
+        directorio del ``target`` (POSIX). Caso especial documentado: si
+        el ``test_command`` original es EXACTAMENTE ``python -m unittest
+        <archivo>.py`` (4 tokens), se reescribe a ``python <archivo>.py``
+        (invocacion directa, SIN ``-m unittest``): los archivos de test
+        Python de este repo son auto-ejecutables por convencion y ``-m
+        unittest`` no acepta rutas con ``..`` (que el gate produce al
+        correr con ``cwd`` = dir del ``target``). Si el contrato no declara
+        ``test_command``, no se agrega la clave. Si el ``test_command``
+        original no cae en el caso especial y no contiene la ruta original
+        de ``tests`` como substring, se preserva tal cual (no se adivina).
+        El gate ejecuta ``test_command`` con ``cwd`` = directorio del
+        ``target``. El resto del frontmatter va verbatim.
   (3) El cuerpo va verbatim (solo normalizado a ASCII).
 
 Determinista: mismo input -> bytes identicos. ``ValueError`` si falta
@@ -239,25 +250,78 @@ def _rewrite_path(orig_value: str, out_dir_abs: str, repo_root: str) -> str:
     return rel.replace(os.sep, "/")
 
 
-def _rewrite_test_command(tests_rw: str, target_rw: str) -> str:
-    """Reescribe ``test_command`` a ``python <rel>`` donde ``<rel>`` es la
-    ruta relativa (POSIX) desde el directorio del ``target`` hasta el
-    archivo de ``tests``.
+def _is_python_unittest_single_file(test_command_orig) -> bool:
+    """True si ``test_command_orig`` es EXACTAMENTE el patron del propio
+    repo ``python -m unittest <ruta-a-un-.py>``: 4 tokens, ``["python",
+    "-m", "unittest", X]`` con ``X`` terminando en ``.py`` (ruta de archivo
+    real, no nombre de modulo dotted — un modulo dotted no termina en
+    ``.py``). Caso especial documentado en el contrato, no heuristica
+    generica: los archivos de test Python de este repo son auto-ejecutables
+    (``unittest.main()`` bajo ``if __name__ == "__main__":``) y ``-m
+    unittest`` no acepta rutas con ``..`` (las trata como nombre de modulo
+    y falla con ``ValueError: Empty module name``), y el gate ejecuta con
+    ``cwd`` = dir del ``target`` (que produce rutas con ``..``).
+    """
+    if not test_command_orig:
+        return False
+    tokens = test_command_orig.split()
+    if len(tokens) != 4:
+        return False
+    return (tokens[0] == "python" and tokens[1] == "-m"
+            and tokens[2] == "unittest"
+            and tokens[3].endswith(".py"))
+
+
+def _rewrite_test_command(test_command_orig, tests_orig: str,
+                          tests_rw: str, target_rw: str):
+    """Reescribe ``test_command`` preservando el RUNNER declarado en el
+    contrato fuente y reescribiendo SOLO la parte de ruta del archivo de
+    tests. NO se hardcodea ``python``.
+
+    Toma el valor ORIGINAL de ``test_command`` (tal como viene en el
+    frontmatter) y reemplaza dentro de el la aparicion literal del valor
+    ORIGINAL de ``tests`` (tal como viene en el frontmatter, relativo a
+    ``repo_root``, ANTES de reescribirse) por la nueva ruta reescrita
+    relativa al directorio del ``target`` (POSIX). El runner
+    (``python -m unittest``, ``node --test``, etc.) se preserva intacto:
+    solo cambia la ruta del archivo de tests.
+
+    - Si ``test_command_orig`` es None o vacio (la clave no existe en el
+      frontmatter), devuelve None: el llamador NO agrega la clave
+      (comportamiento invariante respecto a contratos sin ``test_command``).
+    - Caso especial (documentado, no heuristica generica): si
+      ``test_command_orig`` es EXACTAMENTE ``python -m unittest
+      <archivo>.py`` (4 tokens; ver ``_is_python_unittest_single_file``),
+      el export final es ``"python " + <ruta reescrita>`` SIN ``-m
+      unittest`` — invocacion directa del archivo. Motivo: los archivos de
+      test Python de este repo son auto-ejecutables por convencion, y
+      ``-m unittest`` no acepta rutas con ``..`` (que el gate produce al
+      correr con ``cwd`` = dir del ``target``).
+    - Si ``test_command_orig`` NO cae en el caso especial y NO contiene
+      ``tests_orig`` como substring (caso raro: el comando usa una
+      convencion distinta y no menciona la ruta literal de ``tests``), se
+      preserva ``test_command_orig`` TAL CUAL: no se adivina. Decision
+      documentada para evitar heuristicas no pedidas.
 
     El gate CCDD ejecuta ``test_command`` con ``cwd`` = directorio del
-    ``target`` (no la raiz del repo, ni el dir del ``.md``). Por eso el
-    comando debe apuntar al archivo de tests con una ruta relativa al dir
-    del target, y el archivo de tests debe ser auto-ejecutable
-    (``unittest.main()`` bajo ``if __name__ == "__main__"``): se invoca como
-    ``python <rel>`` (no ``python -m unittest ...``), que ademas inserta
-    ``src/`` al ``sys.path`` por convencion del repo. ``tests_rw`` y
-    ``target_rw`` ya son POSIX relativas al export; la relativa entre ellas
-    es invariante al prefijo comun, asi que el resultado no depende de
-    ``out_dir``.
+    ``target``; por eso la ruta reescrita apunta al archivo de tests
+    relativa a ese dir. ``tests_rw`` y ``target_rw`` ya son POSIX relativas
+    al export; la relativa entre ellas es invariante al prefijo comun, asi
+    que el resultado no depende de ``out_dir``.
     """
+    if not test_command_orig:
+        return None
     target_dir = os.path.dirname(target_rw)
     rel = os.path.relpath(tests_rw, target_dir).replace(os.sep, "/")
-    return "python " + rel
+    # Caso especial documentado: python -m unittest <archivo>.py -> python
+    # <archivo>.py (auto-ejecutable; -m unittest no acepta rutas con ..).
+    if _is_python_unittest_single_file(test_command_orig):
+        return "python " + rel
+    if tests_orig and tests_orig in test_command_orig:
+        return test_command_orig.replace(tests_orig, rel)
+    # El comando no menciona la ruta literal de tests: preservalo tal cual
+    # (no se adivina una sustitucion).
+    return test_command_orig
 
 
 # ---------------------------------------------------------------------------
@@ -271,11 +335,14 @@ def export_gate_contract(contract_path: str, out_dir: str,
 
     Transformaciones: (1) normalizacion ASCII de TODO el texto; (2) ``target``
     y ``tests`` del frontmatter reescritos relativos al archivo de export
-    (vive bajo ``out_dir``, separador '/'); ``test_command`` reescrito a
-    ``python <rel>`` relativo al directorio del ``target`` (el gate ejecuta
-    ``test_command`` con ``cwd`` = dir del ``target``; el archivo de tests
-    debe ser auto-ejecutable con ``unittest.main()``); (3) resto verbatim.
-    Determinista: mismo input -> bytes identicos.
+    (vive bajo ``out_dir``, separador '/'); ``test_command`` reescrito
+    preservando el RUNNER del contrato fuente (no se hardcodea ``python``):
+    se reemplaza la ruta original de ``tests`` dentro del ``test_command``
+    original por la nueva ruta relativa al directorio del ``target`` (el
+    gate ejecuta ``test_command`` con ``cwd`` = dir del ``target``); si el
+    contrato no declara ``test_command`` no se agrega la clave, y si el
+    ``test_command`` original no menciona la ruta de ``tests`` se preserva
+    tal cual; (3) resto verbatim. Determinista: mismo input -> bytes identicos.
 
     ``repo_root`` es la raiz del repo (convencion KDD): las rutas
     ``target``/``tests`` del contrato se interpretan relativas a el.
@@ -308,6 +375,7 @@ def export_gate_contract(contract_path: str, out_dir: str,
     task, _ = _scalar_value(fm_lines, "task")
     target, _ = _scalar_value(fm_lines, "target")
     tests, _ = _scalar_value(fm_lines, "tests")
+    test_command_orig, _ = _scalar_value(fm_lines, "test_command")
     missing = [k for k, v in (("task", task), ("target", target), ("tests", tests))
                if v is None or v == ""]
     if missing:
@@ -326,7 +394,8 @@ def export_gate_contract(contract_path: str, out_dir: str,
         raise OSError(xd)
     target_rw = _rewrite_path(target, out_dir_abs, repo_root_abs)
     tests_rw = _rewrite_path(tests, out_dir_abs, repo_root_abs)
-    test_command_rw = _rewrite_test_command(tests_rw, target_rw)
+    test_command_rw = _rewrite_test_command(test_command_orig, tests,
+                                             tests_rw, target_rw)
 
     # Reemplazar las lineas de target, tests y test_command en el frontmatter
     # crudo. test_command solo se reescribe si la clave existe; el resto del
@@ -334,6 +403,8 @@ def export_gate_contract(contract_path: str, out_dir: str,
     new_fm = list(fm_lines)
     for key, new_val in (("target", target_rw), ("tests", tests_rw),
                          ("test_command", test_command_rw)):
+        if new_val is None:
+            continue
         idx = _key_line_index(new_fm, key)
         if idx >= 0:
             new_fm[idx] = _replace_scalar_line(new_fm[idx], new_val)

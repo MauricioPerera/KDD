@@ -282,6 +282,11 @@ class TestFrontmatterPreserved(unittest.TestCase):
         # independientemente de out_dir (la relativa entre target y tests es
         # invariante al prefijo comun). Layout estandar del template:
         # target src/users.py, tests tests/test_users.py -> ../tests/test_users.py
+        # El template declara "python -m unittest tests/test_users.py", que es
+        # EXACTAMENTE el caso especial documentado (python -m unittest
+        # <archivo>.py, 4 tokens): el export lo reescribe a invocacion directa
+        # "python <rel>" SIN "-m unittest" (auto-ejecutable + -m unittest no
+        # acepta rutas con "..").
         with _tmpdir() as d:
             d = Path(d)
             src = _write_contract(d, "tc")
@@ -290,8 +295,204 @@ class TestFrontmatterPreserved(unittest.TestCase):
             values, _ = _fm_values(content)
             self.assertEqual(values["test_command"],
                              "python ../tests/test_users.py")
+            self.assertNotIn("-m unittest", values["test_command"])
             # sin separador nativo (Windows backslash) colado
             self.assertNotIn("\\", values["test_command"])
+
+
+class TestTestCommandRunnerPreserved(unittest.TestCase):
+    # El runner de test_command se preserva del contrato fuente: NO se
+    # hardcodea "python". Solo se reescribe la ruta del archivo de tests
+    # (la aparicion literal del valor original de tests) a su equivalente
+    # relativo al directorio del target (POSIX).
+
+    _NODE_TEMPLATE = """---
+type: 'Task Contract'
+title: 'Test node runner'
+task: {task}
+intent: "probar runner node"
+target: src/users.py
+signature: "def f(x):"
+test_command: "node --test tests/algo.test.mjs"
+budget:
+  max_cyclomatic_complexity: 10
+tests: "tests/algo.test.mjs"
+deps_allowed: []
+forbids: ['network', 'subprocess']
+---
+
+# Contract: {task}
+
+## Intent
+- runner node preservado
+"""
+
+    _PY_REPO_TEMPLATE = """---
+type: 'Task Contract'
+title: 'Test python runner'
+task: {task}
+intent: "probar runner python del repo"
+target: scripts/export_gate_contract.py
+signature: "def f(x):"
+test_command: "python -m unittest tests/test_export_gate_contract.py"
+budget:
+  max_cyclomatic_complexity: 10
+tests: "tests/test_export_gate_contract.py"
+deps_allowed: []
+forbids: ['network', 'subprocess']
+---
+
+# Contract: {task}
+
+## Intent
+- runner python preservado
+"""
+
+    def test_node_runner_preserved_not_python(self):
+        # (a) Contrato con runner node: el export debe conservar
+        # "node --test <rel>" y NO contener "python". target en src/,
+        # tests en tests/ -> rel "../tests/algo.test.mjs" (invariante al
+        # prefijo comun: la relativa entre src/ y tests/ no depende de
+        # out_dir).
+        with _tmpdir() as d:
+            d = Path(d)
+            src = d / "node.md"
+            src.write_text(self._NODE_TEMPLATE.format(task="nodeprobe"),
+                           encoding="utf-8")
+            out = egc.export_gate_contract(str(src), str(d / "out"))
+            content = Path(out).read_text(encoding="utf-8")
+            values, _ = _fm_values(content)
+            self.assertEqual(values["test_command"],
+                             "node --test ../tests/algo.test.mjs")
+            self.assertNotIn("python", values["test_command"])
+
+    def test_python_unittest_single_file_special_case(self):
+        # (b) Contrato con el test_command actual del repo (runner python,
+        # "python -m unittest tests/test_export_gate_contract.py"): es
+        # EXACTAMENTE el caso especial documentado (4 tokens, archivo .py).
+        # El export lo reescribe a invocacion directa "python <rel>" SIN
+        # "-m unittest" — los archivos de test Python de este repo son
+        # auto-ejecutables y "-m unittest" no acepta rutas con "..". El
+        # caso Python SIGUE ejecutandose por el gate (regresión). out_dir =
+        # raiz del repo (default real) -> sin ".." en target/tests; target
+        # en scripts/, tests en tests/ -> rel "../tests/test_export_gate_contract.py".
+        with _tmpdir() as d:
+            d = Path(d)
+            src = d / "pyrepo.md"
+            src.write_text(self._PY_REPO_TEMPLATE.format(task="pyprobe"),
+                           encoding="utf-8")
+            out = egc.export_gate_contract(str(src), str(ROOT),
+                                           repo_root=str(ROOT))
+            self.addCleanup(lambda p=Path(out): p.unlink(missing_ok=True))
+            content = Path(out).read_text(encoding="utf-8")
+            values, _ = _fm_values(content)
+            self.assertEqual(values["test_command"],
+                             "python "
+                             "../tests/test_export_gate_contract.py")
+            self.assertNotIn("-m unittest", values["test_command"])
+
+    _PY_DISCOVER_TEMPLATE = """---
+type: 'Task Contract'
+title: 'Test python discover'
+task: {task}
+intent: "probar discover preserve runner"
+target: src/users.py
+signature: "def f(x):"
+test_command: "python -m unittest discover -s tests"
+budget:
+  max_cyclomatic_complexity: 10
+tests: "tests/test_users.py"
+deps_allowed: []
+forbids: ['network', 'subprocess']
+---
+
+# Contract: {task}
+
+## Intent
+- runner discover preservado (5 tokens, no caso especial)
+"""
+
+    _PY_DOTTED_TEMPLATE = """---
+type: 'Task Contract'
+title: 'Test python dotted module'
+task: {task}
+intent: "probar modulo dotted preserve runner"
+target: src/users.py
+signature: "def f(x):"
+test_command: "python -m unittest tests.test_users"
+budget:
+  max_cyclomatic_complexity: 10
+tests: "tests/test_users.py"
+deps_allowed: []
+forbids: ['network', 'subprocess']
+---
+
+# Contract: {task}
+
+## Intent
+- modulo dotted preservado (4 tokens, sin .py -> no caso especial)
+"""
+
+    def test_python_unittest_discover_preserves_runner(self):
+        # test_command con MAS de 4 tokens ("python -m unittest discover -s
+        # tests", 5 tokens) NO cae en el caso especial: el runner
+        # "python -m unittest" se preserva literal (la ruta de tests no es
+        # substring del comando, asi que se preserva tal cual).
+        with _tmpdir() as d:
+            d = Path(d)
+            src = d / "disc.md"
+            src.write_text(self._PY_DISCOVER_TEMPLATE.format(task="discprobe"),
+                           encoding="utf-8")
+            out = egc.export_gate_contract(str(src), str(d / "out"))
+            content = Path(out).read_text(encoding="utf-8")
+            values, _ = _fm_values(content)
+            self.assertEqual(values["test_command"],
+                             "python -m unittest discover -s tests")
+            self.assertIn("python -m unittest", values["test_command"])
+
+    def test_python_dotted_module_preserves_runner(self):
+        # test_command de 4 tokens pero el 4to NO termina en ".py" (nombre
+        # de modulo dotted "tests.test_users"): NO cae en el caso especial.
+        # La ruta de tests ("tests/test_users.py") no es substring del
+        # comando, asi que se preserva literal tal cual.
+        with _tmpdir() as d:
+            d = Path(d)
+            src = d / "dot.md"
+            src.write_text(self._PY_DOTTED_TEMPLATE.format(task="dotprobe"),
+                           encoding="utf-8")
+            out = egc.export_gate_contract(str(src), str(d / "out"))
+            content = Path(out).read_text(encoding="utf-8")
+            values, _ = _fm_values(content)
+            self.assertEqual(values["test_command"],
+                             "python -m unittest tests.test_users")
+            self.assertIn("python -m unittest", values["test_command"])
+
+    def test_no_test_command_key_not_added(self):
+        # Invariante explicita del contrato: si el contrato NO declara
+        # test_command, el export NO agrega la clave (comportamiento
+        # invariante respecto al estado anterior del codigo).
+        with _tmpdir() as d:
+            d = Path(d)
+            src = d / "notc.md"
+            src.write_text(
+                "---\n"
+                "type: 'Task Contract'\n"
+                "task: notc\n"
+                "intent: \"sin test_command\"\n"
+                "target: src/users.py\n"
+                "signature: \"def f(x):\"\n"
+                "budget:\n"
+                "  max_cyclomatic_complexity: 10\n"
+                "tests: \"tests/test_users.py\"\n"
+                "deps_allowed: []\n"
+                "forbids: ['network', 'subprocess']\n"
+                "---\n\n# Contract: notc\n",
+                encoding="utf-8")
+            out = egc.export_gate_contract(str(src), str(d / "out"))
+            content = Path(out).read_text(encoding="utf-8")
+            values, keys = _fm_values(content)
+            self.assertNotIn("test_command", keys)
+            self.assertNotIn("test_command", values)
 
 
 class TestRealContractExport(unittest.TestCase):
@@ -327,10 +528,13 @@ class TestRealContractExport(unittest.TestCase):
         "ejemplo removido por init: knowledge/contracts/validate-user-record.md")
     def test_real_contract_test_command_rewritten_and_runs_from_src(self):
         # Export del contrato real de C04 con out_dir = raiz del repo (el
-        # default real): test_command debe reescribirse a
-        # "python ../tests/test_users.py" (cwd del gate = dir del target =
-        # src/) y el comando reescrito DEBE funcionar corrido con subprocess
-        # desde src/ (exit 0): tests/test_users.py es auto-ejecutable.
+        # default real): test_command se reescribe aplicando el caso
+        # especial documentado ("python -m unittest <archivo>.py" -> "python
+        # <archivo>.py", invocacion directa, SIN "-m unittest") y
+        # reescribiendo la ruta -> "python ../tests/test_users.py" (cwd del
+        # gate = dir del target = src/). El comando reescrito DEBE funcionar
+        # corrido con subprocess desde src/ (exit 0): los archivos de test
+        # Python de este repo son auto-ejecutables.
         real = ROOT / "knowledge" / "contracts" / "validate-user-record.md"
         self.assertTrue(real.is_file(), "fixture faltante: {}".format(real))
         out = egc.export_gate_contract(str(real), str(ROOT),
@@ -340,6 +544,7 @@ class TestRealContractExport(unittest.TestCase):
         values, _ = _fm_values(content)
         self.assertEqual(values["test_command"],
                          "python ../tests/test_users.py")
+        self.assertNotIn("-m unittest", values["test_command"])
         # El gate corre test_command con cwd = dir del target (src/). Lo
         # reproducimos: shell=False, lista de tokens, cwd = ROOT/src.
         cmd = values["test_command"].split()
