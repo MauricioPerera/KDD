@@ -99,7 +99,6 @@ def _abortar_text(lines, idx):
     seccion (header markdown) o fin de la seccion.
     """
     collected = [lines[idx]]
-    indent = len(_ABORTAR_RE.match(lines[idx]).group(1))
     j = idx + 1
     while j < len(lines):
         ln = lines[j]

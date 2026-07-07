@@ -439,10 +439,11 @@ def assemble(contract, task, base_dir):
         if hit is not None:
             finding = "regex_deny: patron matcheado: {!r}".format(hit)
             findings.append(finding)
-            result = _build_result(slot_reports, context, used, available,
-                                   max_tokens, output_reserve,
-                                   findings, abort=True, configured=configured)
             if on_fail == "abort":
+                result = _build_result(slot_reports, context, used, available,
+                                       max_tokens, output_reserve,
+                                       findings, abort=True,
+                                       configured=configured)
                 raise GuardrailAbort(result, finding)
             # on_fail != abort: solo reporta (no aborta)
 

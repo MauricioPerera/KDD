@@ -242,7 +242,12 @@ def _resolve_link(src_abs, target, kb_abs):
     if t.startswith('/'):
         return None, False
     resolved = os.path.normpath(os.path.join(os.path.dirname(src_abs), t))
-    inside = (os.path.commonpath([resolved, kb_abs]) == kb_abs)
+    try:
+        inside = (os.path.commonpath([resolved, kb_abs]) == kb_abs)
+    except ValueError:
+        # commonpath lanza si las rutas no comparten base (p. ej. unidades
+        # de Windows distintas): el destino queda fuera del bundle (§4).
+        return resolved, False
     return resolved, inside
 
 
