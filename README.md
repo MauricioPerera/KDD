@@ -45,6 +45,10 @@ The full normative reference — validation levels 1 and 2, the multi-language g
 - **Level 1 (included, mandatory):** `python scripts/validate_contracts.py knowledge/contracts` + `python scripts/validate_specs.py specs` + the contract's `test_command`, all green locally and in CI (`.github/workflows/validate.yml`). No contract is considered done until level 1 passes.
 - **Level 2 (optional):** the real CCDD gate via the `ccdd-complexity` MCP server (`lint_task_contract`, `run_integration_gate`) over the export produced by `scripts/export_gate_contract.py`. With the gate present, its signed config takes precedence over the frontmatter `budget`.
 
+### Versioning
+
+The template uses **semantic versioning** starting from `v1.0.0`. See [`CHANGELOG.md`](CHANGELOG.md) for the release history. When you instantiate this template with `init_project`, you inherit a versioned base that you can upgrade: the [`Upgrade de la plantilla`](knowledge/plantilla-upgrade.md) node documents which artifacts are template infrastructure (updatable from upstream) and which belong to your project (yours to keep or modify as you see fit).
+
 <a id="español"></a>
 
 ## Español
@@ -87,3 +91,7 @@ La referencia normativa completa — niveles 1 y 2 de validación, el gate multi
 
 - **Nivel 1 (incluido, obligatorio):** `python scripts/validate_contracts.py knowledge/contracts` + `python scripts/validate_specs.py specs` + el `test_command` del contrato, todo en verde local y en CI (`.github/workflows/validate.yml`). Ningún contrato se considera terminado hasta pasar el nivel 1.
 - **Nivel 2 (opcional):** el gate CCDD real vía el servidor MCP `ccdd-complexity` (`lint_task_contract`, `run_integration_gate`) sobre el export de `scripts/export_gate_contract.py`. Con gate presente, su config firmada tiene precedencia sobre el `budget` del frontmatter.
+
+### Versionado
+
+La plantilla usa **versionado semántico** comenzando desde `v1.0.0`. Consulta [`CHANGELOG.md`](CHANGELOG.md) para el historial de releases. Cuando instancies esta plantilla con `init_project`, heredas una base versionada que puedes actualizar: el nodo [`Upgrade de la plantilla`](knowledge/plantilla-upgrade.md) documenta cuál es infraestructura de la plantilla (actualizable desde upstream) y cuál pertenece a tu proyecto (tuyo para mantener o modificar).

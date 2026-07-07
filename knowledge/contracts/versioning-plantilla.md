@@ -13,7 +13,7 @@ budget:
   max_cyclomatic_complexity: 5
   max_nesting_depth: 3
 tests: "tests/test_versioning.py"
-tests_sha256: "068236114a663d5998bff7e67eebb506f24ce2c75babc5f2e875f11608e5a3f7"
+tests_sha256: "0115ea5cd92b787cdc46f2e4717fe1d6f582fca711579d0ff2125b0416bae9e2"
 deps_allowed: []
 forbids: ['network', 'subprocess']
 ---
