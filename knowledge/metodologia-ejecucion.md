@@ -19,7 +19,10 @@ producción (28 contratos consecutivos en el proyecto origen).
 | Contrato de ejecución | `specs/CONTRACT-NN-<slug>.md` | un objetivo del proyecto (1-N tareas) | `docs/reports/CONTRACT-NN-REPORT.md` (en-repo) |
 | Task contract (CCDD) | `knowledge/contracts/<task>.md` | una tarea de código delegada | `.agents/logs/<task>-REPORT.md` (local, gitignorado) |
 
-Plantillas: `specs/TEMPLATE-CONTRACT.md` y `docs/reports/TEMPLATE-REPORT.md`.
+Plantillas: `specs/TEMPLATE-CONTRACT.md` y `docs/reports/TEMPLATE-REPORT.md`. El
+«Checklist antes de delegar» de la plantilla es la forma **operativa** de las reglas
+RECON / red-team / perímetro / aborto de este nodo; este nodo es la fuente normativa —
+ante divergencia manda la metodología y el checklist se re-alinea.
 
 ## Proceso
 

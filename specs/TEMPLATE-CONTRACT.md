@@ -43,6 +43,10 @@ FIX/OBJETIVO: <estado final deseado, no pasos. Invariantes que NO pueden cambiar
 
 ## Checklist antes de delegar
 
+> Forma operativa de las reglas RECON / red-team / perímetro / aborto de
+> [knowledge/metodologia-ejecucion.md](../knowledge/metodologia-ejecucion.md).
+> Ante divergencia, manda la metodología y este checklist se re-alinea.
+
 - [ ] RECON corrido: toda suposición del contrato verificada con un check real (comando de
   suite real del CI, workflows completos — incluidos los condicionales por diff —, deps).
 - [ ] Todo criterio de aceptación tiene comando + resultado esperado (por máquina, nunca
