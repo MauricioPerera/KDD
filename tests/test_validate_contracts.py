@@ -239,6 +239,144 @@ class TestValidatorWarnings(unittest.TestCase):
                             for f in warnings))
 
 
+class TestTestsSha256Validation(unittest.TestCase):
+    """Tests para validación de tests_sha256 (FREEZE-ORACLE)."""
+
+    def _run(self, content, create_files=True):
+        """Ejecuta validación sobre estructura temporal."""
+        with tempfile.TemporaryDirectory() as repo_root:
+            contracts_dir = os.path.join(repo_root, 'knowledge', 'contracts')
+            os.makedirs(contracts_dir, exist_ok=True)
+            _write(repo_root, 'knowledge/contracts/c.md', content)
+            if create_files:
+                _write(repo_root, 'src/hello.py', 'def hello(name: str) -> str:\n    return f"Hello, {name}"\n')
+                _write(repo_root, 'tests/test_sample.py', 'import unittest\nclass TestHello(unittest.TestCase): pass\n')
+            return vc.validate_directory(contracts_dir, repo_root=repo_root)
+
+    def _rules_and_messages(self, findings):
+        return {(f.rule, f.message) for f in findings}
+
+    def test_sha256_correct_no_errors(self):
+        """(a) hash correcto → 0 errores"""
+        # Calcular hash real del test file
+        test_content = 'import unittest\nclass TestHello(unittest.TestCase): pass\n'
+        normalized = test_content.replace('\r\n', '\n').replace('\r', '\n')
+        import hashlib
+        correct_hash = hashlib.sha256(normalized.encode('utf-8')).hexdigest()
+
+        contract = VALID_CONTRACT.replace(
+            'forbids: [\'network\', \'subprocess\']',
+            f'forbids: [\'network\', \'subprocess\']\ntests_sha256: "{correct_hash}"'
+        )
+        findings = self._run(contract)
+        errors = [f for f in findings if f.level == 'ERROR']
+        self.assertEqual(errors, [], msg=[str(f) for f in findings])
+
+    def test_sha256_mismatch_error(self):
+        """(b) contenido mutado → ERROR FM_TESTS_FROZEN con ambos hashes"""
+        import hashlib
+        wrong_hash = hashlib.sha256(b'different_content').hexdigest()
+
+        contract = VALID_CONTRACT.replace(
+            'forbids: [\'network\', \'subprocess\']',
+            f'forbids: [\'network\', \'subprocess\']\ntests_sha256: "{wrong_hash}"'
+        )
+        findings = self._run(contract)
+        errors = [f for f in findings if f.level == 'ERROR']
+        fm_tests_frozen_errors = [f for f in errors if f.rule == 'FM_TESTS_FROZEN']
+        self.assertTrue(len(fm_tests_frozen_errors) >= 1, msg=[str(f) for f in findings])
+        # Verificar que el mensaje menciona el archivo y ambos hashes
+        msg = fm_tests_frozen_errors[0].message
+        self.assertIn('tests/test_sample.py', msg)
+        self.assertIn(wrong_hash, msg)
+
+    def test_sha256_absent_warning(self):
+        """(c) clave ausente → WARNING FM_TESTS_FROZEN (recomendada)"""
+        # VALID_CONTRACT ya no tiene tests_sha256
+        findings = self._run(VALID_CONTRACT)
+        warnings = [f for f in findings if f.level == 'WARNING']
+        fm_tests_frozen_warnings = [f for f in warnings if f.rule == 'FM_TESTS_FROZEN']
+        self.assertTrue(len(fm_tests_frozen_warnings) >= 1, msg=[str(f) for f in findings])
+        self.assertIn('recomendada', fm_tests_frozen_warnings[0].message)
+
+    def test_sha256_crlf_vs_lf_same_hash(self):
+        """(d) hash con CRLF vs LF → normalización funciona"""
+        # Crear fixture con CRLF
+        with tempfile.TemporaryDirectory() as repo_root:
+            contracts_dir = os.path.join(repo_root, 'knowledge', 'contracts')
+            os.makedirs(contracts_dir, exist_ok=True)
+
+            # Escribir archivo con LF
+            _write(repo_root, 'src/hello.py', 'def hello(name: str) -> str:\n    return f"Hello, {name}"\n')
+
+            # Calcular hash del contenido con LF
+            test_content_lf = 'import unittest\nclass TestHello(unittest.TestCase): pass\n'
+            normalized = test_content_lf.replace('\r\n', '\n').replace('\r', '\n')
+            import hashlib
+            correct_hash = hashlib.sha256(normalized.encode('utf-8')).hexdigest()
+
+            # Escribir test file CON CRLF
+            test_path = os.path.join(repo_root, 'tests/test_sample.py')
+            os.makedirs(os.path.dirname(test_path), exist_ok=True)
+            with open(test_path, 'wb') as f:
+                f.write(b'import unittest\r\nclass TestHello(unittest.TestCase): pass\r\n')
+
+            contract = VALID_CONTRACT.replace(
+                'forbids: [\'network\', \'subprocess\']',
+                f'forbids: [\'network\', \'subprocess\']\ntests_sha256: "{correct_hash}"'
+            )
+            _write(repo_root, 'knowledge/contracts/c.md', contract)
+
+            findings = vc.validate_directory(contracts_dir, repo_root=repo_root)
+            errors = [f for f in findings if f.level == 'ERROR']
+            # La normalización debe hacer que el hash coincida
+            self.assertEqual(errors, [], msg=[str(f) for f in findings])
+
+    def test_sha256_invalid_format_error(self):
+        """(e) formato inválido → ERROR"""
+        # Hash con menos de 64 caracteres
+        contract = VALID_CONTRACT.replace(
+            'forbids: [\'network\', \'subprocess\']',
+            'forbids: [\'network\', \'subprocess\']\ntests_sha256: "abcd1234"'
+        )
+        findings = self._run(contract)
+        errors = [f for f in findings if f.level == 'ERROR']
+        fm_tests_frozen_errors = [f for f in errors if f.rule == 'FM_TESTS_FROZEN']
+        self.assertTrue(len(fm_tests_frozen_errors) >= 1, msg=[str(f) for f in findings])
+        self.assertIn('formato inválido', fm_tests_frozen_errors[0].message)
+
+    def test_sha256_invalid_hex_characters(self):
+        """Hash con caracteres no-hex → ERROR"""
+        # 64 caracteres pero contiene 'Z' (no hex)
+        bad_hash = 'Z' * 64
+        contract = VALID_CONTRACT.replace(
+            'forbids: [\'network\', \'subprocess\']',
+            f'forbids: [\'network\', \'subprocess\']\ntests_sha256: "{bad_hash}"'
+        )
+        findings = self._run(contract)
+        errors = [f for f in findings if f.level == 'ERROR']
+        fm_tests_frozen_errors = [f for f in errors if f.rule == 'FM_TESTS_FROZEN']
+        self.assertTrue(len(fm_tests_frozen_errors) >= 1, msg=[str(f) for f in findings])
+
+    def test_sha256_present_but_tests_missing(self):
+        """Si tests_sha256 presente pero tests no existe, FM_PATH_tests reporta (no duplica hash error)"""
+        import hashlib
+        correct_hash = hashlib.sha256(b'dummy').hexdigest()
+
+        contract = VALID_CONTRACT.replace(
+            'tests: "tests/test_sample.py"',
+            f'tests: "tests/nonexistent.py"'
+        ).replace(
+            'forbids: [\'network\', \'subprocess\']',
+            f'forbids: [\'network\', \'subprocess\']\ntests_sha256: "{correct_hash}"'
+        )
+        findings = self._run(contract, create_files=False)
+        errors = [f for f in findings if f.level == 'ERROR']
+        # Debe haber FM_PATH_tests pero no duplicar el error hash
+        rules = {f.rule for f in errors}
+        self.assertIn('FM_PATH_tests', rules)
+
+
 class TestExitCode(unittest.TestCase):
     def _run_main(self, content, create_files=True):
         with tempfile.TemporaryDirectory() as repo_root:

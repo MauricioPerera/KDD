@@ -13,6 +13,7 @@ budget:
   max_cyclomatic_complexity: 10
   max_nesting_depth: 4
 tests: "tests/test_validate_okf.py"
+tests_sha256: "9374f08adbbb49ca85b3626aa21a36310982d4e5fe39989d435e6428dbc5b95c"
 deps_allowed: []
 forbids: ['network', 'subprocess']
 ---

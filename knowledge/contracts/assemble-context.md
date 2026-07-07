@@ -13,6 +13,7 @@ budget:
   max_cyclomatic_complexity: 10
   max_nesting_depth: 4
 tests: "tests/test_assemble_context.py"
+tests_sha256: "ddcc59a42458133cd46633e50fbe527cbc687ab0bc698be85e178a1900d3c07f"
 deps_allowed: []
 forbids: ['network', 'subprocess']
 ---

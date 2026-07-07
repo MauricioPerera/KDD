@@ -19,6 +19,8 @@ Uso:
 
 import os
 import sys
+import hashlib
+import re
 
 
 # ---------------------------------------------------------------------------
@@ -183,6 +185,32 @@ def _is_non_empty(value):
     return True
 
 
+def _normalize_newlines(data):
+    """Normaliza newlines a LF: \\r\\n -> \\n y \\r suelto -> \\n."""
+    return data.replace('\r\n', '\n').replace('\r', '\n')
+
+
+def _calculate_tests_hash(tests_path):
+    """Calcula SHA256 del archivo tests con newlines normalizados a LF.
+
+    Devuelve el hash hex (64 chars) o None si no se puede leer el archivo.
+    """
+    try:
+        with open(tests_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        normalized = _normalize_newlines(content)
+        return hashlib.sha256(normalized.encode('utf-8')).hexdigest()
+    except OSError:
+        return None
+
+
+def _is_valid_hex_hash(value):
+    """Verifica si el valor es un hash hex válido (64 chars, lowercase)."""
+    if not isinstance(value, str):
+        return False
+    return len(value) == 64 and re.match(r'^[0-9a-f]{64}$', value) is not None
+
+
 def _extract_sections(body):
     """Devuelve dict nombre_seccion -> texto_de_la_seccion (sin header)."""
     sections = {}
@@ -270,6 +298,38 @@ def validate_file(path, repo_root=None):
             findings.append(Finding(rel, 'FM_PATH_tests',
                                     "tests no existe o no es archivo: {} (resuelto a {})"
                                     .format(tests_rel, tests_abs)))
+
+    # Validar tests_sha256 (si presente)
+    if 'tests_sha256' in data:
+        tests_sha256 = data['tests_sha256']
+        if tests_sha256:  # si la clave está presente y no es vacía
+            # Validar formato: debe ser 64 caracteres hex lowercase
+            if not _is_valid_hex_hash(tests_sha256):
+                findings.append(Finding(
+                    rel, 'FM_TESTS_FROZEN',
+                    "tests_sha256 con formato inválido (debe ser 64 chars hex lowercase): {!r}"
+                    .format(tests_sha256)))
+            # Si tests existe, validar que el hash coincida
+            elif 'tests' in data and data['tests']:
+                tests_rel = data['tests']
+                tests_abs = os.path.abspath(os.path.join(repo_root, tests_rel))
+                if os.path.isfile(tests_abs):
+                    actual_hash = _calculate_tests_hash(tests_abs)
+                    if actual_hash is None:
+                        # No se pudo leer el archivo, pero FM_PATH_tests ya lo reportó
+                        pass
+                    elif actual_hash != tests_sha256:
+                        findings.append(Finding(
+                            rel, 'FM_TESTS_FROZEN',
+                            "archivo '{}': hash esperado {}, hash actual {}"
+                            .format(tests_rel, tests_sha256, actual_hash)))
+    else:
+        # Si tests_sha256 está ausente, es recomendado (WARNING)
+        if 'tests' in data and data['tests']:
+            findings.append(Finding(
+                rel, 'FM_TESTS_FROZEN',
+                "clave 'tests_sha256' ausente (recomendada para congelar el oraculo)",
+                level='WARNING'))
 
     # (d) secciones del cuerpo
     sections = _extract_sections(body)

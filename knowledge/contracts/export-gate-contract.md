@@ -13,6 +13,7 @@ budget:
   max_cyclomatic_complexity: 10
   max_nesting_depth: 4
 tests: "tests/test_export_gate_contract.py"
+tests_sha256: "fd47d2f68c9c5a07d67edfc11d05bfd930e49ca46e675564dcdd9ccf32c7cec1"
 deps_allowed: []
 forbids: ['network', 'subprocess']
 ---
