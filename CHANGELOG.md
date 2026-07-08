@@ -2,6 +2,11 @@
 
 All notable changes to the KDD Template are documented here.
 
+## Unreleased
+
+**Contract 16 — Example domain: per-country payment validation** ([C16-REPORT](docs/reports/CONTRACT-16-REPORT.md))
+- Resolved example of financial-domain frozen contracts: `validate_payment_limit` (per-country limit + beneficiary verification) as a pure function, with its frozen oracle and a data-model node holding the compliance rules. Added as an EXAMPLE artifact (removed by `init_project` on instantiation), so the template stays domain-neutral.
+
 ## v1.0.0 — 2026-07-07
 
 ### What's included

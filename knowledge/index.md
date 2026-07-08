@@ -13,5 +13,6 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contratos de Desarrollo](./contracts/)
 - [Modelos de Datos](./data_models/)
   - [Tabla users](./data_models/users_table.md)
+  - [Limites de pago por pais](./data_models/payment_limits.md)
 - [Arquitectura](./architecture/)
   - [Arquitectura general](./architecture/overview.md)

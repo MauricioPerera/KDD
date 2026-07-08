@@ -7,7 +7,7 @@ quitando los enlaces a nodos eliminados (sin enlaces muertos ni secciones
 de lista vacias/rotas), y con ``--name`` reemplaza SOLO el titulo H1 del
 README. Dry-run por default: calcula el plan sin tocar nada.
 
-Todo-o-nada: valida que los 8 artefactos del manifiesto existen ANTES de
+Todo-o-nada: valida que todos los artefactos del manifiesto existen ANTES de
 borrar el primero; si falta alguno -> ValueError (CLI exit 2) sin tocar nada.
 
 Exit codes: 0 ok · 1 I/O · 2 manifiesto incompleto.
@@ -39,6 +39,10 @@ MANIFEST = (
     "knowledge/architecture/overview.md",
     "knowledge/contracts/sample_task.md",
     "knowledge/contracts/validate-user-record.md",
+    "src/payment_limit.py",
+    "tests/test_payment_limit.py",
+    "knowledge/data_models/payment_limits.md",
+    "knowledge/contracts/validate-payment-limit.md",
 )
 
 _LINK_RE = re.compile(r"\]\(([^)]+)\)")

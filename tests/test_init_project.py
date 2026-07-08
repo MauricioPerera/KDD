@@ -25,7 +25,7 @@ SCRIPT = os.path.join(ROOT, "scripts", "init_project.py")
 
 # Manifiesto importado del propio scripts/init_project.py (no se duplica la
 # lista): si el repo real YA fue inicializado (--apply corrido sobre el arbol
-# real), los 8 artefactos de ejemplo desaparecen y estos tests esperan la
+# real), los artefactos de ejemplo del manifiesto desaparecen y estos tests esperan la
 # plantilla integra -> fallarian. El guard de clase skipUnless abajo saltea
 # toda la suite en ese caso; en la plantilla integra (8 presentes) corre.
 _spec_init = importlib.util.spec_from_file_location("init_project", SCRIPT)
