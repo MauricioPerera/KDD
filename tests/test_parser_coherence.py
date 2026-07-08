@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 
 import validate_contracts as vc  # noqa: E402
 import validate_okf as vok  # noqa: E402
+import validate_skills as vs  # noqa: E402
 
 
 # Fixtures de frontmatter cubriendo el dialecto compartido.
@@ -110,6 +111,7 @@ class TestParserCoherence(unittest.TestCase):
             with self.subTest(fixture=name):
                 d_vc, b_vc = vc.parse_frontmatter(text)
                 d_ok, b_ok = vok.parse_frontmatter(text)
+                d_vs, b_vs = vs.parse_frontmatter(text)
                 self.assertEqual(
                     d_vc, d_ok,
                     "dict difiere para {!r}:\n  vc={!r}\n  ok={!r}".format(
@@ -118,6 +120,14 @@ class TestParserCoherence(unittest.TestCase):
                     b_vc, b_ok,
                     "body difiere para {!r}:\n  vc={!r}\n  ok={!r}".format(
                         name, b_vc, b_ok))
+                self.assertEqual(
+                    d_vc, d_vs,
+                    "dict difiere para {!r}:\n  vc={!r}\n  vs={!r}".format(
+                        name, d_vc, d_vs))
+                self.assertEqual(
+                    b_vc, b_vs,
+                    "body difiere para {!r}:\n  vc={!r}\n  vs={!r}".format(
+                        name, b_vc, b_vs))
 
     def test_parsers_export_same_symbols(self):
         # El dialecto compartido se apoya en estas 4 funciones identicas.
@@ -127,6 +137,8 @@ class TestParserCoherence(unittest.TestCase):
                            "validate_contracts sin {}".format(fn))
             self.assertTrue(hasattr(vok, fn),
                            "validate_okf sin {}".format(fn))
+            self.assertTrue(hasattr(vs, fn),
+                           "validate_skills sin {}".format(fn))
 
 
 if __name__ == "__main__":

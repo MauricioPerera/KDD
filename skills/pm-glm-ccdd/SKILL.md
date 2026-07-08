@@ -125,7 +125,7 @@ mecánica — solo agrega lo específico de GLM y de la orquestación de proyect
   `pytest` a secas rompe la colección (examples/ con basenames duplicados); el comando correcto era
   `python -m unittest discover -s tests -p "test_*.py"`. Poné el comando exacto en cada spec.
 - En la spec, instruí al dev a autorar el contrato + property-tests congelados según
-  [`kdd-okf-ccdd-hybrid`](../kdd-okf-ccdd-hybrid/SKILL.md) (7 secciones + frontmatter), validar con
+  [`kdd-okf-ccdd-hybrid`](https://github.com/MauricioPerera/KDD/blob/main/.agents/skills/kdd-okf-ccdd-hybrid/SKILL.md) (7 secciones + frontmatter), validar con
   `lint_task_contract` y correr `run_integration_gate` hasta PASS **sobre los archivos REALES del repo**.
   Medición puntual: `measure_complexity`. **NUNCA `run_ephemeral_agent` apuntando al repo real:** corre
   en un sandbox tempdir que VACÍA el directorio y puede destruir archivos.

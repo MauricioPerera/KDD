@@ -39,7 +39,7 @@ tests_sha256: "a1b2c3d4e5f6..."
 ## 3. Contexto Interconectado (Enlaces OKF)
 Para proveer el contexto del negocio y diseño a los agentes efímeros sin abrumarlos, **está prohibido duplicar reglas de negocio de manera verbosa en el contrato**.
 En lugar de eso, en secciones como `## Intent`, `## Interface`, o `## Constraints`, se DEBE usar un enlace de Markdown relativo hacia los nodos de OKF relevantes (arquitectura, modelos de datos).
-- **DO:** "Validar formato contra [users_table.md](../data_models/users_table.md)"
+- **DO:** "Validar formato contra `knowledge/data_models/users_table.md`"
 - **DON'T:** "La tabla de usuarios tiene un uuid, un email, un password, y una fecha de creación, y su ID es un string de 36 caracteres..."
 
 ## 4. Validación Continua Obligatoria (dos niveles)

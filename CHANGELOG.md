@@ -4,6 +4,9 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+**Contract 24 — Agent-skills gate: real repo assets under machine custody** ([C24-REPORT](docs/reports/CONTRACT-24-REPORT.md))
+- First gate guarding REAL repo assets instead of examples: `scripts/validate_skills.py` (level-1 gate + CI step, dual-OS) validates the agent skills in `skills/` and `.agents/skills` — SKILL.md presence, parseable frontmatter (mini-YAML dialect now pinned 3-way by the parser-coherence test), kebab-case `name` matching its directory and unique across dirs, `description` length within data-informed bounds [50, 1024], non-empty body, and resolving relative links (code spans/fences stripped). The gate's own RECON found and fixed 3 real broken links in the live skill copies (operative-first, byte-identical sync doctrine). Optional layer: missing dir passes with INFO.
+
 **Contract 23 — Editorial contract: article style as a gate** ([C23-REPORT](docs/reports/CONTRACT-23-REPORT.md))
 - Fifth example domain, beyond "logic": deterministic editorial rules (length, structure, forbidden lexicon, raw-URL/table/H1 bans, paragraph caps) as a pre-publication gate, with the style table passed as an argument (reusable across publications). Judgment rules (hook quality, tone, humor) are declared OUT by contract — Tier-2/human territory. Fourth boundary class measured: text properties (no `length`/`matches` declarative families; code-form domain per the evidence-first doctrine).
 

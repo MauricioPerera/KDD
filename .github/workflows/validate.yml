@@ -34,6 +34,9 @@ jobs:
       - name: Validate rule contracts
         run: python scripts/validate_rules.py examples/rules
 
+      - name: Validate agent skills
+        run: python scripts/validate_skills.py skills .agents/skills
+
       - name: Run unit tests (1/2)
         run: python -m unittest discover -s tests -p "test_*.py"
 
