@@ -1,0 +1,28 @@
+{
+  "_comment": "Auditoria de ruteos como DATOS (Contrato 21): valida decisiones YA tomadas contra la politica. La decision permitida depende del emisor (keyed_enums). Frontera: el else abierto (emisor no enumerado) es code_only — lo decide y audita el codigo (src/route_message.py). Dominio: knowledge/data_models/message_routing.md.",
+  "required": [
+    { "field": "sender" },
+    { "field": "decision" }
+  ],
+  "type": [
+    { "field": "sender", "kind": "string" },
+    { "field": "decision", "kind": "string" }
+  ],
+  "enums": [
+    { "field": "decision", "values": ["A", "B"] }
+  ],
+  "keyed_enums": [
+    { "field": "decision", "key": "sender", "table": "senders", "values_path": "allowed" }
+  ],
+  "code_only": [
+    {
+      "rule": "else-abierto-default",
+      "field": "decision",
+      "reason": "La regla 'cualquier emisor NO enumerado debe haber ido a B' es un condicional con default sobre mundo abierto: keyed_enums se salta cuando la clave no resuelve (semantica congelada del motor desde C17), asi que un no-listado ruteado a A es invisible para el declarativo. La rama else vive en codigo: route_message la decide y sus tests congelados la fijan."
+    }
+  ],
+  "golden": {
+    "path": "routing-golden.json",
+    "sha256": "b5f79b2cfc724c58d168671e79445605f580a1aa4924a0b8846147cb811da4b1"
+  }
+}

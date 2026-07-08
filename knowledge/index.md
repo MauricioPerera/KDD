@@ -17,5 +17,6 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Limites de pago por pais](./data_models/payment_limits.md)
   - [Reglas de control de fronteras](./data_models/border_rules.md)
   - [Politica de workflows](./data_models/workflow_policy.md)
+  - [Politica de ruteo de mensajes](./data_models/message_routing.md)
 - [Arquitectura](./architecture/)
   - [Arquitectura general](./architecture/overview.md)

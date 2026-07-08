@@ -1,0 +1,47 @@
+{
+  "_comment": "Golden set congelado de la auditoria de ruteos (Contrato 21). Records = decisiones YA tomadas {sender, decision}. 'code_only_miss' = lo que el declarativo no ve: el else abierto (emisor no enumerado) — las familias keyed se saltan si la clave no resuelve. Dominio: knowledge/data_models/message_routing.md.",
+  "refs": {
+    "senders": {
+      "vip@acme.com": { "allowed": ["A"] },
+      "soporte@acme.com": { "allowed": ["A"] }
+    }
+  },
+  "cases": [
+    {
+      "name": "vip ruteado a A (correcto)",
+      "record": { "sender": "vip@acme.com", "decision": "A" },
+      "violations": [],
+      "code_only_miss": []
+    },
+    {
+      "name": "vip ruteado a B (violacion de politica)",
+      "record": { "sender": "vip@acme.com", "decision": "B" },
+      "violations": ["decision"],
+      "code_only_miss": []
+    },
+    {
+      "name": "soporte ruteado a B (violacion)",
+      "record": { "sender": "soporte@acme.com", "decision": "B" },
+      "violations": ["decision"],
+      "code_only_miss": []
+    },
+    {
+      "name": "no listado a B (correcto; el declarativo tampoco lo chequea)",
+      "record": { "sender": "otro@x.com", "decision": "B" },
+      "violations": [],
+      "code_only_miss": []
+    },
+    {
+      "name": "FRONTERA else abierto: no listado ruteado a A (mal, invisible para keyed)",
+      "record": { "sender": "otro@x.com", "decision": "A" },
+      "violations": ["decision"],
+      "code_only_miss": ["decision"]
+    },
+    {
+      "name": "sender ausente (required) y decision fuera del enum global",
+      "record": { "decision": "C" },
+      "violations": ["decision", "sender"],
+      "code_only_miss": []
+    }
+  ]
+}
