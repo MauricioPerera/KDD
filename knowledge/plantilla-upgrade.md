@@ -11,15 +11,15 @@ tags: ['upgrade', 'versionado', 'template', 'infra', 'procedimiento']
 
 Estos artefactos forman parte del tooling y las convenciones del template. Al upgrade de una nueva versión de la plantilla, **se pueden y deben ser sobrescritos** para traer mejoras, correcciones de seguridad y nuevas características:
 
-- **Validadores y herramientas:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/export_gate_contract.py`, `scripts/assemble_context.py`, `scripts/init_project.py`, `scripts/lint_ascii.py`
+- **Validadores y herramientas:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/export_gate_contract.py`, `scripts/assemble_context.py`, `scripts/init_project.py`, `scripts/lint_ascii.py`, `scripts/rule_engine.py`, `scripts/validate_rules.py`
 - **Configuración de contexto:** `ccdd/context.json`
 - **Reglas de agentes:** `.agents/AGENTS.md`
-- **Documentación de metodología:** `knowledge/OKF-SPEC.md`, `knowledge/metodologia-ejecucion.md`, `knowledge/validacion.md`
+- **Documentación de metodología:** `knowledge/OKF-SPEC.md`, `knowledge/metodologia-ejecucion.md`, `knowledge/validacion.md`, `knowledge/rule-contract-spec.md`
 - **Contratos de infraestructura:** `knowledge/contracts/` (excepto los propios del proyecto — ver abajo)
-- **Tests de infraestructura:** Tests que validan la plantilla misma (p. ej. `tests/test_agents_rules.py`, tests que validan `validate_contracts.py`, `init_project.py`, etc.). Véase `tests/test_init_project.py` línea 14-20 (constante `INTACTABLES_KDD`) para la lista autorizada.
+- **Tests de infraestructura:** Tests que validan la plantilla misma (p. ej. `tests/test_agents_rules.py`, tests que validan `validate_contracts.py`, `init_project.py`, `validate_rules.py`, etc.). Véase la constante `INTACTABLES` de `tests/test_init_project.py` para la lista autorizada.
 - **Configuración de CI:** `.github/workflows/validate.yml`
 
-**Origen de la verdad:** La estructura y contenido se especifican en `specs/CONTRACT-0{1..13}-*.md` y sus reportes correspondientes en `docs/reports/`.
+**Origen de la verdad:** La estructura y contenido se especifican en los `specs/CONTRACT-NN-*.md` y sus reportes correspondientes en `docs/reports/` (la lista crece con cada contrato cerrado; ver `CHANGELOG.md`).
 
 ## Propiedad del proyecto
 
@@ -36,8 +36,8 @@ Estos artefactos **pertenecen al proyecto** instanciado y **no deben ser sobresc
 ### 1. Bajar el release upstream
 
 ```bash
-# Descarga la nueva versión de la plantilla
-git clone --branch v1.1.0 https://github.com/tu-org/kdd-template.git kdd-upstream
+# Descarga la nueva versión de la plantilla (releases: CHANGELOG.md)
+git clone --branch v1.1.0 https://github.com/MauricioPerera/KDD.git kdd-upstream
 ```
 
 O si tu plantilla está en un monorepo/rama:
@@ -90,6 +90,10 @@ python scripts/validate_okf.py knowledge
 # Valida specs (si existen)
 python scripts/validate_specs.py specs
 
+# Lint ASCII de los scripts y gate de rule contracts (capa opcional)
+python scripts/lint_ascii.py scripts
+python scripts/validate_rules.py examples/rules
+
 # Corre la suite de tests
 python -m unittest discover -s tests -p "test_*.py"
 ```
@@ -124,6 +128,6 @@ El upgrade de infra NO es un merge automático ni ciego. **Después de sobreescr
 ---
 
 **Referencia:**
-- Instanciación inicial: `scripts/init_project.py` (manifest en línea 37-44)
-- Tests intocables: `tests/test_init_project.py` (constante `INTACTABLES_KDD`, línea 14-20)
+- Instanciación inicial: `scripts/init_project.py` (constante `MANIFEST`)
+- Tests intocables: `tests/test_init_project.py` (constante `INTACTABLES`)
 - Versión actual de la plantilla: `CHANGELOG.md`

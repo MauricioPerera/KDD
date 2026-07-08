@@ -22,19 +22,23 @@ This is a template repository for projects that implement the **Knowledge-Driven
   see [`knowledge/metodologia-ejecucion.md`](knowledge/metodologia-ejecucion.md).
 - `scripts/assemble_context.py` + `ccdd/context.json`: budgeted, deterministic context
   assembler over the OKF knowledge base (CCDD Level 2).
+- `scripts/rule_engine.py` + `scripts/validate_rules.py`: the **rule-contract** layer —
+  business rules validated as declarative data with a hash-sealed golden set (format:
+  [`knowledge/rule-contract-spec.md`](knowledge/rule-contract-spec.md); examples under
+  `examples/rules/`).
 
 ### How to use this template
 
 1. Use this repository as a "Template" on GitHub or clone it locally.
 2. Explore `knowledge/index.md` to see how concepts are structured.
 3. When delegating work to an agent (e.g. an AI coding agent), the agent will read `.agents/AGENTS.md` and immediately understand that it must respect the CCDD contracts of this repository.
-4. Drop the example artifacts and rewire `knowledge/index.md` with `python scripts/init_project.py --apply --name "<Your Project>"` (it removes `src/hello.py`, `src/users.py`, the sample tests, and the OKF example nodes; without `--apply` it only prints the plan).
+4. Drop the example artifacts and rewire `knowledge/index.md` with `python scripts/init_project.py --apply --name "<Your Project>"` (it removes every EXAMPLE artifact in the script's explicit `MANIFEST` — sample code and tests, the example OKF nodes, and the payment/border-control rule-contract examples; without `--apply` it only prints the plan).
 
 #### Instantiating for a non-Python project
 
 This template's KDD tooling is Python and stays Python even if your project is not — these are two separate planes (template tooling vs. your project's code).
 
-- **Kept unchanged:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/lint_ascii.py`, `scripts/export_gate_contract.py`, and `scripts/init_project.py` remain Python; they validate contracts and produce the gate export regardless of your project's language.
+- **Kept unchanged:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/lint_ascii.py`, `scripts/rule_engine.py`, `scripts/validate_rules.py`, `scripts/export_gate_contract.py`, and `scripts/init_project.py` remain Python; they validate contracts and produce the gate export regardless of your project's language.
 - **Adapted:** each contract's `test_command` must use your language's runner (`node --test ...`, `cargo test ...`, etc. — see the multi-language gate in [`knowledge/validacion.md`](knowledge/validacion.md)). The CI workflow `.github/workflows/validate.yml` runs on an OS matrix (`ubuntu-latest` + `windows-latest`), installs Python and runs the template's validators, the ASCII lint and the Python suite twice (`python -m unittest discover -s tests`, anti-flaky); if your project adds code/tests in another language, you add an extra CI step (e.g. `actions/setup-node` + `npm test`) so that suite also runs in CI. The existing Python step is still required because it validates the KDD tooling itself.
 - **Example artifacts:** `scripts/init_project.py --apply` removes Python-written EXAMPLE artifacts (`src/hello.py`, `src/users.py`, the sample tests, the example OKF nodes) — they are only illustrative examples of the contract pattern, not a language dependency: they are removed the same way regardless of your project's language, and afterwards you add your own contracts/tests in your language.
 
@@ -69,19 +73,23 @@ Este repositorio plantilla es para proyectos que implementan la metodología **K
   `.agents/logs/`; ver [`knowledge/metodologia-ejecucion.md`](knowledge/metodologia-ejecucion.md).
 - `scripts/assemble_context.py` + `ccdd/context.json`: ensamblador de contexto presupuestado
   y determinista sobre la KB OKF (CCDD Nivel 2).
+- `scripts/rule_engine.py` + `scripts/validate_rules.py`: la capa de **rule contracts** —
+  reglas de negocio validadas como datos declarativos con golden set sellado por hash
+  (formato: [`knowledge/rule-contract-spec.md`](knowledge/rule-contract-spec.md); ejemplos
+  en `examples/rules/`).
 
 ### Cómo usar esta plantilla
 
 1. Usa este repositorio como "Template" en GitHub o clónalo localmente.
 2. Explora `knowledge/index.md` para ver cómo se estructuran los conceptos.
 3. Al delegar trabajo a un agente (ej. un agente de IA), el agente leerá `.agents/AGENTS.md` y entenderá inmediatamente que debe respetar los contratos CCDD de este repositorio.
-4. Quita los artefactos de ejemplo y reescribe `knowledge/index.md` con `python scripts/init_project.py --apply --name "<Tu Proyecto>"` (elimina `src/hello.py`, `src/users.py`, los tests de ejemplo y los nodos OKF de ejemplo; sin `--apply` solo imprime el plan).
+4. Quita los artefactos de ejemplo y reescribe `knowledge/index.md` con `python scripts/init_project.py --apply --name "<Tu Proyecto>"` (elimina todos los artefactos de EJEMPLO del `MANIFEST` explícito del script — código y tests de muestra, los nodos OKF de ejemplo y los rule contracts de ejemplo de pagos/fronteras; sin `--apply` solo imprime el plan).
 
 #### Instanciar para un proyecto no-Python
 
 El tooling KDD de esta plantilla es Python y sigue siéndolo aunque tu proyecto no lo sea — son dos planos distintos (tooling de la plantilla vs. código de tu proyecto).
 
-- **Se conserva sin cambios:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/lint_ascii.py`, `scripts/export_gate_contract.py` y `scripts/init_project.py` siguen siendo Python; validan contratos y generan el export del gate sin importar el lenguaje de tu proyecto.
+- **Se conserva sin cambios:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/lint_ascii.py`, `scripts/rule_engine.py`, `scripts/validate_rules.py`, `scripts/export_gate_contract.py` y `scripts/init_project.py` siguen siendo Python; validan contratos y generan el export del gate sin importar el lenguaje de tu proyecto.
 - **Se adapta:** el `test_command` de cada contrato debe usar el runner de tu lenguaje (`node --test ...`, `cargo test ...`, etc. — ver el gate multi-lenguaje en [`knowledge/validacion.md`](knowledge/validacion.md)). El workflow de CI `.github/workflows/validate.yml` corre en una matriz de OS (`ubuntu-latest` + `windows-latest`), instala Python y corre los validadores de la plantilla, el lint ASCII y la suite Python dos veces (`python -m unittest discover -s tests`, anti-flaky); si tu proyecto agrega código/tests en otro lenguaje, agregas un paso de CI adicional (ej. `actions/setup-node` + `npm test`) para que esa suite también corra en CI. El paso Python existente sigue siendo necesario porque valida el tooling KDD mismo.
 - **Artefactos de ejemplo:** `scripts/init_project.py --apply` borra artefactos de EJEMPLO escritos en Python (`src/hello.py`, `src/users.py`, los tests de ejemplo, los nodos OKF de ejemplo) — son solo ejemplos ilustrativos del patrón de contratos, no una dependencia de lenguaje: se borran igual sin importar el lenguaje de tu proyecto, y después agregas tus propios contratos/tests en tu lenguaje.
 
