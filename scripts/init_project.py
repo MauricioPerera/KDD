@@ -58,6 +58,9 @@ MANIFEST = (
     "knowledge/data_models/message_routing.md",
     "examples/rules/routing-audit.rules.json",
     "examples/rules/routing-golden.json",
+    "src/check_workflow_graph.py",
+    "tests/test_check_graph.py",
+    "knowledge/contracts/check-graph.md",
 )
 
 _LINK_RE = re.compile(r"\]\(([^)]+)\)")

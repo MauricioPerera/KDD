@@ -37,8 +37,12 @@ ausente). El rule-set vive en `examples/rules/workflow-policy.rules.json`.
 
 1. **Ciclos del grafo** (`connections`): "ningun ciclo entre nodos" es una propiedad
    GLOBAL del grafo (recorrido), no una regla por elemento — tercera clase de frontera
-   medida (tras la igualdad cross-field y la cuantificacion, que `each` cerro). Queda
-   `code_only`; un checker de grafos es territorio de task contract.
+   medida (tras la igualdad cross-field y la cuantificacion, que `each` cerro).
+   **CERRADA por codigo** (C22): el task contract [check-graph](../contracts/check-graph.md)
+   la detecta con `find_graph_cycles` y su oraculo congelado — la dupla del dominio queda
+   completa: datos para lo uniforme (este rule-set), codigo para lo global (el checker).
+   En el rule-set sigue declarada `code_only`, que es exactamente lo que significa: se
+   valida por codigo.
 2. **Tipos de nodo por entorno**: el subset interno v1 de `each` no incluye familias
    keyed; la lista de tipos permitidos es global. Si un dominio futuro exige "tipos por
    entorno", esa es la evidencia para extender el subset (documentado en
