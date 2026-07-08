@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KDD — Knowledge-Driven Development</title>
+<meta name="description" content="A methodology that seals a contract's tests before an AI agent writes a line. The verdict comes from a deterministic gate, never the model." />
+<style>
+  /* ============ TOKENS ============ */
+  :root{
+    --ink:            #1B2430;
+    --ink-panel:      #232E3D;
+    --ink-line:       #3A4557;
+    --ink-text:       #E8E6DC;
+    --ink-text-dim:   #ABB4C2;
+
+    --paper:          #EDEFE7;
+    --paper-panel:    #E3E6DA;
+    --paper-line:     #C4C8B8;
+    --paper-text:     #1E2A2A;
+    --paper-text-dim: #57624F;
+
+    --seal:           #B58D3F;
+    --seal-strong:    #8F6E2E;
+    --verified:       #3F7A5C;
+    --verified-bg:    rgba(63,122,92,.14);
+    --flagged:        #A23B3B;
+    --flagged-bg:     rgba(162,59,59,.14);
+
+    --bg:        var(--paper);
+    --panel:     var(--paper-panel);
+    --line:      var(--paper-line);
+    --text:      var(--paper-text);
+    --text-dim:  var(--paper-text-dim);
+
+    --serif: "Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --sans:  -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:  "SF Mono","Cascadia Code","JetBrains Mono",Consolas,"Liberation Mono",monospace;
+
+    --measure: 66ch;
+    --radius-seal: 999px;
+    --radius-tab: 3px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg: var(--ink); --panel: var(--ink-panel);
+      --line: var(--ink-line); --text: var(--ink-text); --text-dim: var(--ink-text-dim);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: var(--ink); --panel: var(--ink-panel);
+    --line: var(--ink-line); --text: var(--ink-text); --text-dim: var(--ink-text-dim);
+  }
+  :root[data-theme="light"]{
+    --bg: var(--paper); --panel: var(--paper-panel);
+    --line: var(--paper-line); --text: var(--paper-text); --text-dim: var(--paper-text-dim);
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg); color:var(--text); font-family:var(--sans);
+    font-size:16.5px; line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--seal); color:var(--ink); }
+  a{ color:inherit; }
+  h1,h2,h3{ font-family:var(--serif); text-wrap:balance; margin:0; }
+  code, .mono{ font-family:var(--mono); }
+  .skip-link{
+    position:absolute; left:-999px; top:0; background:var(--seal); color:var(--ink);
+    padding:.6em 1em; z-index:200; font-family:var(--sans); font-weight:600;
+  }
+  .skip-link:focus{ left:1rem; top:1rem; }
+  a:focus-visible, button:focus-visible, .tab:focus-visible{
+    outline:2px solid var(--seal); outline-offset:3px;
+  }
+
+  /* ============ NAV: mobile-first. Below 960px: sticky bar + hamburger
+     dropdown. At/above 960px: persistent sidebar. Two SEPARATE nav
+     presentations, never both visible at once, so nothing needs to
+     reshuffle DOM between breakpoints. ============ */
+  .lang-toggle{
+    display:inline-flex; border:1px solid var(--line); border-radius:var(--radius-tab);
+    overflow:hidden; font-family:var(--mono); font-size:.74rem; flex:0 0 auto;
+  }
+  .lang-toggle button{
+    background:transparent; border:none; color:var(--text-dim); padding:.4em .75em; cursor:pointer;
+    font-family:var(--mono); font-size:.74rem; letter-spacing:.04em;
+  }
+  .lang-toggle button[aria-pressed="true"]{ background:var(--seal); color:var(--ink); }
+
+  /* -- mobile bar (default) -- */
+  .mobile-bar{
+    position:sticky; top:0; z-index:50; background:var(--bg);
+    display:flex; align-items:center; justify-content:space-between; gap:1rem;
+    padding:.85rem 1.25rem; border-bottom:1px solid var(--line);
+  }
+  .mobile-mark{ font-family:var(--serif); font-size:1.02rem; }
+  .mobile-mark .dot{ color:var(--seal); }
+  .mobile-actions{ display:flex; align-items:center; gap:.8rem; }
+  .hamburger{
+    width:34px; height:34px; border:1px solid var(--line); border-radius:var(--radius-tab);
+    background:transparent; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:5px; cursor:pointer; flex:0 0 auto;
+  }
+  .hamburger .bar{ width:16px; height:2px; background:var(--text); transition:transform .25s ease, opacity .2s ease; }
+  .hamburger[aria-expanded="true"] .bar:nth-child(1){ transform:translateY(7px) rotate(45deg); }
+  .hamburger[aria-expanded="true"] .bar:nth-child(2){ opacity:0; }
+  .hamburger[aria-expanded="true"] .bar:nth-child(3){ transform:translateY(-7px) rotate(-45deg); }
+  .mobile-nav-panel{
+    position:sticky; top:57px; z-index:49; background:var(--panel);
+    border-bottom:1px solid var(--line); padding:.5rem 1.25rem 1rem;
+    display:flex; flex-direction:column;
+  }
+  .mobile-nav-panel[hidden]{ display:none; }
+  .mobile-nav-panel a{
+    display:flex; align-items:baseline; gap:.6em; padding:.75rem 0; color:var(--text);
+    text-decoration:none; border-bottom:1px solid var(--line); font-size:.95rem;
+  }
+  .mobile-nav-panel a:last-of-type{ border-bottom:none; }
+  .mobile-nav-panel .tag{ font-family:var(--mono); font-size:.78rem; color:var(--seal-strong); }
+
+  /* -- desktop sidebar (>=960px only) -- */
+  .shell{ display:block; }
+  .rail{ display:none; }
+  @media (min-width: 960px){
+    .mobile-bar, .mobile-nav-panel{ display:none; }
+    .shell{ display:grid; grid-template-columns:240px 1fr; }
+    .rail{
+      display:flex; flex-direction:column; gap:1.5rem; padding:2.2rem 1.4rem;
+      border-right:1px solid var(--line);
+      position:sticky; top:0; align-self:start; /* align-self:start, NOT
+        stretch: verified empirically (scrolled a live instance to 300/2000/
+        4300px and read getBoundingClientRect().top each time) — stretch
+        makes the box as tall as <main> and that combination silently
+        breaks position:sticky in at least one real engine, even though
+        the CSS is valid and computed style reports "sticky". With
+        align-self:start the box is only as tall as its own content, but
+        the STICKY CONTAINING BLOCK is still the full grid AREA (which
+        spans <main>'s height via normal row auto-sizing) — so it stays
+        pinned across the entire scroll range regardless. No vh unit,
+        no explicit height, on either the box or the grid: both caused
+        real bugs in this exact file (see git history) when relied upon. */
+    }
+    .rail-mark{ font-family:var(--serif); font-size:1.08rem; }
+    .rail-mark .dot{ color:var(--seal); }
+    .rail-index{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.6rem; }
+    .rail-index a{
+      display:flex; gap:.55rem; align-items:baseline; text-decoration:none;
+      color:var(--text-dim); font-size:.86rem;
+    }
+    .rail-index a:hover{ color:var(--seal-strong); }
+    .rail-index .tag{ font-family:var(--mono); font-size:.72rem; color:var(--seal); flex:0 0 auto; }
+    .rail .lang-toggle{ margin-top:auto; align-self:flex-start; }
+  }
+
+  /* ============ HERO (always ink — the cover of the file) ============ */
+  .hero{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(181,141,63,.14), transparent 60%),
+      var(--ink);
+    color:var(--ink-text);
+    padding:5.5rem 2rem 4.5rem; border-bottom:1px solid var(--ink-line);
+  }
+  .hero-grid{ max-width:1100px; margin:0 auto; display:grid; grid-template-columns:1.05fr .95fr; gap:3rem; align-items:center; }
+  @media (max-width: 980px){ .hero-grid{ grid-template-columns:1fr; } }
+  .eyebrow{
+    font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--seal); display:flex; align-items:center; gap:.6em; margin-bottom:1.1rem;
+  }
+  .eyebrow::before{ content:""; width:1.6em; height:1px; background:var(--seal); display:inline-block; }
+  .hero h1{ font-size:clamp(2.1rem, 4vw, 3rem); line-height:1.15; color:var(--ink-text); }
+  .hero h1 em{ font-style:normal; color:var(--seal); }
+  .hero p.lead{ color:var(--ink-text-dim); font-size:1.08rem; max-width:52ch; margin:1.25rem 0 2rem; }
+  .cta-row{ display:flex; gap:.9rem; flex-wrap:wrap; }
+  .btn{
+    font-family:var(--sans); font-weight:600; font-size:.92rem; padding:.75em 1.3em;
+    border-radius:var(--radius-tab); text-decoration:none; display:inline-flex; align-items:center; gap:.5em;
+    border:1px solid transparent; transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover{ transform:translateY(-1px); }
+  .btn-primary{ background:var(--seal); color:var(--ink); }
+  .btn-primary:hover{ box-shadow:0 6px 20px rgba(181,141,63,.35); }
+  .btn-ghost{ border-color:var(--ink-line); color:var(--ink-text); }
+  .btn-ghost:hover{ border-color:var(--seal); }
+
+  /* terminal window (shared look) */
+  .term{
+    background:#141B24; border:1px solid #303D4F; border-radius:6px; overflow:hidden;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.55);
+  }
+  .term-bar{ display:flex; gap:.4em; padding:.65em .8em; background:#1A2230; border-bottom:1px solid #303D4F; }
+  .term-bar span{ width:9px; height:9px; border-radius:50%; background:#3A4557; }
+  .term-body{
+    padding:1.1em 1.2em 1.3em; font-family:var(--mono); font-size:.82rem; line-height:1.7;
+    color:#D7DCE5; min-height:230px;
+  }
+  .term-body .p{ color:#7C8AA0; }
+  .term-body .ok{ color:#6FBE94; }
+  .term-body .bad{ color:#D97575; }
+  .term-body .seal{ color:#D3AE63; }
+  .term-body .comment{ color:#5F6B80; }
+  .term-cursor::after{ content:"▍"; animation:blink 1s step-start infinite; color:#D7DCE5; }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ============ SECTIONS ============ */
+  section{ padding:4.5rem 2rem; border-bottom:1px solid var(--line); }
+  .col{ max-width:var(--measure); margin:0 auto; }
+  .col-wide{ max-width:1100px; margin:0 auto; }
+  .exhibit-tag{
+    font-family:var(--mono); font-size:.74rem; letter-spacing:.1em; color:var(--seal-strong);
+    text-transform:uppercase; margin-bottom:.6rem; display:block;
+  }
+  section h2{ font-size:clamp(1.5rem, 2.6vw, 2rem); margin-bottom:1rem; }
+  section p{ color:var(--text-dim); max-width:62ch; }
+  section p + p{ margin-top:1em; }
+
+  /* pillars */
+  .pillars{ display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-top:2rem; }
+  @media (max-width: 700px){ .pillars{ grid-template-columns:1fr; } }
+  .pillar{ background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:1.6rem; }
+  .pillar .mark{ font-family:var(--serif); font-size:1.3rem; color:var(--seal-strong); display:block; margin-bottom:.5rem; }
+  .pillar p{ color:var(--text-dim); font-size:.96rem; }
+
+  /* flow / exhibit C */
+  .flow{ display:flex; align-items:center; justify-content:space-between; gap:0; margin:2.5rem 0 1rem; position:relative; }
+  @media (max-width: 820px){ .flow{ flex-direction:column; align-items:flex-start; gap:1.4rem; } }
+  .flow-line{ position:absolute; left:5%; right:5%; top:22px; height:2px; background:var(--line); z-index:0; }
+  .flow-line .fill{ position:absolute; inset:0; background:var(--seal); width:0%; transition:width 1.8s ease; }
+  @media (max-width: 820px){ .flow-line{ display:none; } }
+  .step{ position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:.55rem; flex:1; text-align:center; }
+  @media (max-width: 820px){ .step{ flex-direction:row; text-align:left; width:100%; } }
+  .step .node{
+    width:44px; height:44px; border-radius:50%; background:var(--panel); border:2px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:.78rem;
+    color:var(--text-dim); transition:all .4s ease; flex:0 0 auto;
+  }
+  .step.on .node{ border-color:var(--seal); color:var(--seal-strong); background:var(--verified-bg); }
+  .step .label{ font-family:var(--mono); font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--text-dim); }
+  .step.on .label{ color:var(--text); }
+  .verdict-stamp{
+    margin-top:1.2rem; display:inline-flex; align-items:center; gap:.6em; padding:.6em 1.1em;
+    border:2px solid var(--verified); color:var(--verified); font-family:var(--mono); font-weight:700;
+    letter-spacing:.06em; border-radius:4px; transform:scale(.85) rotate(-3deg); opacity:0;
+    transition:transform .5s cubic-bezier(.2,1.4,.4,1), opacity .3s ease;
+  }
+  .verdict-stamp.on{ transform:scale(1) rotate(-3deg); opacity:1; }
+
+  /* annotated terminal (exhibit D) */
+  .term-annotated{ display:grid; grid-template-columns:1.2fr .8fr; gap:2rem; margin-top:2rem; align-items:start; }
+  @media (max-width: 860px){ .term-annotated{ grid-template-columns:1fr; } }
+  .annot{ display:flex; flex-direction:column; gap:1.4rem; padding-top:.4rem; }
+  .annot .note{ font-size:.88rem; color:var(--text-dim); border-left:2px solid var(--seal); padding-left:.9rem; }
+  .annot .note b{ color:var(--text); font-family:var(--sans); }
+
+  /* stats / exhibit E */
+  .stats{ display:grid; grid-template-columns:repeat(5,1fr); gap:1.4rem; margin-top:2rem; }
+  @media (max-width: 900px){ .stats{ grid-template-columns:repeat(2,1fr); } }
+  .stat{ border-top:2px solid var(--seal); padding-top:.8rem; }
+  .stat .n{ font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:2.1rem; font-weight:700; color:var(--text); display:block; }
+  .stat .d{ font-size:.82rem; color:var(--text-dim); margin-top:.3rem; }
+
+  /* boundary / exhibit F */
+  .boundary{ display:grid; grid-template-columns:1fr 1fr; gap:1.6rem; margin-top:2rem; }
+  @media (max-width: 760px){ .boundary{ grid-template-columns:1fr; } }
+  .bcol{ padding:1.5rem; border-radius:4px; }
+  .bcol.yes{ background:var(--verified-bg); border:1px solid rgba(63,122,92,.35); }
+  .bcol.no{ background:var(--flagged-bg); border:1px solid rgba(162,59,59,.35); }
+  .bcol h3{ font-family:var(--mono); font-size:.8rem; letter-spacing:.06em; text-transform:uppercase; margin-bottom:1rem; }
+  .bcol.yes h3{ color:var(--verified); }
+  .bcol.no h3{ color:var(--flagged); }
+  .bcol ul{ margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:.8rem; }
+  .bcol li{ font-size:.92rem; color:var(--text); padding-left:1.1em; position:relative; }
+  .bcol.yes li::before{ content:"✓"; position:absolute; left:0; color:var(--verified); font-family:var(--mono); }
+  .bcol.no li::before{ content:"—"; position:absolute; left:0; color:var(--flagged); font-family:var(--mono); }
+
+  /* domains / exhibit G */
+  .domains{ display:grid; grid-template-columns:repeat(4,1fr); gap:.9rem; margin-top:2rem; }
+  @media (max-width: 900px){ .domains{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width: 520px){ .domains{ grid-template-columns:1fr; } }
+  .tab{
+    display:block; padding:1rem 1.1rem; background:var(--panel); border:1px solid var(--line);
+    border-top:3px solid var(--seal); border-radius:2px; text-decoration:none; color:var(--text);
+    transition:transform .15s ease, border-color .15s ease;
+  }
+  .tab:hover{ transform:translateY(-2px); border-top-color:var(--seal-strong); }
+  .tab .t{ font-weight:600; font-size:.94rem; display:block; margin-bottom:.3rem; }
+  .tab .s{ font-size:.8rem; color:var(--text-dim); }
+
+  /* closing */
+  .closing{ text-align:center; border-bottom:none; }
+  .closing .col{ max-width:56ch; }
+  .closing .cta-row{ justify-content:center; margin-top:1.6rem; }
+  .closing .btn-ghost{ border-color:var(--line); color:var(--text); }
+  .credit{ margin-top:3rem; font-size:.8rem; color:var(--text-dim); font-family:var(--mono); }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:.001s !important; transition-duration:.001s !important; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main" data-i18n="a11y.skip">Skip to content</a>
+
+<div class="shell">
+  <!-- mobile: sticky bar + hamburger dropdown (hidden >=960px) -->
+  <header class="mobile-bar">
+    <div class="mobile-mark"><span class="dot">◆</span> KDD</div>
+    <div class="mobile-actions">
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button type="button" data-set-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-set-lang="es" aria-pressed="false">ES</button>
+      </div>
+      <button type="button" class="hamburger" id="menu-btn" aria-expanded="false" aria-controls="mobile-nav-panel" aria-label="Menu">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+      </button>
+    </div>
+  </header>
+  <nav class="mobile-nav-panel" id="mobile-nav-panel" aria-label="Case index" hidden>
+    <a href="#problem"><span class="tag">A</span><span data-i18n="nav.a">The problem</span></a>
+    <a href="#pillars"><span class="tag">B</span><span data-i18n="nav.b">Two pillars</span></a>
+    <a href="#flow"><span class="tag">C</span><span data-i18n="nav.c">The file moves</span></a>
+    <a href="#terminal"><span class="tag">D</span><span data-i18n="nav.d">The terminal</span></a>
+    <a href="#numbers"><span class="tag">E</span><span data-i18n="nav.e">By the numbers</span></a>
+    <a href="#boundary"><span class="tag">F</span><span data-i18n="nav.f">The boundary</span></a>
+    <a href="#domains"><span class="tag">G</span><span data-i18n="nav.g">Domains sealed</span></a>
+  </nav>
+
+  <!-- desktop: persistent sidebar (hidden <960px) -->
+  <nav class="rail" aria-label="Case index">
+    <div class="rail-mark"><span class="dot">◆</span> KDD</div>
+    <ul class="rail-index">
+      <li><a href="#problem"><span class="tag">A</span><span data-i18n="nav.a">The problem</span></a></li>
+      <li><a href="#pillars"><span class="tag">B</span><span data-i18n="nav.b">Two pillars</span></a></li>
+      <li><a href="#flow"><span class="tag">C</span><span data-i18n="nav.c">The file moves</span></a></li>
+      <li><a href="#terminal"><span class="tag">D</span><span data-i18n="nav.d">The terminal</span></a></li>
+      <li><a href="#numbers"><span class="tag">E</span><span data-i18n="nav.e">By the numbers</span></a></li>
+      <li><a href="#boundary"><span class="tag">F</span><span data-i18n="nav.f">The boundary</span></a></li>
+      <li><a href="#domains"><span class="tag">G</span><span data-i18n="nav.g">Domains sealed</span></a></li>
+    </ul>
+    <div class="lang-toggle" role="group" aria-label="Language">
+      <button type="button" data-set-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-set-lang="es" aria-pressed="false">ES</button>
+    </div>
+  </nav>
+
+<main id="main">
+
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <span class="eyebrow" data-i18n="hero.eyebrow">Knowledge-Driven Development</span>
+          <h1 data-i18n-html="hero.h1">The verdict comes from a machine.<br>Not from the model.</h1>
+          <p class="lead" data-i18n="hero.lead">KDD seals a contract's tests before an AI agent ever touches the target. A deterministic gate — a script, not an opinion — decides if the work stands.</p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="https://github.com/MauricioPerera/KDD" data-i18n="hero.cta1">View on GitHub</a>
+            <a class="btn btn-ghost" href="https://github.com/MauricioPerera/KDD#readme" data-i18n="hero.cta2">Read the README</a>
+          </div>
+        </div>
+        <div class="term" id="hero-term">
+          <div class="term-bar"><span></span><span></span><span></span></div>
+          <div class="term-body" id="hero-term-body"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="problem">
+      <div class="col">
+        <span class="exhibit-tag" data-i18n="problem.tag">Exhibit A</span>
+        <h2 data-i18n="problem.h2">The problem no demo shows you</h2>
+        <p data-i18n="problem.p1">AI agents write code fast. Nothing in that sentence tells you whether the code is correct, safe, or stayed inside its assigned scope.</p>
+        <p data-i18n="problem.p2">Today, verifying that is still a human doing it by hand — reading the diff, re-running the tests, checking the file list — every single time, for every task.</p>
+      </div>
+    </section>
+
+    <section id="pillars">
+      <div class="col-wide">
+        <span class="exhibit-tag" data-i18n="pillars.tag">Exhibit B</span>
+        <h2 data-i18n="pillars.h2">Two pillars, one discipline</h2>
+        <div class="pillars">
+          <div class="pillar">
+            <span class="mark">OKF</span>
+            <p data-i18n="pillars.okf">Open Knowledge Format. Your project's data models, decisions, and architecture live as versioned markdown nodes an agent can traverse — not prose it has to guess at.</p>
+          </div>
+          <div class="pillar">
+            <span class="mark">CCDD</span>
+            <p data-i18n="pillars.ccdd">The frozen contract. A task carries a signature, invariants, and a test file. The tests are hash-sealed before any agent touches the target — edit them, and the seal breaks the build.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="flow">
+      <div class="col-wide">
+        <span class="exhibit-tag" data-i18n="flow.tag">Exhibit C</span>
+        <h2 data-i18n="flow.h2">How a contract moves through the file</h2>
+        <p data-i18n="flow.p" style="margin-bottom:0">Evidence before belief, at every step. The gate's exit code is the only opinion that counts.</p>
+        <div class="flow" id="flow-anim">
+          <div class="flow-line"><div class="fill" id="flow-fill"></div></div>
+          <div class="step" data-i="0"><div class="node">1</div><div class="label" data-i18n="flow.s1">Recon</div></div>
+          <div class="step" data-i="1"><div class="node">2</div><div class="label" data-i18n="flow.s2">Spec</div></div>
+          <div class="step" data-i="2"><div class="node">🔒</div><div class="label" data-i18n="flow.s3">Seal (sha256)</div></div>
+          <div class="step" data-i="3"><div class="node">3</div><div class="label" data-i18n="flow.s4">Delegate</div></div>
+          <div class="step" data-i="4"><div class="node">4</div><div class="label" data-i18n="flow.s5">Gate</div></div>
+        </div>
+        <div style="text-align:center;">
+          <span class="verdict-stamp" id="verdict-stamp" data-i18n="flow.verdict">VERDICT: PASS</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="terminal">
+      <div class="col-wide">
+        <span class="exhibit-tag" data-i18n="term2.tag">Exhibit D</span>
+        <h2 data-i18n="term2.h2">The orchestrator trusts no one's fixtures but its own</h2>
+        <div class="term-annotated">
+          <div class="term" id="ann-term">
+            <div class="term-bar"><span></span><span></span><span></span></div>
+            <div class="term-body" id="ann-term-body"></div>
+          </div>
+          <div class="annot">
+            <div class="note"><b data-i18n="term2.n1t">The gate passes clean.</b><br><span data-i18n="term2.n1">Six skills, zero errors — the developer's work looks done.</span></div>
+            <div class="note"><b data-i18n="term2.n2t">So the reviewer breaks it.</b><br><span data-i18n="term2.n2">On a throwaway copy, with its own fixture — never the developer's — to see if the gate actually notices.</span></div>
+            <div class="note"><b data-i18n="term2.n3t">It does.</b><br><span data-i18n="term2.n3">Only then does the verdict stand.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="numbers">
+      <div class="col-wide">
+        <span class="exhibit-tag" data-i18n="numbers.tag">Exhibit E</span>
+        <h2 data-i18n="numbers.h2">By the numbers, as of this file</h2>
+        <p data-i18n="numbers.p">Every figure below is checked into the repository — verifiable, not asserted.</p>
+        <div class="stats">
+          <div class="stat"><span class="n">31</span><span class="d" data-i18n="numbers.s1">contracts closed and verified</span></div>
+          <div class="stat"><span class="n">8</span><span class="d" data-i18n="numbers.s2">deterministic gates, zero LLM calls</span></div>
+          <div class="stat"><span class="n">9</span><span class="d" data-i18n="numbers.s3">declarative rule families</span></div>
+          <div class="stat"><span class="n">460</span><span class="d" data-i18n="numbers.s4">tests, run twice, on two operating systems</span></div>
+          <div class="stat"><span class="n">5</span><span class="d" data-i18n="numbers.s5">boundary classes mapped, honestly</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="boundary">
+      <div class="col-wide">
+        <span class="exhibit-tag" data-i18n="boundary.tag">Exhibit F</span>
+        <h2 data-i18n="boundary.h2">What gets sealed, what stays out</h2>
+        <p data-i18n="boundary.p">The honest boundary is part of the method, not a gap in it.</p>
+        <div class="boundary">
+          <div class="bcol yes">
+            <h3 data-i18n="boundary.yesh">Can be sealed</h3>
+            <ul>
+              <li data-i18n="boundary.yes1">Pure functions, verified against tests no one can quietly edit</li>
+              <li data-i18n="boundary.yes2">Business rules as declarative data — a payment limit is a table, not a prompt</li>
+              <li data-i18n="boundary.yes3">Which skills and MCP servers an agent is wired to, and whether those wires point at something real</li>
+              <li data-i18n="boundary.yes4">Whether your changelog tells the truth about your own history</li>
+            </ul>
+          </div>
+          <div class="bcol no">
+            <h3 data-i18n="boundary.noh">Stays out, declared</h3>
+            <ul>
+              <li data-i18n="boundary.no1">What a live server does over the network — that needs a running system, not a hash</li>
+              <li data-i18n="boundary.no2">Whether an edit "reads well" — tone and judgment stay a human's call</li>
+              <li data-i18n="boundary.no3">The agent itself. KDD contracts the artifact an agent produces, never the agent's behavior.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="domains">
+      <div class="col-wide">
+        <span class="exhibit-tag" data-i18n="domains.tag">Exhibit G</span>
+        <h2 data-i18n="domains.h2">Domains sealed so far</h2>
+        <div class="domains">
+          <div class="tab"><span class="t" data-i18n="domains.d1t">Payment compliance</span><span class="s" data-i18n="domains.d1s">Per-country limits, beneficiary checks</span></div>
+          <div class="tab"><span class="t" data-i18n="domains.d2t">Border control</span><span class="s" data-i18n="domains.d2s">Cross-field rules, proven on a second domain</span></div>
+          <div class="tab"><span class="t" data-i18n="domains.d3t">Workflow policy</span><span class="s" data-i18n="domains.d3s">Per-node rules over automation graphs</span></div>
+          <div class="tab"><span class="t" data-i18n="domains.d4t">Message routing</span><span class="s" data-i18n="domains.d4s">A decision, contracted two ways at once</span></div>
+          <div class="tab"><span class="t" data-i18n="domains.d5t">Editorial style</span><span class="s" data-i18n="domains.d5s">Structure sealed, judgment left out</span></div>
+          <div class="tab"><span class="t" data-i18n="domains.d6t">MCP registry</span><span class="s" data-i18n="domains.d6s">No secret ever committed in the clear</span></div>
+          <div class="tab"><span class="t" data-i18n="domains.d7t">Agent wiring</span><span class="s" data-i18n="domains.d7s">Every reference resolves, or it fails loud</span></div>
+          <div class="tab"><span class="t" data-i18n="domains.d8t">Agent skills</span><span class="s" data-i18n="domains.d8s">The first gate over the repo's own real assets</span></div>
+          <div class="tab"><span class="t" data-i18n="domains.d9t">Web page UX</span><span class="s" data-i18n="domains.d9s">Contrast, i18n and motion, calibrated against a real 25k-star linter</span></div>
+          <div class="tab"><span class="t" data-i18n="domains.d10t">Commit messages</span><span class="s" data-i18n="domains.d10s">Conventional Commits grammar, opt-in by design</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="closing">
+      <div class="col">
+        <h2 data-i18n="closing.h2">Read the file yourself</h2>
+        <p data-i18n="closing.p">MIT-licensed. Every claim on this page is checked into the repository that makes it.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://github.com/MauricioPerera/KDD" data-i18n="closing.cta1">Open the repository</a>
+          <a class="btn btn-ghost" href="https://github.com/MauricioPerera/KDD/releases" data-i18n="closing.cta2">See the releases</a>
+        </div>
+        <div class="credit">— Mauricio Perera</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- i18n ---------- */
+  var I18N = {
+    en: {
+      "a11y.skip":"Skip to content",
+      "nav.a":"The problem","nav.b":"Two pillars","nav.c":"The file moves","nav.d":"The terminal",
+      "nav.e":"By the numbers","nav.f":"The boundary","nav.g":"Domains sealed",
+      "hero.eyebrow":"Knowledge-Driven Development",
+      "hero.h1":"The verdict comes from a machine.<br>Not from the model.",
+      "hero.lead":"KDD seals a contract's tests before an AI agent ever touches the target. A deterministic gate — a script, not an opinion — decides if the work stands.",
+      "hero.cta1":"View on GitHub","hero.cta2":"Read the README",
+      "problem.tag":"Exhibit A","problem.h2":"The problem no demo shows you",
+      "problem.p1":"AI agents write code fast. Nothing in that sentence tells you whether the code is correct, safe, or stayed inside its assigned scope.",
+      "problem.p2":"Today, verifying that is still a human doing it by hand — reading the diff, re-running the tests, checking the file list — every single time, for every task.",
+      "pillars.tag":"Exhibit B","pillars.h2":"Two pillars, one discipline",
+      "pillars.okf":"Open Knowledge Format. Your project's data models, decisions, and architecture live as versioned markdown nodes an agent can traverse — not prose it has to guess at.",
+      "pillars.ccdd":"The frozen contract. A task carries a signature, invariants, and a test file. The tests are hash-sealed before any agent touches the target — edit them, and the seal breaks the build.",
+      "flow.tag":"Exhibit C","flow.h2":"How a contract moves through the file",
+      "flow.p":"Evidence before belief, at every step. The gate's exit code is the only opinion that counts.",
+      "flow.s1":"Recon","flow.s2":"Spec","flow.s3":"Seal (sha256)","flow.s4":"Delegate","flow.s5":"Gate",
+      "flow.verdict":"VERDICT: PASS",
+      "term2.tag":"Exhibit D","term2.h2":"The orchestrator trusts no one's fixtures but its own",
+      "term2.n1t":"The gate passes clean.","term2.n1":"Six skills, zero errors — the developer's work looks done.",
+      "term2.n2t":"So the reviewer breaks it.","term2.n2":"On a throwaway copy, with its own fixture — never the developer's — to see if the gate actually notices.",
+      "term2.n3t":"It does.","term2.n3":"Only then does the verdict stand.",
+      "numbers.tag":"Exhibit E","numbers.h2":"By the numbers, as of this file",
+      "numbers.p":"Every figure below is checked into the repository — verifiable, not asserted.",
+      "numbers.s1":"contracts closed and verified","numbers.s2":"deterministic gates, zero LLM calls",
+      "numbers.s3":"declarative rule families","numbers.s4":"tests, run twice, on two operating systems",
+      "numbers.s5":"boundary classes mapped, honestly",
+      "boundary.tag":"Exhibit F","boundary.h2":"What gets sealed, what stays out",
+      "boundary.p":"The honest boundary is part of the method, not a gap in it.",
+      "boundary.yesh":"Can be sealed",
+      "boundary.yes1":"Pure functions, verified against tests no one can quietly edit",
+      "boundary.yes2":"Business rules as declarative data — a payment limit is a table, not a prompt",
+      "boundary.yes3":"Which skills and MCP servers an agent is wired to, and whether those wires point at something real",
+      "boundary.yes4":"Whether your changelog tells the truth about your own history",
+      "boundary.noh":"Stays out, declared",
+      "boundary.no1":"What a live server does over the network — that needs a running system, not a hash",
+      "boundary.no2":"Whether an edit \"reads well\" — tone and judgment stay a human's call",
+      "boundary.no3":"The agent itself. KDD contracts the artifact an agent produces, never the agent's behavior.",
+      "domains.tag":"Exhibit G","domains.h2":"Domains sealed so far",
+      "domains.d1t":"Payment compliance","domains.d1s":"Per-country limits, beneficiary checks",
+      "domains.d2t":"Border control","domains.d2s":"Cross-field rules, proven on a second domain",
+      "domains.d3t":"Workflow policy","domains.d3s":"Per-node rules over automation graphs",
+      "domains.d4t":"Message routing","domains.d4s":"A decision, contracted two ways at once",
+      "domains.d5t":"Editorial style","domains.d5s":"Structure sealed, judgment left out",
+      "domains.d6t":"MCP registry","domains.d6s":"No secret ever committed in the clear",
+      "domains.d7t":"Agent wiring","domains.d7s":"Every reference resolves, or it fails loud",
+      "domains.d8t":"Agent skills","domains.d8s":"The first gate over the repo's own real assets",
+      "domains.d9t":"Web page UX","domains.d9s":"Contrast, i18n and motion, calibrated against a real 25k-star linter",
+      "domains.d10t":"Commit messages","domains.d10s":"Conventional Commits grammar, opt-in by design",
+      "closing.h2":"Read the file yourself",
+      "closing.p":"MIT-licensed. Every claim on this page is checked into the repository that makes it.",
+      "closing.cta1":"Open the repository","closing.cta2":"See the releases"
+    },
+    es: {
+      "a11y.skip":"Ir al contenido",
+      "nav.a":"El problema","nav.b":"Dos pilares","nav.c":"El expediente avanza","nav.d":"La terminal",
+      "nav.e":"En números","nav.f":"El límite","nav.g":"Dominios sellados",
+      "hero.eyebrow":"Knowledge-Driven Development",
+      "hero.h1":"El veredicto lo da una máquina.<br>No el modelo.",
+      "hero.lead":"KDD sella los tests de un contrato antes de que un agente de IA toque el target. Un gate determinista — un script, no una opinión — decide si el trabajo queda.",
+      "hero.cta1":"Ver en GitHub","hero.cta2":"Leer el README",
+      "problem.tag":"Exhibit A","problem.h2":"El problema que ningún demo muestra",
+      "problem.p1":"Los agentes de IA escriben código rápido. Nada en esa frase te dice si el código es correcto, seguro, o se quedó dentro de su alcance asignado.",
+      "problem.p2":"Hoy, verificar eso lo sigue haciendo un humano a mano — leyendo el diff, corriendo los tests de nuevo, revisando la lista de archivos — cada vez, para cada tarea.",
+      "pillars.tag":"Exhibit B","pillars.h2":"Dos pilares, una sola disciplina",
+      "pillars.okf":"Open Knowledge Format. El conocimiento de tu proyecto — modelos de datos, decisiones, arquitectura — vive como nodos markdown versionados que un agente puede recorrer, no prosa que tiene que adivinar.",
+      "pillars.ccdd":"El contrato congelado. Una tarea lleva firma, invariantes y un archivo de tests. Los tests quedan sellados por hash antes de que cualquier agente toque el target — si los edita, el sello rompe el build.",
+      "flow.tag":"Exhibit C","flow.h2":"Cómo avanza un contrato por el expediente",
+      "flow.p":"Evidencia antes que creencia, en cada paso. El exit code del gate es la única opinión que cuenta.",
+      "flow.s1":"Recon","flow.s2":"Spec","flow.s3":"Sello (sha256)","flow.s4":"Delegar","flow.s5":"Gate",
+      "flow.verdict":"VEREDICTO: PASS",
+      "term2.tag":"Exhibit D","term2.h2":"El orquestador no confía en las fixtures de nadie más que las propias",
+      "term2.n1t":"El gate pasa limpio.","term2.n1":"Seis skills, cero errores — el trabajo del dev se ve terminado.",
+      "term2.n2t":"Entonces el revisor lo rompe.","term2.n2":"Sobre una copia descartable, con su propia fixture — nunca la del dev — para ver si el gate de verdad se da cuenta.",
+      "term2.n3t":"Se da cuenta.","term2.n3":"Recién ahí el veredicto queda en pie.",
+      "numbers.tag":"Exhibit E","numbers.h2":"En números, a la fecha de este archivo",
+      "numbers.p":"Cada cifra de abajo está en el repositorio — verificable, no afirmada.",
+      "numbers.s1":"contratos cerrados y verificados","numbers.s2":"gates deterministas, cero llamadas a un LLM",
+      "numbers.s3":"familias declarativas de reglas","numbers.s4":"tests, corridos dos veces, en dos sistemas operativos",
+      "numbers.s5":"clases de frontera mapeadas, con honestidad",
+      "boundary.tag":"Exhibit F","boundary.h2":"Qué se sella, qué queda fuera",
+      "boundary.p":"La frontera honesta es parte del método, no un hueco en él.",
+      "boundary.yesh":"Se puede sellar",
+      "boundary.yes1":"Funciones puras, verificadas contra tests que nadie puede editar en silencio",
+      "boundary.yes2":"Reglas de negocio como datos declarativos — un límite de pago es una tabla, no un prompt",
+      "boundary.yes3":"Qué skills y servidores MCP tiene cableados un agente, y si esos cables apuntan a algo real",
+      "boundary.yes4":"Si tu changelog dice la verdad sobre tu propia historia",
+      "boundary.noh":"Queda fuera, declarado",
+      "boundary.no1":"Qué hace un servidor en vivo por la red — eso necesita un sistema corriendo, no un hash",
+      "boundary.no2":"Si una edición \"se lee bien\" — el tono y el juicio siguen siendo de un humano",
+      "boundary.no3":"El agente mismo. KDD contrata el artefacto que un agente produce, nunca su comportamiento.",
+      "domains.tag":"Exhibit G","domains.h2":"Dominios sellados hasta ahora",
+      "domains.d1t":"Cumplimiento de pagos","domains.d1s":"Límites por país, verificación de beneficiario",
+      "domains.d2t":"Control de fronteras","domains.d2s":"Reglas cruzadas, probadas en un segundo dominio",
+      "domains.d3t":"Política de workflows","domains.d3s":"Reglas por nodo sobre grafos de automatización",
+      "domains.d4t":"Ruteo de mensajes","domains.d4s":"Una decisión, contratada de dos formas a la vez",
+      "domains.d5t":"Estilo editorial","domains.d5s":"Estructura sellada, juicio dejado afuera",
+      "domains.d6t":"Registro MCP","domains.d6s":"Ningún secreto se commitea jamás en claro",
+      "domains.d7t":"Cableado de agentes","domains.d7s":"Toda referencia resuelve, o falla fuerte",
+      "domains.d8t":"Skills de agente","domains.d8s":"El primer gate sobre activos reales del propio repo",
+      "domains.d9t":"UX de páginas web","domains.d9s":"Contraste, i18n y movimiento, calibrado contra un linter real de 25k estrellas",
+      "domains.d10t":"Mensajes de commit","domains.d10s":"Gramática Conventional Commits, opt-in por diseño",
+      "closing.h2":"Leé el expediente vos mismo",
+      "closing.p":"Licencia MIT. Cada afirmación de esta página está commiteada en el repositorio que la respalda.",
+      "closing.cta1":"Abrir el repositorio","closing.cta2":"Ver los releases"
+    }
+  };
+
+  function applyLang(lang){
+    document.documentElement.setAttribute("lang", lang);
+    document.documentElement.setAttribute("data-lang", lang);
+    var dict = I18N[lang] || I18N.en;
+    document.querySelectorAll("[data-i18n]").forEach(function(el){
+      var k = el.getAttribute("data-i18n");
+      if (dict[k] !== undefined) el.textContent = dict[k];
+    });
+    document.querySelectorAll("[data-i18n-html]").forEach(function(el){
+      var k = el.getAttribute("data-i18n-html");
+      if (dict[k] !== undefined) el.innerHTML = dict[k];
+    });
+    document.querySelectorAll(".lang-toggle button").forEach(function(b){
+      b.setAttribute("aria-pressed", b.getAttribute("data-set-lang") === lang ? "true" : "false");
+    });
+    try{ localStorage.setItem("kdd-lang", lang); }catch(e){}
+    buildTerminals(lang);
+  }
+  document.querySelectorAll(".lang-toggle button").forEach(function(b){
+    b.addEventListener("click", function(){ applyLang(b.getAttribute("data-set-lang")); });
+  });
+
+  /* ---------- theme (host toggle already stamps data-theme; nothing to do) ---------- */
+
+  /* ---------- terminal scripts ---------- */
+  var HERO_LINES = {
+    en: [
+      {c:"p", t:"$ python scripts/validate_contracts.py --hash tests/test_payment_limit.py"},
+      {c:"seal", t:"4f19a2e8c9d0…   sealed"},
+      {c:"comment", t:"# ephemeral agent implements validate_payment_limit"},
+      {c:"p", t:"$ python -m unittest tests/test_payment_limit.py"},
+      {c:"bad", t:"FAILED (2 errors)"},
+      {c:"comment", t:"# re-delegate: \"off-by-one at the country cap\""},
+      {c:"p", t:"$ python -m unittest tests/test_payment_limit.py"},
+      {c:"ok", t:"OK"},
+      {c:"seal", t:"GATE VERDICT: PASS — orchestrator commits"}
+    ],
+    es: [
+      {c:"p", t:"$ python scripts/validate_contracts.py --hash tests/test_payment_limit.py"},
+      {c:"seal", t:"4f19a2e8c9d0…   sellado"},
+      {c:"comment", t:"# el agente efímero implementa validate_payment_limit"},
+      {c:"p", t:"$ python -m unittest tests/test_payment_limit.py"},
+      {c:"bad", t:"FAILED (2 errors)"},
+      {c:"comment", t:"# re-delegación: \"off-by-one en el tope del país\""},
+      {c:"p", t:"$ python -m unittest tests/test_payment_limit.py"},
+      {c:"ok", t:"OK"},
+      {c:"seal", t:"VEREDICTO DEL GATE: PASS — el orquestador commitea"}
+    ]
+  };
+  var ANN_LINES = {
+    en: [
+      {c:"p", t:"$ python scripts/validate_skills.py skills .agents/skills"},
+      {c:"ok", t:"0 error(s) in 6 skill(s)"},
+      {c:"comment", t:"# PM's own mutation — not the dev's fixtures"},
+      {c:"p", t:"$ echo broken-link >> skills/demo/SKILL.md"},
+      {c:"p", t:"$ python scripts/validate_skills.py skills .agents/skills"},
+      {c:"bad", t:"ERROR [LINK_BROKEN] skills/demo/SKILL.md"},
+      {c:"seal", t:"GATE CAUGHT IT. Verdict stands."}
+    ],
+    es: [
+      {c:"p", t:"$ python scripts/validate_skills.py skills .agents/skills"},
+      {c:"ok", t:"0 error(es) en 6 skill(s)"},
+      {c:"comment", t:"# mutación propia del PM — no las fixtures del dev"},
+      {c:"p", t:"$ echo broken-link >> skills/demo/SKILL.md"},
+      {c:"p", t:"$ python scripts/validate_skills.py skills .agents/skills"},
+      {c:"bad", t:"ERROR [LINK_BROKEN] skills/demo/SKILL.md"},
+      {c:"seal", t:"EL GATE LO ATRAPÓ. El veredicto queda en pie."}
+    ]
+  };
+
+  var heroTimer = null, annTimer = null;
+
+  function escapeHtml(s){
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function typeLines(el, lines, opts){
+    opts = opts || {};
+    if (heroTimer && opts.isHero) { clearTimeout(heroTimer); }
+    if (annTimer && !opts.isHero) { clearTimeout(annTimer); }
+    el.innerHTML = "";
+    if (REDUCED){
+      lines.forEach(function(ln){
+        var div = document.createElement("div");
+        div.className = ln.c; div.textContent = ln.t;
+        el.appendChild(div);
+      });
+      return;
+    }
+    var li = 0, ci = 0;
+    var cur = document.createElement("div");
+    cur.className = lines[0] ? lines[0].c : "";
+    el.appendChild(cur);
+    function step(){
+      if (li >= lines.length){
+        cur.classList.remove("term-cursor");
+        if (opts.loop){
+          var t = setTimeout(function(){ typeLines(el, lines, opts); }, 2200);
+          if (opts.isHero) heroTimer = t; else annTimer = t;
+        }
+        return;
+      }
+      var line = lines[li];
+      cur.className = line.c + " term-cursor";
+      if (ci < line.t.length){
+        cur.textContent = line.t.slice(0, ci+1);
+        ci++;
+        var t = setTimeout(step, line.t[ci-1] === " " ? 6 : 14);
+        if (opts.isHero) heroTimer = t; else annTimer = t;
+      } else {
+        cur.classList.remove("term-cursor");
+        li++; ci = 0;
+        cur = document.createElement("div");
+        if (lines[li]) cur.className = lines[li].c;
+        el.appendChild(cur);
+        var t2 = setTimeout(step, 260);
+        if (opts.isHero) heroTimer = t2; else annTimer = t2;
+      }
+    }
+    step();
+  }
+
+  function buildTerminals(lang){
+    var heroEl = document.getElementById("hero-term-body");
+    var annEl = document.getElementById("ann-term-body");
+    typeLines(heroEl, HERO_LINES[lang] || HERO_LINES.en, {loop:true, isHero:true});
+    typeLines(annEl, ANN_LINES[lang] || ANN_LINES.en, {loop:true, isHero:false});
+  }
+
+  /* ---------- flow animation (Exhibit C) ---------- */
+  var flowPlayed = false;
+  function playFlow(){
+    if (flowPlayed) return; flowPlayed = true;
+    var steps = document.querySelectorAll("#flow-anim .step");
+    var fill = document.getElementById("flow-fill");
+    var stamp = document.getElementById("verdict-stamp");
+    if (REDUCED){
+      steps.forEach(function(s){ s.classList.add("on"); });
+      if (fill) fill.style.width = "100%";
+      if (stamp) stamp.classList.add("on");
+      return;
+    }
+    steps.forEach(function(s, i){
+      setTimeout(function(){
+        s.classList.add("on");
+        if (fill) fill.style.width = Math.round(((i+1)/steps.length)*100) + "%";
+      }, i*500);
+    });
+    setTimeout(function(){ if (stamp) stamp.classList.add("on"); }, steps.length*500 + 300);
+  }
+  var flowTarget = document.getElementById("flow-anim");
+  if (flowTarget && "IntersectionObserver" in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ if (en.isIntersecting) playFlow(); });
+    }, {threshold:.4});
+    io.observe(flowTarget);
+  } else if (flowTarget){
+    playFlow();
+  }
+
+  /* ---------- hamburger (mobile nav panel) ---------- */
+  var menuBtn = document.getElementById("menu-btn");
+  var navPanel = document.getElementById("mobile-nav-panel");
+  function closeMenu(){
+    if (!navPanel || navPanel.hidden) return;
+    navPanel.hidden = true;
+    if (menuBtn) menuBtn.setAttribute("aria-expanded", "false");
+  }
+  function openMenu(){
+    navPanel.hidden = false;
+    menuBtn.setAttribute("aria-expanded", "true");
+  }
+  if (menuBtn && navPanel){
+    menuBtn.addEventListener("click", function(){
+      if (navPanel.hidden) openMenu(); else closeMenu();
+    });
+    navPanel.querySelectorAll("a").forEach(function(a){
+      a.addEventListener("click", closeMenu);
+    });
+    document.addEventListener("keydown", function(e){
+      if (e.key === "Escape") closeMenu();
+    });
+    window.addEventListener("resize", function(){
+      if (window.innerWidth >= 960) closeMenu();
+    });
+  }
+
+  /* ---------- init ---------- */
+  var saved = null;
+  try{ saved = localStorage.getItem("kdd-lang"); }catch(e){}
+  applyLang(saved === "es" || saved === "en" ? saved : "en");
+})();
+</script>
+</body>
+</html>
