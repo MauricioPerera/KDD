@@ -1,0 +1,78 @@
+{
+  "_comment": "Golden set congelado del dominio control de fronteras (vocabulario papers-please). 'violations' = campos top-level con >=1 violacion; 'code_only_miss' = los que el declarativo no alcanza (require-field-match). Dominio: knowledge/data_models/border_rules.md.",
+  "refs": {
+    "countries": {
+      "AR": { "allowed_docs": ["passport", "id_card"], "max_stay_days": 90 },
+      "BR": { "allowed_docs": ["passport"], "max_stay_days": 60 },
+      "US": { "allowed_docs": ["passport", "visa"], "max_stay_days": 180 }
+    }
+  },
+  "cases": [
+    {
+      "name": "valido",
+      "record": { "country": "AR", "decision": "approve", "stay_days": 30, "applicant_name": "Ana Perez", "doc": { "type": "passport", "owner": "Ana Perez", "expiry_year": 2030 } },
+      "violations": [],
+      "code_only_miss": []
+    },
+    {
+      "name": "tope de estadia exacto valido",
+      "record": { "country": "AR", "decision": "approve", "stay_days": 90, "applicant_name": "Ana Perez", "doc": { "type": "id_card", "owner": "Ana Perez", "expiry_year": 2028 } },
+      "violations": [],
+      "code_only_miss": []
+    },
+    {
+      "name": "pais vetado o desconocido (ban-country)",
+      "record": { "country": "XX", "decision": "deny", "stay_days": 10, "applicant_name": "Bo Li", "doc": { "type": "passport", "owner": "Bo Li", "expiry_year": 2030 } },
+      "violations": ["country"],
+      "code_only_miss": []
+    },
+    {
+      "name": "decision invalida",
+      "record": { "country": "AR", "decision": "maybe", "stay_days": 10, "applicant_name": "Ana Perez", "doc": { "type": "passport", "owner": "Ana Perez", "expiry_year": 2030 } },
+      "violations": ["decision"],
+      "code_only_miss": []
+    },
+    {
+      "name": "documento vencido (not-expired, año de politica 2027)",
+      "record": { "country": "AR", "decision": "approve", "stay_days": 10, "applicant_name": "Ana Perez", "doc": { "type": "passport", "owner": "Ana Perez", "expiry_year": 2025 } },
+      "violations": ["doc"],
+      "code_only_miss": []
+    },
+    {
+      "name": "tipo de documento no permitido para el pais (require-document keyed)",
+      "record": { "country": "BR", "decision": "approve", "stay_days": 10, "applicant_name": "Ana Perez", "doc": { "type": "id_card", "owner": "Ana Perez", "expiry_year": 2030 } },
+      "violations": ["doc"],
+      "code_only_miss": []
+    },
+    {
+      "name": "estadia sobre el tope del pais (keyed_bounds, 90 pasa en AR pero BR topa 60)",
+      "record": { "country": "BR", "decision": "approve", "stay_days": 90, "applicant_name": "Ana Perez", "doc": { "type": "passport", "owner": "Ana Perez", "expiry_year": 2030 } },
+      "violations": ["stay_days"],
+      "code_only_miss": []
+    },
+    {
+      "name": "documento sin owner (required anidado)",
+      "record": { "country": "AR", "decision": "approve", "stay_days": 10, "applicant_name": "Ana Perez", "doc": { "type": "passport", "owner": "", "expiry_year": 2030 } },
+      "violations": ["doc"],
+      "code_only_miss": []
+    },
+    {
+      "name": "stay_days no numerico",
+      "record": { "country": "AR", "decision": "approve", "stay_days": "muchos", "applicant_name": "Ana Perez", "doc": { "type": "passport", "owner": "Ana Perez", "expiry_year": 2030 } },
+      "violations": ["stay_days"],
+      "code_only_miss": []
+    },
+    {
+      "name": "FRONTERA require-field-match: owner del doc no coincide con el solicitante",
+      "record": { "country": "AR", "decision": "approve", "stay_days": 10, "applicant_name": "Ana Perez", "doc": { "type": "passport", "owner": "Juan Gomez", "expiry_year": 2030 } },
+      "violations": ["doc"],
+      "code_only_miss": ["doc"]
+    },
+    {
+      "name": "acumula 3 (pais + decision + estadia negativa)",
+      "record": { "country": "ZZ", "decision": "hold", "stay_days": -1, "applicant_name": "Bo Li", "doc": { "type": "passport", "owner": "Bo Li", "expiry_year": 2030 } },
+      "violations": ["country", "decision", "stay_days"],
+      "code_only_miss": []
+    }
+  ]
+}

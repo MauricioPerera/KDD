@@ -46,6 +46,9 @@ MANIFEST = (
     "examples/rules/payment-compliance.rules.json",
     "examples/rules/payment-golden.json",
     "tests/test_payment_rules_equivalence.py",
+    "examples/rules/border-control.rules.json",
+    "examples/rules/border-golden.json",
+    "knowledge/data_models/border_rules.md",
 )
 
 _LINK_RE = re.compile(r"\]\(([^)]+)\)")

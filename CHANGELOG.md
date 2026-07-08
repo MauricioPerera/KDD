@@ -4,6 +4,9 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+**Contract 19 — Second domain: border control (generality proven)** ([C19-REPORT](docs/reports/CONTRACT-19-REPORT.md))
+- The papers-please vocabulary (game-protocol) expressed as pure data over the existing engine and gate: zero code for a new domain (node + rule-set + sealed golden). Second measured boundary, same class as the first: cross-field equality (`require-field-match`) stays `code_only`, matching game-protocol's own data/logic split.
+
 **Contract 18 — Rule-contracts gate** ([C18-REPORT](docs/reports/CONTRACT-18-REPORT.md))
 - The rule-contract layer now defends itself: `scripts/validate_rules.py` (level-1 gate + CI step, dual-OS) checks known families (a typo is an ERROR, not a silently ignored rule), a mandatory hash-sealed golden (`golden: {path, sha256}`, sealed with the existing `--hash`), documented `code_only` reasons, and REPRODUCTION: the declarative engine is re-run over every golden case (a valid seal with broken semantics still fails). Optional layer: projects without rule contracts pass with INFO.
 

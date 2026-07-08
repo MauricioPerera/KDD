@@ -1,0 +1,45 @@
+{
+  "_comment": "Rule-set declarativo del dominio control de fronteras (vocabulario papers-please de game-protocol), segundo dominio de la vertiente rule contract. Mapeo y fronteras: knowledge/data_models/border_rules.md. Año de politica not-expired: 2027 (fijo, determinista).",
+  "required": [
+    { "field": "country" },
+    { "field": "decision" },
+    { "field": "applicant_name" },
+    { "field": "doc.type" },
+    { "field": "doc.owner" }
+  ],
+  "type": [
+    { "field": "country", "kind": "string" },
+    { "field": "decision", "kind": "string" },
+    { "field": "applicant_name", "kind": "string" },
+    { "field": "doc", "kind": "dict" },
+    { "field": "stay_days", "kind": "number" },
+    { "field": "doc.expiry_year", "kind": "number" }
+  ],
+  "bounds": [
+    { "field": "stay_days", "gt": 0 },
+    { "field": "doc.expiry_year", "min": 2027 }
+  ],
+  "enums": [
+    { "field": "decision", "values": ["approve", "deny", "detain"] }
+  ],
+  "refs": [
+    { "field": "country", "collection": "countries" }
+  ],
+  "keyed_bounds": [
+    { "field": "stay_days", "key": "country", "table": "countries", "max_path": "max_stay_days" }
+  ],
+  "keyed_enums": [
+    { "field": "doc.type", "key": "country", "table": "countries", "values_path": "allowed_docs" }
+  ],
+  "code_only": [
+    {
+      "rule": "require-field-match",
+      "field": "doc.owner",
+      "reason": "Igualdad ENTRE dos campos del record (doc.owner debe coincidir con applicant_name). Ninguna familia declarativa lo expresa: enums/bounds comparan contra constantes y refs/keyed_* contra tablas, no campos entre si. Coincide con game-protocol, que implementa require-field-match como logica del motor, no como dato."
+    }
+  ],
+  "golden": {
+    "path": "border-golden.json",
+    "sha256": "0d2a4203c8ee97312607f9d0b01eb6f8112fe172433d17d00f67028541c60b43"
+  }
+}

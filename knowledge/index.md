@@ -15,5 +15,6 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Modelos de Datos](./data_models/)
   - [Tabla users](./data_models/users_table.md)
   - [Limites de pago por pais](./data_models/payment_limits.md)
+  - [Reglas de control de fronteras](./data_models/border_rules.md)
 - [Arquitectura](./architecture/)
   - [Arquitectura general](./architecture/overview.md)
