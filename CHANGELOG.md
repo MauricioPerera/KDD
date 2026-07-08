@@ -2,7 +2,9 @@
 
 All notable changes to the KDD Template are documented here.
 
-## Unreleased
+## v1.5.0 — 2026-07-08
+
+A benchmark tool for the template's own health, and two gates that measure a mechanical/judgment boundary outside code for the first time — a web page (C30) and a git commit message (C31) — both designed by reading a real, widely-adopted third party before building, not by inventing rules from scratch.
 
 **Contract 31 — Commit message format: the mechanical/judgment boundary in git** ([C31-REPORT](docs/reports/CONTRACT-31-REPORT.md))
 - Answers a direct question about git-workflow contracts (issues, PRs, commits) with a deliberately narrow scope: only commit message format. `scripts/validate_commit_message.py` checks the Conventional Commits v1.0.0 grammar (`type(scope)?!?: description`) plus the blank-line-before-body rule Git itself relies on, calibrated against `commitlint`'s real default severities rather than invented ones: reference-breaking rules (`HEADER_MALFORMED`, `TYPE_UNKNOWN`, `SCOPE_REQUIRED`, `BLANK_LINE_MISSING`) are ERROR; style-only rules (`SUBJECT_TOO_LONG`, `SUBJECT_TRAILING_PERIOD`) are WARNING and never block. Deliberately opt-in, NOT wired into this repo's own CI — verified live: running this very commit's own message against the shipped example convention correctly flags `TYPE_UNKNOWN` (KDD's own `C31:`/`release:`/`docs:` pattern isn't Conventional Commits). "Verify a PR and decide to merge" is recognized as an already-existing pattern (dual-OS CI + protected branch in `ccdd-gate`), cross-referenced rather than rebuilt. PR/issue templates deferred — no real templates in this repo yet to calibrate against.
