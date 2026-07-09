@@ -297,7 +297,35 @@
   @media (prefers-reduced-motion: reduce){
     *{ animation-duration:.001s !important; transition-duration:.001s !important; }
   }
-</style>
+
+  /* family diagram */
+  #family{ --fa: #6E520E; }
+  @media (prefers-color-scheme: dark){ #family{ --fa: #C79A3A; } }
+  :root[data-theme="dark"] #family{ --fa: #C79A3A; }
+  :root[data-theme="light"] #family{ --fa: #6E520E; }
+  #family .fam2{ margin-top:2.2rem; display:flex; flex-direction:column; align-items:center; }
+  #family .fam2-core{ display:flex; align-items:center; gap:.9rem; background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:.8rem 1.15rem; max-width:100%; }
+  #family .fam2-dna{ width:40px; height:40px; flex:0 0 auto; }
+  #family .fam2-core-txt{ display:flex; flex-direction:column; }
+  #family .fam2-core-t{ font-weight:700; font-size:.96rem; }
+  #family .fam2-core-s{ font-family:var(--mono); font-size:.71rem; color:var(--text-dim); margin-top:.12rem; }
+  #family .fam2-stem{ width:2px; height:28px; background:var(--line); }
+  #family .fam2-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:.75rem; width:100%; }
+  #family .fam2-node{ display:block; text-decoration:none; color:inherit; background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--line); border-radius:7px; padding:.9rem 1rem; transition:border-color .15s ease, transform .15s ease, box-shadow .15s ease; }
+  #family .fam2-node:hover{ border-left-color:var(--fa); transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,.10); }
+  #family .fam2-node:focus-visible{ outline:2px solid var(--fa); outline-offset:2px; }
+  #family .fam2-node.is-cousin{ border-style:dashed; }
+  #family .fam2-node.is-self{ border-color:var(--fa); }
+  #family .fam2-node-top{ display:flex; align-items:baseline; justify-content:space-between; gap:.6rem; margin-bottom:.45rem; }
+  #family .fam2-name{ font-family:var(--mono); font-weight:700; font-size:.98rem; color:var(--fa); letter-spacing:-.01em; }
+  #family .fam2-plane{ font-family:var(--mono); font-size:.62rem; letter-spacing:.07em; text-transform:uppercase; color:var(--text-dim); border:1px solid var(--line); border-radius:3px; padding:.18em .5em; flex:0 0 auto; white-space:nowrap; }
+  #family .fam2-rel{ display:block; font-size:.85rem; line-height:1.5; color:var(--text-dim); }
+  #family .fam2-here{ display:inline-block; margin-top:.55rem; font-family:var(--mono); font-size:.6rem; letter-spacing:.07em; text-transform:uppercase; background:var(--fa); color:var(--bg); padding:.18em .55em; border-radius:3px; }
+  @media (max-width:520px){
+    #family .fam2-core{ flex-direction:column; text-align:center; gap:.55rem; }
+    #family .fam2-core-txt{ align-items:center; }
+  }
+  </style>
 </head>
 <body>
 <a class="skip-link" href="#main" data-i18n="a11y.skip">Skip to content</a>
@@ -325,6 +353,7 @@
     <a href="#numbers"><span class="tag">E</span><span data-i18n="nav.e">By the numbers</span></a>
     <a href="#boundary"><span class="tag">F</span><span data-i18n="nav.f">The boundary</span></a>
     <a href="#domains"><span class="tag">G</span><span data-i18n="nav.g">Domains sealed</span></a>
+    <a href="#family"><span class="tag">H</span><span data-i18n="nav.h">The family</span></a>
   </nav>
 
   <!-- desktop: persistent sidebar (hidden <960px) -->
@@ -338,6 +367,7 @@
       <li><a href="#numbers"><span class="tag">E</span><span data-i18n="nav.e">By the numbers</span></a></li>
       <li><a href="#boundary"><span class="tag">F</span><span data-i18n="nav.f">The boundary</span></a></li>
       <li><a href="#domains"><span class="tag">G</span><span data-i18n="nav.g">Domains sealed</span></a></li>
+      <li><a href="#family"><span class="tag">H</span><span data-i18n="nav.h">The family</span></a></li>
     </ul>
     <div class="lang-toggle" role="group" aria-label="Language">
       <button type="button" data-set-lang="en" aria-pressed="true">EN</button>
@@ -490,6 +520,67 @@
       </div>
     </section>
 
+    <section id="family">
+      <div class="col-wide">
+        <span class="exhibit-tag" data-i18n="fam2.tag">Exhibit H</span>
+        <h2 data-i18n="fam2.h2">One DNA, five planes</h2>
+        <p data-i18n="fam2.p">We all share the same DNA — a machine-verifiable layer, a human-judgeable layer, and deterministic validation — each of us on a different plane; I am the methodology that ties the levels together.</p>
+        <div class="fam2">
+          <div class="fam2-core">
+            <svg class="fam2-dna" viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false">
+              <rect x="9" y="13" width="46" height="15" rx="3.5" fill="var(--fa)" fill-opacity="0.16" stroke="var(--fa)" stroke-width="1.6"/>
+              <rect x="9" y="35" width="46" height="15" rx="3.5" fill="none" stroke="var(--text-dim)" stroke-width="1.6" stroke-dasharray="3.5 3"/>
+              <circle cx="49" cy="49" r="9.5" fill="var(--fa)"/>
+              <path d="M44.5 49.2 l3 3 l6 -7" stroke="var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+            <span class="fam2-core-txt">
+              <span class="fam2-core-t" data-i18n="fam2.core">The shared contract</span>
+              <span class="fam2-core-s" data-i18n="fam2.coresub">2-layer doc · deterministic check</span>
+            </span>
+          </div>
+          <div class="fam2-stem" aria-hidden="true"></div>
+          <div class="fam2-grid">
+            <a class="fam2-node" href="https://github.com/MauricioPerera/ccdd">
+              <span class="fam2-node-top">
+                <span class="fam2-name">ccdd</span>
+                <span class="fam2-plane" data-i18n="fam2.plane.ccdd">Context</span>
+              </span>
+              <span class="fam2-rel" data-i18n="fam2.rel.ccdd">The base: versioned, notarized context that anchors everything.</span>
+            </a>
+            <a class="fam2-node" href="https://github.com/MauricioPerera/ccdd-gate">
+              <span class="fam2-node-top">
+                <span class="fam2-name">ccdd-gate</span>
+                <span class="fam2-plane" data-i18n="fam2.plane.gate">Static code</span>
+              </span>
+              <span class="fam2-rel" data-i18n="fam2.rel.gate">Level 2: the frozen oracle that seals the static code.</span>
+            </a>
+            <a class="fam2-node" href="https://github.com/MauricioPerera/taskmd">
+              <span class="fam2-node-top">
+                <span class="fam2-name">taskmd</span>
+                <span class="fam2-plane" data-i18n="fam2.plane.taskmd">Live outcome</span>
+              </span>
+              <span class="fam2-rel" data-i18n="fam2.rel.taskmd">The dynamic end: verifies completion against the live system.</span>
+            </a>
+            <a class="fam2-node is-self" href="https://github.com/MauricioPerera/KDD">
+              <span class="fam2-node-top">
+                <span class="fam2-name">KDD</span>
+                <span class="fam2-plane" data-i18n="fam2.plane.kdd">Method</span>
+              </span>
+              <span class="fam2-rel" data-i18n="fam2.rel.kdd">You are here: I am the methodology that ties the whole family.</span>
+              <span class="fam2-here" data-i18n="fam2.here">you are here</span>
+            </a>
+            <a class="fam2-node is-cousin" href="https://github.com/google-labs-code/design.md">
+              <span class="fam2-node-top">
+                <span class="fam2-name">design.md</span>
+                <span class="fam2-plane" data-i18n="fam2.plane.design">Visual</span>
+              </span>
+              <span class="fam2-rel" data-i18n="fam2.rel.design">Our cousin: shares the DNA, owns the visual identity.</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="closing">
       <div class="col">
         <h2 data-i18n="closing.h2">Read the file yourself</h2>
@@ -513,6 +604,7 @@
   /* ---------- i18n ---------- */
   var I18N = {
     en: {
+      "fam2.tag":"Exhibit H","fam2.h2":"One DNA, five planes","fam2.p":"We all share the same DNA — a machine-verifiable layer, a human-judgeable layer, and deterministic validation — each of us on a different plane; I am the methodology that ties the levels together.","fam2.core":"The shared contract","fam2.coresub":"2-layer doc · deterministic check","fam2.here":"you are here","fam2.plane.ccdd":"Context","fam2.plane.gate":"Static code","fam2.plane.taskmd":"Live outcome","fam2.plane.kdd":"Method","fam2.plane.design":"Visual","fam2.rel.ccdd":"The base: versioned, notarized context that anchors everything.","fam2.rel.gate":"Level 2: the frozen oracle that seals the static code.","fam2.rel.taskmd":"The dynamic end: verifies completion against the live system.","fam2.rel.kdd":"You are here: I am the methodology that ties the whole family.","fam2.rel.design":"Our cousin: shares the DNA, owns the visual identity.","nav.h":"The family",
       "a11y.skip":"Skip to content",
       "nav.a":"The problem","nav.b":"Two pillars","nav.c":"The file moves","nav.d":"The terminal",
       "nav.e":"By the numbers","nav.f":"The boundary","nav.g":"Domains sealed",
@@ -566,6 +658,7 @@
       "closing.cta1":"Open the repository","closing.cta2":"See the releases"
     },
     es: {
+      "fam2.tag":"Exhibit H","fam2.h2":"Un ADN, cinco planos","fam2.p":"Todos compartimos el mismo ADN — una capa verificable por máquina, una capa juzgable por humano y validación determinista — cada uno en un plano distinto; yo soy la metodología que ata los niveles.","fam2.core":"El contrato compartido","fam2.coresub":"Doc de 2 capas · chequeo determinista","fam2.here":"estás aquí","fam2.plane.ccdd":"Contexto","fam2.plane.gate":"Código estático","fam2.plane.taskmd":"Resultado en vivo","fam2.plane.kdd":"Método","fam2.plane.design":"Visual","fam2.rel.ccdd":"La base: contexto versionado y notariado que ancla todo.","fam2.rel.gate":"Nivel 2: el oráculo congelado que sella el código estático.","fam2.rel.taskmd":"El final dinámico: verifica la tarea contra el sistema vivo.","fam2.rel.kdd":"Estás aquí: soy la metodología que ata a toda la familia.","fam2.rel.design":"Nuestro primo: comparte el ADN, tiene la identidad visual.","nav.h":"La familia",
       "a11y.skip":"Ir al contenido",
       "nav.a":"El problema","nav.b":"Dos pilares","nav.c":"El expediente avanza","nav.d":"La terminal",
       "nav.e":"En números","nav.f":"El límite","nav.g":"Dominios sellados",
@@ -619,6 +712,7 @@
       "closing.cta1":"Abrir el repositorio","closing.cta2":"Ver los releases"
     },
     pt: {
+      "fam2.tag":"Exhibit H","fam2.h2":"Um DNA, cinco planos","fam2.p":"Todos compartilham o mesmo DNA — uma camada verificável por máquina, uma camada julgável por humano e validação determinística — cada um em um plano distinto; eu sou a metodologia que ata os níveis.","fam2.core":"O contrato compartilhado","fam2.coresub":"Doc de 2 camadas · verificação determinista","fam2.here":"você está aqui","fam2.plane.ccdd":"Contexto","fam2.plane.gate":"Código estático","fam2.plane.taskmd":"Resultado ao vivo","fam2.plane.kdd":"Método","fam2.plane.design":"Visual","fam2.rel.ccdd":"A base: contexto versionado e notarizado que ancora tudo.","fam2.rel.gate":"Nível 2: o oráculo congelado que sela o código estático.","fam2.rel.taskmd":"O final dinâmico: verifica a tarefa contra o sistema vivo.","fam2.rel.kdd":"Você está aqui: sou a metodologia que ata toda a família.","fam2.rel.design":"Nosso primo: compartilha o DNA, tem a identidade visual.","nav.h":"A família",
       "a11y.skip":"Pular para o conteúdo",
       "nav.a":"O problema","nav.b":"Dois pilares","nav.c":"O expediente avança","nav.d":"O terminal",
       "nav.e":"Em números","nav.f":"O limite","nav.g":"Domínios selados",
