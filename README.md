@@ -1,6 +1,6 @@
 # KDD Template (Knowledge-Driven Development)
 
-[English](#english) | [Español](#español)
+[English](#english) | [Español](#español) | [Português](#português)
 
 <a id="english"></a>
 
@@ -107,3 +107,57 @@ La referencia normativa completa — niveles 1 y 2 de validación, el gate multi
 ### Versionado
 
 La plantilla usa **versionado semántico** comenzando desde `v1.0.0`. Consulta [`CHANGELOG.md`](CHANGELOG.md) para el historial de releases. Cuando instancies esta plantilla con `init_project`, heredas una base versionada que puedes actualizar: el nodo [`Upgrade de la plantilla`](knowledge/plantilla-upgrade.md) documenta cuál es infraestructura de la plantilla (actualizable desde upstream) y cuál pertenece a tu proyecto (tuyo para mantener o modificar).
+
+<a id="português"></a>
+
+## Português
+
+🌐 **[Landing page](https://mauricioperera.github.io/KDD/)** — um passeio visual pela metodologia (alternância EN/ES/PT).
+
+Este é um repositório-modelo para projetos que implementam a metodologia **Knowledge-Driven Development (KDD)**, que unifica:
+- **OKF (Open Knowledge Format):** Um formato minimalista para estruturar conhecimento, design e arquitetura como arquivos markdown com frontmatter YAML. A especificação normativa dos nós OKF está em [`knowledge/OKF-SPEC.md`](knowledge/OKF-SPEC.md).
+- **CCDD (Contract-Driven Development):** Uma metodologia para governar o desenvolvimento com agentes de IA efêmeros por meio de contratos estritos e limiares determinísticos (complexidade, testes congelados).
+
+### Estrutura do Repositório
+
+- `knowledge/`: Onde vive sua base de conhecimento OKF. Todo arquivo aqui é um nó indexável.
+- `knowledge/contracts/`: Onde as tarefas para desenvolvedores (humanos ou IA) são definidas usando o formato híbrido OKF+CCDD.
+- `src/` e `tests/`: Código de implementação e testes automatizados.
+- `scripts/validate_contracts.py`: Validador determinístico de contratos (stdlib, sem LLM, sem rede).
+- `.agents/`: Regras locais para agentes de IA que clonarem este repositório.
+- `specs/` e `docs/reports/`: **contratos de execução** em nível de projeto e seus relatórios
+  verificados no próprio repositório (templates incluídos). A evidência em nível de tarefa
+  permanece local em `.agents/logs/`; veja
+  [`knowledge/metodologia-ejecucion.md`](knowledge/metodologia-ejecucion.md).
+- `scripts/assemble_context.py` + `ccdd/context.json`: montador de contexto orçado e
+  determinístico sobre a base de conhecimento OKF (CCDD Nível 2).
+- `scripts/rule_engine.py` + `scripts/validate_rules.py`: a camada de **rule contracts** —
+  regras de negócio validadas como dados declarativos com um golden set selado por hash
+  (formato: [`knowledge/rule-contract-spec.md`](knowledge/rule-contract-spec.md); exemplos
+  em `examples/rules/`).
+
+### Como usar este modelo
+
+1. Use este repositório como "Template" no GitHub ou clone-o localmente.
+2. Explore `knowledge/index.md` para ver como os conceitos são estruturados.
+3. Ao delegar trabalho a um agente (ex.: um agente de codificação de IA), o agente lerá `.agents/AGENTS.md` e entenderá imediatamente que deve respeitar os contratos CCDD deste repositório.
+4. Remova os artefatos de exemplo e reescreva `knowledge/index.md` com `python scripts/init_project.py --apply --name "<Seu Projeto>"` (remove todo artefato de EXEMPLO no `MANIFEST` explícito do script — código e testes de amostra, os nós OKF de exemplo e todos os domínios de exemplo (rule contracts, contratos de tarefa e seus nós de modelo de dados: pagamentos, controle de fronteira, workflows, roteamento, editorial, registro MCP, cabeamento de agentes); sem `--apply` ele apenas imprime o plano).
+
+#### Instanciando para um projeto não-Python
+
+O tooling KDD deste modelo é Python e continua sendo Python mesmo que seu projeto não seja — são dois planos separados (tooling do modelo vs. código do seu projeto).
+
+- **Mantido sem alterações:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/lint_ascii.py`, `scripts/rule_engine.py`, `scripts/validate_rules.py`, `scripts/validate_skills.py`, `scripts/validate_changelog.py`, `scripts/validate_perimeter.py`, `scripts/benchmark_gates.py`, `scripts/validate_ux_page.py`, `scripts/validate_commit_message.py`, `scripts/export_gate_contract.py` e `scripts/init_project.py` continuam sendo Python; eles validam contratos e produzem o export do gate independentemente do idioma do seu projeto.
+- **Adaptado:** o `test_command` de cada contrato deve usar o executor do seu idioma (`node --test ...`, `cargo test ...`, etc. — veja o gate multilíngue em [`knowledge/validacion.md`](knowledge/validacion.md)). O workflow de CI `.github/workflows/validate.yml` roda em uma matriz de SO (`ubuntu-latest` + `windows-latest`), instala Python e executa os validadores do modelo, o lint ASCII e a suíte Python duas vezes (`python -m unittest discover -s tests`, anti-flaky); um passo separado **"Run project test suite"** é um placeholder para os testes do seu próprio projeto — troque o comando pelo executor do seu idioma (`npm test`, `cargo test`, `go test ./...`, ...) e adicione o passo `actions/setup-*` correspondente acima se seu runtime precisar de configuração. Os dois passos Python anteriores continuam sendo necessários como estão: eles validam o próprio tooling KDD, não o seu projeto.
+- **Artefatos de exemplo:** `scripts/init_project.py --apply` remove artefatos de EXEMPLO escritos em Python (`src/hello.py`, `src/users.py`, os testes de amostra, os nós OKF de exemplo) — são apenas exemplos ilustrativos do padrão de contrato, não uma dependência de linguagem: são removidos da mesma forma independentemente do idioma do seu projeto, e depois você adiciona seus próprios contratos/testes no seu idioma.
+
+### Validação de Contratos, Precedência de Budget e Ciclo de Vida
+
+A referência normativa completa — níveis de validação 1 e 2, o gate multilíngue, o export do gate, a precedência de budget e o ciclo de vida `draft → verified` — vive no nó OKF canônico [`knowledge/validacion.md`](knowledge/validacion.md). Este README não a duplica (OKF §4). Resumo:
+
+- **Nível 1 (incluído, obrigatório):** `python scripts/validate_contracts.py knowledge/contracts` (inclui o selo obrigatório `tests_sha256` do oráculo congelado e a chave obrigatória de perímetro `touch_only` — veja [`knowledge/validacion.md`](knowledge/validacion.md)) + `python scripts/validate_specs.py specs` + `python scripts/validate_okf.py knowledge` (estrutura/frontmatter dos nós OKF) + `python scripts/lint_ascii.py scripts` + `python scripts/validate_rules.py examples/rules` (rule contracts — regras de negócio como dados, camada opcional) + `python scripts/validate_skills.py skills .agents/skills` (ativos de skills de agente: estrutura, frontmatter, links, unicidade de nomes) + `python scripts/validate_changelog.py` (coerência CHANGELOG↔relatórios) + `python scripts/validate_ux_page.py examples/ux-page` (UX/acessibilidade mecânica sobre páginas HTML autocontidas, camada opcional) + o `test_command` do contrato, tudo verde localmente e no CI (`.github/workflows/validate.yml`, matriz dual-SO). Nenhum contrato é considerado concluído até passar o nível 1.
+- **Nível 2 (opcional):** o gate CCDD real via o servidor MCP `ccdd-complexity` (`lint_task_contract`, `run_integration_gate`) sobre o export de `scripts/export_gate_contract.py`. Com o gate presente, sua config assinada tem precedência sobre o `budget` do frontmatter.
+
+### Versionamento
+
+O modelo usa **versionamento semântico** começando em `v1.0.0`. Veja [`CHANGELOG.md`](CHANGELOG.md) para o histórico de releases. Quando você instanciar este modelo com `init_project`, você herda uma base versionada que pode atualizar: o nó [`Upgrade de la plantilla`](knowledge/plantilla-upgrade.md) documenta o que é infraestrutura do modelo (atualizável a partir do upstream) e o que pertence ao seu projeto (seu, para manter ou modificar como preferir).
