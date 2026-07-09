@@ -310,6 +310,7 @@
       <div class="lang-toggle" role="group" aria-label="Language">
         <button type="button" data-set-lang="en" aria-pressed="true">EN</button>
         <button type="button" data-set-lang="es" aria-pressed="false">ES</button>
+        <button type="button" data-set-lang="pt" aria-pressed="false">PT</button>
       </div>
       <button type="button" class="hamburger" id="menu-btn" aria-expanded="false" aria-controls="mobile-nav-panel" aria-label="Menu">
         <span class="bar"></span><span class="bar"></span><span class="bar"></span>
@@ -341,6 +342,7 @@
     <div class="lang-toggle" role="group" aria-label="Language">
       <button type="button" data-set-lang="en" aria-pressed="true">EN</button>
       <button type="button" data-set-lang="es" aria-pressed="false">ES</button>
+      <button type="button" data-set-lang="pt" aria-pressed="false">PT</button>
     </div>
   </nav>
 
@@ -615,6 +617,59 @@
       "closing.h2":"Leé el expediente vos mismo",
       "closing.p":"Licencia MIT. Cada afirmación de esta página está commiteada en el repositorio que la respalda.",
       "closing.cta1":"Abrir el repositorio","closing.cta2":"Ver los releases"
+    },
+    pt: {
+      "a11y.skip":"Pular para o conteúdo",
+      "nav.a":"O problema","nav.b":"Dois pilares","nav.c":"O expediente avança","nav.d":"O terminal",
+      "nav.e":"Em números","nav.f":"O limite","nav.g":"Domínios selados",
+      "hero.eyebrow":"Knowledge-Driven Development",
+      "hero.h1":"O veredito vem de uma máquina.<br>Não do modelo.",
+      "hero.lead":"O KDD sela os testes de um contrato antes de qualquer agente de IA tocar o alvo. Um gate determinístico — um script, não uma opinião — decide se o trabalho fica de pé.",
+      "hero.cta1":"Ver no GitHub","hero.cta2":"Ler o README",
+      "problem.tag":"Exhibit A","problem.h2":"O problema que nenhum demo mostra",
+      "problem.p1":"Agentes de IA escrevem código rápido. Nada nessa frase te diz se o código está correto, é seguro, ou ficou dentro do escopo atribuído.",
+      "problem.p2":"Hoje, verificar isso ainda é um humano fazendo à mão — lendo o diff, rodando os testes de novo, revisando a lista de arquivos — toda vez, para cada tarefa.",
+      "pillars.tag":"Exhibit B","pillars.h2":"Dois pilares, uma só disciplina",
+      "pillars.okf":"Open Knowledge Format. Os modelos de dados, decisões e arquitetura do seu projeto vivem como nós markdown versionados que um agente pode percorrer — não prosa que ele precisa adivinhar.",
+      "pillars.ccdd":"O contrato congelado. Uma tarefa carrega assinatura, invariantes e um arquivo de testes. Os testes ficam selados por hash antes de qualquer agente tocar o alvo — edite-os, e o selo quebra o build.",
+      "flow.tag":"Exhibit C","flow.h2":"Como um contrato avança pelo expediente",
+      "flow.p":"Evidência antes da crença, em cada etapa. O exit code do gate é a única opinião que conta.",
+      "flow.s1":"Recon","flow.s2":"Spec","flow.s3":"Selo (sha256)","flow.s4":"Delegar","flow.s5":"Gate",
+      "flow.verdict":"VEREDITO: PASS",
+      "term2.tag":"Exhibit D","term2.h2":"O orquestrador não confia nas fixtures de ninguém além das próprias",
+      "term2.n1t":"O gate passa limpo.","term2.n1":"Seis skills, zero erros — o trabalho do dev parece pronto.",
+      "term2.n2t":"Então o revisor quebra.","term2.n2":"Em uma cópia descartável, com sua própria fixture — nunca a do dev — para ver se o gate realmente percebe.",
+      "term2.n3t":"Ele percebe.","term2.n3":"Só então o veredito se mantém.",
+      "numbers.tag":"Exhibit E","numbers.h2":"Em números, na data deste arquivo",
+      "numbers.p":"Cada número abaixo está commitado no repositório — verificável, não afirmado.",
+      "numbers.s1":"contratos fechados e verificados","numbers.s2":"gates determinísticos, zero chamadas a um LLM",
+      "numbers.s3":"famílias declarativas de regras","numbers.s4":"testes, rodados duas vezes, em dois sistemas operacionais",
+      "numbers.s5":"classes de fronteira mapeadas, com honestidade",
+      "boundary.tag":"Exhibit F","boundary.h2":"O que é selado, o que fica de fora",
+      "boundary.p":"A fronteira honesta é parte do método, não uma lacuna nele.",
+      "boundary.yesh":"Pode ser selado",
+      "boundary.yes1":"Funções puras, verificadas contra testes que ninguém pode editar em silêncio",
+      "boundary.yes2":"Regras de negócio como dados declarativos — um limite de pagamento é uma tabela, não um prompt",
+      "boundary.yes3":"Quais skills e servidores MCP um agente tem cabeados, e se esses cabos apontam para algo real",
+      "boundary.yes4":"Se o seu changelog conta a verdade sobre a própria história",
+      "boundary.noh":"Fica de fora, declarado",
+      "boundary.no1":"O que um servidor em produção faz pela rede — isso precisa de um sistema rodando, não um hash",
+      "boundary.no2":"Se uma edição \"lê bem\" — tom e julgamento continuam sendo decisão humana",
+      "boundary.no3":"O próprio agente. O KDD contrata o artefato que um agente produz, nunca o comportamento do agente.",
+      "domains.tag":"Exhibit G","domains.h2":"Domínios selados até agora",
+      "domains.d1t":"Conformidade de pagamentos","domains.d1s":"Limites por país, verificação de beneficiário",
+      "domains.d2t":"Controle de fronteiras","domains.d2s":"Regras cruzadas, provadas em um segundo domínio",
+      "domains.d3t":"Política de workflows","domains.d3s":"Regras por nó sobre grafos de automação",
+      "domains.d4t":"Roteamento de mensagens","domains.d4s":"Uma decisão, contratada de duas formas ao mesmo tempo",
+      "domains.d5t":"Estilo editorial","domains.d5s":"Estrutura selada, julgamento deixado de fora",
+      "domains.d6t":"Registro MCP","domains.d6s":"Nenhum segredo jamais commitado em claro",
+      "domains.d7t":"Cabeamento de agentes","domains.d7s":"Toda referência resolve, ou falha alto",
+      "domains.d8t":"Skills de agente","domains.d8s":"O primeiro gate sobre ativos reais do próprio repo",
+      "domains.d9t":"UX de páginas web","domains.d9s":"Contraste, i18n e movimento, calibrados contra um linter real de 25 mil estrelas",
+      "domains.d10t":"Mensagens de commit","domains.d10s":"Gramática Conventional Commits, opt-in por design",
+      "closing.h2":"Leia o expediente você mesmo",
+      "closing.p":"Licenciado sob MIT. Cada afirmação desta página está commitada no repositório que a sustenta.",
+      "closing.cta1":"Abrir o repositório","closing.cta2":"Ver os releases"
     }
   };
 
@@ -665,6 +720,17 @@
       {c:"p", t:"$ python -m unittest tests/test_payment_limit.py"},
       {c:"ok", t:"OK"},
       {c:"seal", t:"VEREDICTO DEL GATE: PASS — el orquestador commitea"}
+    ],
+    pt: [
+      {c:"p", t:"$ python scripts/validate_contracts.py --hash tests/test_payment_limit.py"},
+      {c:"seal", t:"4f19a2e8c9d0…   selado"},
+      {c:"comment", t:"# o agente efêmero implementa validate_payment_limit"},
+      {c:"p", t:"$ python -m unittest tests/test_payment_limit.py"},
+      {c:"bad", t:"FAILED (2 errors)"},
+      {c:"comment", t:"# re-delegação: \"off-by-one no teto do país\""},
+      {c:"p", t:"$ python -m unittest tests/test_payment_limit.py"},
+      {c:"ok", t:"OK"},
+      {c:"seal", t:"VEREDITO DO GATE: PASS — o orquestrador commita"}
     ]
   };
   var ANN_LINES = {
@@ -685,6 +751,15 @@
       {c:"p", t:"$ python scripts/validate_skills.py skills .agents/skills"},
       {c:"bad", t:"ERROR [LINK_BROKEN] skills/demo/SKILL.md"},
       {c:"seal", t:"EL GATE LO ATRAPÓ. El veredicto queda en pie."}
+    ],
+    pt: [
+      {c:"p", t:"$ python scripts/validate_skills.py skills .agents/skills"},
+      {c:"ok", t:"0 error(es) em 6 skill(s)"},
+      {c:"comment", t:"# mutação própria do PM — não as fixtures do dev"},
+      {c:"p", t:"$ echo broken-link >> skills/demo/SKILL.md"},
+      {c:"p", t:"$ python scripts/validate_skills.py skills .agents/skills"},
+      {c:"bad", t:"ERROR [LINK_BROKEN] skills/demo/SKILL.md"},
+      {c:"seal", t:"O GATE PEGOU. O veredito se mantém."}
     ]
   };
 
