@@ -1,0 +1,34 @@
+{
+  "section_intro": "Skills published by the KDD template - search and browse the methodology's own OKF knowledge bundle (spec, contracts, architecture, validation).",
+  "published": [
+    {
+      "path": "skills/search_knowledge/SKILL.md",
+      "url": "/skills/search_knowledge/SKILL.md",
+      "summary": "BM25 search over this origin's published knowledge bundle. Use it to find which concept answers a question before fetching it.",
+      "tool": "skills/search_knowledge/tool.js",
+      "tool_url": "/skills/search_knowledge/tool.js"
+    },
+    {
+      "path": "skills/get_concept/SKILL.md",
+      "url": "/skills/get_concept/SKILL.md",
+      "summary": "fetch the full markdown of a knowledge concept by id from this origin's bundle.",
+      "tool": "skills/get_concept/tool.js",
+      "tool_url": "/skills/get_concept/tool.js"
+    },
+    {
+      "path": "skills/list_concepts/SKILL.md",
+      "url": "/skills/list_concepts/SKILL.md",
+      "summary": "list every knowledge concept this origin publishes (id, type, title, description).",
+      "tool": "skills/list_concepts/tool.js",
+      "tool_url": "/skills/list_concepts/tool.js"
+    }
+  ],
+  "memory": {
+    "snapshot_path": "skills-index.snapshot",
+    "snapshot_url": "/skills-index.snapshot",
+    "format": "minimemory-okf-v1"
+  },
+  "signing": {
+    "demo_seed": "KDD PAGES DEMO signing key - DO NOT USE IN PRODUCTION"
+  }
+}
