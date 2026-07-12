@@ -9,6 +9,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Casos reales de la metodología](./casos-reales.md) — incidentes verificados que motivaron las reglas; evidencia separada del proceso normativo.
 - [Upgrade de la plantilla](./plantilla-upgrade.md) — qué es infraestructura sobreescribible desde upstream vs. propiedad del proyecto; procedimiento manual de upgrade.
 - [Rule contract](./rule-contract-spec.md) — vertiente que valida reglas de negocio como datos declarativos (no solo código); familias, golden set y frontera dato/lógica.
+- [Puente GAME Protocol](./game-data-bridge.md) — receta canónica para poner datos de juego (gameplay as data) bajo contratos KDD: toolchain vendoreado, perfil propio, oráculo sellado con lint/export/no-drift.
 
 ## Estructura
 - [Contratos de Desarrollo](./contracts/)
