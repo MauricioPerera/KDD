@@ -1,6 +1,6 @@
 """Oraculo congelado de la herramienta de benchmark (Contrato 29).
 
-Fija el comportamiento de ``scripts/benchmark_gates.py`` — mide los 8 gates de
+Fija el comportamiento de ``scripts/benchmark_gates.py`` — mide los 9 gates de
 nivel 1 y la suite. La tension central: un benchmark real necesita subprocess
 + reloj de pared, lo opuesto a "determinista, sin subprocess". Se resuelve por
 INYECCION DE DEPENDENCIAS: toda la orquestacion (``measure_repeated``,
@@ -288,14 +288,14 @@ class TestMain(unittest.TestCase):
 
 
 class TestConstantes(unittest.TestCase):
-    def test_gates_son_los_8_reales_en_orden(self):
+    def test_gates_son_los_9_reales_en_orden(self):
         # Lista explicita (sin heuristicas, precedente MANIFEST de
         # init_project.py): fija el orden real de knowledge/validacion.md.
         nombres = [name for name, _cmd in bg.GATES]
         self.assertEqual(nombres, [
             "validate_contracts", "validate_specs", "validate_okf",
             "lint_ascii", "validate_rules", "validate_skills",
-            "validate_changelog", "validate_ux_page",
+            "validate_changelog", "validate_ux_page", "validate_diagrams",
         ])
 
     def test_no_hay_subprocess_ni_perf_counter_fuera_de_main(self):

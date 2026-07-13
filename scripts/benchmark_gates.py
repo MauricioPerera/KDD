@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Benchmark de los 8 gates de nivel 1 + la suite (Contrato 29).
+"""Benchmark de los 9 gates de nivel 1 + la suite (Contrato 29).
 
 Mide tiempos de ejecución de gates y tests con orquestación pura (inyectable).
 Oraculo congelado: tests/test_benchmark_gates.py
@@ -12,7 +12,7 @@ import time
 import statistics
 
 # Lista explicita (sin heuristicas, precedente MANIFEST de init_project.py):
-# los 8 gates reales, en el mismo orden que knowledge/validacion.md.
+# los 9 gates reales, en el mismo orden que knowledge/validacion.md.
 GATES = (
     ("validate_contracts", [sys.executable, "scripts/validate_contracts.py", "knowledge/contracts"]),
     ("validate_specs", [sys.executable, "scripts/validate_specs.py", "specs"]),
@@ -22,6 +22,7 @@ GATES = (
     ("validate_skills", [sys.executable, "scripts/validate_skills.py", "skills", ".agents/skills"]),
     ("validate_changelog", [sys.executable, "scripts/validate_changelog.py"]),
     ("validate_ux_page", [sys.executable, "scripts/validate_ux_page.py", "examples/ux-page"]),
+    ("validate_diagrams", [sys.executable, "scripts/validate_diagrams.py", "examples/diagrams"]),
 )
 SUITE_CMD = [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"]
 

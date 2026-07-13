@@ -43,6 +43,9 @@ jobs:
       - name: Validate UX/accessibility (HTML pages)
         run: python scripts/validate_ux_page.py examples/ux-page
 
+      - name: Validate Mermaid diagrams (flowchart)
+        run: python scripts/validate_diagrams.py examples/diagrams
+
       - name: Run unit tests (1/2)
         run: python -m unittest discover -s tests -p "test_*.py"
 
