@@ -1,0 +1,9 @@
+{
+  "diagram_type": "pie",
+  "min_slices": 2,
+  "max_slices": 5,
+  "required_slices": [
+    { "label": "Backend", "value": 40 },
+    { "label": "QA" }
+  ]
+}

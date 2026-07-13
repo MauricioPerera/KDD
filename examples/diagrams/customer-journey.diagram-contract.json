@@ -1,0 +1,11 @@
+{
+  "diagram_type": "journey",
+  "min_tasks": 2,
+  "max_tasks": 6,
+  "required_sections": ["Buscar", "Pagar"],
+  "required_actors": ["Cliente", "Sistema"],
+  "required_tasks": [
+    { "task": "Buscar producto", "section": "Buscar", "score": 5 },
+    { "task": "Confirmar pago", "people": ["Cliente", "Sistema"] }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "diagram_type": "gantt",
+  "min_tasks": 2,
+  "max_tasks": 6,
+  "required_sections": ["Diseno", "Dev"],
+  "required_tasks": [
+    { "id": "a1", "section": "Diseno", "start": "2026-01-01" },
+    { "id": "b1", "section": "Dev" }
+  ]
+}

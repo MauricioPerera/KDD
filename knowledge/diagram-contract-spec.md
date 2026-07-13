@@ -51,7 +51,10 @@ los ejemplos de este repo.
 
 Subconjunto deliberadamente simple del formato YAML del proyecto hermano `mermaid-gate`
 (mismo vocabulario, JSON en vez de YAML: este repo no tiene parser YAML de proposito
-general, mismo precedente que `examples/rules/*.rules.json` de `rule_engine.py`).
+general, mismo precedente que `examples/rules/*.rules.json` de `rule_engine.py`). El shape
+depende del `diagram_type`.
+
+### flowchart
 
 ```json
 {
@@ -69,23 +72,77 @@ general, mismo precedente que `examples/rules/*.rules.json` de `rule_engine.py`)
 }
 ```
 
+### gantt
+
+```json
+{
+  "diagram_type": "gantt",
+  "min_tasks": 2,
+  "max_tasks": 6,
+  "required_sections": ["Diseno", "Dev"],
+  "required_tasks": [
+    { "id": "a1", "section": "Diseno", "start": "2026-01-01", "end": "2026-01-06" }
+  ]
+}
+```
+
+`start`/`end` (formato `YYYY-MM-DD`) solo se pueden chequear si el parser logro derivarlos:
+fecha literal + duracion `Nd`, o `after <id>` cuando `<id>` ya aparecio ANTES en el texto.
+
+### pie
+
+```json
+{
+  "diagram_type": "pie",
+  "min_slices": 2,
+  "max_slices": 5,
+  "required_slices": [
+    { "label": "Backend", "value": 40 },
+    { "label": "QA" }
+  ]
+}
+```
+
+### journey
+
+```json
+{
+  "diagram_type": "journey",
+  "min_tasks": 2,
+  "max_tasks": 6,
+  "required_sections": ["Buscar", "Pagar"],
+  "required_actors": ["Cliente", "Sistema"],
+  "required_tasks": [
+    { "task": "Confirmar pago", "section": "Pagar", "score": 4, "people": ["Cliente"] }
+  ]
+}
+```
+
+`people` en `required_tasks` es un **subset**: exige que esten las personas listadas, no un
+match exacto de toda la lista del diagrama.
+
 Todos los campos son opcionales salvo que quieras que el gate chequee algo — un contrato
-`{}` solo valida que el `.mmd` parsee como flowchart. `label` en `required_nodes`/
-`required_edges` es opcional: si se omite, solo se exige que el nodo/edge exista, sin
-importar su texto.
+`{}` solo valida que el `.mmd` parsee como el `diagram_type` que le pidas (o, sin
+`diagram_type`, que sea uno de los 4 tipos soportados). Los campos `label`/`value`/`section`/
+`start`/`end`/`score` dentro de un `required_*` son opcionales: si se omiten, solo se exige
+que el elemento exista, sin importar ese atributo puntual.
 
-## Alcance: SOLO flowchart
+## Alcance: 4 tipos, no los 20 de mermaid-gate
 
-`scripts/validate_diagrams.py` es un parser propio en Python puro (regex, sin dependencias),
-escrito porque los gates de este repo prohiben `subprocess`/`network`/`llm` — no puede
+`scripts/validate_diagrams.py` son parsers propios en Python puro (regex, sin dependencias),
+escritos porque los gates de este repo prohiben `subprocess`/`network`/`llm` — no puede
 invocar el parser real de mermaid (Node.js). Consecuencia directa: solo soporta
-`diagram_type: "flowchart"` (o el alias legacy `graph` en el `.mmd`). Un contrato que pida
-otro tipo (`sequenceDiagram`, `classDiagram`, etc.) falla explicito con
-`DIAGRAM_TYPE_UNSUPPORTED`, no intenta parsearlo con la gramatica equivocada.
+`diagram_type` en `{flowchart, gantt, pie, journey}` (`graph` como alias legacy de
+`flowchart` en el `.mmd`). Un contrato que pida otro tipo (`sequenceDiagram`, `classDiagram`,
+etc.), o un `.mmd` de otro tipo sin `diagram_type` explicito en el contrato, falla explicito
+con `DIAGRAM_TYPE_UNSUPPORTED`, no intenta parsearlo con la gramatica equivocada.
 
-Tampoco tiene la fidelidad del parser real dentro de flowchart: no maneja subgraphs,
-estilos, ni edges multi-linea. Es un chequeo de estructura basico (nodos/edges esperados),
-no un parser completo.
+Tampoco tienen la fidelidad del parser real dentro de su tipo: flowchart no maneja
+subgraphs/estilos/edges multi-linea; gantt no maneja tags de estado (`active`/`done`/`crit`)
+antes del id ni resuelve `after <id>` hacia adelante (solo si `<id>` ya aparecio antes en el
+texto); pie solo lee lineas `"label" : valor`; journey asume una linea por task con un unico
+`:score:` seguido de la lista de personas. Son chequeos de estructura basicos, no parsers
+completos.
 
 ### El proyecto hermano: mermaid-gate
 

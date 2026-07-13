@@ -1,30 +1,73 @@
-"""Oraculo congelado del gate de diagramas Mermaid 'flowchart' (Contrato: diagram-gate).
+"""Oraculo congelado del gate de diagramas Mermaid (Contrato: diagram-gate).
 
-Fija el comportamiento de ``scripts/validate_diagrams.py``. Parser propio en
-Python puro (sin subprocess/red/LLM, por 'forbids' de este repo) para el
-subconjunto 'flowchart' de Mermaid — NO el parser real de mermaid.
+Fija el comportamiento de ``scripts/validate_diagrams.py``. Parsers propios en
+Python puro (sin subprocess/red/LLM, por 'forbids' de este repo) para 4 tipos
+de Mermaid: flowchart/graph, gantt, pie, journey — NO el parser real de
+mermaid.
 
-  API: ``parse_flowchart(text) -> {'nodes': [...], 'edges': [...]}`` y
-  ``validate_diagram(mmd_path, contract_path) -> list`` — findings
-  ``{'file','level','rule','msg'}`` ordenados por (rule, msg).
+  API por tipo:
+    ``parse_flowchart(text) -> {'nodes': [...], 'edges': [...]}``
+    ``parse_gantt(text) -> {'tasks': [...], 'sections': [...]}``
+    ``parse_pie(text) -> {'slices': [...]}``
+    ``parse_journey(text) -> {'tasks': [...], 'sections': [...], 'actors': [...]}``
+    ``get_diagram_type(text) -> str|None`` (primer token del texto).
+    ``validate_diagram(mmd_path, contract_path) -> list`` — findings
+    ``{'file','level','rule','msg'}`` ordenados por (rule, msg).
 
-  Checks y severidad EXACTA:
+  Checks y severidad EXACTA, comunes a todos los tipos:
     FILE_ERROR (ERROR)               el .mmd no se pudo leer.
     CONTRACT_INVALID (ERROR)         el .diagram-contract.json no existe o
                                       no es JSON valido.
-    DIAGRAM_TYPE_UNSUPPORTED (ERROR) el contrato pide un diagram_type
-                                      distinto de 'flowchart' (este gate solo
-                                      soporta flowchart).
-    DIAGRAM_TYPE_MISMATCH (ERROR)    el .mmd no arranca con 'flowchart' o
-                                      'graph'.
-    MIN_NODES / MAX_NODES (ERROR)    cantidad de nodos fuera del rango
-                                      declarado en el contrato.
-    MISSING_NODE (ERROR)             un id de required_nodes no aparece en
-                                      el diagrama.
+    DIAGRAM_TYPE_UNSUPPORTED (ERROR) el contrato (o el .mmd) pide/tiene un
+                                      diagram_type fuera de
+                                      {flowchart, gantt, pie, journey}.
+    DIAGRAM_TYPE_MISMATCH (ERROR)    el diagram_type del contrato no
+                                      coincide con el del .mmd ('graph' es
+                                      alias valido de 'flowchart').
+
+  Checks especificos de 'flowchart':
+    MIN_NODES / MAX_NODES (ERROR)    cantidad de nodos fuera de rango.
+    MISSING_NODE (ERROR)             un id de required_nodes no aparece.
     NODE_LABEL_MISMATCH (ERROR)      el nodo existe pero su label no
                                       coincide con el declarado.
-    MISSING_EDGE (ERROR)             un edge (from/to[/label]) de
-                                      required_edges no aparece.
+    MISSING_EDGE (ERROR)             un edge de required_edges no aparece.
+
+  Checks especificos de 'gantt':
+    MIN_TASKS / MAX_TASKS (ERROR)    cantidad de tasks fuera de rango.
+    MISSING_SECTION (ERROR)          una section de required_sections no
+                                      aparece.
+    MISSING_TASK (ERROR)             un id de required_tasks no aparece.
+    TASK_SECTION_MISMATCH (ERROR)    la task existe pero su section no
+                                      coincide.
+    TASK_START_MISMATCH / TASK_END_MISMATCH (ERROR) la task existe pero su
+                                      start/end (YYYY-MM-DD, derivado de
+                                      fecha literal + duracion 'Nd', o de
+                                      'after <id>' si <id> ya fue visto
+                                      antes en el texto) no coincide con lo
+                                      declarado.
+
+  Checks especificos de 'pie':
+    MIN_SLICES / MAX_SLICES (ERROR)  cantidad de slices fuera de rango.
+    MISSING_SLICE (ERROR)            un label de required_slices no
+                                      aparece.
+    SLICE_VALUE_MISMATCH (ERROR)     la slice existe pero su value no
+                                      coincide.
+
+  Checks especificos de 'journey':
+    MIN_TASKS / MAX_TASKS (ERROR)    cantidad de tasks fuera de rango.
+    MISSING_SECTION (ERROR)          una section de required_sections no
+                                      aparece.
+    MISSING_ACTOR (ERROR)            un actor de required_actors no
+                                      aparece en ninguna task.
+    MISSING_TASK (ERROR)             un texto de required_tasks[].task no
+                                      aparece.
+    TASK_SECTION_MISMATCH (ERROR)    la task existe pero su section no
+                                      coincide.
+    TASK_SCORE_MISMATCH (ERROR)      la task existe pero su score no
+                                      coincide.
+    TASK_MISSING_PERSON (ERROR)      la task existe pero no incluye a una
+                                      persona listada en required_tasks[].people
+                                      (subset: no exige match exacto).
 
   CLI (``main(argv)``): uno o mas paths (archivo .mmd o directorio);
   default ``['examples/diagrams']``. Directorio se escanea recursivamente
@@ -58,6 +101,34 @@ FLOWCHART_OK = (
     "    A[Inicio] --> B{Condicion}\n"
     "    B -->|Si| C[Accion 1]\n"
     "    B -->|No| D[Accion 2]\n"
+)
+
+GANTT_OK = (
+    "gantt\n"
+    "    title Proyecto\n"
+    "    dateFormat YYYY-MM-DD\n"
+    "    section Diseno\n"
+    "    Wireframes :a1, 2026-01-01, 5d\n"
+    "    Mockups    :a2, after a1, 3d\n"
+    "    section Dev\n"
+    "    Backend    :b1, 2026-01-06, 10d\n"
+)
+
+PIE_OK = (
+    'pie title Distribucion\n'
+    '    "A" : 40\n'
+    '    "B" : 35\n'
+    '    "C" : 25\n'
+)
+
+JOURNEY_OK = (
+    "journey\n"
+    "    title Compra online\n"
+    "    section Buscar\n"
+    "      Buscar producto: 5: Cliente\n"
+    "      Comparar precios: 3: Cliente\n"
+    "    section Pagar\n"
+    "      Confirmar pago: 4: Cliente, Sistema\n"
 )
 
 
@@ -165,6 +236,17 @@ class TestValidateDiagramEstructura(_Fixture):
         findings = vd.validate_diagram(mmd, contract)
         self.assertEqual(self._rules(findings), ["DIAGRAM_TYPE_UNSUPPORTED"])
 
+    def test_diagram_type_mismatch_real(self):
+        mmd, contract = self._pair(GANTT_OK, {"diagram_type": "flowchart"}, "d4")
+        findings = vd.validate_diagram(mmd, contract)
+        self.assertEqual(self._rules(findings), ["DIAGRAM_TYPE_MISMATCH"])
+
+    def test_diagram_sin_diagram_type_soportado_es_unsupported(self):
+        mmd = self._write("no-header.mmd", "sequenceDiagram\n    A->>B: hola\n")
+        contract = self._write_json("no-header.diagram-contract.json", {})
+        findings = vd.validate_diagram(mmd, contract)
+        self.assertEqual(self._rules(findings), ["DIAGRAM_TYPE_UNSUPPORTED"])
+
     def test_contrato_invalido(self):
         mmd = self._write("bad.mmd", FLOWCHART_OK)
         contract = self._write("bad.diagram-contract.json", "{no es json valido")
@@ -175,6 +257,158 @@ class TestValidateDiagramEstructura(_Fixture):
         contract = self._write_json("x.diagram-contract.json", {"diagram_type": "flowchart"})
         findings = vd.validate_diagram(os.path.join(self.base, "no-existe.mmd"), contract)
         self.assertEqual(self._rules(findings), ["FILE_ERROR"])
+
+
+class TestParseGantt(unittest.TestCase):
+    def test_tasks_fechas_y_secciones(self):
+        parsed = vd.parse_gantt(GANTT_OK)
+        by_id = {t["id"]: t for t in parsed["tasks"]}
+        self.assertEqual(by_id["a1"]["section"], "Diseno")
+        self.assertEqual(by_id["a1"]["start"], "2026-01-01")
+        self.assertEqual(by_id["a1"]["end"], "2026-01-06")
+        self.assertEqual(parsed["sections"], ["Diseno", "Dev"])
+
+    def test_after_resuelve_contra_task_ya_vista(self):
+        parsed = vd.parse_gantt(GANTT_OK)
+        by_id = {t["id"]: t for t in parsed["tasks"]}
+        # a2 empieza 'after a1': a1 termina 2026-01-06, dura 3d -> termina 2026-01-09
+        self.assertEqual(by_id["a2"]["start"], "2026-01-06")
+        self.assertEqual(by_id["a2"]["end"], "2026-01-09")
+
+    def test_after_no_resuelto_da_start_none(self):
+        text = "gantt\n    section S\n    T1 :t1, after nunca-definido, 3d\n"
+        parsed = vd.parse_gantt(text)
+        self.assertIsNone(parsed["tasks"][0]["start"])
+        self.assertIsNone(parsed["tasks"][0]["end"])
+
+
+class TestParsePie(unittest.TestCase):
+    def test_slices_valores_enteros(self):
+        parsed = vd.parse_pie(PIE_OK)
+        self.assertEqual(parsed["slices"], [
+            {"label": "A", "value": 40}, {"label": "B", "value": 35}, {"label": "C", "value": 25},
+        ])
+
+    def test_title_se_ignora(self):
+        parsed = vd.parse_pie(PIE_OK)
+        self.assertEqual(len(parsed["slices"]), 3)
+
+
+class TestParseJourney(unittest.TestCase):
+    def test_tasks_secciones_y_actores(self):
+        parsed = vd.parse_journey(JOURNEY_OK)
+        self.assertEqual(parsed["sections"], ["Buscar", "Pagar"])
+        self.assertEqual(parsed["actors"], ["Cliente", "Sistema"])
+        confirmar = next(t for t in parsed["tasks"] if t["task"] == "Confirmar pago")
+        self.assertEqual(confirmar["score"], 4)
+        self.assertEqual(confirmar["people"], ["Cliente", "Sistema"])
+        self.assertEqual(confirmar["section"], "Pagar")
+
+
+class TestValidateGantt(_Fixture):
+    def test_diagrama_valido_sin_findings(self):
+        mmd, contract = self._pair(GANTT_OK, {
+            "diagram_type": "gantt",
+            "min_tasks": 2, "max_tasks": 5,
+            "required_sections": ["Diseno", "Dev"],
+            "required_tasks": [
+                {"id": "a1", "section": "Diseno", "start": "2026-01-01", "end": "2026-01-06"},
+                {"id": "a2", "start": "2026-01-06"},
+            ],
+        }, "gantt-ok")
+        self.assertEqual(vd.validate_diagram(mmd, contract), [])
+
+    def test_falta_section_y_task(self):
+        mmd, contract = self._pair(GANTT_OK, {
+            "diagram_type": "gantt",
+            "required_sections": ["QA"],
+            "required_tasks": [{"id": "z9"}],
+        }, "gantt-fail")
+        findings = vd.validate_diagram(mmd, contract)
+        self.assertEqual(self._rules(findings), ["MISSING_SECTION", "MISSING_TASK"])
+
+    def test_start_end_mismatch(self):
+        mmd, contract = self._pair(GANTT_OK, {
+            "diagram_type": "gantt",
+            "required_tasks": [{"id": "a1", "start": "2020-01-01", "end": "2020-01-02"}],
+        }, "gantt-dates")
+        findings = vd.validate_diagram(mmd, contract)
+        self.assertEqual(self._rules(findings), ["TASK_END_MISMATCH", "TASK_START_MISMATCH"])
+
+    def test_min_max_tasks(self):
+        mmd, contract = self._pair(GANTT_OK, {"diagram_type": "gantt", "min_tasks": 10}, "gantt-min")
+        self.assertIn("MIN_TASKS", self._rules(vd.validate_diagram(mmd, contract)))
+
+        mmd2, contract2 = self._pair(GANTT_OK, {"diagram_type": "gantt", "max_tasks": 1}, "gantt-max")
+        self.assertIn("MAX_TASKS", self._rules(vd.validate_diagram(mmd2, contract2)))
+
+
+class TestValidatePie(_Fixture):
+    def test_diagrama_valido_sin_findings(self):
+        mmd, contract = self._pair(PIE_OK, {
+            "diagram_type": "pie",
+            "min_slices": 2, "max_slices": 5,
+            "required_slices": [{"label": "A", "value": 40}, {"label": "B"}],
+        }, "pie-ok")
+        self.assertEqual(vd.validate_diagram(mmd, contract), [])
+
+    def test_falta_slice_y_value_no_coincide(self):
+        mmd, contract = self._pair(PIE_OK, {
+            "diagram_type": "pie",
+            "required_slices": [{"label": "Z"}, {"label": "A", "value": 99}],
+        }, "pie-fail")
+        findings = vd.validate_diagram(mmd, contract)
+        self.assertEqual(self._rules(findings), ["MISSING_SLICE", "SLICE_VALUE_MISMATCH"])
+
+    def test_min_max_slices(self):
+        mmd, contract = self._pair(PIE_OK, {"diagram_type": "pie", "min_slices": 10}, "pie-min")
+        self.assertIn("MIN_SLICES", self._rules(vd.validate_diagram(mmd, contract)))
+
+        mmd2, contract2 = self._pair(PIE_OK, {"diagram_type": "pie", "max_slices": 1}, "pie-max")
+        self.assertIn("MAX_SLICES", self._rules(vd.validate_diagram(mmd2, contract2)))
+
+
+class TestValidateJourney(_Fixture):
+    def test_diagrama_valido_sin_findings(self):
+        mmd, contract = self._pair(JOURNEY_OK, {
+            "diagram_type": "journey",
+            "min_tasks": 2, "max_tasks": 6,
+            "required_sections": ["Buscar", "Pagar"],
+            "required_actors": ["Cliente", "Sistema"],
+            "required_tasks": [
+                {"task": "Buscar producto", "section": "Buscar", "score": 5},
+                {"task": "Confirmar pago", "people": ["Cliente", "Sistema"]},
+            ],
+        }, "journey-ok")
+        self.assertEqual(vd.validate_diagram(mmd, contract), [])
+
+    def test_falta_section_actor_y_task(self):
+        mmd, contract = self._pair(JOURNEY_OK, {
+            "diagram_type": "journey",
+            "required_sections": ["Devolver"],
+            "required_actors": ["Soporte"],
+            "required_tasks": [{"task": "Reclamar garantia"}],
+        }, "journey-fail")
+        findings = vd.validate_diagram(mmd, contract)
+        self.assertEqual(self._rules(findings), ["MISSING_ACTOR", "MISSING_SECTION", "MISSING_TASK"])
+
+    def test_score_mismatch_y_persona_faltante(self):
+        mmd, contract = self._pair(JOURNEY_OK, {
+            "diagram_type": "journey",
+            "required_tasks": [
+                {"task": "Buscar producto", "score": 1},
+                {"task": "Confirmar pago", "people": ["Soporte"]},
+            ],
+        }, "journey-mismatch")
+        findings = vd.validate_diagram(mmd, contract)
+        self.assertEqual(self._rules(findings), ["TASK_MISSING_PERSON", "TASK_SCORE_MISMATCH"])
+
+    def test_min_max_tasks(self):
+        mmd, contract = self._pair(JOURNEY_OK, {"diagram_type": "journey", "min_tasks": 10}, "journey-min")
+        self.assertIn("MIN_TASKS", self._rules(vd.validate_diagram(mmd, contract)))
+
+        mmd2, contract2 = self._pair(JOURNEY_OK, {"diagram_type": "journey", "max_tasks": 1}, "journey-max")
+        self.assertIn("MAX_TASKS", self._rules(vd.validate_diagram(mmd2, contract2)))
 
 
 class TestMain(_Fixture):
