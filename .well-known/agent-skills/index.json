@@ -1,7 +1,7 @@
 {
   "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
   "signing_alg": "ed25519",
-  "signing_key": "VIGa5rgWQk6W+bJ3Pe+DXrOV9vEB+dtULyj4fGPKBuU=",
+  "signing_key": "a65Ug3nRFBR1WuNRmgr1Q4kXWnN7R8AEbS4YeLHiq8A=",
   "skills": [
     {
       "name": "search_knowledge",
@@ -14,7 +14,7 @@
       "sha256": "a093440b30bb81abafc12014a130635b6acc22c608e2dae3914511e058fbde5e",
       "tool": "/skills/search_knowledge/tool.js",
       "tool_sha256": "b13a3c0448c4ee8c744b1ee33b1dd441ecc0c7c3552e23f04b5f9aaf79049ab7",
-      "signature": "wWCVt9hp08tpQ3irFTWoRre+xh9pL1RkoGy37hxRG4+w3fQOc6Wxi6yfsCRibURn/exCWbpHuDX/YufsFMkjDQ=="
+      "signature": "L41xn8L3uJgwpLQQNheHlvO8gh2B/MVHA1iVJSXmPaQ4NnOqQWSyJ04msOlToAfALd7Zidhb5Z7SFyH+H3NBDw=="
     },
     {
       "name": "get_concept",
@@ -26,8 +26,8 @@
       "license": "MIT",
       "sha256": "c63b95427c4888b215b476442044d0e8ceeb9e4bd7e15eac7d762c9754988655",
       "tool": "/skills/get_concept/tool.js",
-      "tool_sha256": "c9db41812fda62b70952504fd2abee9d7e1ef90ee63af53984b17078d732026d",
-      "signature": "yf+Kqpd2o6w9VLl/MtcCWgnMgGBaKdHam0bN9tdFoRLVbxlw1yA9cZE7//Hw7rp+D0JHUD9V/E88aEx+UkYnAg=="
+      "tool_sha256": "b02fcb82a7f4d4693dc15b3b3cb07cb98360d26a49b21c546416bd52bf8d9422",
+      "signature": "w3DCZJa88GMveNphl65vm5olnoIQcNd/9sdJjgmOqGu+k7DMSIumrssT+hs66oNRjEcmzNR8gpo5e5JuFqw2Dg=="
     },
     {
       "name": "list_concepts",
@@ -39,8 +39,8 @@
       "license": "MIT",
       "sha256": "3576ada3394b026b552620b009c8b3d6690995778d0cb63c4ca32fe78e793c19",
       "tool": "/skills/list_concepts/tool.js",
-      "tool_sha256": "646d16725b04db492cf54e28e10bfe6a846363d80f805af03233f77885ed1a7c",
-      "signature": "G0r8kfg8TOzIDEiieXHEECDp9PKOt73ePXKodPwcI+LjJ41ItCHOcXScWTr3Chmlwpv5Idg/Vh6VkrBGS1w8Bw=="
+      "tool_sha256": "a7a550914c4eee6d83c444c7ffe9b6c79a41c464559998fb3e80ae417a13d157",
+      "signature": "O+uPAzgrcAEoXUlxpjzCO6SbuRQH3DPbnBnj6N8XU7wpPEBsgbErciNoJWluL3kXEDmSXmsX9dJNLfQwpN/zBw=="
     }
   ]
 }
