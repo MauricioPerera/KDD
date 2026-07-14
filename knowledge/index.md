@@ -3,6 +3,8 @@
 Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está especificado en [OKF-SPEC](./OKF-SPEC.md).
 
 ## Referencia
+- [Por que KDD](./por-que-kdd.md) — posicionamiento honesto frente a Spec Kit, BMAD-METHOD y un AGENTS.md solo: que verifica distinto KDD, y en que casos no conviene.
+- [Quickstart](./quickstart.md) — tutorial paso a paso y ejecutable: de clonar la plantilla a tu primer task contract propio en verde.
 - [Especificación OKF](./OKF-SPEC.md) — spec normativa de nodos OKF.
 - [Metodología de ejecución por contratos](./metodologia-ejecucion.md) — proceso operativo de nivel proyecto (specs/, docs/reports/, delegación y verificación).
 - [Validación de contratos](./validacion.md) — nodo canónico: niveles 1 y 2, gate multi-lenguaje, export, precedencia del budget y ciclo de vida.
@@ -31,6 +33,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Gate de UX/accesibilidad de páginas HTML](./contracts/ux-page-gate.md)
   - [Gate de formato de mensaje de commit](./contracts/commit-message-gate.md)
   - [Gate de diagramas Mermaid (flowchart, Python puro)](./contracts/diagram-gate.md)
+  - [Gate que ejecuta el test_command de cada contrato (Nivel 1)](./contracts/test-command-gate.md)
   - [Validador OKF de la base de conocimiento](./contracts/validate-okf.md)
   - [Validador de contratos de ejecución (specs)](./contracts/validate-specs.md)
   - [Lint ASCII de literales en scripts](./contracts/lint-ascii.md)

@@ -46,6 +46,9 @@ jobs:
       - name: Validate Mermaid diagrams (flowchart)
         run: python scripts/validate_diagrams.py examples/diagrams
 
+      - name: Run each contract's test_command
+        run: python scripts/validate_test_commands.py knowledge/contracts .
+
       - name: Run unit tests (1/2)
         run: python -m unittest discover -s tests -p "test_*.py"
 

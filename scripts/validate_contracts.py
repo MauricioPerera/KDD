@@ -392,7 +392,7 @@ def _collect_files(directory):
     if os.path.isdir(directory):
         return [os.path.join(directory, n)
                 for n in sorted(os.listdir(directory))
-                if n.lower().endswith('.md')]
+                if n.lower().endswith('.md') and not n.startswith('TEMPLATE-')]
     if os.path.isfile(directory):
         return [directory]
     return None

@@ -116,6 +116,23 @@ class TestValidatorValid(unittest.TestCase):
             errors = [f for f in findings if f.level == 'ERROR']
             self.assertEqual(errors, [], msg=[str(f) for f in findings])
 
+    def test_template_prefix_is_skipped(self):
+        """TEMPLATE-*.md no es un contrato real (mismo criterio que specs/TEMPLATE-CONTRACT.md
+        en validate_specs.py): se ignora aunque este mal formado, para poder vivir en
+        knowledge/contracts/ como plantilla sin romper el gate."""
+        with tempfile.TemporaryDirectory() as repo_root:
+            contracts_dir = os.path.join(repo_root, 'knowledge', 'contracts')
+            os.makedirs(contracts_dir, exist_ok=True)
+            _write(repo_root, 'knowledge/contracts/ok.md', VALID_CONTRACT)
+            _write(repo_root, 'src/hello.py', 'def hello(name: str) -> str:\n    return f"Hello, {name}"\n')
+            _write(repo_root, 'tests/test_sample.py', 'import unittest\nclass TestHello(unittest.TestCase): pass\n')
+            _write(repo_root, 'knowledge/contracts/TEMPLATE-task-contract.md', '<placeholder, no es YAML valido>')
+
+            findings = vc.validate_directory(contracts_dir, repo_root=repo_root)
+            errors = [f for f in findings if f.level == 'ERROR']
+            self.assertEqual(errors, [], msg=[str(f) for f in findings])
+            self.assertFalse(any('TEMPLATE-' in f.file for f in findings))
+
     def test_fixture_integro_sin_errores(self):
         """Fixture completo con estructura repo_root válida debe pasar sin errores."""
         with tempfile.TemporaryDirectory() as repo_root:
