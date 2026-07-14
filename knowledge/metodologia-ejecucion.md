@@ -34,8 +34,10 @@ Se hace UNA vez por proyecto (no por tarea), en conversación con un humano, y t
 un único artefacto: `DEFINITION.md` en la raíz (plantilla: `TEMPLATE-DEFINITION.md`).
 `DEFINITION.md` no es un nodo OKF ni lo valida ningún gate — es documentación previa a
 que exista el primer contrato. Proceso completo, reglas y estilo:
-[skill `kdd-definir`](../.agents/skills/kdd-definir/SKILL.md). Con `DEFINITION.md`
-cerrado, recién ahí arranca `PLAN`.
+[skill `kdd-definir`](../.agents/skills/kdd-definir/SKILL.md) — o, sin agente propio,
+el GPT [Arquitecto de Definición KDD](https://chatgpt.com/g/g-6a566a4ad3248191821751cd14800573-arquitecto-de-definicion-kdd)
+configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ahí arranca
+`PLAN`.
 
 ## Proceso
 

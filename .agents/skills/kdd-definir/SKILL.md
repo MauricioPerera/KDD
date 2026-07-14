@@ -91,3 +91,9 @@ Con `DEFINITION.md` cerrado, el proyecto entra a **PLAN**
 capacidades objetivo en tareas atomicas y se escribe el primer task
 contract (`knowledge/contracts/TEMPLATE-task-contract.md`), siguiendo
 `knowledge/quickstart.md`.
+
+## Version lista para usar (sin agente propio)
+
+Si no tenes un agente/CLI a mano para correr esta skill, hay un GPT
+configurado con este mismo system prompt:
+[Arquitecto de Definicion KDD](https://chatgpt.com/g/g-6a566a4ad3248191821751cd14800573-arquitecto-de-definicion-kdd).
