@@ -82,6 +82,11 @@ ante divergencia manda la metodología y el checklist se re-alinea.
    de propagación eventual (secrets, DNS, caches), un resultado inmediato contrario al
    esperado no es fallo: se re-verifica con reintentos espaciados antes de concluir
    ([caso real](./casos-reales.md#verificar-antes-de-limpiar)).
+   **Un fix a una función que un lado de un contrato bilateral produce y otro consume
+   (firmar/verificar, escribir/leer, serializar/deserializar) no está verificado con solo
+   probar el lado que tocaste:** grep del nombre de la función en todo el repo antes de dar
+   el fix por completo — "mis tests pasan" no es lo mismo que "soy consistente con quien
+   consume mi output" ([caso real](./casos-reales.md#contrato-bilateral-mitad-arreglado)).
 5. **COMMIT por tarea verificada** — baseline limpio para la siguiente tarea.
 6. **CIERRE** — suite completa 2× (dos corridas idénticas ≈ sin flaky; un flaky detectado
    es una tarea futura, no se ignora), reporte del contrato en `docs/reports/`, estado en
