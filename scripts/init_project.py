@@ -78,6 +78,9 @@ MANIFEST = (
     "knowledge/data_models/ux_page_contract.md",
     "examples/git/commit-convention.json",
     "knowledge/data_models/commit_message_contract.md",
+    "examples/multi-lang/node/greet.js",
+    "examples/multi-lang/node/greet.test.js",
+    "knowledge/contracts/example-node-greet.md",
 )
 
 _LINK_RE = re.compile(r"\]\(([^)]+)\)")

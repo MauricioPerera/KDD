@@ -19,6 +19,11 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Set up Node.js (for the multi-language example contract)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Validate contracts
         run: python scripts/validate_contracts.py knowledge/contracts
 
@@ -48,6 +53,9 @@ jobs:
 
       - name: Run each contract's test_command
         run: python scripts/validate_test_commands.py knowledge/contracts .
+
+      - name: Scan for leaked secrets (src only — see knowledge/contracts/secret-scan-gate.md)
+        run: python scripts/scan_secrets.py src
 
       - name: Run unit tests (1/2)
         run: python -m unittest discover -s tests -p "test_*.py"

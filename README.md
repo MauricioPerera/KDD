@@ -1,5 +1,7 @@
 # KDD Template (Knowledge-Driven Development)
 
+[![validate-contracts](https://github.com/MauricioPerera/KDD/actions/workflows/validate.yml/badge.svg)](https://github.com/MauricioPerera/KDD/actions/workflows/validate.yml)
+
 [English](#english) | [Español](#español) | [Português](#português)
 
 <a id="english"></a>
@@ -33,7 +35,7 @@ This is a template repository for projects that implement the **Knowledge-Driven
 
 1. Use this repository as a "Template" on GitHub or clone it locally.
 2. Explore `knowledge/index.md` to see how concepts are structured.
-3. When delegating work to an agent (e.g. an AI coding agent), the agent will read `.agents/AGENTS.md` and immediately understand that it must respect the CCDD contracts of this repository.
+3. When delegating work to an agent (e.g. an AI coding agent), the agent will read `.agents/AGENTS.md` and immediately understand that it must respect the CCDD contracts of this repository. Cursor, GitHub Copilot, Cline and Windsurf each have their own convention file (`.cursorrules`, `.github/copilot-instructions.md`, `.clinerules`, `.windsurfrules`) — all four are thin pointers to `.agents/AGENTS.md`, so any of those tools picks up the same rules automatically. For a human reviewing what an agent produced, see [`knowledge/supervision-humana.md`](knowledge/supervision-humana.md).
 4. Drop the example artifacts and rewire `knowledge/index.md` with `python scripts/init_project.py --apply --name "<Your Project>"` (it removes every EXAMPLE artifact in the script's explicit `MANIFEST` — sample code and tests, the example OKF nodes, and every example domain (rule contracts, task contracts and their data-model nodes: payments, border control, workflows, routing, editorial, MCP registry, agent wiring); without `--apply` it only prints the plan).
 
 #### Instantiating for a non-Python project
@@ -86,7 +88,7 @@ Este repositorio plantilla es para proyectos que implementan la metodología **K
 
 1. Usa este repositorio como "Template" en GitHub o clónalo localmente.
 2. Explora `knowledge/index.md` para ver cómo se estructuran los conceptos.
-3. Al delegar trabajo a un agente (ej. un agente de IA), el agente leerá `.agents/AGENTS.md` y entenderá inmediatamente que debe respetar los contratos CCDD de este repositorio.
+3. Al delegar trabajo a un agente (ej. un agente de IA), el agente leerá `.agents/AGENTS.md` y entenderá inmediatamente que debe respetar los contratos CCDD de este repositorio. Cursor, GitHub Copilot, Cline y Windsurf tienen cada uno su propio archivo de convención (`.cursorrules`, `.github/copilot-instructions.md`, `.clinerules`, `.windsurfrules`) — los cuatro son punteros delgados a `.agents/AGENTS.md`, así que cualquiera de esas herramientas recibe las mismas reglas automáticamente. Para un humano que revisa lo que produjo un agente, ver [`knowledge/supervision-humana.md`](knowledge/supervision-humana.md).
 4. Quita los artefactos de ejemplo y reescribe `knowledge/index.md` con `python scripts/init_project.py --apply --name "<Tu Proyecto>"` (elimina todos los artefactos de EJEMPLO del `MANIFEST` explícito del script — código y tests de muestra, los nodos OKF de ejemplo y todos los dominios de ejemplo (rule contracts, contratos de tarea y sus nodos: pagos, fronteras, workflows, ruteo, editorial, registro MCP, cableado de agentes); sin `--apply` solo imprime el plan).
 
 #### Instanciar para un proyecto no-Python
