@@ -2,7 +2,7 @@
 
 All notable changes to the KDD Template are documented here.
 
-## Unreleased
+## v1.6.0 — 2026-07-14
 
 **MCP server: the gates are now tools, not just CLI scripts**
 - New `scripts/mcp_gate_dispatch.py` (has a task contract + frozen oracle like any other gate, `deps_allowed: []`): pure dispatch logic mapping each of the 12 gates to its script and argv, executed via `subprocess.run`. New `scripts/mcp_server.py` (thin wiring over it, using the official `mcp` SDK's `FastMCP` -- NOT governed by a task contract, since it depends on an external package that breaks this repo's `deps_allowed: []` convention on every other contract): exposes 14 tools over stdio -- one per gate, plus `run_all_level1` (single-call Level-1 verdict) and `seal_tests` (hash-sealing without touching the CLI). `pip install mcp && python scripts/mcp_server.py`; see `knowledge/mcp-server.md` for the `.mcp.json` registration snippet. Opt-in tooling, not wired into CI.
