@@ -2,6 +2,13 @@
 
 All notable changes to the KDD Template are documented here.
 
+## Unreleased
+
+**DEFINIR: a step before PLAN, for when the project itself isn't decided yet**
+- `metodologia-ejecucion.md`'s process starts at PLAN, which assumes a clear "pedido" (request) convertible into atomic tasks already exists. New optional step DEFINIR, documented right before PLAN: for when the project isn't chosen yet, or its shape (architecture, scope, stack) hasn't closed — a real gap found first-hand while starting KDD's own first non-toy case study (a project built with KDD, not about KDD).
+- New skill `.agents/skills/kdd-definir/SKILL.md`: process + hard rules for an agent running this step in conversation with a human (never invent the project, never assume an architecture/stack decision with real tradeoffs without asking, one genuine decision at a time, close by synthesizing exactly what was discussed into `DEFINITION.md` — nothing new added at close time).
+- New `TEMPLATE-DEFINITION.md` at the repo root: fixed structure (what it is, architecture if applicable, target capabilities unphased, real motivation, explicit out-of-scope). `DEFINITION.md` is deliberately NOT an OKF node and no gate validates it — it's pre-contract documentation; PLAN takes over once it closes.
+
 ## v1.6.0 — 2026-07-14
 
 **MCP server: the gates are now tools, not just CLI scripts**

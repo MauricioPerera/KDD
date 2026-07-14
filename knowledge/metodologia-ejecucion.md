@@ -25,6 +25,18 @@ Plantillas: `specs/TEMPLATE-CONTRACT.md` y `docs/reports/TEMPLATE-REPORT.md`. El
 RECON / red-team / perímetro / aborto de este nodo; este nodo es la fuente normativa —
 ante divergencia manda la metodología y el checklist se re-alinea.
 
+## DEFINIR (opcional, antes de PLAN)
+
+`PLAN` (abajo) asume que ya existe un «pedido» convertible en tareas atómicas. Cuando el
+proyecto todavía no está elegido, o está elegido pero su forma (arquitectura, alcance,
+stack) no cerró, ese pedido no existe todavía — **DEFINIR** es el paso que lo produce.
+Se hace UNA vez por proyecto (no por tarea), en conversación con un humano, y termina en
+un único artefacto: `DEFINITION.md` en la raíz (plantilla: `TEMPLATE-DEFINITION.md`).
+`DEFINITION.md` no es un nodo OKF ni lo valida ningún gate — es documentación previa a
+que exista el primer contrato. Proceso completo, reglas y estilo:
+[skill `kdd-definir`](../.agents/skills/kdd-definir/SKILL.md). Con `DEFINITION.md`
+cerrado, recién ahí arranca `PLAN`.
+
 ## Proceso
 
 1. **PLAN** — convertir el pedido en contrato de ejecución con tareas atómicas; mostrarlo
