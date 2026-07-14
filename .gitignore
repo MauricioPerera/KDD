@@ -24,8 +24,11 @@ build/
 coverage/
 
 # .agents es donde residen las reglas de los agentes, por lo tanto NO lo ignoramos.
-# Sin embargo, los logs generados por ellos sí:
-.agents/logs/
+# Sin embargo, los logs generados por ellos sí (evidencia local, no versionada):
+.agents/logs/*
+# Excepcion: la plantilla del envelope de atestacion SI se distribuye con el
+# template (mismo patron que docs/reports/TEMPLATE-REPORT.md).
+!.agents/logs/TEMPLATE-REPORT.md
 
 # Artefacto derivado del exportador gate-nativo (CCDD nivel 2): se regenera
 # desde scripts/export_gate_contract.py; no es fuente. Vive en la raiz del

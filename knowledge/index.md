@@ -38,6 +38,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Gate que ejecuta el test_command de cada contrato (Nivel 1)](./contracts/test-command-gate.md)
   - [Gate de secretos filtrados en codigo generado (Nivel 1)](./contracts/secret-scan-gate.md)
   - [Ejemplo multi-lenguaje: greet en Node.js](./contracts/example-node-greet.md)
+  - [Gate de atestacion de reportes locales](./contracts/attestation-gate.md)
   - [Validador OKF de la base de conocimiento](./contracts/validate-okf.md)
   - [Validador de contratos de ejecución (specs)](./contracts/validate-specs.md)
   - [Lint ASCII de literales en scripts](./contracts/lint-ascii.md)
