@@ -9,7 +9,6 @@ Sin red, sin subprocess. Solo stdlib.
 """
 
 import fnmatch
-import os
 import sys
 
 

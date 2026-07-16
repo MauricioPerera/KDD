@@ -37,7 +37,7 @@ malformados sin lanzar, determinismo). Stdlib puro; budget en el task contract.
 
 OBJETIVO: `knowledge/data_models/workflow_policy.md` actualiza su frontera #1: "ciclos del
 grafo" pasa de pendiente a **cerrada por el task contract
-[check-graph](../contracts/check-graph.md)** (la dupla del dominio completa). Verificación
+[check-graph](../knowledge/contracts/check-graph.md)** (la dupla del dominio completa). Verificación
 cruzada del PM: el caso `FRONTERA ciclo` del golden de C20 (`A->B->A`, invisible para el
 declarativo) es detectado por el checker.
 

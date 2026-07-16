@@ -22,7 +22,13 @@ import sys
 
 
 def _frontmatter(text):
-    """Devuelve el bloque YAML entre los delimitadores ``---`` iniciales, o ''."""
+    """Devuelve el bloque YAML entre los delimitadores ``---`` iniciales, o ''.
+
+    Normaliza CRLF/CR a LF antes de matchear para que un contrato guardado con
+    CRLF (Windows) se parsee igual que con LF, coherente con el dialecto
+    ``splitlines()`` de validate_contracts.py (Contrato: test-command-gate).
+    """
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
     m = re.match(r'^---\n(.*?)\n---', text, re.DOTALL)
     return m.group(1) if m else ''
 
@@ -84,8 +90,14 @@ def collect_contracts(directory):
         path = os.path.join(directory, name)
         if not os.path.isfile(path):
             continue
-        with open(path, 'r', encoding='utf-8') as fh:
-            text = fh.read()
+        try:
+            with open(path, 'r', encoding='utf-8') as fh:
+                text = fh.read()
+        except (OSError, UnicodeDecodeError):
+            # I/O o bytes invalidos para UTF-8: no se puede leer el contrato.
+            # Se maneja explicito (se salta) en vez de tumbar el gate con un
+            # traceback. UnicodeDecodeError es ValueError, no OSError.
+            continue
         cmd = extract_test_command(text)
         if not cmd:
             continue

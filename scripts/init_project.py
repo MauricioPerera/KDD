@@ -7,8 +7,9 @@ quitando los enlaces a nodos eliminados (sin enlaces muertos ni secciones
 de lista vacias/rotas), y con ``--name`` reemplaza SOLO el titulo H1 del
 README. Dry-run por default: calcula el plan sin tocar nada.
 
-Todo-o-nada: valida que todos los artefactos del manifiesto existen ANTES de
-borrar el primero; si falta alguno -> ValueError (CLI exit 2) sin tocar nada.
+Todo-o-nada: valida que todos los artefactos del manifiesto (y knowledge/index.md,
+README.md, que apply lee despues del borrado) existen ANTES de borrar el primero;
+si falta alguno -> ValueError (CLI exit 2) sin tocar nada.
 
 Exit codes: 0 ok · 1 I/O · 2 manifiesto incompleto.
 Python stdlib puro; sin red; sin subprocess en el target.
@@ -90,6 +91,17 @@ _LIST_RE = re.compile(r"^\s*[-+*]\s+")
 def _missing(repo):
     """Lista de rutas del manifiesto que no existen como archivo."""
     return [rel for rel in MANIFEST if not (Path(repo) / rel).is_file()]
+
+
+# Artefactos que NO estan en MANIFEST pero apply lee/necesita despues del
+# bucle de borrado: _rewrite_index lee knowledge/index.md y _rename_readme
+# lee README.md. El pre-check de atomicidad debe cubrirlos para que la
+# limpieza sea de verdad todo-o-nada (borrarlos-los-50 y luego crashear con
+# FileNotFoundError viola la garantia del docstring).
+REQUIRED_AFTER_DELETE = (
+    "knowledge/index.md",
+    "README.md",
+)
 
 
 def _rel_posix(path, base):
@@ -176,6 +188,9 @@ def init_project(repo_dir, apply, name) -> dict:
     """Plan/aplicacion de la instanciacion. Ver task contract para el dict."""
     repo = Path(repo_dir).resolve()
     missing = _missing(repo)
+    # Pre-check de atomicidad: incluye lo que apply lee tras el borrado.
+    missing += [rel for rel in REQUIRED_AFTER_DELETE
+                if not (repo / rel).is_file()]
     if missing:
         raise ValueError(
             "manifiesto incompleto, faltan: {}".format(", ".join(missing)))

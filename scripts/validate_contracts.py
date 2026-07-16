@@ -5,8 +5,10 @@ Sin LLM, sin red. Solo stdlib. Recibe un directorio (default:
 knowledge/contracts) y valida cada *.md:
 
   (a) frontmatter YAML parseable delimitado por '---'
-  (b) claves requeridas: type == 'Task Contract', task, intent, target,
-      signature, test_command, budget, tests, deps_allowed
+  (b) claves requeridas: task, intent, target, signature, test_command,
+      budget, tests, deps_allowed, touch_only (type se valida aparte: debe
+      ser 'Task Contract'); tests_sha256 es obligatoria (congela el oraculo de
+      tests -> error FM_TESTS_FROZEN si falta, esta vacia o no coincide).
   (c) forbids presente y no vacio (WARNING si falta o vacio)
   (d) cuerpo con secciones obligatorias: ## Intent, ## Interface,
       ## Invariants, ## Examples (con >=2 items de lista), ## Do / Don't,

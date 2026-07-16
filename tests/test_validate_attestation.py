@@ -142,6 +142,19 @@ class TestParseEnvelope(unittest.TestCase):
         data, body = va.parse_envelope(text)
         self.assertIsNone(data)
 
+    def test_parse_envelope_lf_igual_crlf(self):
+        # H-3: un reporte con CRLF debe parsearse IGUAL que con LF. Antes del
+        # fix ``text.startswith('---\\n')`` rechazaba el envelope CRLF ->
+        # (None, text) y se trataba como "sin envelope" (WARNING).
+        lf = _envelope('hello-world', 'salida real\nlinea 2')
+        crlf = lf.replace('\n', '\r\n')
+        d_lf, b_lf = va.parse_envelope(lf)
+        d_crlf, b_crlf = va.parse_envelope(crlf)
+        self.assertIsNotNone(d_crlf)
+        self.assertEqual(d_lf, d_crlf)
+        self.assertEqual(b_lf, b_crlf)
+        self.assertEqual(d_crlf['task'], 'hello-world')
+
 
 class TestValidateReportEnvelopeMissing(unittest.TestCase):
     def setUp(self):

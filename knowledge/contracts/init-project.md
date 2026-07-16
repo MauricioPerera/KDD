@@ -13,7 +13,7 @@ budget:
   max_cyclomatic_complexity: 10
   max_nesting_depth: 4
 tests: "tests/test_init_project.py"
-tests_sha256: "c94dd16dc7786d27d37c8215e0aa8f613fc681b6dbe9df55a3fab17a95a9591f"
+tests_sha256: "2082c5c9d20b64e1f378fc3f328e03970669b65962c254a64bc18eec51455598"
 touch_only: ['scripts/init_project.py']
 deps_allowed: []
 forbids: ['network', 'subprocess']

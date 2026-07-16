@@ -159,6 +159,25 @@ def main(argv):
         print("Resumen: 1 error(es), 0 warning(s)")
         return 1
 
+    # Config valido como JSON pero sin la forma esperada: un config que no es
+    # objeto o que omite claves que check_commit_message indexa directo
+    # ('types', 'max_subject_length') producira KeyError/TypeError (traceback)
+    # en vez de un finding. Reportarlo como CONFIG_INVALID + exit 1.
+    required_keys = ('types', 'max_subject_length')
+    if not isinstance(config, dict):
+        print("ERROR [CONFIG_INVALID]: config no es un objeto JSON (se esperaba "
+              "un dict con al menos: {})".format(', '.join(required_keys)))
+        print()
+        print("Resumen: 1 error(es), 0 warning(s)")
+        return 1
+    missing_keys = [k for k in required_keys if k not in config]
+    if missing_keys:
+        print("ERROR [CONFIG_INVALID]: config sin claves requeridas: {}".format(
+            ', '.join(missing_keys)))
+        print()
+        print("Resumen: 1 error(es), 0 warning(s)")
+        return 1
+
     # Determine message source
     msg = None
     if '--message' in argv:

@@ -191,13 +191,31 @@ class TestInitProject(unittest.TestCase):
                                "validate-user-record.md"))
         self.assertEqual(_run_cli(self.repo, "--apply").returncode, 2)
 
-    def test_exit_code_1_io(self):
-        # Manifiesto completo pero knowledge/index.md ilegible/ausente ->
-        # OSError al reescribir -> exit 1 (I/O).
+    def test_index_md_faltante_aborta_sin_borrar(self):
+        # H-1: manifiesto completo pero knowledge/index.md ausente. Antes del
+        # fix el bucle de borrado vaciaba los 50 artefactos y _rewrite_index
+        # crasheaba con FileNotFoundError -> exit 1, repo vacio. Ahora el
+        # pre-check de atomicidad cubre index.md -> ValueError (exit 2) SIN
+        # borrar ni un archivo.
         _copy_repo(self.repo)
+        before = _files(self.repo)
         os.unlink(os.path.join(self.repo, "knowledge", "index.md"))
         r = _run_cli(self.repo, "--apply")
-        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertEqual(_files(self.repo), before - {"knowledge/index.md"},
+                         "aborto con exit 2 pero igual borro artefactos")
+
+    def test_readme_md_faltante_aborta_sin_borrar(self):
+        # H-1: el pre-check tambien cubre README.md (lo lee _rename_readme
+        # tras el borrado). Manifiesto + index presentes, solo README ausente
+        # -> exit 2 sin borrar nada.
+        _copy_repo(self.repo)
+        before = _files(self.repo)
+        os.unlink(os.path.join(self.repo, "README.md"))
+        r = _run_cli(self.repo, "--apply")
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertEqual(_files(self.repo), before - {"README.md"},
+                         "aborto con exit 2 pero igual borro artefactos")
 
 
 if __name__ == "__main__":

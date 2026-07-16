@@ -153,6 +153,15 @@ def _lint_dir(scripts_dir):
             all_entries.append((rel_path, 1,
                                 _finding(rel_path, 'no se pudo leer: {}'.format(e))))
             continue
+        except UnicodeDecodeError as e:
+            # Un archivo no-UTF8 es, por definicion, no-ASCII-conforme: se
+            # reporta como finding del archivo en vez de tumbar el gate con
+            # un traceback (UnicodeDecodeError es ValueError, no OSError, asi
+            # que el except OSError de arriba no lo atrapa).
+            all_entries.append((rel_path, 1,
+                                _finding(rel_path,
+                                         'no es UTF-8 valido (no-ASCII-conforme): {}'.format(e))))
+            continue
         source_lines = source_text.splitlines()
         entries, skipped = _lint_file(rel_path, source_text, source_lines)
         for lineno, finding in entries:

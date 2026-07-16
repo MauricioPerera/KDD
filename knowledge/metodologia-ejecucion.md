@@ -52,13 +52,13 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    y siguen la misma regla: si el check no se corrió, la spec no afirma — condiciona
    («si falta X, instalarlo con Y»). Un fallo ambiental se parece a una «causa
    preexistente» y dispara un ABORTAR SI legítimo, quemando la delegación
-   ([caso real](./casos-reales.md#entorno-afirmado)).
+   ([caso real](./casos-reales.md#entorno-afirmado-plan--recon)).
    La misma regla aplica a la EXISTENCIA de recursos nombrados: un pedido de «crear X»
    (repo, worker, base de datos) es en realidad «asegurar que X exista con este
    contenido». Verificar primero con un check barato (`gh repo view`, listado del
    proveedor, `ls`); si X ya existe, inspeccionar su contenido y reconciliar con lo
    pedido — nunca crear ni forzar por encima
-   ([caso real](./casos-reales.md#crear-sobre-existente)).
+   ([caso real](./casos-reales.md#crear-sobre-existente-plan--recon)).
 2. **SPEC por tarea** — autocontenida y por OBJETIVO (estado final + definición de hecho
    con comando y resultado esperado), no por pasos. El agente efímero no tiene memoria:
    todo el contexto va en la spec (o se ensambla con el ensamblador de contexto).
@@ -75,7 +75,7 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    de retorno en CADA modo?» — fijarlo en la definición de hecho (p. ej.
    `Array.isArray(...) === true` en todos los modos), no solo la shape del elemento.
    Las cinco clases verificadas de «comando cumplido sin cumplir la intención» que este
-   paso previene están en [casos reales](./casos-reales.md#hecho-sin-intencion).
+   paso previene están en [casos reales](./casos-reales.md#hecho-sin-intencion-spec--red-team-de-la-definición-de-hecho).
    Complemento verificado: exigir sección de **trade-offs** en el reporte del agente es
    el detector más barato de estas clases — se cazan leyendo esa sección + el diff
    puntual de la zona, nunca el diff entero.
@@ -95,12 +95,12 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    final esperado; borrarlo antes destruye la única evidencia re-testeable. Y en sistemas
    de propagación eventual (secrets, DNS, caches), un resultado inmediato contrario al
    esperado no es fallo: se re-verifica con reintentos espaciados antes de concluir
-   ([caso real](./casos-reales.md#verificar-antes-de-limpiar)).
+   ([caso real](./casos-reales.md#verificar-antes-de-limpiar-verificar)).
    **Un fix a una función que un lado de un contrato bilateral produce y otro consume
    (firmar/verificar, escribir/leer, serializar/deserializar) no está verificado con solo
    probar el lado que tocaste:** grep del nombre de la función en todo el repo antes de dar
    el fix por completo — "mis tests pasan" no es lo mismo que "soy consistente con quien
-   consume mi output" ([caso real](./casos-reales.md#contrato-bilateral-mitad-arreglado)).
+   consume mi output" ([caso real](./casos-reales.md#contrato-bilateral-mitad-arreglado-verificar)).
 5. **COMMIT por tarea verificada** — baseline limpio para la siguiente tarea.
 6. **CIERRE** — suite completa 2× (dos corridas idénticas ≈ sin flaky; un flaky detectado
    es una tarea futura, no se ignora), reporte del contrato en `docs/reports/`, estado en
