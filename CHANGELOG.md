@@ -2,7 +2,7 @@
 
 All notable changes to the KDD Template are documented here.
 
-## Unreleased
+## v1.8.0 — 2026-07-17
 
 **Contract 32 — Preflight: a local dry-run of all 12 gates, born from external adoption feedback** ([C32-REPORT](docs/reports/CONTRACT-32-REPORT.md))
 - New `scripts/preflight.py`: zero-dependency CLI (stdlib + sibling modules, no `mcp` SDK) answering a verbatim external request — "a built-in dry-run mode that shows which of the 12 gates would fail on the current contract before any agent touches the code". The engine already existed (`mcp_gate_dispatch.run_all_level1`, v1.6.0) but was only reachable through the MCP server; this is its CLI mouth. Full mode runs all 12 gates (the 11 Level-1 gates + `validate_attestation` — the local-only gate CI never sees, making the preflight the one place all 12 run together), one PASS/FAIL/TIMEOUT line per gate plus an `N/12` summary, exit 0/1, reporting every gate even after the first failure (it's a diagnostic, not a short-circuit). `--contract <name>` mode runs 3 scoped checks on a single task contract — `frontmatter`, `seal` (bit-compatible with `validate_contracts.py --hash`, LF-normalized), `test_command` (same `shlex` dialect as `validate_test_commands`, `posix=False` on Windows, 120s timeout) — catching a desynchronized seal earlier than the gate would.
