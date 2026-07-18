@@ -2,6 +2,14 @@
 
 All notable changes to the KDD Template are documented here.
 
+## Unreleased
+
+**Contract 33 — Weak-seal auditor: the seal guarantees integrity, not strength** ([C33-REPORT](docs/reports/CONTRACT-33-REPORT.md))
+- New `scripts/audit_seals.py`: ADVISORY auditor closing the deferred half of the same external feedback that produced C32 ("help catch weak test seals early"). A sealed oracle (`tests_sha256`) is guaranteed unchanged — not guaranteed able to fail: an empty tests file, one with no real asserts (`assert True` doesn't count), no test functions, or one that never references its target passes `validate_contracts` green while sealing nothing. Six rules (`WEAK_TESTS_MISSING/EMPTY/UNPARSEABLE/NO_TEST_FUNCTIONS/NO_ASSERTS/TARGET_UNREFERENCED`), detected via `ast` (stdlib, read-only, `forbids` includes `subprocess` — stricter than the preflight). Judging the QUALITY of an existing assert is explicitly out of scope: that's mutation testing's job.
+- Advisory by design — the repo's mechanical/judgment boundary applied to itself: detecting ABSENCE is mechanical (the tool), deciding it's unacceptable is the team's call (`--strict` opt-in: exit 1 on findings; default always exit 0). NOT a new Level-1 gate, NOT in CI, and deliberately NOT added to `mcp_gate_dispatch.GATE_SPECS` — that would grow `LEVEL1_GATES` and break the preflight's frozen oracle (exactly 12 gates); promoting it someday is its own contract with both oracles explicitly re-sealed.
+- The design's key finding came from prototyping the heuristics against the live repo BEFORE freezing the oracle: 2 apparent hits turned out to be legitimate self-referential coherence contracts (`target == tests` — the tests file IS the deliverable, e.g. `agents-context-rule`), so the omission rule was frozen into the oracle rather than discovered later as a red dogfood. Non-Python tests (the `example-node-greet` JS oracle) get the text-level checks only. Live baseline: **0 findings / 31 contracts audited** — including auditing its own contract.
+- Frozen oracle `tests/test_audit_seals.py` (15 tests, sealed, tmpdir fixtures only). Delegated pipeline again: two ephemeral GLM devs in parallel (code / docs), disjoint perimeters, both green on first attempt, zero re-delegations. Suite grows 594 → 609 (two identical green runs); all 12 gates green locally; `preflight.py --contract seal-audit` 3/3.
+
 ## v1.8.0 — 2026-07-17
 
 **Contract 32 — Preflight: a local dry-run of all 12 gates, born from external adoption feedback** ([C32-REPORT](docs/reports/CONTRACT-32-REPORT.md))

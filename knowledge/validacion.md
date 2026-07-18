@@ -48,6 +48,29 @@ corren juntos, porque `validate_attestation` solo tiene sentido sobre
 un agente**, para no mandarle un repo que ya rompe un gate. Ver
 [preflight](./contracts/preflight.md).
 
+## Auditor de seals débiles — diagnóstico opt-in (NO es un gate)
+
+`python scripts/audit_seals.py [contracts_dir] [--repo-root DIR] [--strict]`
+es un auditor ADVISORY, stdlib puro y solo lectura (vía `ast`), que
+detecta oráculos congelados que el sello (`tests_sha256`) certifica como
+íntegros pero que **no pueden fallar**: sin asserts reales (`assert True`
+no cuenta), sin funciones de test, o que jamás referencian al target. La
+tesis: el sello garantiza la **integridad** del oráculo, no su **fuerza**;
+detectar la ausencia es mecánico, juzgar la calidad de un assert es
+mutation testing (fuera de alcance). Las 6 reglas: `WEAK_TESTS_MISSING`,
+`WEAK_TESTS_EMPTY`, `WEAK_TESTS_UNPARSEABLE`, `WEAK_NO_TEST_FUNCTIONS`,
+`WEAK_NO_ASSERTS`, `WEAK_TARGET_UNREFERENCED`.
+
+Sin `--strict` SIEMPRE exit 0 (advisory, warnings); con `--strict`, exit 1
+si hay findings. Esto **no es un gate nuevo**: Nivel 1 sigue siendo **11
+gates** y el conteo no cambia. Mismo estatus opt-in que
+`benchmark_gates.py` y `preflight.py` — no corre en CI, no está en
+`GATE_SPECS`. Casos legítimos que NO marca: contratos auto-referenciales
+(`target == tests`, como `agents-context-rule`) y tests no-Python (solo
+chequeos textuales). Cierra la mitad diferida del feedback externo del
+Contrato 32 ("help catch weak test seals early"). Ver
+[seal-audit](./contracts/seal-audit.md).
+
 ## Nivel 2 — Opcional (si el entorno del agente lo tiene)
 
 Si el agente dispone del servidor MCP `ccdd-complexity`, el gate CCDD real se invoca con sus tools `lint_task_contract` (lint del contrato) y `run_integration_gate` (gate de complejidad/integración). Si no está disponible, el nivel 1 es suficiente para considerar un contrato válido.
