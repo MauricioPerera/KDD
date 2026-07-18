@@ -2,6 +2,14 @@
 
 All notable changes to the KDD Template are documented here.
 
+## Unreleased
+
+**Contract 32 — Preflight: a local dry-run of all 12 gates, born from external adoption feedback** ([C32-REPORT](docs/reports/CONTRACT-32-REPORT.md))
+- New `scripts/preflight.py`: zero-dependency CLI (stdlib + sibling modules, no `mcp` SDK) answering a verbatim external request — "a built-in dry-run mode that shows which of the 12 gates would fail on the current contract before any agent touches the code". The engine already existed (`mcp_gate_dispatch.run_all_level1`, v1.6.0) but was only reachable through the MCP server; this is its CLI mouth. Full mode runs all 12 gates (the 11 Level-1 gates + `validate_attestation` — the local-only gate CI never sees, making the preflight the one place all 12 run together), one PASS/FAIL/TIMEOUT line per gate plus an `N/12` summary, exit 0/1, reporting every gate even after the first failure (it's a diagnostic, not a short-circuit). `--contract <name>` mode runs 3 scoped checks on a single task contract — `frontmatter`, `seal` (bit-compatible with `validate_contracts.py --hash`, LF-normalized), `test_command` (same `shlex` dialect as `validate_test_commands`, `posix=False` on Windows, 120s timeout) — catching a desynchronized seal earlier than the gate would.
+- Deliberately NOT a new Level-1 gate: same opt-in status as `benchmark_gates.py` — not wired into CI (CI already runs each gate as its own step), not added to `benchmark_gates.py`'s frozen `GATES` tuple, and `knowledge/validacion.md` still counts 11 Level-1 gates. The "weak test seals" half of the feedback is explicitly deferred (oracle-quality heuristics deserve their own contract; rationale in the spec).
+- `ALL_GATES` is derived from the dispatch (`LEVEL1_GATES` + `validate_attestation`), never a second hardcoded list; frontmatter parsing reuses `validate_contracts.parse_frontmatter`. Frozen oracle `tests/test_preflight.py` (14 tests, sealed) authored by the orchestrator BEFORE delegation and designed to never run real gates (fake injected runner + tmpdir fixtures — respecting the `run_all_level1` recursion warning in `knowledge/mcp-server.md`, and keeping the contract's own `test_command` under `validate_test_commands`' 120s CI timeout). Docs: quickstart step, `validacion.md` section, `mcp-server.md` CLI-vs-MCP cross-ref, index entry, README one-liner.
+- Process note: implemented via the delegated pipeline (two ephemeral GLM devs in parallel with disjoint file perimeters, both green on first attempt, zero re-delegations); dogfooded live on this very repo (`12/12` full mode, `3/3` contract mode). Suite grows 580 → 594 (two identical green runs).
+
 ## v1.7.0 — 2026-07-16
 
 **DEFINIR: a step before PLAN, for when the project itself isn't decided yet**

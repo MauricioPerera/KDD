@@ -173,6 +173,20 @@ corrida. Ya tenes un contrato completo, verificado de punta a punta.
 
 ## 5. Siguiente paso
 
+Antes de delegar trabajo a un agente, corre el preflight y mira que gates
+fallarian sobre el repo actual, en una sola pasada local y sin instalar
+nada (cero dependencias, no es un gate de CI):
+
+```
+python scripts/preflight.py
+```
+
+Esperado: una linea por gate con su estado `PASS`/`FAIL`/`TIMEOUT` y un
+resumen `N/12`. Si algo falla, arreglalo antes de delegar — no tiene
+sentido mandarle a un agente un repo que ya rompe un gate. Diagnostico
+opt-in, mismo estatus que `benchmark_gates.py` (Nivel 1 sigue siendo 11
+gates; el preflight suma `validate_attestation`, el local-only).
+
 - Referencia normativa completa (niveles de gate, budget, perimetro,
   ciclo de vida draft->verified): [validacion.md](./validacion.md).
 - Como delegar esta tarea a un agente en vez de implementarla vos mismo:

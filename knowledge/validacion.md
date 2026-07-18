@@ -27,6 +27,27 @@ tags: ['ccdd', 'validacion', 'gate', 'reference']
 
 Todos corren localmente y en CI (`.github/workflows/validate.yml`, matriz `ubuntu-latest` + `windows-latest`, que además valida los nodos OKF y corre la suite dos veces — dos corridas idénticas ≈ sin flaky). **Ningún contrato se considera terminado hasta que pase el nivel 1.**
 
+## Preflight — diagnóstico local opt-in (NO es un gate)
+
+`python scripts/preflight.py` corre los **11 gates de Nivel 1** más
+`validate_attestation` (el local-only que CI nunca ve, porque
+`.agents/logs/` está gitignorado) en dry-run contra el repo actual, y
+reporta cuáles fallarían en una sola pasada — una línea por gate
+(`PASS`/`FAIL`/`TIMEOUT`) + resumen `N/12`. Con `--contract <nombre>`
+hace 3 chequeos acotados a un solo task contract: frontmatter, sello del
+oráculo y `test_command` (resumen `N/3`). Exit 0/1; cero dependencias
+(stdlib + módulos hermanos de `scripts/`, sin el SDK `mcp`).
+
+Esto **no es un gate nuevo**: Nivel 1 sigue siendo **11 gates** y el
+conteo no cambia. Es diagnóstico opt-in, mismo estatus que
+`benchmark_gates.py` — no corre en CI (CI ya ejecuta cada gate como paso
+propio). Es la boca CLI de `run_all_level1` (la tool MCP que corre 11;
+ver [mcp-server.md](./mcp-server.md)) y el único lugar donde los 12 gates
+corren juntos, porque `validate_attestation` solo tiene sentido sobre
+`.agents/logs/` local. Uso típico: correrlo **antes de delegar trabajo a
+un agente**, para no mandarle un repo que ya rompe un gate. Ver
+[preflight](./contracts/preflight.md).
+
 ## Nivel 2 — Opcional (si el entorno del agente lo tiene)
 
 Si el agente dispone del servidor MCP `ccdd-complexity`, el gate CCDD real se invoca con sus tools `lint_task_contract` (lint del contrato) y `run_integration_gate` (gate de complejidad/integración). Si no está disponible, el nivel 1 es suficiente para considerar un contrato válido.
