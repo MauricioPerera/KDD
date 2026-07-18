@@ -123,7 +123,9 @@ def _check_seal(repo_root, data):
     try:
         with open(tests_path, 'r', encoding='utf-8') as fh:
             content = fh.read()
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
+        # non-utf8 es UnicodeDecodeError (ValueError, no OSError): FAIL del
+        # chequeo seal, jamas un traceback. AUDIT-05 H-1.
         return _result(1, stderr='cannot read tests: {}'.format(exc))
     actual = hashlib.sha256(_normalize_lf(content).encode('utf-8')).hexdigest()
     expected = data['tests_sha256']
@@ -213,20 +215,36 @@ def run_preflight(repo_root='.', contract=None, runner=None):
             'results': results, 'lines': lines}
 
 
-def main(argv):
-    """Entry point CLI. Devuelve 0 si overall_ok, 1 si no."""
+def _parse_cli_flags(argv):
+    """Parsea ``--repo-root`` y ``--contract`` en forma espacio o ``=``.
+
+    Devuelve (repo_root, contract). Flags desconocidos se ignoran. La forma
+    ``--flag=val`` (sep ``=``) vale igual que ``--flag val``. AUDIT-05 H-4.
+    """
     repo_root = '.'
     contract = None
     i = 1
     while i < len(argv):
-        if argv[i] == '--repo-root' and i + 1 < len(argv):
-            repo_root = argv[i + 1]
-            i += 2
-        elif argv[i] == '--contract' and i + 1 < len(argv):
-            contract = argv[i + 1]
-            i += 2
-        else:
-            i += 1
+        name, eq, val = argv[i].partition('=')
+        if name == '--repo-root':
+            if eq:
+                repo_root = val
+            elif i + 1 < len(argv):
+                repo_root = argv[i + 1]
+                i += 1
+        elif name == '--contract':
+            if eq:
+                contract = val
+            elif i + 1 < len(argv):
+                contract = argv[i + 1]
+                i += 1
+        i += 1
+    return repo_root, contract
+
+
+def main(argv):
+    """Entry point CLI. Devuelve 0 si overall_ok, 1 si no."""
+    repo_root, contract = _parse_cli_flags(argv)
     res = run_preflight(repo_root=repo_root, contract=contract)
     for line in res['lines']:
         print(line)

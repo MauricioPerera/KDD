@@ -223,5 +223,67 @@ class TestContractMode(unittest.TestCase):
         self.assertEqual(rc, 0)
 
 
+class TestRobustez(unittest.TestCase):
+    """Casos de robustez agregados tras AUDIT-05 (H-1, H-2, H-4)."""
+
+    def _make_repo(self, tests_bytes):
+        tmp = tempfile.mkdtemp(prefix='preflight-robustez-')
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        os.makedirs(os.path.join(tmp, 'knowledge', 'contracts'))
+        os.makedirs(os.path.join(tmp, 'tests'))
+        with open(os.path.join(tmp, 'tests', 'test_dummy.py'), 'wb') as fh:
+            fh.write(tests_bytes)
+        with open(os.path.join(tmp, 'exit0.py'), 'w', encoding='utf-8') as fh:
+            fh.write('raise SystemExit(0)\n')
+        lines = [
+            '---',
+            'task: demo-task',
+            'tests: "tests/test_dummy.py"',
+            'tests_sha256: "%s"' % ('0' * 64),
+            'test_command: "python exit0.py"',
+            '---',
+            '',
+            'cuerpo',
+            '',
+        ]
+        path = os.path.join(tmp, 'knowledge', 'contracts', 'demo-task.md')
+        with open(path, 'w', encoding='utf-8', newline='') as fh:
+            fh.write('\n'.join(lines))
+        return tmp
+
+    def test_tests_no_utf8_falla_seal_sin_lanzar(self):
+        # H-1: un tests file no decodificable como utf-8 es un FAIL del
+        # chequeo seal (informacion), jamas un traceback.
+        tmp = self._make_repo(b'\xff\xfeBAD')
+        res = preflight.run_preflight(repo_root=tmp, contract='demo-task')
+        self.assertFalse(res['overall_ok'])
+        self.assertEqual(res['results']['frontmatter']['exit_code'], 0)
+        self.assertNotEqual(res['results']['seal']['exit_code'], 0)
+
+    def test_main_repo_root_inexistente_devuelve_1_sin_lanzar(self):
+        # H-2: modo full contra un repo_root inexistente reporta FAIL en
+        # los gates y main devuelve 1 -- sin NotADirectoryError.
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = preflight.main(['preflight', '--repo-root',
+                                 'does-not-exist-kdd-xyz'])
+        self.assertEqual(rc, 1)
+
+    def test_flags_forma_igual_aceptadas(self):
+        # H-4: --contract=NAME y --repo-root=DIR (forma con '=') valen
+        # igual que la forma con espacio; rc 0 prueba que corrio el modo
+        # contract (el modo full sobre esta fixture daria 1).
+        tmp = self._make_repo(b'X = 1\n')
+        seal = hashlib.sha256(b'X = 1\n').hexdigest()
+        cpath = os.path.join(tmp, 'knowledge', 'contracts', 'demo-task.md')
+        with open(cpath, 'r', encoding='utf-8') as fh:
+            body = fh.read()
+        with open(cpath, 'w', encoding='utf-8', newline='') as fh:
+            fh.write(body.replace('0' * 64, seal))
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = preflight.main(['preflight', '--repo-root=' + tmp,
+                                 '--contract=demo-task'])
+        self.assertEqual(rc, 0)
+
+
 if __name__ == '__main__':
     unittest.main()

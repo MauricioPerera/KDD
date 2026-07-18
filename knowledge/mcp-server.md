@@ -27,7 +27,7 @@ Nivel 1 — sin tener que saber que existe `validate_contracts.py`,
   usando el SDK oficial `mcp` (`FastMCP`) para exponer cada entrada como
   tool via stdio. **NO tiene task contract**: depende de un paquete
   externo (`mcp`), lo que rompe la convencion `deps_allowed: []` que
-  siguen los demas 13 contratos de este repo. Es deliberado — separar la
+  siguen los demas contratos de este repo. Es deliberado — separar la
   logica testeable-sin-SDK de su wiring MCP es lo que permite que
   `mcp_gate_dispatch.py` SI tenga oraculo congelado sin forzar esa
   dependencia sobre el resto del pipeline.

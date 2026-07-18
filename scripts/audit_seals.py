@@ -60,15 +60,19 @@ def _contract_targets(data):
 
 
 def _read_tests(tests_path):
-    """Devuelve (status, src). status in {'missing', 'empty', 'ok'}.
+    """Devuelve (status, src). status in {'missing','empty','unparseable','ok'}.
 
-    Nunca lanza: archivo ausente o ilegible -> 'missing'.
+    Nunca lanza: archivo ausente o ilegible por I/O -> 'missing'; presente
+    pero no decodificable como utf-8 -> 'unparseable' (mismo significado que
+    un SyntaxError del AST). AUDIT-05 H-3.
     """
     if not os.path.isfile(tests_path):
         return 'missing', ''
     try:
         with open(tests_path, 'r', encoding='utf-8') as fh:
             src = fh.read()
+    except UnicodeDecodeError:
+        return 'unparseable', ''
     except OSError:
         return 'missing', ''
     if not src.strip():
@@ -140,7 +144,9 @@ def _audit(contract_path, repo_root):
     try:
         with open(contract_path, 'r', encoding='utf-8') as fh:
             text = fh.read()
-    except OSError:
+    except (OSError, UnicodeDecodeError):
+        # contrato no-utf8 (UnicodeDecodeError es ValueError, no OSError):
+        # no auditable, sin crash. AUDIT-05 H-3.
         return False, []
     data, _body = parse_frontmatter(text)
     targets = _contract_targets(data)
@@ -154,6 +160,9 @@ def _audit(contract_path, repo_root):
     if status == 'empty':
         return True, [_finding(contract, WEAK_TESTS_EMPTY,
                                'tests file empty: ' + tests_rel)]
+    if status == 'unparseable':
+        return True, [_finding(contract, WEAK_TESTS_UNPARSEABLE,
+                               'tests file not utf-8: ' + tests_rel)]
     target_stem = os.path.splitext(os.path.basename(target_rel))[0]
     is_self = os.path.normpath(tests_rel) == os.path.normpath(target_rel)
     needs_ref = (not is_self) and (target_stem not in src)

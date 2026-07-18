@@ -241,5 +241,32 @@ class TestMain(_Base):
         self.assertEqual(rc, 0)
 
 
+class TestRobustezEncoding(_Base):
+    """Casos de robustez agregados tras AUDIT-05 (H-3): un archivo no
+    decodificable como utf-8 es un finding o un salto, jamas un traceback
+    (misma clase que el fix de lint_ascii en v1.7.0: UnicodeDecodeError es
+    ValueError, no OSError)."""
+
+    def test_tests_no_utf8_es_unparseable(self):
+        tmp = self.make_repo()
+        p = self.add_contract(tmp, 'demo', 'scripts/mymodule.py',
+                              'tests/test_demo.py', None)
+        with open(os.path.join(tmp, 'tests', 'test_demo.py'), 'wb') as fh:
+            fh.write(b'\xff\xfeBAD')
+        self.assertEqual(self.rules_of(mod.audit_contract(p, tmp)),
+                         ['WEAK_TESTS_UNPARSEABLE'])
+
+    def test_contract_no_utf8_se_salta_sin_crash(self):
+        tmp = self.make_repo()
+        path = os.path.join(tmp, 'knowledge', 'contracts', 'bin.md')
+        with open(path, 'wb') as fh:
+            fh.write(b'\xff\xfe---\nbasura')
+        out = mod.audit_seals(
+            contracts_dir=os.path.join(tmp, 'knowledge', 'contracts'),
+            repo_root=tmp)
+        self.assertEqual(out['checked'], 0)
+        self.assertEqual(out['findings'], [])
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -130,6 +130,16 @@ class TestRunGate(unittest.TestCase):
         self.assertIsNone(result['exit_code'])
         self.assertIn('timeout', result['stderr'])
 
+    def test_bad_repo_root_no_exception(self):
+        # repo_root (cwd del subprocess) inexistente: "Nunca lanza" tambien
+        # cubre el OSError del propio subprocess (NotADirectoryError/
+        # FileNotFoundError), no solo el exit code del gate. AUDIT-05 H-2.
+        result = gd.run_gate('lint_ascii', {},
+                             repo_root='does-not-exist-kdd-xyz')
+        self.assertIsNotNone(result['exit_code'])
+        self.assertNotEqual(result['exit_code'], 0)
+        self.assertNotEqual(result['stderr'], '')
+
 
 class TestRunAllLevel1(unittest.TestCase):
     # NUNCA correr run_all_level1 contra REPO_ROOT (el repo real) en este

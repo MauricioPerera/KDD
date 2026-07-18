@@ -13,7 +13,7 @@ budget:
   max_cyclomatic_complexity: 14
   max_nesting_depth: 4
 tests: "tests/test_audit_seals.py"
-tests_sha256: "d9594ece469f20c181a3594ac8bdc5ee8d69f0c73d2e7454fb889531dbb86351"
+tests_sha256: "a5920b616cd0937ca59dc288ec7dbfe5de89eeac912d071badc3692e77caa8be"
 touch_only: ['scripts/audit_seals.py']
 deps_allowed: []
 forbids: ['network', 'subprocess', 'llm']
@@ -106,7 +106,7 @@ la ausencia es mecanico; decidir que es inaceptable es del equipo
 
 ## Tests
 Oraculo congelado en `tests/test_audit_seals.py` (sellado en
-`tests_sha256`): 15 tests sobre fixtures tmpdir (nunca el repo vivo) --
+`tests_sha256`): 17 tests (15 + 2 de robustez de encoding post-AUDIT-05) sobre fixtures tmpdir (nunca el repo vivo) --
 sanos (py, auto-referencial, no-python), las 6 debilidades, recorrido de
 dir con salto de TEMPLATE y orden, contrato sin frontmatter sin crash, y
 exit codes de `main` (advisory 0 con findings, `--strict` 1/0).

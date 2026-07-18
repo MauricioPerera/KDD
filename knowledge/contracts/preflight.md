@@ -13,7 +13,7 @@ budget:
   max_cyclomatic_complexity: 14
   max_nesting_depth: 4
 tests: "tests/test_preflight.py"
-tests_sha256: "cc30ac4b32ddccf59fc2bdb4321e15c5b337a2796fa8189ea21b48147663e279"
+tests_sha256: "d4f56f0da4d3aaa25cd84b631339b23b754839790e6174166df62e12d29c4111"
 touch_only: ['scripts/preflight.py']
 deps_allowed: []
 forbids: ['network', 'llm']
@@ -112,7 +112,7 @@ propio) y NO cambia el conteo "11 gates de Nivel 1" de
 
 ## Tests
 Oraculo congelado en `tests/test_preflight.py` (sellado en
-`tests_sha256`): 14 tests -- constante `ALL_GATES`, modo full (orden,
+`tests_sha256`): 17 tests (14 + 3 de robustez post-AUDIT-05) -- constante `ALL_GATES`, modo full (orden,
 params, repo_root, PASS/FAIL/TIMEOUT, resumen `N/12`, exit codes de
 `main` con `run_gate` parcheado), modo contract (fixtures tmpdir: sano
 LF, sano CRLF, seal desincronizado, exit code propagado del
