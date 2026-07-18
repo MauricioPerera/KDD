@@ -47,6 +47,14 @@ que mirar, en que orden, y por que.
    verifican que el codigo cumple EL CONTRATO, no que el contrato sea la
    decision correcta de producto/arquitectura. Esa lectura de intent
    sigue siendo trabajo humano.
+6. **¿Dudas de la FUERZA del oraculo, no solo de su integridad?** El sello
+   `tests_sha256` certifica que el oraculo no se reescribio, no que sepa
+   hacer fallar al target. Corre `python scripts/audit_seals.py` para
+   detectar oraculos que no pueden fallar (sin asserts reales, sin
+   funciones de test, sin referenciar al target — 6 reglas `WEAK_*`); es
+   advisory (sin `--strict` siempre exit 0). Juzgar la calidad semantica
+   de un assert existente sigue siendo juicio humano (mutation testing),
+   fuera del alcance del auditor.
 
 ## Que NO hace falta que revises a mano
 

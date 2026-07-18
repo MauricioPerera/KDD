@@ -187,6 +187,10 @@ sentido mandarle a un agente un repo que ya rompe un gate. Diagnostico
 opt-in, mismo estatus que `benchmark_gates.py` (Nivel 1 sigue siendo 11
 gates; el preflight suma `validate_attestation`, el local-only).
 
+Para auditar la FUERZA del seal recien sellado (no solo su integridad):
+`python scripts/audit_seals.py` (advisory; el sello certifica integridad,
+no fuerza — la calidad semantica del assert sigue siendo juicio humano).
+
 - Referencia normativa completa (niveles de gate, budget, perimetro,
   ciclo de vida draft->verified): [validacion.md](./validacion.md).
 - Como delegar esta tarea a un agente en vez de implementarla vos mismo:
