@@ -2,7 +2,7 @@
 
 All notable changes to the KDD Template are documented here.
 
-## Unreleased
+## v1.9.0 — 2026-07-17
 
 **Robustness audit of the new tools: 7 confirmed findings, all fixed (AUDIT-05/06)**
 - A two-lens delegated audit (contract↔code↔docs divergence; fresh-adopter experience) plus the orchestrator's own instantiation scenario (`init_project --apply` on a throwaway copy → `preflight` 12/12, `audit_seals` 0 findings — the v1.6.0 `scan_secrets` bug class did not recur). Every finding was adversarially reproduced by the orchestrator before acting; zero invented findings, and both auditors correctly declined the known non-findings (the historical "28 contratos", the unenforced index).
