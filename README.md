@@ -2,6 +2,8 @@
 
 [![validate-contracts](https://github.com/MauricioPerera/KDD/actions/workflows/validate.yml/badge.svg)](https://github.com/MauricioPerera/KDD/actions/workflows/validate.yml)
 
+<a href="https://www.producthunt.com/products/kdd-knowledge-driven-development?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-kdd" target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1198446&theme=dark&t=1784571286941"><img alt="KDD - Govern AI agents with deterministic gates. No LLM judging. | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1198446&theme=light&t=1784571617560"></picture></a>
+
 [English](#english) | [Español](#español) | [Português](#português)
 
 <a id="english"></a>
