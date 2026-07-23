@@ -111,6 +111,10 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    la spec ordena el enmascarado explícito, y el orquestador verifica con grep cero
    ocurrencias literales en los entregables
    ([caso real](./casos-reales.md#credencial-efimera-a-delegados-delegar)).
+   **Ante una muerte del agente a mitad de tarea** (cuota, crash): triar el disco — lo
+   verde sobrevive verificado y CERCADO; solo lo faltante se re-delega, idealmente por un
+   mecanismo alternativo que no comparta la causa de la muerte
+   ([caso real](./casos-reales.md#rescate-hibrido-por-cuota-delegar--recuperación)).
 4. **VERIFICAR por artefacto** — la palabra del agente no cuenta: solo salidas reales de
    comandos (validador, tests). El orquestador re-corre los comandos antes de integrar.
    Todo trade-off declarado por el agente se inspecciona puntualmente.
@@ -141,6 +145,9 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    zona queda sin verificar dos rondas seguidas, la siguiente incluye provisionar la
    dependencia (infra efímera) en vez de re-anotar el hueco
    ([caso real](./casos-reales.md#no-verificado-acumulado-verificar)).
+   **La re-demostración del orquestador usa la invocación DOCUMENTADA**, no la que el
+   agente eligió para su propia verificación — si ambos caminos difieren, el bug vive en
+   esa diferencia ([caso real](./casos-reales.md#demo-por-el-camino-documentado-verificar)).
 5. **COMMIT por tarea verificada** — baseline limpio para la siguiente tarea.
 6. **CIERRE** — suite completa 2× (dos corridas idénticas ≈ sin flaky; un flaky detectado
    es una tarea futura, no se ignora), reporte del contrato en `docs/reports/`, estado en
