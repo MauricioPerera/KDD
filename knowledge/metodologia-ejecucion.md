@@ -154,6 +154,11 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    distinguir «corrió y no encontró» de «no corrió» — un fallback (`|| echo OK`) sobre un
    comando inexistente fabrica falsos negativos limpios
    ([caso real](./casos-reales.md#check-que-fallo-no-es-check-verificar)).
+   **Toda edición programática de documentación se verifica con grep de PRESENCIA
+   antes de commitear**, o se hace con una herramienta que falle ruidoso si el ancla no
+   existe — un `replace` que no matchea puede imprimir éxito igual y perder contenido en
+   silencio
+   ([caso real](./casos-reales.md#replace-silencioso-en-docs-cerrar--documentación)).
    **La re-demostración del orquestador usa la invocación DOCUMENTADA**, no la que el
    agente eligió para su propia verificación — si ambos caminos difieren, el bug vive en
    esa diferencia ([caso real](./casos-reales.md#demo-por-el-camino-documentado-verificar)).
@@ -212,14 +217,12 @@ si algo no se rompió porque está bien o porque no lo miró.
   a verificar contra el sistema real, no una conclusión válida por razonamiento desde el
   estándar en abstracto
   ([caso real](./casos-reales.md#limite-declarado-es-el-siguiente-objetivo-de-auditoria-verificar)).
-- Una credencial efímera puede viajar a un auditor si (1) muere con la infra que
-  audita, (2) la spec ordena el enmascarado explícito con el formato exacto, y (3) el
-  orquestador verifica con grep cero ocurrencias literales en los entregables
-  ([caso real](./casos-reales.md#credencial-efimera-a-delegados-delegar)).
-- Investigar la viabilidad de algo riesgoso (aceptando BLOQUEADO como resultado válido)
-  exige que el propio experimento de investigación tenga SU arnés de seguridad si puede
-  reproducir el riesgo que investiga
-  ([caso real](./casos-reales.md#investigacion-bloqueada-necesita-arnes-delegar)).
+- La regla de **credenciales efímeras a delegados** (paso DELEGAR arriba) aplica igual
+  a un auditor: muere con la infra, enmascarado explícito ordenado en la spec,
+  verificación con grep de cero ocurrencias literales en los entregables.
+- La regla de **investigación con su propio arnés** (paso DELEGAR arriba) aplica igual
+  cuando lo que se delega es una investigación de causa raíz durante una ronda de
+  auditoría, no sólo durante DELEGAR.
 
 ## Política de reintentos (tope de gasto)
 
