@@ -68,3 +68,23 @@ Tras un ciclo auditoría→fixes (3 rondas, 17 hallazgos ALTA/MEDIA cerrados), u
 ## infra-huerfana-es-evidencia (CIERRE)
 
 Una sesión murió a mitad de un cierre de batch dejando un contenedor de base de datos efímero vivo en el servidor. La sesión siguiente, en vez de borrarlo y re-provisionar a ciegas, lo inspeccionó primero (`docker inspect ... Config.Env`) y recuperó el DSN exacto con el que se había verificado el batch — pudiendo reanudar el cierre (suite e2e, commit, push, desmonte) sin rehacer nada. Regla derivada: tras una interrupción, la infraestructura huérfana es EVIDENCIA del estado del trabajo antes que basura — inspeccionar y extraer lo que documenta (credenciales efímeras, versiones, estado) ANTES de desmontarla. Complemento del patrón general: infra efímera se provisiona por batch y se desmonta en el cierre; si el cierre no llegó, la infra colgada es la señal de que el cierre está pendiente.
+
+## no-verificado-acumulado (VERIFICAR)
+
+Cuatro rondas de auditoría dejaron los mismos caminos marcados «NO VERIFICADO» por falta de una dependencia viva (base de datos real), y encima de esos caminos vivía un hallazgo grave real: una familia de tipos cuya migración SIEMPRE divergía con datos correctos — invisible para los tests unitarios y para la auditoría estática, porque solo se manifestaba contra la infraestructura real. La quinta ronda recibió la dependencia provisionada (contenedor efímero + DSN) y cazó el bug en un solo pase, además de convertir en evidencia ejecutada todos los caminos ex-pendientes. Regla derivada: los «NO VERIFICADO» que se repiten entre rondas son DEUDA de auditoría, no una anotación neutral — si la misma zona queda sin verificar dos rondas seguidas, la ronda siguiente incluye provisionar la dependencia (infra efímera) en vez de re-anotar el hueco.
+
+## credencial-efimera-a-delegados (DELEGAR)
+
+Para que auditores y devs efímeros ejercitaran caminos que exigen una base de datos real, se les pasó el DSN (con password) por variable de entorno y en la spec, con la orden explícita «enmascarralo SIEMPRE como *** en el reporte». El orquestador verificó después con grep que el literal no apareciera en ningún entregable: cero fugas en tres corridas, y la credencial murió con el contenedor al desmontarlo. Regla derivada: una credencial efímera puede viajar a un agente delegado si (1) es de vida corta y muere con la infra, (2) la spec ordena el enmascarado explícito con el formato exacto, y (3) el orquestador verifica cero ocurrencias literales en los entregables — la orden sin la verificación es confianza, no control.
+
+## clase-cazada-a-clausula-de-spec (SPEC)
+
+La misma clase de staleness («test agregado sin actualizar el conteo documentado») se cazó dos veces en la verificación del orquestador. A partir de la segunda, la cláusula «si agregás tests top-level, actualizá el conteo en <docs>» pasó a viajar en toda spec que tocara esa zona — y la tercera vez el agente lo hizo solo, sin retoque del orquestador. Regla derivada: una clase de fallo cazada dos veces deja de ser un ítem de verificación y se convierte en cláusula estándar de las specs de esa zona; prevenir en la spec es más barato que re-cazar en cada verificación, y además le enseña el patrón al agente en vez de corregirlo por detrás.
+
+## contrato-documentado-cambia-junto (SPEC / VERIFICAR)
+
+Un fix cosmético (un mensaje de error duplicado en stderr) tocaba un patrón de salida que la documentación machine-facing describía LITERALMENTE y que los tests end-to-end asserteaban. La spec ordenó «docs, código y tests se mueven JUNTOS — cero claims que el binario no cumpla», y el entregable llegó coherente en el mismo cambio. Regla derivada: cuando el comportamiento a cambiar está descrito en un contrato documentado (aunque el cambio sea trivial), la spec exige actualizar documentación, código y asserts en la MISMA tarea — un fix que deja la doc mintiendo reabre exactamente la clase de hallazgo doc↔código que las auditorías cierran.
+
+## excepcion-unica-declarada (SPEC)
+
+Al unificar tres binarios CLI en uno con subcomandos, la spec fijó: «comportamiento observable byte-idéntico, con UNA excepción deliberada: los prefijos de mensaje cambian de X a Y». Con la excepción delimitada de forma exhaustiva, todo lo demás se verificó mecánicamente contra el comportamiento previo (envelopes, exit codes, streams, orden de líneas), y la ronda de auditoría posterior confirmó el contrato completo. Regla derivada: en un cambio que promete preservar comportamiento («refactor», «unificación», «migración»), las divergencias deliberadas se enumeran EXPLÍCITAS y cerradas en la spec — «básicamente igual» no es verificable; «idéntico salvo exactamente esto» sí.
