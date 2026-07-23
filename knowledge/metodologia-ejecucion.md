@@ -59,6 +59,11 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    proveedor, `ls`); si X ya existe, inspeccionar su contenido y reconciliar con lo
    pedido — nunca crear ni forzar por encima
    ([caso real](./casos-reales.md#crear-sobre-existente-plan--recon)).
+   **Cuando el espacio de "qué falta hacer" es grande y abstracto, un artefacto real
+   representativo corrido por el pipeline real prioriza más rápido que seguir
+   clasificando en la cabeza** — un único esquema/caso de uso escrito a mano encontró en
+   un pase gaps concretos que sesiones previas de categorización no habían señalado
+   ([caso real](./casos-reales.md#artefacto-real-encuentra-gaps-que-la-clasificacion-abstracta-no-plan)).
 2. **SPEC por tarea** — autocontenida y por OBJETIVO (estado final + definición de hecho
    con comando y resultado esperado), no por pasos. El agente efímero no tiene memoria:
    todo el contexto va en la spec (o se ensambla con el ensamblador de contexto).
@@ -104,6 +109,11 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    migración), las divergencias deliberadas se enumeran explícitas y cerradas: «idéntico
    salvo exactamente esto» es verificable, «básicamente igual» no
    ([caso real](./casos-reales.md#excepcion-unica-declarada-spec)).
+   **Al agregar a un compilador/gramática compartida un nodo con una propiedad atípica**
+   (no determinismo, efectos secundarios, coste variable), la spec pregunta «¿en qué
+   OTROS contextos alcanzables por el compilador aparece esto, más allá de los que
+   documenté como intención?» — un compilador genérico no distingue intención de alcance
+   ([caso real](./casos-reales.md#propiedad-atipica-en-compilador-generico-spec)).
 3. **DELEGAR** — un agente efímero por tarea. Tareas que compartan archivos → secuenciales.
    Las tareas en **paralelo** deben declarar en su spec el conjunto de archivos que tocan,
    y ese conjunto debe ser **disjunto** respecto a otras tareas corriendo al mismo tiempo.
@@ -115,6 +125,12 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    verde sobrevive verificado y CERCADO; solo lo faltante se re-delega, idealmente por un
    mecanismo alternativo que no comparta la causa de la muerte
    ([caso real](./casos-reales.md#rescate-hibrido-por-cuota-delegar--recuperación)).
+   **Si se delega investigar la viabilidad de algo riesgoso aceptando BLOQUEADO como
+   resultado válido, y el propio EXPERIMENTO puede reproducir ese riesgo** (una prueba de
+   terminación que puede no terminar), la spec le da a la investigación su propio arnés
+   de seguridad (timeout, límite del lado servidor, cleanup garantizado) — distinto del
+   arnés de la feature que se investiga
+   ([caso real](./casos-reales.md#investigacion-bloqueada-necesita-arnes-delegar)).
 4. **VERIFICAR por artefacto** — la palabra del agente no cuenta: solo salidas reales de
    comandos (validador, tests). El orquestador re-corre los comandos antes de integrar.
    Todo trade-off declarado por el agente se inspecciona puntualmente.
@@ -148,6 +164,12 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    **La re-demostración del orquestador usa la invocación DOCUMENTADA**, no la que el
    agente eligió para su propia verificación — si ambos caminos difieren, el bug vive en
    esa diferencia ([caso real](./casos-reales.md#demo-por-el-camino-documentado-verificar)).
+   **Cuando un fix documenta un límite/alcance explícito, la ronda de confirmación
+   siguiente rinde más atacando ESE límite con evidencia real que repitiendo el caso ya
+   cerrado** — y una hipótesis de "esto podría divergir" formulada por el propio auditor
+   es un claim más a verificar contra el sistema real, no una conclusión válida por
+   razonamiento desde el estándar en abstracto
+   ([caso real](./casos-reales.md#limite-declarado-es-el-siguiente-objetivo-de-auditoria-verificar)).
 5. **COMMIT por tarea verificada** — baseline limpio para la siguiente tarea.
 6. **CIERRE** — suite completa 2× (dos corridas idénticas ≈ sin flaky; un flaky detectado
    es una tarea futura, no se ignora), reporte del contrato en `docs/reports/`, estado en
