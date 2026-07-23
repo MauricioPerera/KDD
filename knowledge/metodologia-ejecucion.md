@@ -154,6 +154,11 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    distinguir «corrió y no encontró» de «no corrió» — un fallback (`|| echo OK`) sobre un
    comando inexistente fabrica falsos negativos limpios
    ([caso real](./casos-reales.md#check-que-fallo-no-es-check-verificar)).
+   **Antes de confiar en un gate para cerrar un ciclo, leer qué CHEQUEA REALMENTE
+   (el código del gate, no su nombre)** — un gate de links puede validar solo que el
+   archivo destino exista y no que un fragmento de ancla resuelva, y esa fracción sin
+   cubrir es exactamente donde vive el próximo bug silencioso
+   ([caso real](./casos-reales.md#alcance-real-de-un-gate-no-es-el-prometido-verificar)).
    **Toda edición programática de documentación se verifica con grep de PRESENCIA
    antes de commitear**, o se hace con una herramienta que falle ruidoso si el ancla no
    existe — un `replace` que no matchea puede imprimir éxito igual y perder contenido en
@@ -200,6 +205,12 @@ si algo no se rompió porque está bien o porque no lo miró.
    (cero hallazgos nuevos en cualquier severidad) — esa es la condición de parada, no
    «ya arreglamos todo lo que vimos»
    ([caso real](./casos-reales.md#ronda-de-confirmacion-cierre)).
+   **El ciclo no exige un motor vivo.** Cuando el cambio a confirmar no tiene código ni
+   engines contra los que probar equivalencia (p. ej. una reestructuración de la propia
+   documentación de proceso), se aplica el espíritu del ciclo al artefacto que sí
+   cambió: identificar qué propiedad podría haberse roto en silencio (aquí, integridad
+   referencial de un grafo de documentos) y verificarla con evidencia ejecutada
+   ([caso real](./casos-reales.md#auditoria-de-artefacto-sin-motor-vivo-cierre)).
 
 **Reglas duras del ciclo**:
 
