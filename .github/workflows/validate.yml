@@ -93,6 +93,8 @@ jobs:
       - name: Scan for leaked secrets (src only — see knowledge/contracts/secret-scan-gate.md)
         run: python scripts/scan_secrets.py ${{ inputs.src_dir_secrets || 'src' }}
 
+      # The suite runs twice on purpose (identical command): the second run
+      # detects flaky tests / verifies determinism. See specs/CONTRACT-11-ci-windows-suite2x.md.
       - name: Run unit tests (1/2)
         run: python -m unittest discover -s tests -p "test_*.py"
 

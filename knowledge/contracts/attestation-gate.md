@@ -13,7 +13,7 @@ budget:
   max_cyclomatic_complexity: 16
   max_nesting_depth: 4
 tests: "tests/test_validate_attestation.py"
-tests_sha256: "8475da23657481fafba463b530ad6f1c633de1b4d73e0d876322d0f5d00afb37"
+tests_sha256: "8701edb282b0dd06d6cdead940d7e81ee2adec2fa8b6eb789f6ecc4abb1068ba"
 touch_only: ['scripts/validate_attestation.py']
 deps_allowed: []
 forbids: ['network', 'subprocess', 'llm']

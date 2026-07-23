@@ -139,6 +139,46 @@ class TestCollectContracts(unittest.TestCase):
         self.assertEqual(result, [])
 
 
+class TestCrlfCoherence(unittest.TestCase):
+    """H-3: un contrato con CRLF debe parsearse IGUAL que con LF.
+
+    ``validate_test_commands._frontmatter`` antes era LF-fragil (regex
+    ``^---\\n``): un frontmatter con CRLF no matcheaba y ``test_command`` se
+    perdia (None). Debe ser coherente con el dialecto ``splitlines()`` de
+    ``validate_contracts``. Se prueba el parser in-memory (pasando el string
+    CRLF directo): la lectura de archivo en modo texto normaliza CRLF->LF por
+    universal newlines, asi que el bug solo se activa si el texto CRLF llega
+    directo al parser.
+    """
+
+    def test_extract_test_command_lf_igual_crlf(self):
+        lf = _contract('test_command: "python -m unittest tests/x.py"')
+        crlf = lf.replace('\n', '\r\n')
+        self.assertEqual(
+            vtc.extract_test_command(lf),
+            vtc.extract_test_command(crlf),
+        )
+        self.assertEqual(
+            vtc.extract_test_command(crlf),
+            "python -m unittest tests/x.py",
+        )
+
+
+class TestNonUtf8(unittest.TestCase):
+    """H-4: un archivo con bytes invalidos para UTF-8 no tumba el gate."""
+
+    def test_collect_contracts_archivo_no_utf8_se_salta(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = os.path.join(tmp, 'bad.md')
+            with open(bad, 'wb') as fh:
+                fh.write(b'---\ntask: t\ntest_command: "echo hi"\n---\n\xff\xfe\n')
+            _write(os.path.join(tmp, 'good.md'), _contract('test_command: "echo ok"'))
+            result = vtc.collect_contracts(tmp)
+            names = [os.path.basename(item['path']) for item in result]
+            # No crashea: salta el no-UTF8 y recoge el bueno.
+            self.assertEqual(names, ['good.md'])
+
+
 class TestRunTestCommand(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()

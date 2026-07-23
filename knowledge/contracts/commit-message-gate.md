@@ -13,7 +13,7 @@ budget:
   max_cyclomatic_complexity: 10
   max_nesting_depth: 4
 tests: "tests/test_validate_commit_message.py"
-tests_sha256: "7ad8d52b81cdb2cbcf18751e90e3ae553b42e4676bc7e5860e3a77f90e40bee0"
+tests_sha256: "4e7b3bf6f3d481e9f8658347795941464cc61c652d582b94fd233c4ceda97229"
 touch_only: ['scripts/validate_commit_message.py']
 deps_allowed: []
 forbids: ['network', 'subprocess', 'llm']

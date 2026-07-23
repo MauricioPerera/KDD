@@ -14,7 +14,8 @@ CLI espejo de validate_okf.py: exit 0 sin ERRORs, 1 con >=1 ERROR.
 Reglas del gate (nombres congelados):
 - JSON:           rule-set no parseable.
 - FAMILIA:        clave top-level desconocida (validas: _comment, required, type,
-                  enums, bounds, refs, keyed_bounds, keyed_enums, code_only, golden).
+                  enums, bounds, matches, refs, keyed_bounds, keyed_enums, each,
+                  code_only, golden).
 - GOLDEN:         clave golden ausente / sin path/sha256 / archivo inexistente /
                   golden no parseable.
 - GOLDEN_FROZEN:  sha256 (LF-normalizado, mismo algoritmo que tests_sha256) no

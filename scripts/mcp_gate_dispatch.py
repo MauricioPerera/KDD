@@ -168,6 +168,15 @@ def run_gate(tool_name, params, repo_root='.', timeout=120):
             'stdout': '',
             'stderr': 'timeout after {}s'.format(timeout),
         }
+    except OSError as exc:
+        # repo_root/cwd inexistente (NotADirectoryError/FileNotFoundError):
+        # "Nunca lanza" cubre el OSError del propio subprocess, no solo el
+        # exit code del gate. AUDIT-05 H-2.
+        return {
+            'exit_code': 1,
+            'stdout': '',
+            'stderr': str(exc),
+        }
     return {
         'exit_code': proc.returncode,
         'stdout': proc.stdout,

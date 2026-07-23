@@ -226,6 +226,29 @@ msg_c = "también"
         findings = lint_ascii('/nonexistent/path/12345')
         self.assertEqual(findings, [])
 
+    def test_archivo_no_utf8_es_finding_no_crash(self):
+        """H-4: un archivo con bytes invalidos para UTF-8 no tumba el gate.
+
+        Antes del fix ``open(..., encoding='utf-8')`` lanzaba UnicodeDecodeError
+        (ValueError, no OSError -> no capturado) y abortaba todo el gate con
+        traceback. Un archivo no-UTF8 es por definicion no-ASCII-conforme: se
+        reporta como finding del archivo y el gate sigue con los demas.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bad = os.path.join(tmpdir, 'bad.py')
+            with open(bad, 'wb') as f:
+                f.write(b'x = "caf\xe9"\n')
+            good = os.path.join(tmpdir, 'good.py')
+            with open(good, 'w', encoding='utf-8') as f:
+                f.write('y = "ok"\n')
+            findings = lint_ascii(tmpdir)
+            files = [f['file'] for f in findings]
+            self.assertIn('bad.py', files)
+            self.assertNotIn('good.py', files)
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0]['level'], 'ERROR')
+            self.assertEqual(findings[0]['rule'], 'ASCII')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -52,13 +52,13 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    y siguen la misma regla: si el check no se corrió, la spec no afirma — condiciona
    («si falta X, instalarlo con Y»). Un fallo ambiental se parece a una «causa
    preexistente» y dispara un ABORTAR SI legítimo, quemando la delegación
-   ([caso real](./casos-reales.md#entorno-afirmado)).
+   ([caso real](./casos-reales.md#entorno-afirmado-plan--recon)).
    La misma regla aplica a la EXISTENCIA de recursos nombrados: un pedido de «crear X»
    (repo, worker, base de datos) es en realidad «asegurar que X exista con este
    contenido». Verificar primero con un check barato (`gh repo view`, listado del
    proveedor, `ls`); si X ya existe, inspeccionar su contenido y reconciliar con lo
    pedido — nunca crear ni forzar por encima
-   ([caso real](./casos-reales.md#crear-sobre-existente)).
+   ([caso real](./casos-reales.md#crear-sobre-existente-plan--recon)).
 2. **SPEC por tarea** — autocontenida y por OBJETIVO (estado final + definición de hecho
    con comando y resultado esperado), no por pasos. El agente efímero no tiene memoria:
    todo el contexto va en la spec (o se ensambla con el ensamblador de contexto).
@@ -75,21 +75,21 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    de retorno en CADA modo?» — fijarlo en la definición de hecho (p. ej.
    `Array.isArray(...) === true` en todos los modos), no solo la shape del elemento.
    Las cinco clases verificadas de «comando cumplido sin cumplir la intención» que este
-   paso previene están en [casos reales](./casos-reales.md#hecho-sin-intencion).
+   paso previene están en [casos reales](./casos-reales.md#hecho-sin-intencion-spec--red-team-de-la-definición-de-hecho).
    Complemento verificado: exigir sección de **trade-offs** en el reporte del agente es
    el detector más barato de estas clases — se cazan leyendo esa sección + el diff
    puntual de la zona, nunca el diff entero.
    **Los nombres de entregables se verifican como libres antes de asignarlos** (`ls` del
    directorio destino al redactar la spec) y toda spec lleva la cláusula «si el archivo ya
-   existe, no lo sobrescribas» ([caso real](./casos-reales.md#colision-de-entregables)).
+   existe, no lo sobrescribas» ([caso real](./casos-reales.md#colision-de-entregables-spec)).
    **Si el orquestador conoce una tensión de diseño fundamental de la tarea, va EN la
    spec** — con dirección candidata, requisitos innegociables verificables y cláusula de
    honestidad, dejando el CÓMO libre; ocultarla condena al agente a iterar a ciegas
-   ([caso real](./casos-reales.md#tension-de-diseno-en-la-spec)).
+   ([caso real](./casos-reales.md#tension-de-diseno-en-la-spec-spec)).
    **Cambio de formato en un artefacto persistente** (journal, wire format, schema): la
    spec pregunta «¿qué pasa con los datos in-flight de la versión vieja?» — el fix y su
    contrato de upgrade son la misma tarea
-   ([caso real](./casos-reales.md#formato-persistente-sin-contrato-de-upgrade)).
+   ([caso real](./casos-reales.md#formato-persistente-sin-contrato-de-upgrade-spec--cierre)).
 3. **DELEGAR** — un agente efímero por tarea. Tareas que compartan archivos → secuenciales.
    Las tareas en **paralelo** deben declarar en su spec el conjunto de archivos que tocan,
    y ese conjunto debe ser **disjunto** respecto a otras tareas corriendo al mismo tiempo.
@@ -106,19 +106,19 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    final esperado; borrarlo antes destruye la única evidencia re-testeable. Y en sistemas
    de propagación eventual (secrets, DNS, caches), un resultado inmediato contrario al
    esperado no es fallo: se re-verifica con reintentos espaciados antes de concluir
-   ([caso real](./casos-reales.md#verificar-antes-de-limpiar)).
+   ([caso real](./casos-reales.md#verificar-antes-de-limpiar-verificar)).
    **Un fix a una función que un lado de un contrato bilateral produce y otro consume
    (firmar/verificar, escribir/leer, serializar/deserializar) no está verificado con solo
    probar el lado que tocaste:** grep del nombre de la función en todo el repo antes de dar
    el fix por completo — "mis tests pasan" no es lo mismo que "soy consistente con quien
-   consume mi output" ([caso real](./casos-reales.md#contrato-bilateral-mitad-arreglado)).
+   consume mi output" ([caso real](./casos-reales.md#contrato-bilateral-mitad-arreglado-verificar)).
    **El «PERSISTE» o «imposible» de un agente auditor se re-verifica con reproducción
    barata del orquestador antes de re-delegar o aceptar el veredicto** — es una afirmación
-   como cualquier otra ([caso real](./casos-reales.md#persiste-de-auditor-refutado)).
+   como cualquier otra ([caso real](./casos-reales.md#persiste-de-auditor-refutado-verificar)).
    **Una verificación de ausencia solo vale si la herramienta corrió de verdad:**
    distinguir «corrió y no encontró» de «no corrió» — un fallback (`|| echo OK`) sobre un
    comando inexistente fabrica falsos negativos limpios
-   ([caso real](./casos-reales.md#check-que-fallo-no-es-check)).
+   ([caso real](./casos-reales.md#check-que-fallo-no-es-check-verificar)).
 5. **COMMIT por tarea verificada** — baseline limpio para la siguiente tarea.
 6. **CIERRE** — suite completa 2× (dos corridas idénticas ≈ sin flaky; un flaky detectado
    es una tarea futura, no se ignora), reporte del contrato en `docs/reports/`, estado en
@@ -126,10 +126,10 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    **Un ciclo auditoría→fixes se cierra con una ronda de CONFIRMACIÓN de mandato
    invertido:** re-ejecutar la repro de cada hallazgo previo (tabla CERRADO/PERSISTE con
    salida real) + ataque adversarial al código nuevo de los fixes
-   ([caso real](./casos-reales.md#ronda-de-confirmacion)).
+   ([caso real](./casos-reales.md#ronda-de-confirmacion-cierre)).
    **Tras una interrupción, la infraestructura huérfana es evidencia antes que basura:**
    inspeccionarla y extraer lo que documenta (credenciales efímeras, estado) antes de
-   desmontarla ([caso real](./casos-reales.md#infra-huerfana-es-evidencia)).
+   desmontarla ([caso real](./casos-reales.md#infra-huerfana-es-evidencia-cierre)).
 
 ## Política de reintentos (tope de gasto)
 

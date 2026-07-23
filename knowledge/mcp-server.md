@@ -27,7 +27,7 @@ Nivel 1 — sin tener que saber que existe `validate_contracts.py`,
   usando el SDK oficial `mcp` (`FastMCP`) para exponer cada entrada como
   tool via stdio. **NO tiene task contract**: depende de un paquete
   externo (`mcp`), lo que rompe la convencion `deps_allowed: []` que
-  siguen los demas 13 contratos de este repo. Es deliberado — separar la
+  siguen los demas contratos de este repo. Es deliberado — separar la
   logica testeable-sin-SDK de su wiring MCP es lo que permite que
   `mcp_gate_dispatch.py` SI tenga oraculo congelado sin forzar esa
   dependencia sobre el resto del pipeline.
@@ -109,3 +109,22 @@ modulo; es una interaccion real con el test de auto-copia de
 - [validacion.md](./validacion.md) — que verifica cada gate en detalle.
 - [por-que-kdd.md](./por-que-kdd.md) — posicionamiento; menciona este gap
   como parte de "no consumible como infraestructura".
+
+## Preflight CLI vs `run_all_level1`
+
+Dos bocas sobre la misma logica de despacho (`mcp_gate_dispatch`), para
+distintos consumidores:
+
+- **`run_all_level1` (tool MCP)** — corre los **11 gates de Nivel 1**
+  (excluye `validate_attestation`, que es local-only) en una sola
+  llamada. Requiere `pip install mcp` + un cliente MCP; ideal para un
+  agente que consume los gates por MCP.
+- **`scripts/preflight.py` (CLI)** — cero dependencias (stdlib + modulos
+  hermanos, sin el SDK `mcp`); corre los **12 gates** (los 11 de Nivel 1
+  + `validate_attestation`, el unico lugar donde corren juntos porque
+  `.agents/logs/` es local). Modo `--contract <nombre>`: 3 chequeos
+  acotados a un task contract (frontmatter, sello, `test_command`). Es
+  diagnostico opt-in, NO un gate de Nivel 1 (el conteo sigue en 11) y no
+  corre en CI — mismo estatus que `benchmark_gates.py`. Ver
+  [preflight](./contracts/preflight.md) y
+  [validacion.md](./validacion.md#preflight--diagnóstico-local-opt-in-no-es-un-gate).

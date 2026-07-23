@@ -59,8 +59,14 @@ def parse_envelope(text):
 
     ``(None, text)`` si ``text`` no empieza con ``---\\n`` o no hay un segundo
     delimitador ``---`` en su propia linea. Nunca lanza excepcion.
+
+    Normaliza CRLF/CR a LF antes de parsear para que un reporte guardado con
+    CRLF (Windows) se parsee igual que con LF (coherente con validate_contracts).
     """
-    if not isinstance(text, str) or not text.startswith('---\n'):
+    if not isinstance(text, str):
+        return None, text
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+    if not text.startswith('---\n'):
         return None, text
     lines = text.split('\n')
     # lines[0] == '---' (garantizado por el startswith).

@@ -19,13 +19,57 @@ tags: ['ccdd', 'validacion', 'gate', 'reference']
 - `python scripts/validate_changelog.py` — coherencia bidireccional CHANGELOG↔reportes: todo `docs/reports/CONTRACT-NN-REPORT.md` tiene su entrada `**Contract NN` con link (y viceversa, sin duplicados). Nacido del incidente real de v1.2.0 (entradas perdidas por un replace silencioso). Capa opcional: sin CHANGELOG o sin reportes pasa con INFO.
 - `python scripts/validate_ux_page.py <dir>` — gate mecánico de UX/accesibilidad sobre páginas HTML autocontenidas (infraestructura, no ejemplo): balance de tags, completitud de i18n vía JSON embebido (`#i18n-data`), contraste WCAG sobre pares explícitos (`#ux-contrast-pairs`), guarda `prefers-reduced-motion`, IDs referenciados por JS. Severidad calibrada contra `google-labs-code/design.md`: referencias rotas = ERROR (bloquea), contraste/motion = WARNING (no bloquea). El juicio estético queda deliberadamente fuera — misma frontera que el dominio editorial. Capa opcional: sin páginas HTML, pasa con INFO.
 - **Herramienta opt-in, no gate de este repo:** `python scripts/validate_commit_message.py <config.json> [--message <texto>|--file <ruta>|stdin]` — formato de mensaje de commit calibrado contra Conventional Commits + `commitlint`. NO corre en `.github/workflows/validate.yml` (el historial propio de KDD no sigue esta convención); es infraestructura de plantilla para que un proyecto instanciado la adopte en su propio hook `commit-msg` si quiere.
-- `python scripts/validate_diagrams.py <dir>` — gate mecánico de diagramas Mermaid `flowchart` (infraestructura, no ejemplo): parser propio en Python puro (sin `subprocess`/red/LLM, por `forbids`) para nodos/edges, verificados contra un `.diagram-contract.json` declarativo al lado de cada `.mmd`. Convención completa: [diagram-contract-spec](./diagram-contract-spec.md). Cobertura deliberadamente parcial (solo flowchart); para el resto de los tipos de diagrama y fidelidad de parser real, ver el proyecto hermano `mermaid-gate` (Node.js, herramienta externa, fuera del alcance Nivel 1 de este repo por la misma razón que el gate CCDD real es Nivel 2). Capa opcional: sin diagramas, INFO; `.mmd` sin contrato, WARNING (no bloquea).
-- **Diagnóstico opcional (no gate):** `python scripts/benchmark_gates.py` mide los 9 gates de nivel 1 + la suite (min/mediana/max por gate, 2 pasadas crudas de la suite) para saber si el CI se está volviendo lento a medida que crecen los contratos. No corre en `.github/workflows/validate.yml` — es herramienta de mantenimiento, no un check de corrección.
+- `python scripts/validate_diagrams.py <dir>` — gate mecánico de diagramas Mermaid (infraestructura, no ejemplo; 4 tipos: `flowchart`/`graph`, `gantt`, `pie`, `journey`): parser propio en Python puro (sin `subprocess`/red/LLM, por `forbids`) para nodos/edges, verificados contra un `.diagram-contract.json` declarativo al lado de cada `.mmd`. Convención completa: [diagram-contract-spec](./diagram-contract-spec.md). Cobertura deliberadamente parcial (4 de los ~20 tipos de Mermaid); para el resto de los tipos de diagrama y fidelidad de parser real, ver el proyecto hermano `mermaid-gate` (Node.js, herramienta externa, fuera del alcance Nivel 1 de este repo por la misma razón que el gate CCDD real es Nivel 2). Capa opcional: sin diagramas, INFO; `.mmd` sin contrato, WARNING (no bloquea).
+- **Diagnóstico opcional (no gate):** `python scripts/benchmark_gates.py` mide los 11 gates de nivel 1 + la suite (min/mediana/max por gate, 2 pasadas crudas de la suite) para saber si el CI se está volviendo lento a medida que crecen los contratos. No corre en `.github/workflows/validate.yml` — es herramienta de mantenimiento, no un check de corrección.
 - La clave **`touch_only`** del frontmatter (obligatoria) declara el perímetro de la delegación como DATO — lista de rutas/patrones `fnmatch` repo-relativos. `validate_contracts` la exige y verifica que el `target` esté cubierto y que el oráculo (`tests`) quede FUERA (salvo `tests == target`). En verificación, el PM corre `git diff --name-only ... | python scripts/validate_perimeter.py <contrato>`: cualquier archivo del dev fuera del perímetro rompe con `OUT_OF_PERIMETER` (y tocar el oráculo, con `TESTS_TOUCHED`). El gate de perímetro NO es paso de CI del repo (un commit mergeado mezcla legítimamente archivos del PM); su oráculo corre en la suite y los checks estructurales corren vía `validate_contracts`.
 - `python scripts/validate_test_commands.py <contracts_dir> <repo_root>` — corre el `test_command` de CADA contrato de `<contracts_dir>` y falla si algun exit code no es 0. Unico gate del repo cuyo `forbids` no incluye `subprocess`: correr un comando arbitrario es literalmente su intent (ver [test-command-gate](./contracts/test-command-gate.md), seccion "Por que este gate rompe la convencion forbids: subprocess"). Antes de este gate, la linea de arriba ("el `test_command` debe terminar en verde") era una regla escrita pero NO mecanicamente verificada por ningun gate de Nivel 1 — un contrato podia pasar los otros 9 gates con un `test_command` roto y nadie lo notaba salvo corrida manual. `TEMPLATE-*.md` se excluye (no es un contrato real). Timeout de 120s por comando (no cuelga el pipeline). NO esta incluido en el conteo de `benchmark_gates.py` (herramienta de diagnostico con oraculo propio ya sellado; extenderla es una tarea aparte).
 - `python scripts/scan_secrets.py <dir1> [<dir2> ...]` (default `src`) — escaneo determinista (regex stdlib) de credenciales filtradas por prefijo de proveedor conocido (AWS `AKIA...`, GitHub `ghp_`/`gho_`/`ghu_`/`ghs_`/`ghr_`, Slack `xox[baprs]-`, Google `AIza...`, Stripe `sk_live_`/`pk_live_`) y bloques `-----BEGIN ... PRIVATE KEY-----`. Deliberadamente SIN deteccion de alta entropia generica (rompería contra los `tests_sha256` de 64 hex chars que ya viven en este repo). El default es solo `src` (no `src tests`) precisamente porque `tests/test_scan_secrets.py`, el oraculo del propio gate, se hereda en todo proyecto instanciado del template (no esta en el MANIFEST de `scripts/init_project.py`) y contiene fixtures con la FORMA exacta de los patrones — se auto-detectaria como leak si `tests` fuera parte del default. En el CI de ESTE repo corre como `python scripts/scan_secrets.py src`. Ver [secret-scan-gate](./contracts/secret-scan-gate.md).
 
 Todos corren localmente y en CI (`.github/workflows/validate.yml`, matriz `ubuntu-latest` + `windows-latest`, que además valida los nodos OKF y corre la suite dos veces — dos corridas idénticas ≈ sin flaky). **Ningún contrato se considera terminado hasta que pase el nivel 1.**
+
+## Preflight — diagnóstico local opt-in (NO es un gate)
+
+`python scripts/preflight.py` corre los **11 gates de Nivel 1** más
+`validate_attestation` (el local-only que CI nunca ve, porque
+`.agents/logs/` está gitignorado) en dry-run contra el repo actual, y
+reporta cuáles fallarían en una sola pasada — una línea por gate
+(`PASS`/`FAIL`/`TIMEOUT`) + resumen `N/12`. Con `--contract <nombre>`
+hace 3 chequeos acotados a un solo task contract: frontmatter, sello del
+oráculo y `test_command` (resumen `N/3`). Exit 0/1; cero dependencias
+(stdlib + módulos hermanos de `scripts/`, sin el SDK `mcp`).
+
+Esto **no es un gate nuevo**: Nivel 1 sigue siendo **11 gates** y el
+conteo no cambia. Es diagnóstico opt-in, mismo estatus que
+`benchmark_gates.py` — no corre en CI (CI ya ejecuta cada gate como paso
+propio). Es la boca CLI de `run_all_level1` (la tool MCP que corre 11;
+ver [mcp-server.md](./mcp-server.md)) y el único lugar donde los 12 gates
+corren juntos, porque `validate_attestation` solo tiene sentido sobre
+`.agents/logs/` local. Uso típico: correrlo **antes de delegar trabajo a
+un agente**, para no mandarle un repo que ya rompe un gate. Ver
+[preflight](./contracts/preflight.md).
+
+## Auditor de seals débiles — diagnóstico opt-in (NO es un gate)
+
+`python scripts/audit_seals.py [contracts_dir] [--repo-root DIR] [--strict]`
+es un auditor ADVISORY, stdlib puro y solo lectura (vía `ast`), que
+detecta oráculos congelados que el sello (`tests_sha256`) certifica como
+íntegros pero que **no pueden fallar**: sin asserts reales (`assert True`
+no cuenta), sin funciones de test, o que jamás referencian al target. La
+tesis: el sello garantiza la **integridad** del oráculo, no su **fuerza**;
+detectar la ausencia es mecánico, juzgar la calidad de un assert es
+mutation testing (fuera de alcance). Las 6 reglas: `WEAK_TESTS_MISSING`,
+`WEAK_TESTS_EMPTY`, `WEAK_TESTS_UNPARSEABLE`, `WEAK_NO_TEST_FUNCTIONS`,
+`WEAK_NO_ASSERTS`, `WEAK_TARGET_UNREFERENCED`.
+
+Sin `--strict` SIEMPRE exit 0 (advisory, warnings); con `--strict`, exit 1
+si hay findings. Esto **no es un gate nuevo**: Nivel 1 sigue siendo **11
+gates** y el conteo no cambia. Mismo estatus opt-in que
+`benchmark_gates.py` y `preflight.py` — no corre en CI, no está en
+`GATE_SPECS`. Casos legítimos que NO marca: contratos auto-referenciales
+(`target == tests`, como `agents-context-rule`) y tests no-Python (solo
+chequeos textuales). Cierra la mitad diferida del feedback externo del
+Contrato 32 ("help catch weak test seals early"). Ver
+[seal-audit](./contracts/seal-audit.md).
 
 ## Nivel 2 — Opcional (si el entorno del agente lo tiene)
 

@@ -22,8 +22,9 @@ description: |
   to validate.
 
   Not included here (intentional): `lint_ascii.py` (audits KDD's own scripts/,
-  not a caller's), the KDD unit-test suite, and `assemble_context.py` (Nivel 2
-  smoke specific to KDD).
+  not a caller's), `validate_changelog.py` (CHANGELOG <-> docs/reports/CONTRACT-NN
+  coherence is structure specific to the KDD template, not a caller), the KDD
+  unit-test suite, and `assemble_context.py` (Nivel 2 smoke specific to KDD).
 
 # Only EN documentation added for this distributable (per ITEM4 instructions).
 

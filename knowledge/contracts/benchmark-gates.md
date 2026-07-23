@@ -1,11 +1,11 @@
 ---
 type: 'Task Contract'
 title: 'Herramienta de benchmark de gates y suite'
-description: 'Mide los 9 gates de nivel 1 y la suite de tests con logica de orquestacion pura (min/mediana/max, formato, exit code) resuelta por inyeccion de run_fn/timer_fn; solo el CLI real usa subprocess/reloj de pared. Diagnostico de mantenimiento, no gate de CI.'
+description: 'Mide los 11 gates de nivel 1 y la suite de tests con logica de orquestacion pura (min/mediana/max, formato, exit code) resuelta por inyeccion de run_fn/timer_fn; solo el CLI real usa subprocess/reloj de pared. Diagnostico de mantenimiento, no gate de CI.'
 tags: ['ccdd', 'benchmark', 'mantenimiento', 'infra']
 
 task: benchmark-gates
-intent: "Medir el tiempo de los 9 gates de nivel 1 y la suite, con orquestacion pura y testeable por inyeccion de dependencias."
+intent: "Medir el tiempo de los 11 gates de nivel 1 y la suite, con orquestacion pura y testeable por inyeccion de dependencias."
 target: scripts/benchmark_gates.py
 signature: "def benchmark_gates(gates, suite_cmd, repo_root, run_fn, timer_fn, reps=3, warmup=1, suite_passes=2) -> dict"
 test_command: "python -m unittest tests/test_benchmark_gates.py"
@@ -13,7 +13,7 @@ budget:
   max_cyclomatic_complexity: 10
   max_nesting_depth: 4
 tests: "tests/test_benchmark_gates.py"
-tests_sha256: "4adfc1788d3fd885fdd9a3edb1ab9b5676d4a3eee827ea74c49b4c1fbcd9dda7"
+tests_sha256: "40be4eb9a5edab21a76c5762f604f0f69fe79686dad54a6ee0b1d4af0a84915a"
 touch_only: ['scripts/benchmark_gates.py']
 deps_allowed: []
 forbids: ['network', 'llm']
@@ -23,7 +23,7 @@ forbids: ['network', 'llm']
 
 ## Intent
 Formalizar como activo versionado el benchmark ad-hoc corrido a pedido del
-usuario: medir los 9 gates de nivel 1 + la suite, con la orquestación (conteo
+usuario: medir los 11 gates de nivel 1 + la suite, con la orquestación (conteo
 de reps, descarte de warmup, min/mediana/max, formato del reporte, exit code)
 implementada como funciones PURAS testeables por inyección de dependencias —
 nunca fosiliza números de una corrida particular en la documentación del repo.
@@ -39,9 +39,10 @@ Spec: `specs/CONTRACT-29-benchmark-gates.md`.
 - Semántica EXACTA de cada función, contratos de `run_fn`/`timer_fn`, formato
   del reporte y flags del CLI: docstring del oráculo congelado
   `tests/test_benchmark_gates.py`.
-- `GATES`: constante módulo, tupla de 9 `(name, cmd)` en el orden real de
-  `knowledge/validacion.md`. `SUITE_CMD`: constante módulo con el comando de
-  la suite completa.
+- `GATES`: constante módulo, tupla de 11 `(name, cmd)` en el orden real de
+  `knowledge/validacion.md` y alineado con `mcp_gate_dispatch.LEVEL1_GATES` (todos
+  los gates de CI salvo `validate_attestation`, local-only). `SUITE_CMD`: constante
+  módulo con el comando de la suite completa.
 
 ## Invariants
 - `measure_repeated`, `measure_suite`, `benchmark_gates`, `count_errors`,

@@ -13,7 +13,7 @@ budget:
   max_cyclomatic_complexity: 10
   max_nesting_depth: 4
 tests: "tests/test_validate_rules.py"
-tests_sha256: "6fcfbbb07a6b2c1be026c9a37ef75aa30b172e2190ea3ac8fd4340c7fd9a0482"
+tests_sha256: "d1f53fff3379921efa8bdbf823bd143f7585859f32e3d4c008761606648d3dee"
 touch_only: ['scripts/validate_rules.py']
 deps_allowed: []
 forbids: ['network', 'subprocess']
@@ -40,7 +40,8 @@ exit 0 sin ERRORs (incluye el caso capa-opcional, con INFO) - 1 con >=1 ERROR.
 
 ## Invariants
 - Reglas y semantica EXACTAS del docstring del oraculo congelado: `JSON`, `FAMILIA`
-  (top-level fuera de _comment + 7 familias + code_only + golden), `GOLDEN`,
+  (top-level fuera de _comment + 9 familias: required, type, enums, bounds, refs,
+  keyed_bounds, keyed_enums, each, matches + code_only + golden), `GOLDEN`,
   `GOLDEN_FROZEN` (sha256 LF-normalizado, mismo algoritmo que tests_sha256; msg con
   esperado y actual), `GOLDEN_FORMA`, `CODE_ONLY` (reason no vacia), `REPRO`
   (rule_engine.evaluate reproduce violations - code_only_miss por campo top-level,

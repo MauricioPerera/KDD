@@ -255,6 +255,34 @@ class TestCli(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("CONFIG_INVALID", out.getvalue())
 
+    def test_config_sin_claves_requeridas_exit_1(self):
+        # H-2: config JSON valido como objeto pero sin 'types' ni
+        # 'max_subject_length' (claves que check_commit_message indexa directo).
+        # Antes del fix esto crasheaba con KeyError (traceback). Ahora debe ser
+        # finding CONFIG_INVALID + exit 1, sin traceback.
+        bad = os.path.join(self.base, "nokeys.json")
+        with open(bad, "w", encoding="utf-8") as fh:
+            json.dump({"scope_required": False}, fh)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = vcm.main([bad, "--message", "feat: x"])
+        self.assertEqual(code, 1)
+        self.assertIn("CONFIG_INVALID", out.getvalue())
+        self.assertNotIn("Traceback", out.getvalue())
+
+    def test_config_no_es_objeto_exit_1(self):
+        # H-2: config JSON valido pero no es un objeto (array) -> antes del fix
+        # crasheaba con TypeError/KeyError. Ahora CONFIG_INVALID + exit 1.
+        bad = os.path.join(self.base, "array.json")
+        with open(bad, "w", encoding="utf-8") as fh:
+            json.dump(["types", "max_subject_length"], fh)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = vcm.main([bad, "--message", "feat: x"])
+        self.assertEqual(code, 1)
+        self.assertIn("CONFIG_INVALID", out.getvalue())
+        self.assertNotIn("Traceback", out.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

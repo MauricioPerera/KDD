@@ -11,7 +11,9 @@ def route_message(message: dict, routing: dict) -> str:
     routing = {"senders": {<email en minusculas>: <ruta>}, "default": <ruta>}
 
     Devuelve la ruta del emisor (normalizado a minusculas) si esta en senders;
-    routing["default"] en cualquier otro caso. Pura, determinista, nunca lanza.
+    routing["default"] en cualquier otro caso. Pura, determinista, nunca lanza
+    ante message malformado; asume routing bien formado (data model controlado,
+    no entrada libre: si routing omite 'default' o 'senders' si lanza KeyError).
     """
     sender = message.get("sender")
 
