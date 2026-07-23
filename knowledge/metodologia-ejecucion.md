@@ -90,6 +90,10 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    spec pregunta «¿qué pasa con los datos in-flight de la versión vieja?» — el fix y su
    contrato de upgrade son la misma tarea
    ([caso real](./casos-reales.md#formato-persistente-sin-contrato-de-upgrade-spec--cierre)).
+   Y si el fix incluye una **nota de upgrade**, la spec exige EJECUTAR el escenario
+   legado que la nota describe — construir el artefacto viejo cuesta minutos; una nota
+   con outcomes narrados y no ejecutados es un claim sin evidencia
+   ([caso real](./casos-reales.md#nota-de-upgrade-no-ejecutada-spec--verificar)).
    **Una clase de fallo cazada dos veces se convierte en cláusula estándar** de toda spec
    que toque esa zona — prevenir en la spec es más barato que re-cazar en cada
    verificación ([caso real](./casos-reales.md#clase-cazada-a-clausula-de-spec-spec)).
