@@ -90,9 +90,23 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    spec pregunta «¿qué pasa con los datos in-flight de la versión vieja?» — el fix y su
    contrato de upgrade son la misma tarea
    ([caso real](./casos-reales.md#formato-persistente-sin-contrato-de-upgrade-spec--cierre)).
+   **Una clase de fallo cazada dos veces se convierte en cláusula estándar** de toda spec
+   que toque esa zona — prevenir en la spec es más barato que re-cazar en cada
+   verificación ([caso real](./casos-reales.md#clase-cazada-a-clausula-de-spec-spec)).
+   **Si el comportamiento a cambiar está descrito en un contrato documentado, docs, código
+   y asserts se actualizan en la MISMA tarea** — cero claims que el artefacto no cumpla
+   ([caso real](./casos-reales.md#contrato-documentado-cambia-junto-spec--verificar)).
+   **En cambios que prometen preservar comportamiento** (refactor, unificación,
+   migración), las divergencias deliberadas se enumeran explícitas y cerradas: «idéntico
+   salvo exactamente esto» es verificable, «básicamente igual» no
+   ([caso real](./casos-reales.md#excepcion-unica-declarada-spec)).
 3. **DELEGAR** — un agente efímero por tarea. Tareas que compartan archivos → secuenciales.
    Las tareas en **paralelo** deben declarar en su spec el conjunto de archivos que tocan,
    y ese conjunto debe ser **disjunto** respecto a otras tareas corriendo al mismo tiempo.
+   **Una credencial efímera puede viajar al agente delegado** solo si muere con la infra,
+   la spec ordena el enmascarado explícito, y el orquestador verifica con grep cero
+   ocurrencias literales en los entregables
+   ([caso real](./casos-reales.md#credencial-efimera-a-delegados-delegar)).
 4. **VERIFICAR por artefacto** — la palabra del agente no cuenta: solo salidas reales de
    comandos (validador, tests). El orquestador re-corre los comandos antes de integrar.
    Todo trade-off declarado por el agente se inspecciona puntualmente.
@@ -119,6 +133,10 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    distinguir «corrió y no encontró» de «no corrió» — un fallback (`|| echo OK`) sobre un
    comando inexistente fabrica falsos negativos limpios
    ([caso real](./casos-reales.md#check-que-fallo-no-es-check-verificar)).
+   **Los «NO VERIFICADO» que se repiten entre rondas son deuda de auditoría:** si la misma
+   zona queda sin verificar dos rondas seguidas, la siguiente incluye provisionar la
+   dependencia (infra efímera) en vez de re-anotar el hueco
+   ([caso real](./casos-reales.md#no-verificado-acumulado-verificar)).
 5. **COMMIT por tarea verificada** — baseline limpio para la siguiente tarea.
 6. **CIERRE** — suite completa 2× (dos corridas idénticas ≈ sin flaky; un flaky detectado
    es una tarea futura, no se ignora), reporte del contrato en `docs/reports/`, estado en
