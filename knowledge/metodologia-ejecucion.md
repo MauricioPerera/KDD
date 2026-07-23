@@ -150,37 +150,76 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    probar el lado que tocaste:** grep del nombre de la función en todo el repo antes de dar
    el fix por completo — "mis tests pasan" no es lo mismo que "soy consistente con quien
    consume mi output" ([caso real](./casos-reales.md#contrato-bilateral-mitad-arreglado-verificar)).
-   **El «PERSISTE» o «imposible» de un agente auditor se re-verifica con reproducción
-   barata del orquestador antes de re-delegar o aceptar el veredicto** — es una afirmación
-   como cualquier otra ([caso real](./casos-reales.md#persiste-de-auditor-refutado-verificar)).
    **Una verificación de ausencia solo vale si la herramienta corrió de verdad:**
    distinguir «corrió y no encontró» de «no corrió» — un fallback (`|| echo OK`) sobre un
    comando inexistente fabrica falsos negativos limpios
    ([caso real](./casos-reales.md#check-que-fallo-no-es-check-verificar)).
-   **Los «NO VERIFICADO» que se repiten entre rondas son deuda de auditoría:** si la misma
-   zona queda sin verificar dos rondas seguidas, la siguiente incluye provisionar la
-   dependencia (infra efímera) en vez de re-anotar el hueco
-   ([caso real](./casos-reales.md#no-verificado-acumulado-verificar)).
    **La re-demostración del orquestador usa la invocación DOCUMENTADA**, no la que el
    agente eligió para su propia verificación — si ambos caminos difieren, el bug vive en
    esa diferencia ([caso real](./casos-reales.md#demo-por-el-camino-documentado-verificar)).
-   **Cuando un fix documenta un límite/alcance explícito, la ronda de confirmación
-   siguiente rinde más atacando ESE límite con evidencia real que repitiendo el caso ya
-   cerrado** — y una hipótesis de "esto podría divergir" formulada por el propio auditor
-   es un claim más a verificar contra el sistema real, no una conclusión válida por
-   razonamiento desde el estándar en abstracto
-   ([caso real](./casos-reales.md#limite-declarado-es-el-siguiente-objetivo-de-auditoria-verificar)).
+   *(Verificación de un LOTE completo mediante agentes auditores independientes — no de
+   una tarea sola — tiene su propio ciclo: ver [Rondas de auditoría y confirmación](#rondas-de-auditoría-y-confirmación) más abajo.)*
 5. **COMMIT por tarea verificada** — baseline limpio para la siguiente tarea.
 6. **CIERRE** — suite completa 2× (dos corridas idénticas ≈ sin flaky; un flaky detectado
    es una tarea futura, no se ignora), reporte del contrato en `docs/reports/`, estado en
    el README.
-   **Un ciclo auditoría→fixes se cierra con una ronda de CONFIRMACIÓN de mandato
-   invertido:** re-ejecutar la repro de cada hallazgo previo (tabla CERRADO/PERSISTE con
-   salida real) + ataque adversarial al código nuevo de los fixes
-   ([caso real](./casos-reales.md#ronda-de-confirmacion-cierre)).
+   Si el cierre involucró agentes auditores sobre un lote completo, el cierre real
+   ocurre cuando converge el ciclo de [Rondas de auditoría y confirmación](#rondas-de-auditoría-y-confirmación) — no antes.
    **Tras una interrupción, la infraestructura huérfana es evidencia antes que basura:**
    inspeccionarla y extraer lo que documenta (credenciales efímeras, estado) antes de
    desmontarla ([caso real](./casos-reales.md#infra-huerfana-es-evidencia-cierre)).
+
+## Rondas de auditoría y confirmación
+
+Ciclo **posterior al CIERRE** que se repite tantas veces como haga falta — distinto del
+ciclo por-tarea de arriba. Aplica cuando un lote de trabajo termina y hace falta
+CONFIRMAR que quedó limpio, no solo que compila y pasa sus propios tests. Validado en
+producción de forma intensiva (más de diez rondas encadenadas sobre un mismo proyecto).
+
+**Mandato del auditor.** Agente efímero, read-only, con un scope declarado y **disjunto**
+respecto a otros auditores corriendo en paralelo. Entregable obligatorio: hallazgos
+clasificados por severidad (ALTA/MEDIA/BAJA) con evidencia **ejecutada** (comando real +
+salida real, nunca «debería andar»), y las áreas revisadas SIN hallazgo declaradas
+explícitamente como «área limpia» — un auditor que solo reporta lo que encuentra no dice
+si algo no se rompió porque está bien o porque no lo miró.
+
+**El ciclo**:
+
+1. **Ronda inicial** — mandato de BUSCAR sobre el estado actual.
+2. El orquestador arregla ALTA/MEDIA (o difiere BAJA con criterio documentado).
+3. **Ronda de confirmación** — mandato INVERTIDO: (a) re-ejecutar la reproducción
+   original de cada hallazgo previo → tabla CERRADO/PERSISTE con salida real; (b) atacar
+   adversarialmente el código NUEVO del fix, apuntando en particular al límite/alcance
+   que el fix haya declarado por escrito.
+4. Repetir 2-3 hasta que una ronda de confirmación vuelva **completamente en blanco**
+   (cero hallazgos nuevos en cualquier severidad) — esa es la condición de parada, no
+   «ya arreglamos todo lo que vimos»
+   ([caso real](./casos-reales.md#ronda-de-confirmacion-cierre)).
+
+**Reglas duras del ciclo**:
+
+- El «PERSISTE» o «imposible» de un auditor se re-verifica con reproducción barata del
+  orquestador antes de re-delegar o aceptar el veredicto — es una afirmación como
+  cualquier otra, no un hecho
+  ([caso real](./casos-reales.md#persiste-de-auditor-refutado-verificar)).
+- Los «NO VERIFICADO» que se repiten entre rondas por falta de una dependencia son
+  **deuda de auditoría**, no una anotación neutral — la ronda siguiente provisiona la
+  dependencia (infra efímera) en vez de re-anotar el hueco
+  ([caso real](./casos-reales.md#no-verificado-acumulado-verificar)).
+- Cuando un fix documenta un límite/alcance explícito, la ronda de confirmación
+  siguiente rinde más atacando ESE límite con evidencia real que repitiendo el caso ya
+  cerrado — y una hipótesis propia del auditor («esto podría divergir») es un claim más
+  a verificar contra el sistema real, no una conclusión válida por razonamiento desde el
+  estándar en abstracto
+  ([caso real](./casos-reales.md#limite-declarado-es-el-siguiente-objetivo-de-auditoria-verificar)).
+- Una credencial efímera puede viajar a un auditor si (1) muere con la infra que
+  audita, (2) la spec ordena el enmascarado explícito con el formato exacto, y (3) el
+  orquestador verifica con grep cero ocurrencias literales en los entregables
+  ([caso real](./casos-reales.md#credencial-efimera-a-delegados-delegar)).
+- Investigar la viabilidad de algo riesgoso (aceptando BLOQUEADO como resultado válido)
+  exige que el propio experimento de investigación tenga SU arnés de seguridad si puede
+  reproducir el riesgo que investiga
+  ([caso real](./casos-reales.md#investigacion-bloqueada-necesita-arnes-delegar)).
 
 ## Política de reintentos (tope de gasto)
 
