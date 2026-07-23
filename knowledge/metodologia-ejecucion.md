@@ -79,6 +79,17 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    Complemento verificado: exigir sección de **trade-offs** en el reporte del agente es
    el detector más barato de estas clases — se cazan leyendo esa sección + el diff
    puntual de la zona, nunca el diff entero.
+   **Los nombres de entregables se verifican como libres antes de asignarlos** (`ls` del
+   directorio destino al redactar la spec) y toda spec lleva la cláusula «si el archivo ya
+   existe, no lo sobrescribas» ([caso real](./casos-reales.md#colision-de-entregables-spec)).
+   **Si el orquestador conoce una tensión de diseño fundamental de la tarea, va EN la
+   spec** — con dirección candidata, requisitos innegociables verificables y cláusula de
+   honestidad, dejando el CÓMO libre; ocultarla condena al agente a iterar a ciegas
+   ([caso real](./casos-reales.md#tension-de-diseno-en-la-spec-spec)).
+   **Cambio de formato en un artefacto persistente** (journal, wire format, schema): la
+   spec pregunta «¿qué pasa con los datos in-flight de la versión vieja?» — el fix y su
+   contrato de upgrade son la misma tarea
+   ([caso real](./casos-reales.md#formato-persistente-sin-contrato-de-upgrade-spec--cierre)).
 3. **DELEGAR** — un agente efímero por tarea. Tareas que compartan archivos → secuenciales.
    Las tareas en **paralelo** deben declarar en su spec el conjunto de archivos que tocan,
    y ese conjunto debe ser **disjunto** respecto a otras tareas corriendo al mismo tiempo.
@@ -101,10 +112,24 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    probar el lado que tocaste:** grep del nombre de la función en todo el repo antes de dar
    el fix por completo — "mis tests pasan" no es lo mismo que "soy consistente con quien
    consume mi output" ([caso real](./casos-reales.md#contrato-bilateral-mitad-arreglado-verificar)).
+   **El «PERSISTE» o «imposible» de un agente auditor se re-verifica con reproducción
+   barata del orquestador antes de re-delegar o aceptar el veredicto** — es una afirmación
+   como cualquier otra ([caso real](./casos-reales.md#persiste-de-auditor-refutado-verificar)).
+   **Una verificación de ausencia solo vale si la herramienta corrió de verdad:**
+   distinguir «corrió y no encontró» de «no corrió» — un fallback (`|| echo OK`) sobre un
+   comando inexistente fabrica falsos negativos limpios
+   ([caso real](./casos-reales.md#check-que-fallo-no-es-check-verificar)).
 5. **COMMIT por tarea verificada** — baseline limpio para la siguiente tarea.
 6. **CIERRE** — suite completa 2× (dos corridas idénticas ≈ sin flaky; un flaky detectado
    es una tarea futura, no se ignora), reporte del contrato en `docs/reports/`, estado en
    el README.
+   **Un ciclo auditoría→fixes se cierra con una ronda de CONFIRMACIÓN de mandato
+   invertido:** re-ejecutar la repro de cada hallazgo previo (tabla CERRADO/PERSISTE con
+   salida real) + ataque adversarial al código nuevo de los fixes
+   ([caso real](./casos-reales.md#ronda-de-confirmacion-cierre)).
+   **Tras una interrupción, la infraestructura huérfana es evidencia antes que basura:**
+   inspeccionarla y extraer lo que documenta (credenciales efímeras, estado) antes de
+   desmontarla ([caso real](./casos-reales.md#infra-huerfana-es-evidencia-cierre)).
 
 ## Política de reintentos (tope de gasto)
 
