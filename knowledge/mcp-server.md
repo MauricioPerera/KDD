@@ -91,9 +91,43 @@ oraculo congelado del preflight (12 gates exactos).
 
 No se incluyen `assemble_context`/`export_gate_contract` (prep de Nivel 2)
 en esta primera version — extensible siguiendo el mismo patron si hace
-falta. Tampoco `audit_seals`: es un auditor **advisory** sobre el repo
-local, no un veredicto que un cliente MCP remoto pueda accionar; si algun
-dia se expone, va con su propia entrada aqui.
+falta.
+
+## Que entra como tool y que no
+
+> **Por MCP viajan veredictos y utilidades; los diagnosticos se corren en
+> local.**
+
+| Herramienta | Tipo | Tool MCP |
+|---|---|---|
+| los 12 gates, `run_all_level1` | veredicto (exit 0/1) | si |
+| `seal_tests`, `rule_hint` | utilidad puntual | si |
+| `preflight`, `audit_seals`, `benchmark_gates` | diagnostico advisory | **no** |
+
+Tres razones, no simetria:
+
+1. **Un advisory no es accionable en remoto.** Sin `--strict`,
+   `audit_seals` sale **exit 0 aunque haya findings**. Un cliente que
+   recibe "ok" no puede distinguir "sano" de "hay 6 seals debiles" sin
+   interpretar el payload — justo la ambiguedad que un gate determinista
+   existe para evitar.
+2. **Se usan cuando ya estas en el repo.** `preflight` corre antes de
+   delegar; `audit_seals`, al autorar o revisar un oraculo antes de
+   sellarlo (ver [supervision-humana](./supervision-humana.md)). En esos
+   momentos hay shell abierta y el MCP no ahorra nada.
+3. **Operan sobre el arbol local** (contratos, tests y logs en disco), asi
+   que un cliente remoto no tiene sobre que accionar el resultado.
+
+El contraste que hace util la regla: `rule_hint` **si** se expone porque es
+una **consulta pura** — sin estado, sin tocar el arbol — que responde a un
+veredicto que el agente acaba de recibir por el mismo canal. Ahi el MCP si
+ahorra un cambio de contexto.
+
+Romper la regla es legitimo, pero **con la excepcion escrita aqui**: si
+algun dia `audit_seals` gana un modo con veredicto real (`--strict` por
+default, exit code accionable) o aparece un flujo donde un cliente remoto
+deba auditar un repo que no tiene delante, se expone y se documenta por que
+deja de ser un diagnostico.
 
 ## Por que NO corre en CI ni es Nivel 1
 
