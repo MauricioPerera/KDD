@@ -159,9 +159,13 @@ class TestScanDirectory(unittest.TestCase):
         self.assertEqual(len(findings), 1)
 
     def test_ignores_extension_not_in_list(self):
+        # Un binario no se escanea; y como es el UNICO archivo, el gate avisa
+        # que no miro nada (no puede quedar en verde silencioso).
         _write(os.path.join(self.tmp, 'a.bin'), "k = 'AKIAABCDEFGHIJKLMNOP'\n")
         findings = ss.scan_directory(self.tmp)
-        self.assertEqual(findings, [])
+        self.assertEqual([f['rule'] for f in findings],
+                         [ss.SECRETS_NO_FILES_SCANNED])
+        self.assertEqual(findings[0]['level'], 'WARNING')
 
     def test_ignores_hidden_dirs_and_pycache(self):
         _write(os.path.join(self.tmp, '.git', 'x.py'), "k = 'AKIAABCDEFGHIJKLMNOP'\n")
@@ -175,10 +179,41 @@ class TestScanDirectory(unittest.TestCase):
         self.assertEqual(findings, [])
 
     def test_custom_extensions(self):
-        _write(os.path.join(self.tmp, 'a.rs'), "let k = \"AKIAABCDEFGHIJKLMNOP\";\n")
-        self.assertEqual(ss.scan_directory(self.tmp), [])
-        findings = ss.scan_directory(self.tmp, extensions=('.rs',))
+        # Extension deliberadamente fuera del default: se puede optar por ella.
+        _write(os.path.join(self.tmp, 'a.zig'), "const k = \"AKIAABCDEFGHIJKLMNOP\";\n")
+        self.assertEqual([f['rule'] for f in ss.scan_directory(self.tmp)],
+                         [ss.SECRETS_NO_FILES_SCANNED])
+        findings = ss.scan_directory(self.tmp, extensions=('.zig',))
         self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0]['rule'], 'AWS_KEY')
+
+    def test_lenguajes_no_python_cubiertos_por_defecto(self):
+        # Regresion del agujero real: el gate corria en CI sobre proyectos
+        # Rust/Go/Java y escaneaba CERO archivos, saliendo en verde. Un
+        # secreto identico se detectaba en .py y se ignoraba en .rs.
+        for ext in ('.rs', '.go', '.java', '.cs', '.rb', '.kt', '.swift',
+                    '.c', '.cpp', '.php', '.toml', '.yaml', '.env', '.sh'):
+            with tempfile.TemporaryDirectory() as d:
+                _write(os.path.join(d, 'leak' + ext),
+                       "k = 'AKIAABCDEFGHIJKLMNOP'\n")
+                findings = ss.scan_directory(d)
+                self.assertEqual([f['rule'] for f in findings], ['AWS_KEY'],
+                                 'extension no cubierta por defecto: ' + ext)
+
+    def test_no_warning_cuando_si_se_escaneo_algo(self):
+        _write(os.path.join(self.tmp, 'ok.py'), "x = 1\n")
+        _write(os.path.join(self.tmp, 'a.bin'), "ruido\n")
+        self.assertEqual(ss.scan_directory(self.tmp), [])
+
+    def test_directorio_vacio_no_avisa(self):
+        # Sin archivos no hay nada que mirar: el aviso seria ruido.
+        self.assertEqual(ss.scan_directory(self.tmp), [])
+
+    def test_default_extensions_es_introspectable(self):
+        self.assertIn('.rs', ss.DEFAULT_EXTENSIONS)
+        self.assertIn('.py', ss.DEFAULT_EXTENSIONS)
+        self.assertEqual(ss.DEFAULT_EXTENSIONS,
+                         tuple(e.lower() for e in ss.DEFAULT_EXTENSIONS))
 
 
 class TestMain(unittest.TestCase):
