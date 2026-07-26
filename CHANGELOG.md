@@ -4,6 +4,16 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+_Sin cambios pendientes._
+
+## v1.11.0 — 2026-07-26
+
+**La receta de arreglo llega al canal donde vive el agente.** `v1.10.0` trajo `rule_hints` —
+el mapa de los 101 rule-ids a su receta — pero solo por shell, asi que un agente conectado por
+MCP tenia que cambiar de canal justo cuando mas contexto necesitaba. Esta release cierra ese
+ultimo tramo con la tool `rule_hint`, y de paso documenta por que `audit_seals` **no** se
+expone (decision, no olvido).
+
 **`rule_hint`: la receta de arreglo se pide por MCP, no solo por shell** (cierra #35)
 - `scripts/mcp_server.py` expone `rule_hint(rule_id) -> {rule_id, hint, known}`. Es el
   complemento natural de un veredicto en rojo: un agente que recibe `FM_TESTS_FROZEN` de
