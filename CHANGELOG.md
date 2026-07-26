@@ -2,6 +2,35 @@
 
 All notable changes to the KDD Template are documented here.
 
+## Unreleased
+
+**Recetas de arreglo por rule-id: los gates dejan de decir solo QUE fallo**
+- `scripts/rule_hints.py` (nuevo): mapa `rule-id -> receta accionable` para los **101**
+  codigos que emiten los 13 validadores. Los gates decian *que* fallo (`clave requerida
+  ausente: type`) pero no *que hacer*; un humano lo deduce leyendo el nodo OKF, un agente
+  efimero itera a ciegas. Usable como CLI (`rule_hints.py <CODE>`, `--all`, `--json`) y como
+  dato (`hint_for`, `enrich`). Stdlib pura, ASCII, sin red ni LLM.
+- `preflight.py --agent`: cada gate en rojo arrastra la receta de los rule-ids que reporto.
+  El flag no cambia veredicto ni exit code, solo enriquece. Los codigos se leen de la salida
+  del propio validador, anclados al formato `<NIVEL> [CODE] archivo: msg`, asi que ningun
+  gate necesita cooperar para participar. `validate_test_commands` queda excluido a
+  proposito: no emite findings propios, reenvia los de la suite que ejecuta, y enriquecerlos
+  daria recetas para problemas que no existen en el repo.
+- `tests/test_rule_hints.py` (nuevo, 6 tests): la cobertura se gatea en **las dos
+  direcciones** — todo rule-id emitido debe tener receta, y ninguna receta puede documentar
+  un codigo que ningun validador emite. Sin ese gate el mapa envejece en silencio, que es
+  justo lo que venia a evitar. Suite 615 -> **621**.
+- El gate inverso ya pago: destapo que el extractor perdia codigos reales por dos vias — los
+  que se emiten embebidos en el `print` (`ERROR [CONFIG_MISSING]: ...`, 3 codigos de
+  `validate_commit_message`) y los que no llevan guion bajo (`INDEX`, `LINK`, `ORPHAN`,
+  `TAGS`, `TYPE` de `validate_okf`; `JSON` de `validate_rules`). Los 9 estan cubiertos.
+- Documentado en el nodo canonico [`knowledge/validacion.md`](knowledge/validacion.md)
+  (seccion nueva + el flag en Preflight), no duplicado en el README (OKF §4).
+- Linaje: es el analogo de `tools/rule-hints.js` de
+  [game-protocol](https://github.com/MauricioPerera/game-protocol), el proyecto hermano,
+  donde cada hallazgo del linter viaja con su arreglo. Cierra el viaje de vuelta: las
+  familias declarativas de este repo salieron de alli, y los hints hacen el camino inverso.
+
 ## v1.9.0 — 2026-07-17
 
 **Robustness audit of the new tools: 7 confirmed findings, all fixed (AUDIT-05/06)**

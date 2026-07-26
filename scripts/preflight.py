@@ -32,11 +32,13 @@ fallos son informacion (``exit_code`` != 0); el unico canal de veredicto es
 
 import hashlib
 import os
+import re
 import shlex
 import subprocess
 import sys
 
 import mcp_gate_dispatch
+import rule_hints
 from validate_contracts import parse_frontmatter
 
 # Derivada del dispatch, nunca hardcodeada aparte: un gate nuevo en
@@ -61,8 +63,45 @@ def _status(exit_code):
     return 'FAIL'
 
 
-def _format_lines(results, total):
-    """Una linea por item (nombre + estado) + linea resumen <pasados>/<total>."""
+# Un finding se imprime SIEMPRE como '<NIVEL> [CODE] archivo: mensaje'. El patron
+# esta anclado a ese formato a proposito: buscar '[CODE]' en cualquier parte del
+# stdout arrastraba codigos ajenos cuando un gate reenvia salida de terceros
+# (validate_test_commands ejecuta la suite del proyecto y reimprime lo que esa
+# suite escribe, incluidos los codigos de sus propios fixtures).
+_FINDING_RE = re.compile(
+    r'^(?:ERROR|WARNING|INFO)\s+\[([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+|[A-Z][A-Z0-9]{2,})\]',
+    re.MULTILINE)
+
+
+# Gates que NO emiten findings propios: ejecutan otra cosa y reenvian su salida.
+# `validate_test_commands` corre el test_command de cada contrato, asi que lo que
+# imprime son los findings de ESA suite (incluidos los de sus fixtures), no suyos.
+# Enriquecerlos daria recetas para problemas que no existen en el repo.
+_FORWARDS_FOREIGN_OUTPUT = frozenset(['validate_test_commands'])
+
+
+def _hint_lines(res):
+    """Recetas de los rule-ids que un gate en rojo reporto como findings propios.
+
+    El preflight es lo que corre un agente ANTES de delegar: decirle que gate
+    fallo sin decirle como arreglarlo lo deja iterando a ciegas. Los rule-ids se
+    leen de la salida del propio validador, asi que ningun gate necesita cooperar
+    de forma especial para participar.
+    """
+    seen = []
+    text = (res.get('stdout') or '') + '\n' + (res.get('stderr') or '')
+    for code in _FINDING_RE.findall(text):
+        if code not in seen:
+            seen.append(code)
+    return ['    [{}] {}'.format(code, rule_hints.hint_for(code)) for code in seen]
+
+
+def _format_lines(results, total, agent=False):
+    """Una linea por item (nombre + estado) + linea resumen <pasados>/<total>.
+
+    Con ``agent=True``, cada gate en rojo arrastra la receta de arreglo de cada
+    rule-id que aparezca en su salida.
+    """
     lines = []
     passed = 0
     for name, res in results.items():
@@ -71,6 +110,8 @@ def _format_lines(results, total):
             passed += 1
         lines.append('{name}: {status}'.format(name=name,
                                                status=_status(code)))
+        if agent and code != 0 and name not in _FORWARDS_FOREIGN_OUTPUT:
+            lines.extend(_hint_lines(res))
     lines.append('Summary: {passed}/{total}'.format(passed=passed,
                                                     total=total))
     return lines
@@ -169,7 +210,7 @@ def _strip_quotes(token):
     return token
 
 
-def _run_contract_mode(repo_root, contract):
+def _run_contract_mode(repo_root, contract, agent=False):
     """3 chequeos (frontmatter, seal, test_command) sobre el contrato dado."""
     contract_path = os.path.join(repo_root, 'knowledge', 'contracts',
                                  '{}.md'.format(contract))
@@ -179,50 +220,53 @@ def _run_contract_mode(repo_root, contract):
     if ec != 0:
         results['seal'] = _skipped('seal')
         results['test_command'] = _skipped('test_command')
-        return _contract_payload(results)
+        return _contract_payload(results, agent=agent)
     results['seal'] = _check_seal(repo_root, data)
     if results['seal']['exit_code'] != 0:
         results['test_command'] = _skipped('test_command')
     else:
         results['test_command'] = _check_test_command(repo_root, data)
-    return _contract_payload(results)
+    return _contract_payload(results, agent=agent)
 
 
-def _contract_payload(results):
+def _contract_payload(results, agent=False):
     overall_ok = all(r['exit_code'] == 0 for r in results.values())
-    lines = _format_lines(results, len(_CONTRACT_CHECKS))
+    lines = _format_lines(results, len(_CONTRACT_CHECKS), agent=agent)
     return {'mode': 'contract', 'overall_ok': overall_ok,
             'results': results, 'lines': lines}
 
 
-def run_preflight(repo_root='.', contract=None, runner=None):
+def run_preflight(repo_root='.', contract=None, runner=None, agent=False):
     """Corre el preflight y devuelve ``{'mode','overall_ok','results','lines'}``.
 
     Modo full (``contract is None``): los 12 gates via ``runner`` (default:
     la referencia de modulo ``run_gate``, resuelta EN CADA llamada). Modo
     contract: 3 chequeos, jamas invoca ``runner``. Nunca lanza por un fallo.
+    Con ``agent=True`` cada gate en rojo arrastra la receta de sus rule-ids.
     """
     if contract is not None:
-        return _run_contract_mode(repo_root, contract)
+        return _run_contract_mode(repo_root, contract, agent=agent)
     if runner is None:
         runner = run_gate
     results = {}
     for name in ALL_GATES:
         results[name] = runner(name, {}, repo_root=repo_root)
     overall_ok = all(r['exit_code'] == 0 for r in results.values())
-    lines = _format_lines(results, len(ALL_GATES))
+    lines = _format_lines(results, len(ALL_GATES), agent=agent)
     return {'mode': 'full', 'overall_ok': overall_ok,
             'results': results, 'lines': lines}
 
 
 def _parse_cli_flags(argv):
-    """Parsea ``--repo-root`` y ``--contract`` en forma espacio o ``=``.
+    """Parsea ``--repo-root``, ``--contract`` y ``--agent``.
 
-    Devuelve (repo_root, contract). Flags desconocidos se ignoran. La forma
-    ``--flag=val`` (sep ``=``) vale igual que ``--flag val``. AUDIT-05 H-4.
+    Devuelve (repo_root, contract, agent). Flags desconocidos se ignoran. La
+    forma ``--flag=val`` (sep ``=``) vale igual que ``--flag val``. AUDIT-05 H-4.
+    ``--agent`` es booleano: agrega la receta de arreglo a cada gate en rojo.
     """
     repo_root = '.'
     contract = None
+    agent = '--agent' in argv
     i = 1
     while i < len(argv):
         name, eq, val = argv[i].partition('=')
@@ -239,13 +283,13 @@ def _parse_cli_flags(argv):
                 contract = argv[i + 1]
                 i += 1
         i += 1
-    return repo_root, contract
+    return repo_root, contract, agent
 
 
 def main(argv):
     """Entry point CLI. Devuelve 0 si overall_ok, 1 si no."""
-    repo_root, contract = _parse_cli_flags(argv)
-    res = run_preflight(repo_root=repo_root, contract=contract)
+    repo_root, contract, agent = _parse_cli_flags(argv)
+    res = run_preflight(repo_root=repo_root, contract=contract, agent=agent)
     for line in res['lines']:
         print(line)
     return 0 if res['overall_ok'] else 1
