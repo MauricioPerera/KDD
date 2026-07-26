@@ -35,6 +35,11 @@ EXPECTED_TOOLS = {
     'validate_rules', 'validate_skills', 'validate_changelog',
     'validate_ux_page', 'validate_diagrams', 'validate_test_commands',
     'scan_secrets', 'validate_attestation', 'run_all_level1', 'seal_tests',
+    # No es un gate: no pasa por mcp_gate_dispatch ni por subprocess. Es la
+    # receta de arreglo de un rule-id, el complemento natural de un veredicto
+    # en rojo (un agente que recibe FM_TESTS_FROZEN quiere el arreglo sin
+    # salir del protocolo).
+    'rule_hint',
 }
 
 
@@ -43,7 +48,7 @@ class TestMcpServerSmoke(unittest.TestCase):
     def _run(self, coro):
         return asyncio.run(coro)
 
-    def test_lists_all_14_tools(self):
+    def test_lists_all_expected_tools(self):
         import mcp_server  # noqa: E402  (importa solo si mcp esta instalado)
 
         async def _list():
@@ -81,6 +86,47 @@ class TestMcpServerSmoke(unittest.TestCase):
         self.assertEqual(len(result.content), 1)
         payload = json.loads(result.content[0].text)
         self.assertEqual(payload['exit_code'], 0, payload)
+
+    def test_rule_hint_tool_call_end_to_end(self):
+        """La receta de un rule-id conocido viaja por el protocolo MCP real."""
+        import mcp_server  # noqa: E402
+        import rule_hints  # noqa: E402
+
+        async def _call(rule_id):
+            async with create_connected_server_and_client_session(
+                mcp_server.mcp._mcp_server
+            ) as session:
+                await session.initialize()
+                return await session.call_tool('rule_hint', {'rule_id': rule_id})
+
+        result = self._run(_call('FM_TESTS_FROZEN'))
+        self.assertFalse(result.isError, result.content)
+        payload = json.loads(result.content[0].text)
+        self.assertEqual(payload['rule_id'], 'FM_TESTS_FROZEN')
+        self.assertTrue(payload['known'])
+        self.assertEqual(payload['hint'], rule_hints.HINTS['FM_TESTS_FROZEN'])
+
+    def test_rule_hint_unknown_id_falls_back_without_error(self):
+        """Un rule-id desconocido NO es un error de tool: devuelve el fallback.
+
+        Es deliberado -- un agente que pregunta por un codigo que no existe
+        debe recibir orientacion, no una excepcion que lo haga abandonar.
+        """
+        import mcp_server  # noqa: E402
+        import rule_hints  # noqa: E402
+
+        async def _call():
+            async with create_connected_server_and_client_session(
+                mcp_server.mcp._mcp_server
+            ) as session:
+                await session.initialize()
+                return await session.call_tool('rule_hint', {'rule_id': 'NO_EXISTE_ESTE'})
+
+        result = self._run(_call())
+        self.assertFalse(result.isError, result.content)
+        payload = json.loads(result.content[0].text)
+        self.assertFalse(payload['known'])
+        self.assertEqual(payload['hint'], rule_hints.FALLBACK_HINT)
 
     # NO hay test de 'run_all_level1' contra el repo real: esa tool corre
     # validate_test_commands, que corre el test_command de CADA contrato,

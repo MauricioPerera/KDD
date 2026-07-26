@@ -26,6 +26,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import mcp_gate_dispatch as gd  # noqa: E402
+import rule_hints  # noqa: E402
 
 from mcp.server.fastmcp import FastMCP  # noqa: E402
 
@@ -153,6 +154,23 @@ def seal_tests(tests_path: str) -> dict:
     validate_contracts.py --hash produce) para pegarlo en tests_sha256 de un
     contrato. Devuelve {'hash': str|None, 'exit_code': int, 'stdout': str}."""
     return gd.seal_tests(tests_path, repo_root=REPO_ROOT)
+
+
+@mcp.tool()
+def rule_hint(rule_id: str) -> dict:
+    """Receta de arreglo de un rule-id de los gates: el QUE HACER que el
+    mensaje del gate no da. Ej: 'FM_TESTS_FROZEN' -> como sellar el oraculo.
+    Devuelve {'rule_id': str, 'hint': str, 'known': bool}. Un rule_id
+    desconocido NO es un error: devuelve el fallback generico con known=False,
+    para que un agente que pregunta de mas reciba orientacion, no una
+    excepcion."""
+    # No pasa por mcp_gate_dispatch: no es un gate y no corre subprocess.
+    # rule_hints es stdlib pura, asi que la tool es una llamada directa.
+    return {
+        'rule_id': rule_id,
+        'hint': rule_hints.hint_for(rule_id),
+        'known': rule_id in rule_hints.HINTS,
+    }
 
 
 if __name__ == '__main__':

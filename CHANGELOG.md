@@ -4,7 +4,29 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
-_Sin cambios pendientes._
+**`rule_hint`: la receta de arreglo se pide por MCP, no solo por shell** (cierra #35)
+- `scripts/mcp_server.py` expone `rule_hint(rule_id) -> {rule_id, hint, known}`. Es el
+  complemento natural de un veredicto en rojo: un agente que recibe `FM_TESTS_FROZEN` de
+  `validate_contracts` pide el arreglo **sin salir del protocolo**. Antes la receta solo
+  existia por shell (`python scripts/rule_hints.py <CODE>`), lo que obligaba a un agente MCP a
+  cambiar de canal justo cuando mas contexto necesitaba.
+- Un `rule_id` desconocido **no es un error de tool**: devuelve el fallback con
+  `known: false`. Preguntar de mas debe orientar, no abortar.
+- **No pasa por `mcp_gate_dispatch`** (unica tool que no lo hace): no es un gate y no corre
+  subprocess, asi que llama directo a `rule_hints.hint_for`, que es stdlib pura. Por lo mismo
+  **no entra en `GATE_SPECS`** — meterla ahi la sumaria a `LEVEL1_GATES` y romperia el oraculo
+  congelado del preflight (12 gates exactos). El conteo de gates no cambia: Nivel 1 sigue en 11.
+- **Oraculo primero, esta vez en el orden correcto**: los 3 tests del smoke (conjunto de tools,
+  llamada end-to-end por el protocolo MCP real, y el fallback del id desconocido) se escribieron
+  y se vieron **fallar** (`Unknown tool: rule_hint`) antes de tocar el server. Suite 621 -> **623**.
+- `knowledge/mcp-server.md`: 14 -> **15 tools**, con la entrada de `rule_hint` y la nota de por
+  que no pasa por el dispatcher. De paso queda documentado por que **`audit_seals` no se
+  expone** (es un auditor advisory sobre el repo local, no un veredicto accionable en remoto) —
+  la mitad de #36 que era una decision, no una ausencia por olvido.
+
+_El wiring MCP sigue sin task contract, como esta declarado en su docstring: depende del
+paquete externo `mcp`, fuera de la convencion `deps_allowed: []` del resto del repo. La logica
+pura que si tiene contrato+oraculo sellado es `mcp_gate_dispatch.py`._
 
 ## v1.10.0 — 2026-07-26
 

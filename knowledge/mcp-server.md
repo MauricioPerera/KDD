@@ -55,11 +55,11 @@ config (`.mcp.json` o equivalente):
 }
 ```
 
-## Tools expuestas (14)
+## Tools expuestas (15)
 
 Una tool por cada gate de `mcp_gate_dispatch.GATE_SPECS` (los mismos 12
 gates documentados en [validacion.md](./validacion.md), con los mismos
-parametros y defaults que usa `.github/workflows/validate.yml`), mas dos
+parametros y defaults que usa `.github/workflows/validate.yml`), mas tres
 de orquestacion/utilidad:
 
 - `validate_contracts`, `validate_specs`, `validate_okf`, `lint_ascii`,
@@ -74,10 +74,26 @@ de orquestacion/utilidad:
 - `seal_tests(tests_path)` — corre `validate_contracts.py --hash` y
   devuelve el hash a copiar en `tests_sha256`, sin que el agente tenga que
   invocar el CLI a mano.
+- `rule_hint(rule_id)` — la **receta de arreglo** de un rule-id: el QUE
+  HACER que el mensaje del gate no da. Devuelve
+  `{'rule_id', 'hint', 'known'}`. Es el complemento natural de un veredicto
+  en rojo: un agente que recibe `FM_TESTS_FROZEN` de `validate_contracts`
+  pide el arreglo sin salir del protocolo. Un `rule_id` desconocido **no es
+  un error**: devuelve el fallback con `known: false`, para que preguntar de
+  mas oriente en vez de abortar. Ver la seccion "Recetas de arreglo por
+  rule-id" de [validacion.md](./validacion.md).
+
+`rule_hint` es la unica tool que **no** pasa por `mcp_gate_dispatch`: no es
+un gate y no corre subprocess, asi que llama directo a
+`rule_hints.hint_for` (stdlib pura). Por lo mismo **no** entra en
+`GATE_SPECS` — meterla ahi la sumaria a `LEVEL1_GATES` y romperia el
+oraculo congelado del preflight (12 gates exactos).
 
 No se incluyen `assemble_context`/`export_gate_contract` (prep de Nivel 2)
 en esta primera version — extensible siguiendo el mismo patron si hace
-falta.
+falta. Tampoco `audit_seals`: es un auditor **advisory** sobre el repo
+local, no un veredicto que un cliente MCP remoto pueda accionar; si algun
+dia se expone, va con su propia entrada aqui.
 
 ## Por que NO corre en CI ni es Nivel 1
 
