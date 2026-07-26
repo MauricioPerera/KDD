@@ -1,7 +1,7 @@
 ---
 type: 'Task Contract'
 title: 'Recetas de arreglo por rule-id: los gates dicen que falla, no que hacer'
-description: 'Mapa rule-id -> receta accionable para los 101 codigos que emiten los validadores, usable como CLI y como dato. Los gates reportan QUE fallo ("clave requerida ausente: type") pero no QUE HACER; un humano lo deduce leyendo el nodo OKF, un agente efimero itera a ciegas. Analogo de tools/rule-hints.js del proyecto hermano game-protocol. NO es gate de CI ni entra en GATE_SPECS.'
+description: 'Mapa rule-id -> receta accionable para los 103 codigos que emiten los validadores, usable como CLI y como dato. Los gates reportan QUE fallo ("clave requerida ausente: type") pero no QUE HACER; un humano lo deduce leyendo el nodo OKF, un agente efimero itera a ciegas. Analogo de tools/rule-hints.js del proyecto hermano game-protocol. NO es gate de CI ni entra en GATE_SPECS.'
 tags: ['ccdd', 'dx', 'infra', 'agentes']
 
 task: rule-hints

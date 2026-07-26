@@ -4,7 +4,33 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
-_Sin cambios pendientes._
+**El tope que declarabas no era el que se aplicaba.** El gate de Nivel 2 (`GLOBAL_MAX` de
+`tc_lint.py`) lee `cyclomatic_max` / `nesting_max` / `lines_max` / `params_max`. La plantilla
+documentaba, y **los 33 contratos de este repo usaban**, `max_cyclomatic_complexity` /
+`max_nesting_depth` — nombres que el gate **nunca leyo**. `validate_contracts.py` solo
+verificaba que `budget` *existiera*, no los nombres de sus subclaves, asi que el tope declarado
+se descartaba, el gate caia a su config firmada y nadie lo notaba.
+
+**Subclaves de `budget` verificadas por nombre** (`FM_BUDGET_KEY` / `FM_BUDGET_VALUE`)
+- **Evidencia del fallo, no sospecha**: un contrato con `max_params: 1` y una firma de **5
+  parametros** pasaba `lint_task_contract` con **cero errores de budget**. Con el nombre
+  canonico (`params_max: 3`) el mismo gate si reporta el exceso. La promesa central de CCDD
+  —umbrales deterministas— no se cumplia, y no era detectable sin leer el codigo del gate.
+- `validate_contracts.py` gana `BUDGET_KEYS` (las canonicas) y `BUDGET_LEGACY_ALIASES`
+  (historica -> canonica, para que el error diga **que** renombrar, no solo que esta mal), mas
+  el helper `_is_positive_int` (el parser mini-YAML no convierte tipos: `5` llega como `'5'`;
+  rechaza bool, cero, negativos y no-numericos).
+- **Los 33 contratos + la plantilla** migrados a los nombres canonicos (rename acotado a claves
+  indentadas del frontmatter, verificado que no toca prosa).
+- `glosario.md`: los nombres estaban mal y afirmaba que Nivel 1 "solo checkea que esten
+  presentes" — ya no es cierto para los NOMBRES (los VALORES siguen siendo informativos en
+  Nivel 1; los topes los enforce Nivel 2, sin cambios en la precedencia).
+- `rule_hints.py`: recetas de los dos rule-ids nuevos, y el conteo pasa de **101 a 103**
+  rule-ids en los 5 lugares que lo citaban (`.agents/AGENTS.md`, la skill local,
+  `rule-hints.md`, `glosario.md`, `README.md`).
+- **Trade-off aceptado**, mismo patron que `tests_sha256`: en proyectos ya instanciados desde la
+  plantilla, los contratos con los nombres viejos pasan a ERROR al actualizar el validador — el
+  mensaje de error nombra exactamente el reemplazo.
 
 ## v1.11.1 — 2026-07-26
 

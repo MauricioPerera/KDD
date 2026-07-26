@@ -91,7 +91,7 @@ duplicar contenido).
   seals debiles" de [validacion.md](./validacion.md).
 - **Receta de arreglo** (hint) — el QUE HACER que acompania a un rule-id.
   Los validadores reportan QUE fallo (`clave requerida ausente: type`);
-  `scripts/rule_hints.py` mapea cada uno de los 101 rule-ids a su receta
+  `scripts/rule_hints.py` mapea cada uno de los 103 rule-ids a su receta
   accionable, y `preflight.py --agent` la adjunta a cada gate en rojo. La
   cobertura se gatea en las dos direcciones (`tests/test_rule_hints.py`):
   todo rule-id emitido tiene receta, y ninguna receta documenta un codigo
