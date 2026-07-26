@@ -178,6 +178,14 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    **Tras una interrupción, la infraestructura huérfana es evidencia antes que basura:**
    inspeccionarla y extraer lo que documenta (credenciales efímeras, estado) antes de
    desmontarla ([caso real](./casos-reales.md#infra-huerfana-es-evidencia-cierre)).
+   **Los residuos que el ejecutor declaró se MUEVEN al documento vivo de pendientes**, con
+   su peso y la razón de ese peso. No alcanza con que estén en el reporte: un reporte es
+   registro histórico de un momento, y lo que solo vive ahí está archivado, no publicado.
+   **El dueño de este paso es quien cierra, no quien declaró** — el ejecutor ya cumplió su
+   parte al declarar en vez de afirmar cobertura que no tenía, y un deber sin dueño
+   explícito es un deber de nadie. Relatarlo de palabra no cuenta: se *siente* como
+   haberlo registrado y es el medio más volátil de todos
+   ([caso real](./casos-reales.md#declarar-un-residuo-no-lo-registra-cierre)).
 
 ## Rondas de auditoría y confirmación
 
