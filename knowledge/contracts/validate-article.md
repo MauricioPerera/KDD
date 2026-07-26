@@ -10,8 +10,8 @@ target: src/validate_article.py
 signature: "def validate_article(article: dict, style: dict) -> list:"
 test_command: "python -m unittest tests/test_validate_article.py"
 budget:
-  max_cyclomatic_complexity: 10
-  max_nesting_depth: 3
+  cyclomatic_max: 10
+  nesting_max: 3
 tests: "tests/test_validate_article.py"
 tests_sha256: "60d534eec89eb5ec1040f0f58b6c58fc0fd97182c20d66e817ae179980e8be83"
 touch_only: ['src/validate_article.py']

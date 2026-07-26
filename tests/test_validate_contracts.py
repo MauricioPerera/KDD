@@ -27,8 +27,8 @@ target: src/hello.py
 signature: "def hello(name: str) -> str:"
 test_command: "python -m unittest tests/test_sample.py"
 budget:
-  max_cyclomatic_complexity: 2
-  max_nesting_depth: 1
+  cyclomatic_max: 2
+  nesting_max: 1
 tests: "tests/test_sample.py"
 tests_sha256: "c11c4064b2030dac8352c6453a128af2aedcb3ecc711aed805f22768cf54fda4"
 touch_only: ['src/hello.py']
@@ -86,11 +86,12 @@ class TestFrontmatterParser(unittest.TestCase):
         self.assertIn('body', body)
 
     def test_nested_dict_by_indent(self):
-        text = ("---\nbudget:\n  max_cyclomatic_complexity: 2\n"
-                "  max_nesting_depth: 1\ntop: yes\n---\n")
+        text = ("---\nbudget:\n  cyclomatic_max: 2\n"
+                "  nesting_max: 1\ntop: yes\n---\n")
         data, _ = vc.parse_frontmatter(text)
+        # el parser NO convierte tipos: los enteros llegan como string
         self.assertEqual(data['budget'],
-                         {'max_cyclomatic_complexity': '2', 'max_nesting_depth': '1'})
+                         {'cyclomatic_max': '2', 'nesting_max': '1'})
         self.assertEqual(data['top'], 'yes')
 
     def test_missing_frontmatter(self):
@@ -289,6 +290,74 @@ class TestTouchOnly(TestValidatorErrors):
         rules = self._rules(findings)
         self.assertNotIn('FM_TOUCH_TESTS', rules)
         self.assertNotIn('FM_TOUCH_TARGET', rules)
+
+
+class TestBudgetKeys(TestValidatorErrors):
+    """Las subclaves de `budget` deben ser las que el gate de Nivel 2 LEE.
+
+    Motivo: `tc_lint.py` (ccdd-gate) lee `cyclomatic_max` / `nesting_max` /
+    `lines_max` / `params_max`. Cualquier otro nombre no aplica ningun tope --
+    el gate cae a su config firmada y el budget declarado queda decorativo, en
+    silencio. Este validador convierte ese fallo silencioso en ERROR ruidoso.
+    """
+
+    BUDGET_OK = "budget:\n  cyclomatic_max: 2\n  nesting_max: 1"
+
+    def test_todas_las_canonicas_son_validas(self):
+        good = VALID_CONTRACT.replace(
+            self.BUDGET_OK,
+            "budget:\n  cyclomatic_max: 8\n  nesting_max: 3\n"
+            "  lines_max: 40\n  params_max: 4")
+        self.assertEqual(self._rules(self._run(good)), set())
+
+    def test_alias_historico_es_error_y_nombra_el_reemplazo(self):
+        for legacy, canon in vc.BUDGET_LEGACY_ALIASES.items():
+            bad = VALID_CONTRACT.replace(
+                self.BUDGET_OK, "budget:\n  {}: 5".format(legacy))
+            findings = self._run(bad)
+            self.assertIn('FM_BUDGET_KEY', self._rules(findings), legacy)
+            msgs = ' '.join(f.message for f in findings)
+            self.assertIn(canon, msgs, legacy)
+
+    def test_subclave_desconocida_es_error(self):
+        bad = VALID_CONTRACT.replace(
+            self.BUDGET_OK, "budget:\n  cyclomatic_maxx: 5")  # typo
+        self.assertIn('FM_BUDGET_KEY', self._rules(self._run(bad)))
+
+    def test_valor_no_entero_positivo_es_error(self):
+        for raro in ('cinco', '0', '-3', '2.5', ''):
+            bad = VALID_CONTRACT.replace(
+                self.BUDGET_OK, "budget:\n  cyclomatic_max: {}".format(raro))
+            self.assertIn('FM_BUDGET_VALUE', self._rules(self._run(bad)),
+                          'valor {!r} deberia ser rechazado'.format(raro))
+
+    def test_budget_no_mapa_es_error(self):
+        bad = VALID_CONTRACT.replace(self.BUDGET_OK, "budget: 5")
+        self.assertIn('FM_BUDGET_KEY', self._rules(self._run(bad)))
+
+    def test_budget_ausente_lo_cubre_fm_key(self):
+        # No duplicar: la clave ausente/vacia ya es FM_KEY_budget, no FM_BUDGET_*.
+        bad = VALID_CONTRACT.replace(self.BUDGET_OK + "\n", '')
+        rules = self._rules(self._run(bad))
+        self.assertIn('FM_KEY_budget', rules)
+        self.assertNotIn('FM_BUDGET_KEY', rules)
+
+
+class TestIsPositiveInt(unittest.TestCase):
+    """El parser mini-YAML no convierte tipos: '5' llega como string."""
+
+    def test_acepta_entero_y_su_string(self):
+        for ok in (1, 5, 80, '1', '5', ' 40 '):
+            self.assertTrue(vc._is_positive_int(ok), repr(ok))
+
+    def test_rechaza_cero_negativos_y_no_numericos(self):
+        for bad in (0, -1, '0', '-1', '2.5', 'cinco', '', None, [], {}):
+            self.assertFalse(vc._is_positive_int(bad), repr(bad))
+
+    def test_rechaza_bool(self):
+        # True es int en Python; un tope booleano no tiene sentido.
+        for b in (True, False):
+            self.assertFalse(vc._is_positive_int(b), repr(b))
 
 
 class TestValidatorWarnings(unittest.TestCase):

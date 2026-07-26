@@ -168,6 +168,21 @@ REQUIRED_SECTIONS = [
     'Examples', 'Do / Don\'t', 'Tests', 'Constraints',
 ]
 
+# Subclaves de `budget` que el gate REAL de nivel 2 lee (GLOBAL_MAX de tc_lint.py
+# en ccdd-gate). Declarar cualquier otro nombre NO aplica ningun tope: el gate cae
+# a su config firmada y el budget del contrato queda decorativo. Este validador las
+# exige por nombre para que ese fallo sea ruidoso en vez de silencioso.
+BUDGET_KEYS = ('cyclomatic_max', 'nesting_max', 'lines_max', 'params_max')
+
+# Nombres historicos de la plantilla, que el gate NUNCA leyo. Se mapean a su
+# equivalente canonico para que el error diga QUE renombrar, no solo que esta mal.
+BUDGET_LEGACY_ALIASES = {
+    'max_cyclomatic_complexity': 'cyclomatic_max',
+    'max_nesting_depth': 'nesting_max',
+    'max_lines': 'lines_max',
+    'max_params': 'params_max',
+}
+
 
 class Finding:
     def __init__(self, file, rule, message, level='ERROR'):
@@ -191,6 +206,23 @@ def _is_non_empty(value):
 def _normalize_newlines(data):
     """Normaliza newlines a LF: \\r\\n -> \\n y \\r suelto -> \\n."""
     return data.replace('\r\n', '\n').replace('\r', '\n')
+
+
+def _is_positive_int(value):
+    """True si value es un entero positivo.
+
+    Acepta el string de digitos porque el parser mini-YAML de este modulo no
+    convierte tipos (``cyclomatic_max: 5`` llega como ``'5'``). Rechaza bool
+    (``True`` es int en Python), cero, negativos y no-numericos.
+    """
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, int):
+        return value > 0
+    if isinstance(value, str):
+        stripped = value.strip()
+        return stripped.isdigit() and int(stripped) > 0
+    return False
 
 
 def _calculate_tests_hash(tests_path):
@@ -278,6 +310,35 @@ def validate_file(path, repo_root=None):
         findings.append(Finding(rel, 'FM_KEY_forbids',
                                 "clave 'forbids' vacia (recomendado no vacia)",
                                 level='WARNING'))
+
+    # (d) budget -> las subclaves deben ser las que el gate de nivel 2 LEE, con
+    # valores entero positivo. Un nombre que el gate no lee no aplica tope alguno.
+    budget_val = data.get('budget')
+    if isinstance(budget_val, dict):
+        for bkey in sorted(budget_val):
+            if bkey in BUDGET_LEGACY_ALIASES:
+                findings.append(Finding(
+                    rel, 'FM_BUDGET_KEY',
+                    "budget.{} NO la lee el gate de nivel 2 (el tope declarado se "
+                    "ignora en silencio): renombrala a '{}'"
+                    .format(bkey, BUDGET_LEGACY_ALIASES[bkey])))
+            elif bkey not in BUDGET_KEYS:
+                findings.append(Finding(
+                    rel, 'FM_BUDGET_KEY',
+                    "subclave de budget desconocida: {} (validas: {})"
+                    .format(bkey, ', '.join(BUDGET_KEYS))))
+            elif not _is_positive_int(budget_val[bkey]):
+                findings.append(Finding(
+                    rel, 'FM_BUDGET_VALUE',
+                    "budget.{} debe ser un entero positivo (se encontro: {!r})"
+                    .format(bkey, budget_val[bkey])))
+    elif _is_non_empty(budget_val):
+        # Presente pero no es un mapa (ej. 'budget: 5'): FM_KEY_budget cubre el
+        # caso ausente/vacio, este cubre la forma incorrecta.
+        findings.append(Finding(
+            rel, 'FM_BUDGET_KEY',
+            "budget debe ser un mapa de subclave -> entero (se encontro: {!r})"
+            .format(budget_val)))
 
     # Validar que target y tests resuelvan a archivos existentes
     if repo_root is None:

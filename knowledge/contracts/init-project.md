@@ -10,8 +10,8 @@ target: scripts/init_project.py
 signature: "def init_project(repo_dir: str, apply: bool, name: str) -> dict:"
 test_command: "python -m unittest tests/test_init_project.py"
 budget:
-  max_cyclomatic_complexity: 10
-  max_nesting_depth: 4
+  cyclomatic_max: 10
+  nesting_max: 4
 tests: "tests/test_init_project.py"
 tests_sha256: "2082c5c9d20b64e1f378fc3f328e03970669b65962c254a64bc18eec51455598"
 touch_only: ['scripts/init_project.py']

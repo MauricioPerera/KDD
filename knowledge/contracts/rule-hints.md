@@ -1,7 +1,7 @@
 ---
 type: 'Task Contract'
 title: 'Recetas de arreglo por rule-id: los gates dicen que falla, no que hacer'
-description: 'Mapa rule-id -> receta accionable para los 101 codigos que emiten los validadores, usable como CLI y como dato. Los gates reportan QUE fallo ("clave requerida ausente: type") pero no QUE HACER; un humano lo deduce leyendo el nodo OKF, un agente efimero itera a ciegas. Analogo de tools/rule-hints.js del proyecto hermano game-protocol. NO es gate de CI ni entra en GATE_SPECS.'
+description: 'Mapa rule-id -> receta accionable para los 103 codigos que emiten los validadores, usable como CLI y como dato. Los gates reportan QUE fallo ("clave requerida ausente: type") pero no QUE HACER; un humano lo deduce leyendo el nodo OKF, un agente efimero itera a ciegas. Analogo de tools/rule-hints.js del proyecto hermano game-protocol. NO es gate de CI ni entra en GATE_SPECS.'
 tags: ['ccdd', 'dx', 'infra', 'agentes']
 
 task: rule-hints
@@ -10,8 +10,8 @@ target: scripts/rule_hints.py
 signature: "def hint_for(rule_id) -> str"
 test_command: "python -m unittest tests/test_rule_hints.py"
 budget:
-  max_cyclomatic_complexity: 12
-  max_nesting_depth: 3
+  cyclomatic_max: 12
+  nesting_max: 3
 tests: "tests/test_rule_hints.py"
 tests_sha256: "a0f1d783af943d98f86f8afdfe61d97fda01eaec3aa2e14cf409405e3b8c7c18"
 touch_only: ['scripts/rule_hints.py']

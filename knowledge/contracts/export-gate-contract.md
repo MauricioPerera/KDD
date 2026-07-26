@@ -10,8 +10,8 @@ target: scripts/export_gate_contract.py
 signature: "def export_gate_contract(contract_path: str, out_dir: str, repo_root: str = '.') -> str:"
 test_command: "python -m unittest tests/test_export_gate_contract.py"
 budget:
-  max_cyclomatic_complexity: 10
-  max_nesting_depth: 4
+  cyclomatic_max: 10
+  nesting_max: 4
 tests: "tests/test_export_gate_contract.py"
 tests_sha256: "fd47d2f68c9c5a07d67edfc11d05bfd930e49ca46e675564dcdd9ccf32c7cec1"
 touch_only: ['scripts/export_gate_contract.py']

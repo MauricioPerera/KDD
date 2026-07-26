@@ -10,8 +10,8 @@ target: scripts/audit_seals.py
 signature: "def audit_seals(contracts_dir='knowledge/contracts', repo_root='.') -> dict"
 test_command: "python -m unittest tests/test_audit_seals.py"
 budget:
-  max_cyclomatic_complexity: 14
-  max_nesting_depth: 4
+  cyclomatic_max: 14
+  nesting_max: 4
 tests: "tests/test_audit_seals.py"
 tests_sha256: "a5920b616cd0937ca59dc288ec7dbfe5de89eeac912d071badc3692e77caa8be"
 touch_only: ['scripts/audit_seals.py']

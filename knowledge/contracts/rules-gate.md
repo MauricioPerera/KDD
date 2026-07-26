@@ -10,8 +10,8 @@ target: scripts/validate_rules.py
 signature: "def validate_rules(rules_dir: str) -> list:"
 test_command: "python -m unittest tests/test_validate_rules.py"
 budget:
-  max_cyclomatic_complexity: 10
-  max_nesting_depth: 4
+  cyclomatic_max: 10
+  nesting_max: 4
 tests: "tests/test_validate_rules.py"
 tests_sha256: "d1f53fff3379921efa8bdbf823bd143f7585859f32e3d4c008761606648d3dee"
 touch_only: ['scripts/validate_rules.py']

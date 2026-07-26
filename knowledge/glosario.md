@@ -48,11 +48,13 @@ duplicar contenido).
   rutas/patrones `fnmatch` que el implementador puede tocar.
   `scripts/validate_perimeter.py` lo verifica contra el diff real
   (`OUT_OF_PERIMETER` / `TESTS_TOUCHED` si se viola).
-- **`budget`** — topes declarativos de complejidad
-  (`max_cyclomatic_complexity`, `max_nesting_depth`). En Nivel 1 son
-  informativos (el validador solo checkea que esten presentes); se
-  ENFORCEAN de verdad solo con el gate MCP de Nivel 2. Ver precedencia en
-  [validacion.md](./validacion.md).
+- **`budget`** — topes declarativos de complejidad. Las subclaves validas son
+  exactamente las que el gate de Nivel 2 LEE: `cyclomatic_max`, `nesting_max`,
+  `lines_max`, `params_max`. En Nivel 1 los VALORES son informativos (no se
+  enforcean), pero los NOMBRES y las formas SI se validan
+  (`FM_BUDGET_KEY` / `FM_BUDGET_VALUE`): un nombre que el gate no lee dejaria
+  el tope sin aplicar en silencio. Se ENFORCEAN de verdad solo con el gate MCP
+  de Nivel 2. Ver precedencia en [validacion.md](./validacion.md).
 - **`deps_allowed`** — dependencias externas permitidas para el target
   (vacio = solo stdlib del lenguaje).
 - **`forbids`** — capacidades explicitamente prohibidas para el
@@ -89,7 +91,7 @@ duplicar contenido).
   seals debiles" de [validacion.md](./validacion.md).
 - **Receta de arreglo** (hint) — el QUE HACER que acompania a un rule-id.
   Los validadores reportan QUE fallo (`clave requerida ausente: type`);
-  `scripts/rule_hints.py` mapea cada uno de los 101 rule-ids a su receta
+  `scripts/rule_hints.py` mapea cada uno de los 103 rule-ids a su receta
   accionable, y `preflight.py --agent` la adjunta a cada gate en rojo. La
   cobertura se gatea en las dos direcciones (`tests/test_rule_hints.py`):
   todo rule-id emitido tiene receta, y ninguna receta documenta un codigo

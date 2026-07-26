@@ -10,8 +10,8 @@ target: tests/test_agents_rules.py
 signature: "def test_agents_md_references_assembler(self) -> None:"
 test_command: "python -m unittest tests/test_agents_rules.py"
 budget:
-  max_cyclomatic_complexity: 5
-  max_nesting_depth: 3
+  cyclomatic_max: 5
+  nesting_max: 3
 tests: "tests/test_agents_rules.py"
 tests_sha256: "479a23349260b9e0b98c2b2e1504720bae3a9c18a29306c35145936f021446c4"
 touch_only: ['tests/test_agents_rules.py']
