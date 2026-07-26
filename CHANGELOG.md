@@ -4,6 +4,14 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+_Sin cambios pendientes._
+
+## v1.11.1 — 2026-07-26
+
+**Patch de documentacion**: sin cambios de codigo, ningun contrato ni oraculo tocado, ninguna
+capacidad nueva. Escribe una regla que el repo ya aplicaba de hecho a tres herramientas sin
+enunciarla en ninguna parte.
+
 **El criterio de que entra como tool MCP, enunciado** (cierra #40)
 - `knowledge/mcp-server.md` gana la seccion "Que entra como tool y que no": **por MCP viajan
   veredictos y utilidades; los diagnosticos se corren en local**, con la tabla de las 15 tools
