@@ -55,6 +55,13 @@ que mirar, en que orden, y por que.
    advisory (sin `--strict` siempre exit 0). Juzgar la calidad semantica
    de un assert existente sigue siendo juicio humano (mutation testing),
    fuera del alcance del auditor.
+7. **¿Un gate esta en rojo y el mensaje no dice como arreglarlo?** Corre
+   `python scripts/preflight.py --agent`: cada gate en rojo trae la receta
+   de arreglo de los rule-ids que reporto (`scripts/rule_hints.py` para
+   consultar una suelta). Sirve tanto para arreglarlo vos como para
+   decidir si el hallazgo del agente que revisas era real: si la receta
+   describe otra cosa que la que el agente hizo, el arreglo no ataco la
+   causa.
 
 ## Que NO hace falta que revises a mano
 

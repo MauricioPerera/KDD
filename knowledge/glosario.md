@@ -87,6 +87,14 @@ duplicar contenido).
   `python scripts/audit_seals.py` (auditor advisory, 6 reglas `WEAK_*`).
   Ver [seal-audit](./contracts/seal-audit.md) y la seccion "Auditor de
   seals debiles" de [validacion.md](./validacion.md).
+- **Receta de arreglo** (hint) — el QUE HACER que acompania a un rule-id.
+  Los validadores reportan QUE fallo (`clave requerida ausente: type`);
+  `scripts/rule_hints.py` mapea cada uno de los 101 rule-ids a su receta
+  accionable, y `preflight.py --agent` la adjunta a cada gate en rojo. La
+  cobertura se gatea en las dos direcciones (`tests/test_rule_hints.py`):
+  todo rule-id emitido tiene receta, y ninguna receta documenta un codigo
+  inexistente. Ver la seccion "Recetas de arreglo por rule-id" de
+  [validacion.md](./validacion.md).
 
 ## Ciclo de vida y proceso
 
