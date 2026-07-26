@@ -187,6 +187,16 @@ sentido mandarle a un agente un repo que ya rompe un gate. Diagnostico
 opt-in, mismo estatus que `benchmark_gates.py` (Nivel 1 sigue siendo 11
 gates; el preflight suma `validate_attestation`, el local-only).
 
+Si un gate falla y su mensaje no te dice COMO arreglarlo, agrega `--agent`:
+
+```
+python scripts/preflight.py --agent
+```
+
+Cada gate en rojo arrastra entonces la receta de arreglo de los rule-ids
+que reporto. Para consultar una suelta: `python scripts/rule_hints.py
+<RULE_ID>`. No cambia el veredicto ni el exit code, solo la salida.
+
 Para auditar la FUERZA del seal recien sellado (no solo su integridad):
 `python scripts/audit_seals.py` (advisory; el sello certifica integridad,
 no fuerza — la calidad semantica del assert sigue siendo juicio humano).

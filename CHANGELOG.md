@@ -4,6 +4,10 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+_Sin cambios pendientes._
+
+## v1.10.0 — 2026-07-26
+
 **Recetas de arreglo por rule-id: los gates dejan de decir solo QUE fallo**
 - `scripts/rule_hints.py` (nuevo): mapa `rule-id -> receta accionable` para los **101**
   codigos que emiten los 13 validadores. Los gates decian *que* fallo (`clave requerida
@@ -30,6 +34,37 @@ All notable changes to the KDD Template are documented here.
   [game-protocol](https://github.com/MauricioPerera/game-protocol), el proyecto hermano,
   donde cada hallazgo del linter viaja con su arreglo. Cierra el viaje de vuelta: las
   familias declarativas de este repo salieron de alli, y los hints hacen el camino inverso.
+
+**La superficie agent-facing aprende la herramienta nueva (misma clase de drift que v1.6.0 y v1.9.0)**
+- Auditoria previa al release: **8 superficies documentaban `preflight` y `audit_seals` pero
+  ninguna mencionaba `rule_hints`** — solo el nodo canonico. La capacidad existia, testeada y
+  en `main`, pero un agente que clonara el template no se enteraba de que existe, que es
+  exactamente el problema que la herramienta venia a resolver. Es la tercera vez que este
+  repo corrige esta clase de drift; la primera en que se detecta ANTES de publicar.
+- Cerradas: `.agents/AGENTS.md` (la fuente unica que leen Cursor/Copilot/Cline/Windsurf via
+  sus punteros) y la skill `kdd-okf-ccdd-hybrid` pasan de "dos herramientas de diagnostico" a
+  tres, con el CUANDO usar cada una; `README.md` la suma a la lista de scripts que se
+  conservan al instanciar para un proyecto no-Python (EN/ES/PT) y a la lista de diagnosticos;
+  `knowledge/glosario.md` gana la entrada "Receta de arreglo"; `knowledge/quickstart.md`
+  documenta `--agent` en el punto del flujo donde hace falta; `knowledge/supervision-humana.md`
+  gana el checklist 7, con el uso doble: arreglarlo vos, o juzgar si el arreglo de un agente
+  ataco la causa real.
+
+**Contrato retroactivo: `rule_hints` era la unica herramienta del repo sin task contract**
+- El indice OKF no enlaza herramientas, enlaza sus **task contracts**: `preflight`,
+  `seal-audit`, `test-command-gate` y `secret-scan-gate` tienen el suyo, con oraculo sellado.
+  `rule_hints` no. Un template que impone "el oraculo se escribe y se sella ANTES de
+  implementar" y cuya herramienta mas nueva no tiene contrato es incoherente consigo mismo,
+  y se nota justo donde mas duele: en el indice que lee un agente al llegar.
+- `knowledge/contracts/rule-hints.md` (nuevo) congela el oraculo ya existente
+  (`tests_sha256` sobre `tests/test_rule_hints.py`), declara `touch_only`, `budget`
+  (ciclomatica <= 12, anidamiento <= 3; medidos 10 y 2) y `forbids`, y documenta la frontera
+  en Do/Don't. Enlazado desde `knowledge/index.md`. 31 -> **32 contratos**, 58 -> **59 nodos
+  OKF**, `audit_seals` 0 findings.
+- **Se redacto DESPUES de implementar, y el propio contrato lo dice en su encabezado.** Un
+  contrato a posteriori documenta la frontera y congela el oraculo hacia adelante, pero NO
+  demuestra que el oraculo precedio al codigo: esa garantia, para esta herramienta, no
+  existe. Se deja escrito en vez de disimularlo.
 
 ## v1.9.0 — 2026-07-17
 

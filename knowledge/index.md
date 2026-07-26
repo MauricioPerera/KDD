@@ -43,6 +43,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Capa de despacho del MCP server de gates KDD](./contracts/mcp-gate-dispatch.md)
   - [Preflight: dry-run local de los 12 gates](./contracts/preflight.md)
   - [Auditor de seals débiles (advisory, no es un gate)](./contracts/seal-audit.md) — `scripts/audit_seals.py`
+- [Recetas de arreglo por rule-id (no es un gate)](./contracts/rule-hints.md) — `scripts/rule_hints.py`
   - [Validador OKF de la base de conocimiento](./contracts/validate-okf.md)
   - [Validador de contratos de ejecución (specs)](./contracts/validate-specs.md)
   - [Lint ASCII de literales en scripts](./contracts/lint-ascii.md)
