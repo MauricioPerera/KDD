@@ -50,6 +50,7 @@ _NOT_RULE_IDS = {
 # Scripts que emiten hallazgos. El resto (assemble_context, init_project,
 # export_gate_contract, mcp_*, benchmark, preflight) orquestan o exportan.
 _EMITTERS = (
+    'audit_forbids.py',
     'audit_seals.py', 'scan_secrets.py', 'validate_attestation.py',
     'validate_changelog.py', 'validate_commit_message.py', 'validate_contracts.py',
     'validate_diagrams.py', 'validate_okf.py', 'validate_perimeter.py',

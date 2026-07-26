@@ -107,6 +107,44 @@ chequeos textuales). Cierra la mitad diferida del feedback externo del
 Contrato 32 ("help catch weak test seals early"). Ver
 [seal-audit](./contracts/seal-audit.md).
 
+## Auditor de `forbids` — diagnóstico opt-in (NO es un gate)
+
+`python scripts/audit_forbids.py [contracts_dir] [--repo-root DIR] [--strict]`
+compara el `forbids` **declarado** en cada contrato contra lo que está
+efectivamente impedido. Hasta ahora nadie verificaba su contenido —
+`tc_lint` solo avisa si la lista está vacía — así que un contrato podía
+declarar `forbids: ['unsafe']` sobre un proyecto Rust que permite `unsafe`
+sin que ningún gate lo notara: la prohibición era decorativa (hallazgo real
+sobre el propio proyecto de prueba de esta plantilla).
+
+Hay **un solo verificador**: `unsafe` en Rust. Se eligió porque es el único
+donde la prohibición es comprobable de verdad — rustc la puede imponer sobre
+el **crate entero**, no sobre un archivo. Se acepta cualquiera de las tres
+vías equivalentes: `#![forbid(unsafe_code)]`/`#![deny(unsafe_code)]` en la
+raíz del crate, `unsafe_code = "deny"|"forbid"` bajo `[lints.rust]` del
+`Cargo.toml`, o herencia del workspace (`[lints] workspace = true` +
+`[workspace.lints.rust]`). Con la denegación presente no reporta nada aunque
+el target use `unsafe`: rustc rechaza la compilación, o sea que el fallo de
+build **es** el enforcement.
+
+Las 3 reglas: `FORBID_UNSAFE_PRESENT` (declara la prohibición y el target la
+viola, sin denegación — regla **dura**), `FORBID_UNSAFE_UNENFORCED` (declarada
+pero nada la impone a nivel compilador; hoy el target no la viola, mañana sí)
+y `FORBID_UNVERIFIED` (no hay verificador para ese par capacidad/lenguaje).
+
+Esa última regla es el punto: `network`, `subprocess` y `llm` **siguen siendo
+declarativos** y el auditor lo dice en vez de callar, así que un `forbids` en
+limpio deja de significar "todo verificado" y pasa a significar "esto
+verificado, esto todavía no". `FORBID_UNVERIFIED` nunca cambia el exit code,
+ni con `--strict` — es una limitación del auditor, no un incumplimiento.
+
+Sin `--strict` SIEMPRE exit 0 (advisory); con `--strict`, exit 1 solo si hay
+reglas duras. Esto **no es un gate nuevo**: Nivel 1 sigue siendo **11 gates**
+y el conteo no cambia. Mismo estatus opt-in que `audit_seals.py` y
+`preflight.py` — no corre en CI, no está en `GATE_SPECS` (agregarlo haría
+crecer `LEVEL1_GATES` y rompería el oráculo congelado del preflight). Ver
+[forbids-audit](./contracts/forbids-audit.md).
+
 ## Nivel 2 — Opcional (si el entorno del agente lo tiene)
 
 Si el agente dispone del servidor MCP `ccdd-complexity`, el gate CCDD real se invoca con sus tools `lint_task_contract` (lint del contrato) y `run_integration_gate` (gate de complejidad/integración). Si no está disponible, el nivel 1 es suficiente para considerar un contrato válido.

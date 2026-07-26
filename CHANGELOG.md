@@ -4,6 +4,44 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+**El `forbids` que declarabas tampoco estaba impedido** — segundo campo del contrato que resulta
+decorativo, hallado tirando del mismo hilo que el `budget`. `tc_lint` solo avisa si `forbids`
+esta vacio; **nadie verificaba su contenido**. Un contrato podia declarar `forbids: ['unsafe']`
+sobre un proyecto Rust que permite `unsafe` sin que ningun gate lo notara. Hallazgo real: el
+propio proyecto de prueba de esta plantilla lo declaraba sin imponerlo.
+
+**Nuevo auditor `scripts/audit_forbids.py`** (advisory opt-in, contrato `forbids-audit`)
+- Compara el `forbids` DECLARADO contra lo que esta efectivamente impedido. **Un solo
+  verificador: `unsafe` en Rust**, elegido porque es el unico donde la prohibicion es
+  comprobable de verdad — rustc la impone sobre el **crate entero**, no sobre un archivo. Acepta
+  las tres vias equivalentes: `#![forbid|deny(unsafe_code)]` en la raiz del crate,
+  `unsafe_code = "deny"|"forbid"` bajo `[lints.rust]`, o herencia del workspace
+  (`[lints] workspace = true` + `[workspace.lints.rust]`).
+- Con la denegacion presente **no reporta nada aunque el target use `unsafe`**: rustc rechaza la
+  compilacion, o sea que el fallo de build ES el enforcement.
+- 3 reglas: `FORBID_UNSAFE_PRESENT` (dura: declarada y violada, sin denegacion),
+  `FORBID_UNSAFE_UNENFORCED` (declarada pero nada la impone a nivel compilador — hoy el target
+  no la viola, manana si) y `FORBID_UNVERIFIED`.
+- **`FORBID_UNVERIFIED` es el punto, no un relleno**: `network` / `subprocess` / `llm` siguen
+  siendo declarativos y el auditor **lo dice en vez de callar**, asi que un `forbids` en limpio
+  deja de significar "todo verificado" y pasa a significar "esto verificado, esto todavia no".
+  Nunca cambia el exit code, ni con `--strict`: es una limitacion del auditor, no un
+  incumplimiento del contrato.
+- Sin `--strict` SIEMPRE exit 0; con `--strict`, exit 1 solo por reglas duras. **NO es un gate de
+  Nivel 1**: el conteo no cambia (11 gates, preflight 12/12) y deliberadamente NO entra en
+  `GATE_SPECS` — eso rompería el oraculo congelado del preflight, y promoverlo seria su propio
+  contrato con ambos oraculos re-sellados (misma politica que fijo `audit_seals` en v1.10.0).
+- No usa `tomllib` a proposito: fijaria un piso de Python 3.11 en una plantilla que se
+  distribuye a terceros. Parser de secciones minimo, mismo criterio que el mini-YAML de
+  `validate_contracts`.
+- Oraculo congelado `tests/test_audit_forbids.py` (31 tests, sellado, fixtures solo en tmpdir).
+  Suite 661 -> 692. `audit_seals` sobre el oraculo nuevo: 0 findings.
+- `rule_hints` gana las 3 recetas y `audit_forbids.py` entra en `_EMITTERS` del test de
+  cobertura bidireccional; el conteo pasa de **103 a 106** rule-ids en los 5 lugares que lo
+  citan. Ese cambio toca `tests/test_rule_hints.py`, oraculo del contrato `rule-hints`, asi que
+  su `tests_sha256` se **re-sella** — el gate lo detecto (`FM_TESTS_FROZEN`) y el diff del sello
+  deja el cambio visible en review, que es exactamente para lo que existe.
+
 **El tope que declarabas no era el que se aplicaba.** El gate de Nivel 2 (`GLOBAL_MAX` de
 `tc_lint.py`) lee `cyclomatic_max` / `nesting_max` / `lines_max` / `params_max`. La plantilla
 documentaba, y **los 33 contratos de este repo usaban**, `max_cyclomatic_complexity` /
