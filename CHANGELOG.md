@@ -4,7 +4,22 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
-_Sin cambios pendientes._
+**El criterio de que entra como tool MCP, enunciado** (cierra #40)
+- `knowledge/mcp-server.md` gana la seccion "Que entra como tool y que no": **por MCP viajan
+  veredictos y utilidades; los diagnosticos se corren en local**, con la tabla de las 15 tools
+  expuestas frente a los tres diagnosticos que no lo estan (`preflight`, `audit_seals`,
+  `benchmark_gates`).
+- La regla **ya se aplicaba a las tres herramientas sin estar escrita**: hasta ahora la
+  ausencia de cada una se explicaba caso por caso, asi que decidir si una tool nueva entraba
+  exigia recordar tres precedentes dispersos. Ahora se decide leyendo una linea.
+- Las tres razones estan verificadas, no son simetria: un advisory sale **exit 0 aunque haya
+  findings** (un cliente remoto no puede distinguir sano de roto sin interpretar el payload);
+  los diagnosticos se usan en momentos donde ya hay shell abierta; y operan sobre el arbol
+  local, que un cliente remoto no tiene delante. El contraste que da sentido a la regla:
+  `rule_hint` si se expone porque es una **consulta pura** que responde a un veredicto
+  recibido por el mismo canal.
+- Queda escrito ademas **como romperla**: si `audit_seals` gana un modo con veredicto real, se
+  expone y se documenta por que deja de ser un diagnostico.
 
 ## v1.11.0 — 2026-07-26
 
