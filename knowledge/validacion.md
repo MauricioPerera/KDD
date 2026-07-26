@@ -156,6 +156,16 @@ Si el agente dispone del servidor MCP `ccdd-complexity`, el gate CCDD real se in
 - El `test_command` declarado en el contrato se corre **verbatim** (el gate ejecuta el comando declarado, con `cwd` = directorio del target). Los tests deben ser auto-ejecutables por ese comando; para JavaScript esto implica ESM (`.mjs` o `"type": "module"` en `package.json`) con un `test_command` como `"node --test <ruta>"`.
 - Con `language` distinto de python, la `signature` se valida por **parser tree-sitter nativo** (nombre + nombres de parámetros en orden, tipos ignorados) cuando la gramática de ese lenguaje está instalada; si no lo está (dependencia opcional ausente), degrada a **aridad genérica** (solo cantidad de parámetros) con el warning `tc-signature-generic`, nunca falla en silencio.
 - `scan_dependencies` razona en clave Python (imports/stdlib) y NO debe usarse como parte del gate para lenguajes no-Python.
+- **Punto ciego de macros / DSL embebidos (límite REAL de la garantía).** El backend tree-sitter mide el árbol sintáctico del lenguaje anfitrión, y el cuerpo de una invocación de macro es para esa gramática un **token-tree opaco**: la lógica que vive adentro no se recorre, así que **no suma complejidad**. Medido sobre la misma lógica (cuatro `if` anidados) en Rust:
+
+  | dónde vive la lógica | cyclomatic | nesting |
+  |---|---|---|
+  | código normal | 5 | 4 |
+  | idéntica, dentro de `view! { … }` | **1** | **0** |
+  | `for` normal | 2 | 1 |
+  | `for` dentro de `view! { … }` | **1** | **0** |
+
+  Una función cuya lógica entera vive en un macro **mide como si estuviera vacía**, y `measure_complexity` sobre código real de un framework de este tipo devuelve `findings: []`. Consecuencia práctica: en proyectos con DSL embebido pesado (Rust con `view!`/`html!`, JSX-en-macro, etc.) el budget de complejidad cubre el pegamento, no el DSL — y ahí es justamente donde suele estar la lógica. **No es un bug del backend**: medir dentro del macro exigiría expandirlo (`cargo expand`, compilación real) o un parser por DSL, las dos cosas fuera del alcance de un gate estático, determinista y sin subprocess. Se documenta en vez de disimularse: si tu proyecto es así, el budget te está diciendo menos de lo que parece, y la cobertura real la dan el oráculo congelado y el lint del lenguaje (ver el gate de `clippy`), no la métrica.
 - **Costo real de un lenguaje no-Python compilado (ej. Rust):** la lógica del gate (métricas + firma) es sub-milisegundo, igual que Python — el parser cambia, el costo no. El costo real está en el `test_command`/lint del proyecto: para Rust, `cargo clippy` en frío (checkout limpio, sin caché de compilación) puede tardar del orden del minuto; con caché tibia (desarrollo día a día) el costo es chico. Medido y reproducible: ver sección 4 de [`BENCHMARKS.md` de ccdd-gate](https://github.com/MauricioPerera/ccdd-gate/blob/main/BENCHMARKS.md#4-costo-de-rust-vs-python-en-el-gate-reproducible).
 
 ### Export para el gate
