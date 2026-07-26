@@ -10,8 +10,8 @@ target: scripts/mcp_gate_dispatch.py
 signature: "def run_gate(tool_name, params, repo_root='.', timeout=120) -> dict"
 test_command: "python -m unittest tests/test_mcp_gate_dispatch.py"
 budget:
-  max_cyclomatic_complexity: 14
-  max_nesting_depth: 4
+  cyclomatic_max: 14
+  nesting_max: 4
 tests: "tests/test_mcp_gate_dispatch.py"
 tests_sha256: "5cb835fbda4df4c6b956d658493bc039f35661eaad086d89b96805a569c229bd"
 touch_only: ['scripts/mcp_gate_dispatch.py']

@@ -10,8 +10,8 @@ target: scripts/preflight.py
 signature: "def run_preflight(repo_root='.', contract=None, runner=None) -> dict"
 test_command: "python -m unittest tests/test_preflight.py"
 budget:
-  max_cyclomatic_complexity: 14
-  max_nesting_depth: 4
+  cyclomatic_max: 14
+  nesting_max: 4
 tests: "tests/test_preflight.py"
 tests_sha256: "d4f56f0da4d3aaa25cd84b631339b23b754839790e6174166df62e12d29c4111"
 touch_only: ['scripts/preflight.py']

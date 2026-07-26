@@ -10,8 +10,8 @@ target: src/payment_limit.py
 signature: "def validate_payment_limit(payment: dict, limits: dict) -> list:"
 test_command: "python -m unittest tests/test_payment_limit.py"
 budget:
-  max_cyclomatic_complexity: 10
-  max_nesting_depth: 3
+  cyclomatic_max: 10
+  nesting_max: 3
 tests: "tests/test_payment_limit.py"
 tests_sha256: "e484831ce7394394bf0e437b85570593847c687b6faf2f764852d5d5a8c8a311"
 touch_only: ['src/payment_limit.py']

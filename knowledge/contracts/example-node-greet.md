@@ -10,8 +10,8 @@ target: examples/multi-lang/node/greet.js
 signature: "function greet(name)"
 test_command: "node --test examples/multi-lang/node/greet.test.js"
 budget:
-  max_cyclomatic_complexity: 2
-  max_nesting_depth: 1
+  cyclomatic_max: 2
+  nesting_max: 1
 tests: "examples/multi-lang/node/greet.test.js"
 tests_sha256: "6166d4b2051722084c04d4ee4cd2821fc052513fecc1ac0ddec23f808eb51610"
 touch_only: ['examples/multi-lang/node/greet.js']

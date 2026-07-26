@@ -10,8 +10,8 @@ target: scripts/validate_changelog.py
 signature: "def validate_changelog(changelog_path, reports_dir) -> list"
 test_command: "python -m unittest tests/test_validate_changelog.py"
 budget:
-  max_cyclomatic_complexity: 10
-  max_nesting_depth: 4
+  cyclomatic_max: 10
+  nesting_max: 4
 tests: "tests/test_validate_changelog.py"
 tests_sha256: "9e608944105280c00ca31d1be406245c77a458fb14f00f83946701fe0df580bf"
 touch_only: ['scripts/validate_changelog.py']

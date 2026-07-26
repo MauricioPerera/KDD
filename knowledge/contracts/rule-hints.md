@@ -10,8 +10,8 @@ target: scripts/rule_hints.py
 signature: "def hint_for(rule_id) -> str"
 test_command: "python -m unittest tests/test_rule_hints.py"
 budget:
-  max_cyclomatic_complexity: 12
-  max_nesting_depth: 3
+  cyclomatic_max: 12
+  nesting_max: 3
 tests: "tests/test_rule_hints.py"
 tests_sha256: "a0f1d783af943d98f86f8afdfe61d97fda01eaec3aa2e14cf409405e3b8c7c18"
 touch_only: ['scripts/rule_hints.py']

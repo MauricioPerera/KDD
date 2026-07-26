@@ -10,8 +10,8 @@ target: tests/test_versioning.py
 signature: "def test_changelog_first_entry_is_semver(self) -> None:"
 test_command: "python -m unittest tests/test_versioning.py"
 budget:
-  max_cyclomatic_complexity: 5
-  max_nesting_depth: 3
+  cyclomatic_max: 5
+  nesting_max: 3
 tests: "tests/test_versioning.py"
 tests_sha256: "0115ea5cd92b787cdc46f2e4717fe1d6f582fca711579d0ff2125b0416bae9e2"
 touch_only: ['tests/test_versioning.py']

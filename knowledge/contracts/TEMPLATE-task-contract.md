@@ -10,8 +10,8 @@ target: <ruta/al/archivo.py>
 signature: "<def firma(arg: tipo) -> tipo:>"
 test_command: "<comando que corre SOLO los tests de esta tarea, ej. 'python -m unittest tests/test_x.py'>"
 budget:
-  max_cyclomatic_complexity: <numero, empeza en 5-8 para funciones simples>
-  max_nesting_depth: <numero, 2-3 salvo razon documentada>
+  cyclomatic_max: <numero, empeza en 5-8 para funciones simples>
+  nesting_max: <numero, 2-3 salvo razon documentada>
 tests: "<ruta/al/archivo/de/tests>"
 tests_sha256: "<64 chars hex — generalo con: python scripts/validate_contracts.py --hash <ruta/al/archivo/de/tests>>"
 touch_only: ['<ruta/al/archivo.py>']

@@ -10,8 +10,8 @@ target: scripts/validate_okf.py
 signature: "def validate_okf(knowledge_dir: str) -> list:"
 test_command: "python -m unittest tests/test_validate_okf.py"
 budget:
-  max_cyclomatic_complexity: 10
-  max_nesting_depth: 4
+  cyclomatic_max: 10
+  nesting_max: 4
 tests: "tests/test_validate_okf.py"
 tests_sha256: "9374f08adbbb49ca85b3626aa21a36310982d4e5fe39989d435e6428dbc5b95c"
 touch_only: ['scripts/validate_okf.py']

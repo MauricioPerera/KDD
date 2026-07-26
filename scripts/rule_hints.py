@@ -57,6 +57,14 @@ HINTS = {
         "El archivo de tests SI esta cubierto por 'touch_only', asi que el implementador "
         "podria editar su propio oraculo. Quitalo de touch_only: quien implementa nunca "
         "define el exito (Capa 0 de la metodologia).",
+    'FM_BUDGET_KEY':
+        "Una subclave de 'budget' no es de las que el gate de Nivel 2 LEE, asi que ese tope "
+        "no se aplicaria: el gate cae a su config firmada y el budget queda decorativo. Usa "
+        "exactamente 'cyclomatic_max', 'nesting_max', 'lines_max' o 'params_max' (el mensaje "
+        "del error nombra el reemplazo si era un alias historico).",
+    'FM_BUDGET_VALUE':
+        "Una subclave de 'budget' no tiene un entero positivo. Un tope solo es comparable si "
+        "es un numero: escribi 'cyclomatic_max: 8', sin comillas ni texto.",
 
     # -- validate_okf.py: estructura de los nodos de conocimiento ---------------
     'FM_KEY':

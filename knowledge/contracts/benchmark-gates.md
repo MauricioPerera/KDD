@@ -10,8 +10,8 @@ target: scripts/benchmark_gates.py
 signature: "def benchmark_gates(gates, suite_cmd, repo_root, run_fn, timer_fn, reps=3, warmup=1, suite_passes=2) -> dict"
 test_command: "python -m unittest tests/test_benchmark_gates.py"
 budget:
-  max_cyclomatic_complexity: 10
-  max_nesting_depth: 4
+  cyclomatic_max: 10
+  nesting_max: 4
 tests: "tests/test_benchmark_gates.py"
 tests_sha256: "40be4eb9a5edab21a76c5762f604f0f69fe79686dad54a6ee0b1d4af0a84915a"
 touch_only: ['scripts/benchmark_gates.py']
