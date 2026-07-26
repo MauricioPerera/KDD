@@ -7,6 +7,11 @@ Stripe) y bloques de private key. NO deteccion de alta entropia generica, para
 no generar falsos positivos masivos contra los ``tests_sha256`` de 64 hex chars
 que ya viven en ``knowledge/contracts/*.md`` de este mismo repo.
 
+La COBERTURA es la lista ``DEFAULT_EXTENSIONS``: lo que no esta ahi no se mira.
+Por eso el gate avisa (``SECRETS_NO_FILES_SCANNED``) cuando un directorio tiene
+archivos y ninguno matcheo -- el modo de fallo peligroso de un escaner de
+secretos no es reportar de mas, es salir verde sin haber leido nada.
+
 Ver knowledge/contracts/secret-scan-gate.md para el contrato completo y
 tests/test_scan_secrets.py para el oraculo congelado.
 """
@@ -61,39 +66,79 @@ def scan_file(path):
     return findings
 
 
-def scan_directory(directory, extensions=('.py', '.js', '.ts', '.md', '.json')):
+# Extensiones escaneadas por defecto. La lista ES la cobertura del gate: una
+# extension ausente no se reporta como "sin secretos", simplemente NUNCA se mira.
+# Historia: hasta esta version la lista era ('.py','.js','.ts','.md','.json'), asi
+# que en un proyecto Rust/Go/Java el gate escaneaba CERO archivos y salia 0 -- un
+# gate de seguridad reportando verde sin haber leido nada. Cubre los lenguajes con
+# backend en el gate (ver metrics_treesitter) mas los formatos de config/script
+# donde las credenciales aparecen igual de seguido.
+DEFAULT_EXTENSIONS = (
+    # lenguajes
+    '.py', '.pyi', '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.rs', '.go',
+    '.java', '.cs', '.php', '.rb', '.kt', '.kts', '.c', '.h', '.cpp', '.cc',
+    '.cxx', '.hpp', '.swift',
+    # config, scripts y texto
+    '.md', '.json', '.yaml', '.yml', '.toml', '.ini', '.cfg', '.conf', '.env',
+    '.properties', '.sh', '.bash', '.zsh', '.ps1', '.sql', '.tf', '.tfvars',
+    '.xml', '.gradle', '.txt',
+)
+
+SECRETS_NO_FILES_SCANNED = 'SECRETS_NO_FILES_SCANNED'
+
+
+def scan_directory(directory, extensions=None):
     """Recorre directory recursivamente y escanea archivos con extensions dadas.
 
-    Ignora directorios ocultos (nombre empieza con ``.``), ``__pycache__`` y
-    ``node_modules``. Directorio inexistente -> ``[]`` (no es error del gate).
+    `extensions` None usa ``DEFAULT_EXTENSIONS``. Ignora directorios ocultos
+    (nombre empieza con ``.``), ``__pycache__`` y ``node_modules``. Directorio
+    inexistente -> ``[]`` (no es error del gate).
+
+    Si el directorio TIENE archivos pero ninguno matchea la extension, agrega un
+    finding WARNING ``SECRETS_NO_FILES_SCANNED``: el modo de fallo peligroso de
+    este gate no es reportar de mas, es salir en verde sin haber mirado nada.
     """
     if not os.path.isdir(directory):
         return []
-    exts = tuple(e.lower() for e in extensions)
+    exts = tuple(e.lower() for e in
+                 (DEFAULT_EXTENSIONS if extensions is None else extensions))
     findings = []
+    seen_any = False
+    scanned = 0
     for root, dirs, files in os.walk(directory):
         dirs[:] = [d for d in dirs if not d.startswith('.')
                    and d not in ('__pycache__', 'node_modules')]
         for name in files:
+            seen_any = True
             if name.lower().endswith(exts):
+                scanned += 1
                 findings.extend(scan_file(os.path.join(root, name)))
     findings.sort(key=lambda f: f['file'])
+    if seen_any and scanned == 0:
+        findings.append({
+            'file': directory, 'level': 'WARNING',
+            'rule': SECRETS_NO_FILES_SCANNED,
+            'msg': 'el directorio tiene archivos pero ninguno matchea las '
+                   'extensiones escaneadas: este gate NO miro nada aqui'})
     return findings
 
 
 def main(argv):
     """argv[1:] son directorios a escanear (default ['src']).
 
-    Imprime cada finding como ``"ERROR [<rule>] <file>: <msg>"`` y devuelve 0
-    si no hay findings, 1 si hay >=1.
+    Imprime cada finding como ``"<LEVEL> [<rule>] <file>: <msg>"``. Devuelve 1
+    si hay algun ERROR (una credencial), 0 si no. El WARNING de cobertura
+    (``SECRETS_NO_FILES_SCANNED``) se imprime pero NO rompe el build: avisa que
+    el gate no miro nada, no que haya un secreto.
     """
     dirs = argv[1:] if len(argv) > 1 else ['src']
     findings = []
     for d in dirs:
         findings.extend(scan_directory(d))
     for f in findings:
-        print("ERROR [{}] {}: {}".format(f['rule'], f['file'], f['msg']))
-    return 1 if findings else 0
+        print("{} [{}] {}: {}".format(
+            f.get('level', 'ERROR'), f['rule'], f['file'], f['msg']))
+    return 1 if any(f.get('level', 'ERROR') == 'ERROR' for f in findings) else 0
 
 
 if __name__ == '__main__':

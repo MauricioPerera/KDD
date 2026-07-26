@@ -271,6 +271,12 @@ HINTS = {
         "Los tests no referencian al target del contrato: probablemente no lo estan ejercitando. "
         "Importalo y llamalo, o corrige el 'target'.",
 
+    'SECRETS_NO_FILES_SCANNED':
+        "El escaner de secretos no miro NI UN archivo en ese directorio: tiene archivos, pero "
+        "ninguno con una extension de DEFAULT_EXTENSIONS. No es que no haya secretos, es que "
+        "no se busco. Pasa la extension de tu lenguaje al script, o apunta el gate al "
+        "directorio correcto.",
+
     # -- audit_forbids.py: forbids declarado vs realmente impedido --------------
     'FORBID_UNVERIFIED':
         "Esa capacidad de 'forbids' no tiene verificador mecanico para el lenguaje del target, "

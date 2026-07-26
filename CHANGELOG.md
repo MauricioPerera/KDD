@@ -4,6 +4,31 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+**El gate de secretos era un no-op completo en proyectos no-Python.** Tercer caso de la misma
+clase (despues del `budget` y del `forbids`), y el mas grave porque es **seguridad y corre en
+CI**: `scan_secrets.py` escaneaba solo `('.py','.js','.ts','.md','.json')`, asi que en un
+proyecto Rust/Go/Java/C# **miraba CERO archivos y salia 0**. Verde, sin haber leido nada.
+
+- **Demostrado, no supuesto**: la MISMA clave `AKIAIOSFODNN7EXAMPLE` en un `.py` daba
+  `ERROR [AWS_KEY]` + exit 1; en un `.rs`, exit 0 silencioso.
+- **El oraculo congelado certificaba el agujero.** `test_custom_extensions` asertaba literalmente
+  que un `.rs` con una credencial devolvia `[]`. Leccion sobre oraculos: congelan el
+  comportamiento que TENIAS, incluido el que esta mal — `audit_seals` detecta seals debiles, no
+  seals equivocados.
+- `DEFAULT_EXTENSIONS` ahora es una constante introspectable que cubre los lenguajes con backend
+  en el gate (`.rs`, `.go`, `.java`, `.cs`, `.php`, `.rb`, `.kt`, `.c`/`.cpp`, `.swift`, `.ts`,
+  `.py`...) mas config y scripts donde las credenciales viven igual de seguido (`.toml`,
+  `.yaml`, `.env`, `.sh`, `.tf`, `.sql`...).
+- **Ampliar la lista no alcanzaba**: la proxima extension ausente reproduce el bug en silencio.
+  Nuevo `SECRETS_NO_FILES_SCANNED` (WARNING): si un directorio TIENE archivos y ninguno matchea,
+  el gate lo dice. No rompe el build — avisa que no miro nada, no que haya un secreto. `main`
+  pasa a respetar el `level` del finding y solo cuenta ERRORs para el exit code.
+- Regresion cubierta en el oraculo: un secreto identico plantado en 14 extensiones
+  (`.rs`, `.go`, `.java`, `.cs`, `.rb`, `.kt`, `.swift`, `.c`, `.cpp`, `.php`, `.toml`, `.yaml`,
+  `.env`, `.sh`) debe detectarse en todas. Suite 692 -> 696; `tests/test_scan_secrets.py`
+  re-sellado (cambio legitimo del oraculo, visible en el diff del sello).
+- `rule_hints` gana la receta de `SECRETS_NO_FILES_SCANNED`; conteo **106 -> 107** rule-ids.
+
 **El `forbids` que declarabas tampoco estaba impedido** — segundo campo del contrato que resulta
 decorativo, hallado tirando del mismo hilo que el `budget`. `tc_lint` solo avisa si `forbids`
 esta vacio; **nadie verificaba su contenido**. Un contrato podia declarar `forbids: ['unsafe']`
