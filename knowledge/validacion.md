@@ -48,6 +48,41 @@ corren juntos, porque `validate_attestation` solo tiene sentido sobre
 un agente**, para no mandarle un repo que ya rompe un gate. Ver
 [preflight](./contracts/preflight.md).
 
+Con `--agent`, cada gate en rojo arrastra la **receta de arreglo** de cada
+rule-id que reportó (ver la sección siguiente). El flag no cambia el
+veredicto ni el exit code: solo enriquece la salida.
+
+## Recetas de arreglo por rule-id (`scripts/rule_hints.py`)
+
+Los validadores dicen **qué** falló (`clave requerida ausente: type`), no
+**qué hacer**. Un humano lo deduce leyendo el nodo OKF correspondiente; un
+agente efímero, que llega en frío y no tiene ese contexto, itera a ciegas.
+`scripts/rule_hints.py` es el mapa `rule-id → receta` que cierra ese hueco:
+
+```
+python scripts/rule_hints.py FM_TESTS_FROZEN   # una receta
+python scripts/rule_hints.py --all             # todas
+python scripts/rule_hints.py --json            # el mapa completo
+python scripts/preflight.py --agent            # gates en rojo + su receta
+```
+
+Como dato es importable: `hint_for(rule_id)` devuelve la receta (o un
+fallback genérico que apunta a este nodo, nunca vacío), y
+`enrich(findings)` agrega `hint` a una lista de findings
+`{file, level, rule, msg}` sin mutar la entrada.
+
+**Contrato de una receta:** dice qué hacer, no repite el error; nombra el
+archivo, la clave o el comando concreto; cabe en 1-3 líneas. La cobertura
+la gatea `tests/test_rule_hints.py` en las **dos** direcciones — todo
+rule-id que un validador pueda emitir debe tener receta, y ninguna receta
+puede documentar un código que ningún validador emite. Sin ese gate el
+mapa envejece en silencio, que es justo lo que venía a evitar.
+
+Linaje: es el análogo de `tools/rule-hints.js` del proyecto hermano
+[game-protocol](https://github.com/MauricioPerera/game-protocol), donde
+cada hallazgo del linter viaja con su arreglo en el modo `--agent`. Ver
+[el puente entre ambos](./game-data-bridge.md).
+
 ## Auditor de seals débiles — diagnóstico opt-in (NO es un gate)
 
 `python scripts/audit_seals.py [contracts_dir] [--repo-root DIR] [--strict]`
