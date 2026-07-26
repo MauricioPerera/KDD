@@ -4,6 +4,18 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+_Sin cambios pendientes._
+
+## v1.12.0 — 2026-07-26
+
+**Tres campos del contrato que se declaraban y no se verificaban.** Esta release sale de
+instanciar la plantilla en un proyecto Rust real y encontrar, tirando del mismo hilo tres veces,
+que el `budget`, el `forbids` y el escaneo de secretos **decian** cubrir algo que no cubrian —
+y que en los tres casos el fallo era el mismo: **verde silencioso**, no un error visible. Ninguno
+era detectable sin leer el codigo del gate. El tema comun queda escrito porque es la leccion, no
+la anecdota: un gate que no puede reportar su propia ausencia de cobertura no es un gate, es una
+sensacion de cobertura.
+
 **El gate de secretos era un no-op completo en proyectos no-Python.** Tercer caso de la misma
 clase (despues del `budget` y del `forbids`), y el mas grave porque es **seguridad y corre en
 CI**: `scan_secrets.py` escaneaba solo `('.py','.js','.ts','.md','.json')`, asi que en un
