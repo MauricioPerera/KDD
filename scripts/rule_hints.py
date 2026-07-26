@@ -271,6 +271,20 @@ HINTS = {
         "Los tests no referencian al target del contrato: probablemente no lo estan ejercitando. "
         "Importalo y llamalo, o corrige el 'target'.",
 
+    # -- audit_forbids.py: forbids declarado vs realmente impedido --------------
+    'FORBID_UNVERIFIED':
+        "Esa capacidad de 'forbids' no tiene verificador mecanico para el lenguaje del target, "
+        "asi que sigue siendo declarativa. No es un error: es el auditor diciendote que parte "
+        "de tu 'forbids' es garantia y que parte es intencion.",
+    'FORBID_UNSAFE_PRESENT':
+        "El contrato declara 'forbids: unsafe' pero el target USA unsafe y el crate no lo "
+        "deniega. Saca el unsafe, o si el proyecto lo necesita, quita la prohibicion del "
+        "contrato: declarar algo que no se cumple es peor que no declararlo.",
+    'FORBID_UNSAFE_UNENFORCED':
+        "Declaras 'forbids: unsafe' pero nada lo impide a nivel compilador: hoy el target no lo "
+        "usa, y manana si. Agrega 'unsafe_code = \"deny\"' bajo [lints.rust] del Cargo.toml, o "
+        "'#![forbid(unsafe_code)]' en la raiz del crate: eso cubre el crate entero, no un archivo.",
+
     # -- validate_commit_message.py: convencion de mensajes ---------------------
     'CONFIG_MISSING':
         "No se encontro la configuracion de la convencion de commits. Crea el JSON de "
