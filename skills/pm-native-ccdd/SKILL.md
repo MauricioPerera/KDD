@@ -1,6 +1,6 @@
 ---
 name: pm-native-ccdd
-description: Variante NATIVA del PM/orquestador CCDD que usa sub-agentes de la app de Claude (tool Agent con model override) en vez de GLM/Ollama externo. Claude autora contrato + tests congelados (oráculo), delega la IMPLEMENTACIÓN a un sub-agente barato (Haiku 4.5), y verifica por el gate CCDD determinista. Úsala cuando quieras el flujo PM+CCDD sin la fragilidad de ollama, con aislamiento por worktree para paralelismo y reintentos con contexto vía SendMessage. Hermana de pm-glm-ccdd (misma metodología; cambia SOLO el mecanismo de delegación). Deslinde con pm-sonnet-opus-haiku — si el repo usa CCDD/KDD y el veredicto lo da el gate determinista, usá ESTA; si no hay gate y el QA es revisión por modelo (subagente revisor), usá pm-sonnet-opus-haiku.
+description: 'Variante NATIVA del PM/orquestador CCDD que usa sub-agentes de la app de Claude (tool Agent con model override) en vez de GLM/Ollama externo. Claude autora contrato + tests congelados (oráculo), delega la IMPLEMENTACIÓN a un sub-agente barato (Haiku 4.5), y verifica por el gate CCDD determinista. Úsala cuando quieras el flujo PM+CCDD sin la fragilidad de ollama, con aislamiento por worktree para paralelismo y reintentos con contexto vía SendMessage. Hermana de pm-glm-ccdd (misma metodología; cambia SOLO el mecanismo de delegación). Deslinde con pm-sonnet-opus-haiku: mismo gate CCDD/KDD como verificador si el repo lo trae, pero tiering de implementador distinto — esta usa Haiku barato con escalado a Sonnet; pm-sonnet-opus-haiku usa Opus fijo (más caro) más QA/verificación adversarial opcional en capas. Elegí ESTA para el flujo 100% CCDD con implementador barato; usá pm-sonnet-opus-haiku si preferís implementador Opus + QA por capas.'
 ---
 
 # PM nativo · Devs = sub-agentes de la app (Agent + model override) · QA = CCDD gate
@@ -76,5 +76,38 @@ en costo bruto; v2 gana en fiabilidad y ergonomía. Decidilo por A/B (el gate es
 
 ## Todo lo demás (idéntico a pm-glm-ccdd)
 Plantilla de spec, red-team del HECHO, RECON, política de reintentos/timeouts, verify-by-artifact,
-suite 2x anti-flaky, "el orquestador corre el gate": ver [pm-glm-ccdd](../pm-glm-ccdd/SKILL.md).
-Esta skill NO los reescribe; solo cambia el mecanismo de delegación.
+suite 2x anti-flaky, "el orquestador corre el gate", y **memoria compartida cq-git** (query en el paso 0
+del PLAN; el conocimiento viaja en la spec, nunca como tools del subagente; FAIL→PASS no obvio =
+candidato a KU; confirm/flag para cerrar el loop; cq no relaja el gate): ver
+[pm-glm-ccdd](../pm-glm-ccdd/SKILL.md). Esta skill NO los reescribe; solo cambia el mecanismo de delegación.
+
+## Lecciones del gate CCDD (verificado, demo en repo TypeScript)
+- **Redactar el contrato formal toma varias vueltas de `lint_task_contract`**: exige, además de
+  los campos obvios (`task`/`intent`/`target`/`signature`), los campos `budget`/`tests`/
+  `test_command` en el frontmatter, y 7 secciones en un ORDEN CANÓNICO específico (`## Intent`,
+  `## Interface`, `## Invariants`, `## Examples`, `## Do / Don't`, `## Tests`, `## Constraints` —
+  Tests va DESPUÉS de Do/Don't, no antes). No lo escribas de memoria: mandá un primer intento
+  mínimo y corregí contra los `findings` que devuelve; es más rápido que adivinar el formato completo.
+- **`check_signature` es AST puro y asume Python**: a diferencia de `lint_task_contract` y
+  `measure_complexity`, su schema NO tiene parámetro `language` — devuelve `{"mismatch": "parse error"}`
+  en TS/JS/otros lenguajes. En repos no-Python, la verificación de firma dentro del paso 5 (Verificar)
+  queda limitada a `lint_task_contract` (que sí valida firma "por aridad genérica" para lenguajes sin
+  parser nativo) + `measure_complexity`; no uses `check_signature` como parte del veredicto fuera de Python.
+
+## Gate sin MCP: Nivel 1 de KDD (verificado, demo con el template real)
+Si el repo es un [KDD](https://github.com/MauricioPerera/KDD) instanciado (`scripts/validate_contracts.py`
++ `knowledge/contracts/` presentes), el paso 3 (contrato + lint) y el paso 5 (verificar) tienen una vía
+SIN MCP, más portable que `lint_task_contract`/`measure_complexity`:
+- Contrato en `knowledge/contracts/<task>.md` con el esquema completo de KDD: frontmatter OKF
+  (`type`/`title`/`description`/`tags`) + campos CCDD + **`tests_sha256` obligatorio** (sellado con
+  `python scripts/validate_contracts.py --hash <ruta-tests>` — congela el archivo de tests; si alguien
+  lo edita después, el hash no matchea y el validador lo marca en rojo).
+- Lint/veredicto: `python scripts/validate_contracts.py knowledge/contracts` + el `test_command` del
+  contrato, ambos en verde. Escrito con el esquema completo desde el principio, pasó en la primera
+  pasada (sin las vueltas de iteración que sí hacen falta contra `lint_task_contract`).
+- Diferencia real: sin el MCP (solo Nivel 1), el `budget` del frontmatter es DECLARATIVO — el
+  validador solo chequea que esté presente, no lo hace cumplir. El enforcement real de complejidad
+  sigue siendo trabajo de `measure_complexity`/`run_integration_gate` (Nivel 2, con MCP). Si el MCP
+  está disponible, seguí usándolo para esa parte — no es sustituible por Nivel 1 solo.
+- Esto NO reemplaza el paso 4 (Delegar impl): el implementador sigue siendo un dev nativo (Haiku/Opus
+  vía `Agent`), no cambia por tener KDD instanciado — el gate solo cambia CÓMO se verifica.
