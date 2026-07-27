@@ -2,11 +2,14 @@
 
 Fija el comportamiento de ``scripts/audit_forbids.py``: auditor ADVISORY que
 compara el ``forbids`` DECLARADO en un task contract contra lo que realmente
-esta impedido. Hoy tiene un solo verificador -- ``unsafe`` en Rust -- porque
-es el unico donde la prohibicion es comprobable de verdad: rustc la puede
-imponer sobre el crate entero. Las capacidades sin verificador se reportan
-como ``FORBID_UNVERIFIED``, NO como sanas: la diferencia entre "verificado" y
-"no verificable" es justo lo que este auditor existe para hacer explicita.
+esta impedido. Hoy tiene dos verificadores, ambos para ``unsafe`` -- Rust y
+Go -- y son deliberadamente distintos. Rust es el unico donde la prohibicion
+es comprobable de verdad: rustc la impone sobre el crate entero. Go NO tiene
+mecanismo de compilador equivalente, asi que su verificador solo comprueba
+PRESENCIA del import (``go_denies_unsafe`` es siempre False). Las capacidades
+sin verificador se reportan como ``FORBID_UNVERIFIED``, NO como sanas: la
+diferencia entre "verificado" y "no verificable" es justo lo que este
+auditor existe para hacer explicita.
 
   API:
     Reglas: ``FORBID_UNVERIFIED``, ``FORBID_UNSAFE_PRESENT``,
@@ -290,6 +293,226 @@ class MainCli(Fixture):
     def test_repo_root_con_igual(self):
         d = self._build()
         code = af.main(['audit_forbids.py', d, '--repo-root=' + self.tmp])
+        self.assertEqual(code, 0)
+
+
+GO_CONTRACT = """---
+type: 'Task Contract'
+title: 'Demo Go'
+task: demo
+intent: "Demostrar."
+language: go
+target: main.go
+signature: "func Demo(a int) int"
+test_command: "go test"
+budget:
+  cyclomatic_max: 5
+  nesting_max: 2
+tests: "main_test.go"
+tests_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+touch_only: ['main.go']
+deps_allowed: []
+forbids: ['unsafe']
+---
+
+## Intent
+x
+
+## Interface
+func Demo(a int) int
+
+## Invariants
+- x
+
+## Examples
+- Demo(1) -> 1
+
+## Do / Don't
+- DO: x
+
+## Tests
+main_test.go
+
+## Constraints
+- PARAR y reportar si x.
+"""
+
+
+class GoFixture(unittest.TestCase):
+    """Proyecto Go minimo en tmpdir, parametrizable por caso.
+
+    A diferencia de ``Fixture`` (Rust), no escribe ``Cargo.toml`` ni ``go.mod``:
+    ``go_denies_unsafe`` es siempre False (Go no tiene mecanismo de compilador
+    para prohibir el paquete unsafe), asi que el manifiesto es irrelevante para
+    el auditor. Solo hacen falta el target ``.go`` y el contrato.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _build_go(self, contract=GO_CONTRACT,
+                  gofile='package main\n\n'
+                         'func Demo(a int) int { return a }\n'):
+        _write(self.tmp, 'main.go', gofile)
+        _write(self.tmp, 'knowledge/contracts/demo.md', contract)
+        return os.path.join(self.tmp, 'knowledge', 'contracts')
+
+    def _rules(self, contracts_dir):
+        res = af.audit_forbids(contracts_dir, self.tmp)
+        return {f['rule'] for f in res['findings']}
+
+
+class GoHasUnsafeImport(unittest.TestCase):
+    """Deteccion del import del paquete unsafe, anclada al import."""
+
+    def test_comentario_de_linea_no_cuenta(self):
+        self.assertFalse(af.go_has_unsafe_import(
+            '// import "unsafe"\npackage main\n'))
+
+    def test_comentario_de_bloque_no_cuenta(self):
+        self.assertFalse(af.go_has_unsafe_import(
+            '/* import "unsafe" */\npackage main\n'))
+
+    def test_string_normal_no_cuenta(self):
+        # Un string con comillas dobles que contiene "unsafe" no es un import:
+        # la deteccion se ancla a ^import, no a cualquier aparicion de la
+        # palabra. go_strip_noise NO quita los strings con comillas dobles
+        # (la ruta del import es uno), pero como no empiezan con `import`, no
+        # matchean.
+        self.assertFalse(af.go_has_unsafe_import(
+            'package main\nvar s = "unsafe"\n'))
+
+    def test_string_normal_con_palabra_import_no_cuenta(self):
+        # Incluso un string que literalmente dice `import "unsafe"` no cuenta:
+        # la linea empieza con `var`, no con `import`.
+        self.assertFalse(af.go_has_unsafe_import(
+            'package main\nvar s = "import \\"unsafe\\""\n'))
+
+    def test_raw_string_no_cuenta(self):
+        # Un raw string (backtick) puede spansar lineas y fingir un import;
+        # go_strip_noise lo quita. Sin el stripping, la linea `import
+        # "unsafe"` dentro del raw contaria falsamente.
+        self.assertFalse(af.go_has_unsafe_import(
+            'package main\nvar s = `\nimport "unsafe"\n`\n'))
+
+    def test_import_linea_unica_cuenta(self):
+        self.assertTrue(af.go_has_unsafe_import(
+            'package main\nimport "unsafe"\n'))
+
+    def test_import_agrupado_cuenta(self):
+        self.assertTrue(af.go_has_unsafe_import(
+            'package main\nimport (\n\t"fmt"\n\t"unsafe"\n)\n'))
+
+    def test_import_aliasado_cuenta(self):
+        self.assertTrue(af.go_has_unsafe_import(
+            'package main\nimport u "unsafe"\n'))
+
+    def test_import_blank_cuenta(self):
+        self.assertTrue(af.go_has_unsafe_import(
+            'package main\nimport _ "unsafe"\n'))
+
+    def test_import_dot_cuenta(self):
+        self.assertTrue(af.go_has_unsafe_import(
+            'package main\nimport . "unsafe"\n'))
+
+    def test_import_agrupado_aliasado_cuenta(self):
+        self.assertTrue(af.go_has_unsafe_import(
+            'package main\nimport (\n\tu "unsafe"\n)\n'))
+
+    def test_identificador_no_es_import(self):
+        # `isUnsafe` / `unsafePool` son identificadores, no el import del
+        # paquete: un `\bunsafe\b` sobre todo el archivo daria falso positivo
+        # aqui. La deteccion anclada al import no los cuenta.
+        self.assertFalse(af.go_has_unsafe_import(
+            'package main\nvar isUnsafe = 1\nvar unsafePool = 2\n'))
+
+    def test_import_otro_paquete_no_cuenta(self):
+        self.assertFalse(af.go_has_unsafe_import(
+            'package main\nimport "fmt"\n'))
+
+    def test_import_agrupado_sin_unsafe_no_cuenta(self):
+        self.assertFalse(af.go_has_unsafe_import(
+            'package main\nimport (\n\t"fmt"\n\t"os"\n)\n'))
+
+
+class GoDeniesUnsafe(GoFixture):
+    def test_siempre_false_go_no_tiene_mecanismo(self):
+        # Go NO tiene mecanismo de compilador para prohibir el paquete unsafe a
+        # nivel proyecto (no hay flag de build, ni lint estandar, ni convencion
+        # en go.mod, a diferencia de Rust). go_denies_unsafe devuelve False
+        # siempre, por diseno: es la honestidad de la ausencia de enforcement,
+        # no un bug pendiente. Si algun dia se integra un analizador estatico
+        # custom (go/analysis) que verifique la denegacion, esta funcion es
+        # donde anzadirlo -- mientras tanto, devuelve False.
+        self._build_go()
+        self.assertFalse(af.go_denies_unsafe('main.go', self.tmp))
+
+
+class GoAuditFindings(GoFixture):
+    def test_declarado_sin_import_es_warning_unenforced(self):
+        d = self._build_go()
+        self.assertEqual(self._rules(d), {af.FORBID_UNSAFE_UNENFORCED})
+
+    def test_declarado_con_import_es_error_duro(self):
+        d = self._build_go(gofile='package main\nimport "unsafe"\n\n'
+                                   'func Demo(a int) int { return a }\n')
+        self.assertEqual(self._rules(d), {af.FORBID_UNSAFE_PRESENT})
+
+    def test_declarado_con_import_agrupado_es_error_duro(self):
+        d = self._build_go(gofile='package main\nimport (\n\t"unsafe"\n)\n\n'
+                                   'func Demo(a int) int { return a }\n')
+        self.assertEqual(self._rules(d), {af.FORBID_UNSAFE_PRESENT})
+
+    def test_go_no_tiene_denegacion_que_silencie_el_uso(self):
+        # A diferencia de Rust (donde denegar a nivel crate silencia el
+        # reporta), en Go no hay denegacion posible: un target que importa
+        # unsafe SIEMPRE es FORBID_UNSAFE_PRESENT, nunca [].
+        d = self._build_go(gofile='package main\nimport "unsafe"\n\n'
+                                   'func Demo(a int) int { return a }\n')
+        self.assertEqual(self._rules(d), {af.FORBID_UNSAFE_PRESENT})
+
+    def test_unsafe_en_lenguaje_sin_verificador_sigue_unverified(self):
+        # El verificador Go no rompe el comportamiento default: un lenguaje
+        # sin verificador para (unsafe, lang) sigue dando FORBID_UNVERIFIED.
+        d = self._build_go(contract=GO_CONTRACT.replace('language: go',
+                                                        'language: python'))
+        self.assertEqual(self._rules(d), {af.FORBID_UNVERIFIED})
+
+    def test_forbids_vacio_no_reporta(self):
+        d = self._build_go(contract=GO_CONTRACT.replace("forbids: ['unsafe']",
+                                                        'forbids: []'))
+        self.assertEqual(self._rules(d), set())
+
+    def test_template_se_salta(self):
+        d = self._build_go()
+        shutil.copy(os.path.join(d, 'demo.md'),
+                    os.path.join(d, 'TEMPLATE-task-contract.md'))
+        self.assertEqual(af.audit_forbids(d, self.tmp)['checked'], 1)
+
+
+class GoMainCli(GoFixture):
+    def test_sin_strict_siempre_exit0(self):
+        d = self._build_go(gofile='package main\nimport "unsafe"\n\n'
+                                   'func Demo(a int) int { return a }\n')
+        code = af.main(['audit_forbids.py', d, '--repo-root', self.tmp])
+        self.assertEqual(code, 0)
+
+    def test_strict_exit1_con_regla_dura(self):
+        d = self._build_go(gofile='package main\nimport "unsafe"\n\n'
+                                   'func Demo(a int) int { return a }\n')
+        code = af.main(['audit_forbids.py', d, '--repo-root', self.tmp,
+                        '--strict'])
+        self.assertEqual(code, 1)
+
+    def test_strict_exit0_si_solo_hay_unenforced(self):
+        # UNENFORCED es WARNING, no regla dura: no rompe el build ni con
+        # --strict.
+        d = self._build_go()
+        code = af.main(['audit_forbids.py', d, '--repo-root', self.tmp,
+                        '--strict'])
         self.assertEqual(code, 0)
 
 

@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 12
   nesting_max: 4
 tests: "tests/test_audit_forbids.py"
-tests_sha256: "fe9e43a3c4ff84e68227a97bd216ecf72a98965558bdfcfda821baa1d0c1283f"
+tests_sha256: "22a71647ad72d1838b6a3518e02c14fdbfed2cb84a437a4773275520fddf369c"
 touch_only: ['scripts/audit_forbids.py']
 deps_allowed: []
 forbids: ['network', 'subprocess', 'llm']
