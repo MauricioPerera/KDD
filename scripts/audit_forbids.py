@@ -12,10 +12,17 @@ declarada busca un verificador (capacidad, lenguaje); si no lo hay, lo dice
 con ``FORBID_UNVERIFIED`` en vez de callar -- asi queda explicito QUE parte de
 tu ``forbids`` es garantia y que parte sigue siendo intencion.
 
-Hoy hay un solo verificador: ``unsafe`` en Rust. Se eligio porque en Rust la
-prohibicion es comprobable de verdad -- el compilador la puede imponer sobre
-el crate entero (``#![forbid(unsafe_code)]`` o ``unsafe_code = "deny"`` en los
-lints del manifiesto), no solo sobre un archivo. ``network`` / ``subprocess``
+Hoy hay dos verificadores, ambos para ``unsafe``, en Rust y Go -- y son
+deliberadamente distintos. En Rust la prohibicion es comprobable de verdad:
+el compilador la impone sobre el crate entero (``#![forbid(unsafe_code)]`` o
+``unsafe_code = "deny"`` en los lints del manifiesto), no solo sobre un
+archivo; el verificador Rust comprueba esa denegacion y calla si existe. En
+Go NO existe mecanismo de compilador equivalente (no hay flag de build, ni
+lint estandar del toolchain, ni convencion en ``go.mod`` que prohiba el
+paquete ``unsafe`` a nivel proyecto): el verificador Go solo verifica
+PRESENCIA del import, nunca enforcement, y ``go_denies_unsafe`` devuelve
+``False`` siempre -- la honestidad de que hoy no hay denegacion mecanica es el
+valor de la funcion, no un defecto a disimular. ``network`` / ``subprocess``
 / ``llm`` quedan sin verificador: decidir si una llamada abre red exige mas
 que un scan textual y se reportan como no verificados, no como sanos.
 
@@ -40,6 +47,21 @@ API (congelada por ``tests/test_audit_forbids.py``):
   ``crate_denies_unsafe(target_path, repo_root) -> bool`` -- True si el crate
     del target deniega ``unsafe`` a nivel compilador (atributo en la raiz del
     crate, o lints del ``Cargo.toml`` propio o heredados del workspace).
+  ``go_strip_noise(src) -> str`` -- fuente Go sin comentarios de linea/bloque
+    ni literales string RAW (backtick). A diferencia de ``strip_noise`` de
+    Rust, NO quita los literales string con comillas dobles: la ruta de un
+    import Go es un literal con comillas dobles (``import "unsafe"``), y
+    quitarlo destruiria justo lo que ``go_has_unsafe_import`` detecta. Los
+    unicos falsos import posibles vienen de comentarios y raw strings (que SI
+    pueden contener una linea que empiece con ``import``); los strings con
+    comillas dobles no pueden spansar lineas en Go, asi que no pueden fingir
+    un import. Los comentarios de Python en este archivo pueden llevar tildes;
+    los literales string son ASCII puro (lo audita ``lint_ascii``).
+  ``go_has_unsafe_import(src) -> bool`` -- True si el fuente importa el
+    paquete ``"unsafe"`` (linea unica o bloque agrupado, con o sin alias).
+  ``go_denies_unsafe(target_path, repo_root) -> bool`` -- SIEMPRE False: Go no
+    tiene mecanismo de compilador para prohibir el paquete ``unsafe`` a nivel
+    proyecto. Punto de extension explicito para un futuro analizador estatico.
   ``audit_contract(contract_path, repo_root) -> list[dict]`` -- findings
     ``{'contract','rule','msg'}`` de UN contrato (lista vacia = sano).
   ``audit_forbids(contracts_dir='knowledge/contracts', repo_root='.') ->
@@ -215,9 +237,126 @@ def _audit_unsafe_rust(target, repo_root):
              "Solo se verifico que %s no lo use hoy" % target)]
 
 
+# --- Go -------------------------------------------------------------------
+#
+# Go es un lenguaje distinto de Rust en un punto importante que NO se oculta:
+# Go NO tiene ningun mecanismo de compilador para prohibir el paquete `unsafe`
+# a nivel de proyecto. No existe una flag de build, un lint estandar del
+# toolchain, ni una convencion equivalente en `go.mod` (Rust tiene
+# `unsafe_code = "deny"` / `#![forbid(unsafe_code)]`). Por eso el verificador Go
+# solo verifica PRESENCIA del import, nunca enforcement: `go_denies_unsafe`
+# devuelve False siempre, y la honestidad de esa ausencia es el valor.
+
+_GO_LINE_COMMENT = re.compile(r'//[^\n]*')
+_GO_BLOCK_COMMENT = re.compile(r'/\*.*?\*/', re.S)
+# Raw string de Go: `...` SIN procesamiento de escapes; un backtick no puede
+# contener otro backtick, asi que el cierre es el primer backtick siguiente.
+_GO_RAW_STRING = re.compile(r'`[^`]*`', re.S)
+
+
+def go_strip_noise(src):
+    """Fuente Go sin comentarios ni literales string RAW (backtick).
+
+    A diferencia de ``strip_noise`` de Rust, NO quita los literales string con
+    comillas dobles. La razon es especifica de Go: la ruta de un import Go es un
+    literal con comillas dobles (``import "unsafe"``), y quitarlo dejaria
+    ``import `` sin el nombre del paquete -- justo lo que
+    ``go_has_unsafe_import`` necesita ver. Los unicos falsos import posibles
+    vienen de comentarios y raw strings (que SI pueden contener una linea que
+    empiece con ``import``); los strings con comillas dobles no pueden spansar
+    lineas en Go, asi que no pueden fingir una linea ``import ...``. La
+    deteccion posterior se ancla al inicio de linea (``^import``), que un
+    string con comillas dobles cualquiera no puede cumplir.
+    """
+    out = _GO_BLOCK_COMMENT.sub(' ', src)
+    out = _GO_LINE_COMMENT.sub(' ', out)
+    return _GO_RAW_STRING.sub(' ', out)
+
+
+# Deteccion del import del paquete "unsafe", anclada al import (no a cualquier
+# aparicion de la palabra): un `\bunsafe\b` sobre todo el archivo daria falsos
+# positivos con identificadores como `isUnsafe` o `unsafePool`.
+# Alias valido en Go: un identificador (`u`, `unsafeAlias`), `_` (blank import)
+# o `.` (dot import). Import path siempre con comillas dobles.
+_GO_IMPORT_ALIAS = r'(?:[A-Za-z_]\w*|\.)\s+'
+_GO_SINGLE_IMPORT = re.compile(
+    r'^\s*import\s+(?:%s)?"unsafe"\s*$' % _GO_IMPORT_ALIAS, re.M)
+_GO_GROUPED_IMPORT = re.compile(r'^\s*import\s*\((.*?)\)', re.S | re.M)
+_GO_GROUPED_LINE = re.compile(
+    r'^\s*(?:%s)?"unsafe"\s*$' % _GO_IMPORT_ALIAS, re.M)
+
+
+def go_has_unsafe_import(src):
+    """True si `src` importa el paquete ``"unsafe"`` fuera de comentarios/raw.
+
+    Detecta tanto la forma de linea unica (``import "unsafe"``, con o sin
+    alias: ``import u "unsafe"``, ``import _ "unsafe"``, ``import . "unsafe"``)
+    como el ``"unsafe"`` (solo o con alias) dentro de un bloque de import
+    agrupado::
+
+        import (
+            "fmt"
+            "unsafe"
+        )
+
+    No usa un ``\\bunsafe\\b`` sobre todo el archivo: daria falsos positivos con
+    identificadores como ``isUnsafe`` o ``unsafePool`` que NO son el import.
+    La deteccion se ancla al import, no a cualquier aparicion de la palabra.
+    """
+    cleaned = go_strip_noise(src)
+    if _GO_SINGLE_IMPORT.search(cleaned) is not None:
+        return True
+    for m in _GO_GROUPED_IMPORT.finditer(cleaned):
+        if _GO_GROUPED_LINE.search(m.group(1)) is not None:
+            return True
+    return False
+
+
+def go_denies_unsafe(target_path, repo_root):
+    """True si el modulo Go del `target_path` deniega ``unsafe`` a nivel
+    compilador.
+
+    SIEMPRE devuelve False. Go NO tiene ningun mecanismo de compilador para
+    prohibir el paquete ``unsafe`` a nivel de proyecto: no existe una flag de
+    build, un lint estandar del toolchain, ni una convencion equivalente en
+    ``go.mod`` (a diferencia de Rust, que tiene ``unsafe_code = "deny"`` /
+    ``#![forbid(unsafe_code)]``). Por lo tanto no hay nada que checkear aqui,
+    y no se inventa un mecanismo falso ni se simula con un check debil (ej.
+    buscar un comentario magico) -- la honestidad de que HOY no hay
+    enforcement es el valor de la funcion, no un defecto a disimular.
+
+    Se deja como punto de extension explicito: si algun dia se integra un
+    analizador estatico custom (via ``go/analysis`` o un linter externo) que SI
+    verifique la denegacion a nivel proyecto, esta funcion es donde anzadirlo.
+    Mientras tanto, el verificador Go solo reporta PRESENCIA del import.
+    """
+    return False
+
+
+def _audit_unsafe_go(target, repo_root):
+    """Findings (rule, msg) de ``forbids: unsafe`` sobre un target Go."""
+    if go_denies_unsafe(target, repo_root):
+        return []  # hoy inalcanzable (go_denies_unsafe es siempre False), pero
+        # se llama igual que en Rust por consistencia y por si algun dia deja
+        # de ser siempre False al integrar un analizador estatico.
+    src = _read(os.path.join(repo_root, target))
+    if src is not None and go_has_unsafe_import(src):
+        return [(FORBID_UNSAFE_PRESENT,
+                 "declara forbids: unsafe pero %s importa el paquete unsafe"
+                 % target)]
+    return [(FORBID_UNSAFE_UNENFORCED,
+             "declara forbids: unsafe pero %s no esta impedido a nivel "
+             "compilador: Go no tiene mecanismo de compilador para prohibir el "
+             "paquete unsafe (no hay flag de build, ni lint estandar del "
+             "toolchain, ni convencion en go.mod), a diferencia de Rust "
+             "(unsafe_code = \"deny\"). Solo se verifico que %s no importa el "
+             "paquete unsafe hoy" % (target, target))]
+
+
 # (capacidad, lenguaje) -> verificador. Ausente = no verificable aun.
 _VERIFIERS = {
     ('unsafe', 'rust'): _audit_unsafe_rust,
+    ('unsafe', 'go'): _audit_unsafe_go,
 }
 
 
