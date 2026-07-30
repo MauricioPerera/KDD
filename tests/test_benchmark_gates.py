@@ -1,7 +1,8 @@
 """Oraculo congelado de la herramienta de benchmark (Contrato 29).
 
-Fija el comportamiento de ``scripts/benchmark_gates.py`` — mide los 11 gates de
-nivel 1 y la suite. La tension central: un benchmark real necesita subprocess
+Fija el comportamiento de ``scripts/benchmark_gates.py`` — mide los gates de
+nivel 1 (``GATES``, derivada de ``mcp_gate_dispatch.LEVEL1_GATES``, ver
+``TestConstantes``) y la suite. La tension central: un benchmark real necesita subprocess
 + reloj de pared, lo opuesto a "determinista, sin subprocess". Se resuelve por
 INYECCION DE DEPENDENCIAS: toda la orquestacion (``measure_repeated``,
 ``measure_suite``, ``benchmark_gates``, ``format_report``, ``count_errors``) es
@@ -63,6 +64,7 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 
 import benchmark_gates as bg  # noqa: E402
+import mcp_gate_dispatch  # noqa: E402
 
 
 def _seq_timer(values):
@@ -288,19 +290,23 @@ class TestMain(unittest.TestCase):
 
 
 class TestConstantes(unittest.TestCase):
-    def test_gates_son_los_11_reales_en_orden(self):
-        # Lista explicita (sin heuristicas, precedente MANIFEST de
-        # init_project.py): fija el orden real de knowledge/validacion.md,
-        # alineado con mcp_gate_dispatch.LEVEL1_GATES (Nivel 1 = todos los
-        # gates de CI salvo validate_attestation, local-only). Antes faltaban
-        # validate_test_commands y scan_secrets (AUDIT-01 H-5).
+    def test_gates_son_los_reales_de_nivel1_en_orden(self):
+        # Derivada de mcp_gate_dispatch.LEVEL1_GATES (Nivel 1 = todos los
+        # gates de CI salvo validate_attestation, local-only), NUNCA
+        # hardcodeada aparte -- un gate nuevo en GATE_SPECS aparece en
+        # bg.GATES solo con actualizar el dispatch, y este test lo sigue sin
+        # necesitar edicion (cierra la clase de bug de AUDIT-01 H-5: antes
+        # faltaban validate_test_commands/scan_secrets, despues
+        # validate_security_findings, cada vez a mano).
         nombres = [name for name, _cmd in bg.GATES]
-        self.assertEqual(nombres, [
-            "validate_contracts", "validate_specs", "validate_okf",
-            "lint_ascii", "validate_rules", "validate_skills",
-            "validate_changelog", "validate_ux_page", "validate_diagrams",
-            "validate_test_commands", "scan_secrets",
-        ])
+        self.assertEqual(nombres, list(mcp_gate_dispatch.LEVEL1_GATES))
+
+    def test_gates_cmd_coincide_con_build_argv(self):
+        # Cada cmd de GATES es exactamente build_argv(name, {}) del dispatch
+        # -- confirma que la derivacion no solo copia nombres, tambien arma
+        # el argv real (mismo mecanismo que usa run_gate en produccion).
+        for name, cmd in bg.GATES:
+            self.assertEqual(cmd, mcp_gate_dispatch.build_argv(name, {}), name)
 
     def test_no_hay_subprocess_ni_perf_counter_fuera_de_main(self):
         # Grep estructural: subprocess.run/time.perf_counter solo dentro de
