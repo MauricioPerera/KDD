@@ -1,0 +1,37 @@
+{
+ "_comment": "Rule contract del dominio hallazgos de seguridad (Capa 3 de KDD). Opera sobre un record aplanado desde findings.json/coverage.json YA SELLADOS por scripts/vendor/codex-security/finalize_scan_contract.py -- este rule-set NO revalida el JSON Schema (eso ya lo hizo el finalizer); audita politica de calidad de datos y severidad/confianza que el schema permite pero no exige. Formato del record y fronteras: knowledge/data_models/security_findings.md.",
+ "required": [
+  {"field": "findings"}
+ ],
+ "each": [
+  {
+   "collection": "findings",
+   "rules": {
+    "required": [{"field": "findingId"}, {"field": "severityLevel"}, {"field": "confidenceLevel"}],
+    "enums": [{"field": "severityLevel", "values": ["critical", "high", "medium", "low", "informational"]}],
+    "bounds": [
+     {"field": "cweCount", "min": 1, "integer": true},
+     {"field": "remediationLength", "min": 20, "integer": true}
+    ]
+   }
+  },
+  {
+   "collection": "findings",
+   "where": {"field": "severityLevel", "equals": "critical"},
+   "rules": {
+    "enums": [{"field": "confidenceLevel", "values": ["high"]}]
+   }
+  }
+ ],
+ "code_only": [
+  {
+   "rule": "triage-status",
+   "field": "triage_state",
+   "reason": "el estado de triage (open/accepted-risk/fixed) vive en el workbench SQLite del scan, no en el findings.json sellado; auditarlo exige leer esa DB o el MCP en vivo -- fuera del nivel 1 declarativo, sin red/DB"
+  }
+ ],
+ "golden": {
+  "path": "security-findings-golden.json",
+  "sha256": "7bc6ec3dd3347342598b12df39e2e78e8d3f2951749808eb9bce88fc71a19dc2"
+ }
+}

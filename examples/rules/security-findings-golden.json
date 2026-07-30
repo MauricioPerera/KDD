@@ -1,0 +1,85 @@
+{
+ "_comment": "Golden set congelado del dominio hallazgos de seguridad (fixtures sinteticos, forma aplanada de findings.json/coverage.json sellados). Dominio: knowledge/data_models/security_findings.md.",
+ "refs": {},
+ "cases": [
+  {
+   "name": "scan limpio sin findings",
+   "record": {"findings": []},
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "un finding completo y conforme",
+   "record": {
+    "findings": [
+     {
+      "findingId": "csf_89c03a1a1a51d4a0a2c77506",
+      "severityLevel": "high",
+      "confidenceLevel": "medium",
+      "cweCount": 1,
+      "remediationLength": 87
+     }
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "sin la clave findings",
+   "record": {},
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "finding sin CWE asignado",
+   "record": {
+    "findings": [
+     {"findingId": "csf_0000000000000000000000aa", "severityLevel": "medium", "confidenceLevel": "high", "cweCount": 0, "remediationLength": 40}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "remediacion tipo placeholder (muy corta)",
+   "record": {
+    "findings": [
+     {"findingId": "csf_0000000000000000000000ab", "severityLevel": "low", "confidenceLevel": "low", "cweCount": 1, "remediationLength": 5}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "critical con confianza baja (requiere escalamiento)",
+   "record": {
+    "findings": [
+     {"findingId": "csf_0000000000000000000000ac", "severityLevel": "critical", "confidenceLevel": "medium", "cweCount": 1, "remediationLength": 60}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "severityLevel invalido (fuera de enum)",
+   "record": {
+    "findings": [
+     {"findingId": "csf_0000000000000000000000ad", "severityLevel": "urgent", "confidenceLevel": "high", "cweCount": 1, "remediationLength": 60}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "frontera code_only: estado de triage vive fuera del artefacto sellado",
+   "record": {
+    "findings": [
+     {"findingId": "csf_0000000000000000000000ae", "severityLevel": "high", "confidenceLevel": "high", "cweCount": 1, "remediationLength": 60}
+    ],
+    "triage_state": "desconocido-sin-workbench-db"
+   },
+   "violations": ["triage_state"],
+   "code_only_miss": ["triage_state"]
+  }
+ ]
+}
