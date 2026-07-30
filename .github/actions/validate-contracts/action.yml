@@ -12,9 +12,10 @@ description: |
   checkout (`github.workspace`). This action only adds the KDD tooling repo on
   top, at `_kdd/`, without overwriting the caller's files.
 
-  Optional gates (rules / skills / ux-page / diagrams / secrets) auto-skip
-  with INFO / exit 0 when their target dir does not exist (documented as the
-  "capa opcional" in knowledge/validacion.md). `validate_specs.py` does NOT
+  Optional gates (rules / skills / ux-page / diagrams / security findings /
+  secrets) auto-skip with INFO / exit 0 when their target dir does not exist
+  (documented as the "capa opcional" in knowledge/validacion.md).
+  `validate_specs.py` does NOT
   auto-skip (it ERRORs on a missing dir), so this action guards it with an
   `if [ -d ... ]` so a caller without `specs/` stays green. `validate_contracts`
   and `validate_okf` are logically REQUIRED: if their dir is missing the gate
@@ -61,6 +62,10 @@ inputs:
     description: 'Path to the Mermaid diagrams dir. OPTIONAL — auto-skips (INFO) if absent.'
     required: false
     default: 'examples/diagrams'
+  security-scan-dir:
+    description: 'Path to a sealed codex-security scan dir (findings.json). OPTIONAL — auto-skips (INFO) if absent.'
+    required: false
+    default: 'security/scan'
   src-dir:
     description: 'Path to scan for leaked secrets. OPTIONAL — scan_secrets returns [] on a missing dir.'
     required: false
@@ -117,6 +122,10 @@ runs:
     - name: Validate Mermaid diagrams (OPTIONAL — auto-skip)
       shell: bash
       run: python _kdd/scripts/validate_diagrams.py "${{ inputs.diagrams-dir }}"
+
+    - name: Validate security findings (OPTIONAL — auto-skip, vendored codex-security)
+      shell: bash
+      run: python _kdd/scripts/validate_security_findings.py "${{ inputs.security-scan-dir }}"
 
     - name: Scan for leaked secrets (OPTIONAL — auto-skip)
       shell: bash

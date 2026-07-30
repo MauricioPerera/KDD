@@ -37,6 +37,9 @@ on:
       diagrams_dir:
         type: string
         default: 'examples/diagrams'
+      security_scan_dir:
+        type: string
+        default: 'security/scan'
       src_dir_secrets:
         type: string
         default: 'src'
@@ -86,6 +89,9 @@ jobs:
 
       - name: Validate Mermaid diagrams (flowchart)
         run: python scripts/validate_diagrams.py ${{ inputs.diagrams_dir || 'examples/diagrams' }}
+
+      - name: Validate security findings (Capa 3, vendored codex-security)
+        run: python scripts/validate_security_findings.py ${{ inputs.security_scan_dir || 'security/scan' }}
 
       - name: Run each contract's test_command
         run: python scripts/validate_test_commands.py ${{ inputs.contracts_dir || 'knowledge/contracts' }} .
