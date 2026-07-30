@@ -15,6 +15,7 @@
 This is a template repository for projects that implement the **Knowledge-Driven Development (KDD)** methodology, which unifies:
 - **OKF (Open Knowledge Format):** A minimalist format for structuring knowledge, design, and architecture as markdown files with YAML frontmatter. The normative spec for OKF nodes lives in [`knowledge/OKF-SPEC.md`](knowledge/OKF-SPEC.md).
 - **CCDD (Contract-Driven Development):** A methodology for governing development with ephemeral AI agents through strict contracts and deterministic thresholds (complexity, frozen tests).
+- **Security (Capa 3):** Governs security findings with the same declarative rule engine as the other domains. Sealed `scan-manifest.json`/`findings.json`/`coverage.json` artifacts (schemas and sealer vendored from [openai/codex-security](https://github.com/openai/codex-security), Apache-2.0) are audited by [`examples/rules/security-findings.rules.json`](examples/rules/security-findings.rules.json); see [`knowledge/data_models/security_findings.md`](knowledge/data_models/security_findings.md) and the model-agnostic production skill at [`.agents/skills/kdd-security-scan/`](.agents/skills/kdd-security-scan/SKILL.md).
 
 ### Repository Structure
 
@@ -115,6 +116,7 @@ The template uses **semantic versioning** starting from `v1.0.0`. See [`CHANGELO
 Este repositorio plantilla es para proyectos que implementan la metodología **Knowledge-Driven Development (KDD)**, la cual unifica:
 - **OKF (Open Knowledge Format):** Un formato minimalista para estructurar el conocimiento, diseño y arquitectura como archivos markdown con frontmatter YAML. La spec normativa de los nodos OKF está en [`knowledge/OKF-SPEC.md`](knowledge/OKF-SPEC.md).
 - **CCDD (Contract-Driven Development):** Una metodología para gobernar el desarrollo con agentes de IA efímeros mediante contratos estrictos y umbrales deterministas (complejidad, tests congelados).
+- **Seguridad (Capa 3):** Gobierna hallazgos de seguridad con el mismo motor de reglas declarativo que los demás dominios. Los artefactos sellados `scan-manifest.json`/`findings.json`/`coverage.json` (schemas y sellador vendorizados de [openai/codex-security](https://github.com/openai/codex-security), Apache-2.0) se auditan con [`examples/rules/security-findings.rules.json`](examples/rules/security-findings.rules.json); ver [`knowledge/data_models/security_findings.md`](knowledge/data_models/security_findings.md) y la skill de producción agnóstica de modelo en [`.agents/skills/kdd-security-scan/`](.agents/skills/kdd-security-scan/SKILL.md).
 
 ### Estructura del Repositorio
 
@@ -178,6 +180,7 @@ La plantilla usa **versionado semántico** comenzando desde `v1.0.0`. Consulta [
 Este é um repositório-modelo para projetos que implementam a metodologia **Knowledge-Driven Development (KDD)**, que unifica:
 - **OKF (Open Knowledge Format):** Um formato minimalista para estruturar conhecimento, design e arquitetura como arquivos markdown com frontmatter YAML. A especificação normativa dos nós OKF está em [`knowledge/OKF-SPEC.md`](knowledge/OKF-SPEC.md).
 - **CCDD (Contract-Driven Development):** Uma metodologia para governar o desenvolvimento com agentes de IA efêmeros por meio de contratos estritos e limiares determinísticos (complexidade, testes congelados).
+- **Segurança (Camada 3):** Governa achados de segurança com o mesmo motor de regras declarativo dos demais domínios. Os artefatos selados `scan-manifest.json`/`findings.json`/`coverage.json` (schemas e selador vendorizados de [openai/codex-security](https://github.com/openai/codex-security), Apache-2.0) são auditados por [`examples/rules/security-findings.rules.json`](examples/rules/security-findings.rules.json); veja [`knowledge/data_models/security_findings.md`](knowledge/data_models/security_findings.md) e a skill de produção agnóstica de modelo em [`.agents/skills/kdd-security-scan/`](.agents/skills/kdd-security-scan/SKILL.md).
 
 ### Estrutura do Repositório
 
