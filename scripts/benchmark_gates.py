@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Benchmark de los 11 gates de nivel 1 + la suite (Contrato 29).
+"""Benchmark de los gates de nivel 1 + la suite (Contrato 29).
 
 Mide tiempos de ejecución de gates y tests con orquestación pura (inyectable).
 Oraculo congelado: tests/test_benchmark_gates.py
@@ -11,22 +11,18 @@ import subprocess
 import time
 import statistics
 
-# Lista explicita (sin heuristicas, precedente MANIFEST de init_project.py):
-# los 11 gates reales de Nivel 1, en el mismo orden que knowledge/validacion.md y
-# que mcp_gate_dispatch.LEVEL1_GATES (todos los gates de CI salvo validate_attestation,
-# que es local-only). Antes faltaban validate_test_commands y scan_secrets (AUDIT-01 H-5).
-GATES = (
-    ("validate_contracts", [sys.executable, "scripts/validate_contracts.py", "knowledge/contracts"]),
-    ("validate_specs", [sys.executable, "scripts/validate_specs.py", "specs"]),
-    ("validate_okf", [sys.executable, "scripts/validate_okf.py", "knowledge"]),
-    ("lint_ascii", [sys.executable, "scripts/lint_ascii.py", "scripts"]),
-    ("validate_rules", [sys.executable, "scripts/validate_rules.py", "examples/rules"]),
-    ("validate_skills", [sys.executable, "scripts/validate_skills.py", "skills", ".agents/skills"]),
-    ("validate_changelog", [sys.executable, "scripts/validate_changelog.py"]),
-    ("validate_ux_page", [sys.executable, "scripts/validate_ux_page.py", "examples/ux-page"]),
-    ("validate_diagrams", [sys.executable, "scripts/validate_diagrams.py", "examples/diagrams"]),
-    ("validate_test_commands", [sys.executable, "scripts/validate_test_commands.py", "knowledge/contracts", "."]),
-    ("scan_secrets", [sys.executable, "scripts/scan_secrets.py", "src"]),
+import mcp_gate_dispatch
+
+# Derivada de mcp_gate_dispatch.LEVEL1_GATES (todos los gates de CI salvo
+# validate_attestation, que es local-only) via build_argv, NUNCA hardcodeada
+# aparte: un gate nuevo en GATE_SPECS aparece aqui solo con actualizar el
+# dispatch -- mismo patron que preflight.ALL_GATES. Antes esta lista era una
+# tupla explicita mantenida a mano y quedo desactualizada dos veces (primero
+# faltaban validate_test_commands/scan_secrets -- AUDIT-01 H-5 --, despues
+# validate_security_findings); la derivacion cierra esa clase de bug.
+GATES = tuple(
+    (name, mcp_gate_dispatch.build_argv(name, {}))
+    for name in mcp_gate_dispatch.LEVEL1_GATES
 )
 SUITE_CMD = [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"]
 
