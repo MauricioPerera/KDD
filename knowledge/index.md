@@ -41,7 +41,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Ejemplo multi-lenguaje: greet en Node.js](./contracts/example-node-greet.md)
   - [Gate de atestacion de reportes locales](./contracts/attestation-gate.md)
   - [Capa de despacho del MCP server de gates KDD](./contracts/mcp-gate-dispatch.md)
-  - [Preflight: dry-run local de los 12 gates](./contracts/preflight.md)
+  - [Preflight: dry-run local de los 13 gates](./contracts/preflight.md)
   - [Auditor de seals débiles (advisory, no es un gate)](./contracts/seal-audit.md) — `scripts/audit_seals.py`
   - [Auditor de `forbids` (advisory, no es un gate)](./contracts/forbids-audit.md) — `scripts/audit_forbids.py`
 - [Recetas de arreglo por rule-id (no es un gate)](./contracts/rule-hints.md) — `scripts/rule_hints.py`

@@ -7,15 +7,15 @@ en ``knowledge/mcp-server.md``) y el modo ``--contract`` se prueba contra
 fixtures en un tmpdir aislado.
 
   API que congela:
-    ``ALL_GATES`` -- ``LEVEL1_GATES`` + ``['validate_attestation']`` (12).
+    ``ALL_GATES`` -- ``LEVEL1_GATES`` + ``['validate_attestation']`` (13).
     ``run_preflight(repo_root='.', contract=None, runner=None) -> dict``
-      modo full (contract None): corre los 12 gates via ``runner``
+      modo full (contract None): corre los 13 gates via ``runner``
       (default: la referencia de modulo ``preflight.run_gate``) con
       ``params={}`` y el ``repo_root`` dado. Devuelve ``{'mode': 'full',
       'overall_ok': bool, 'results': {gate: {'exit_code','stdout','stderr'}},
       'lines': [str]}`` -- una linea por gate (nombre + PASS/FAIL/TIMEOUT)
       y una linea resumen con ``<pasados>/<total>``.
-      modo contract: NO corre los 12 gates; corre 3 chequeos sobre
+      modo contract: NO corre los 13 gates; corre 3 chequeos sobre
       ``knowledge/contracts/<contract>.md`` -- ``frontmatter`` (existe y
       declara tests/tests_sha256/test_command), ``seal`` (sha256 del
       archivo de tests, LF-normalizado, igual a ``tests_sha256``) y
@@ -55,7 +55,7 @@ def _sha256_lf(text):
 class TestAllGatesConstant(unittest.TestCase):
     def test_all_gates_es_level1_mas_attestation(self):
         self.assertEqual(list(preflight.ALL_GATES), EXPECTED_GATES)
-        self.assertEqual(len(preflight.ALL_GATES), 12)
+        self.assertEqual(len(preflight.ALL_GATES), 13)
 
 
 class TestFullMode(unittest.TestCase):
@@ -82,8 +82,8 @@ class TestFullMode(unittest.TestCase):
             self.assertTrue(
                 any(name in ln and 'PASS' in ln for ln in lines),
                 'falta linea PASS para %s' % name)
-        self.assertTrue(any('12/12' in ln for ln in lines),
-                        'falta resumen 12/12')
+        self.assertTrue(any('13/13' in ln for ln in lines),
+                        'falta resumen 13/13')
 
     def test_un_gate_falla(self):
         def runner(name, params, repo_root='.', timeout=120):
@@ -97,7 +97,7 @@ class TestFullMode(unittest.TestCase):
         lines = res['lines']
         self.assertTrue(
             any('validate_okf' in ln and 'FAIL' in ln for ln in lines))
-        self.assertTrue(any('11/12' in ln for ln in lines))
+        self.assertTrue(any('12/13' in ln for ln in lines))
 
     def test_timeout_se_reporta_como_timeout(self):
         def runner(name, params, repo_root='.', timeout=120):
@@ -111,7 +111,7 @@ class TestFullMode(unittest.TestCase):
         lines = res['lines']
         self.assertTrue(
             any('scan_secrets' in ln and 'TIMEOUT' in ln for ln in lines))
-        self.assertTrue(any('11/12' in ln for ln in lines))
+        self.assertTrue(any('12/13' in ln for ln in lines))
 
     def test_main_todo_verde_devuelve_0(self):
         with mock.patch.object(preflight, 'run_gate', new=_ok_runner):

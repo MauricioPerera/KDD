@@ -1,7 +1,7 @@
 ---
 type: 'Concept'
 title: 'MCP server propio: los gates de KDD como tools'
-description: 'Como instalar y registrar scripts/mcp_server.py, que expone los 12 gates + orquestacion + sellado como tools MCP. Herramienta opt-in (depende del paquete externo mcp), no parte de Nivel 1/CI.'
+description: 'Como instalar y registrar scripts/mcp_server.py, que expone los 13 gates + orquestacion + sellado como tools MCP. Herramienta opt-in (depende del paquete externo mcp), no parte de Nivel 1/CI.'
 tags: ['ccdd', 'mcp', 'infra', 'reference']
 ---
 
@@ -87,7 +87,7 @@ de orquestacion/utilidad:
 un gate y no corre subprocess, asi que llama directo a
 `rule_hints.hint_for` (stdlib pura). Por lo mismo **no** entra en
 `GATE_SPECS` — meterla ahi la sumaria a `LEVEL1_GATES` y romperia el
-oraculo congelado del preflight (12 gates exactos).
+oraculo congelado del preflight (13 gates exactos).
 
 No se incluyen `assemble_context`/`export_gate_contract` (prep de Nivel 2)
 en esta primera version — extensible siguiendo el mismo patron si hace
@@ -100,7 +100,7 @@ falta.
 
 | Herramienta | Tipo | Tool MCP |
 |---|---|---|
-| los 12 gates, `run_all_level1` | veredicto (exit 0/1) | si |
+| los 13 gates, `run_all_level1` | veredicto (exit 0/1) | si |
 | `seal_tests`, `rule_hint` | utilidad puntual | si |
 | `preflight`, `audit_seals`, `benchmark_gates` | diagnostico advisory | **no** |
 
@@ -170,7 +170,7 @@ distintos consumidores:
   llamada. Requiere `pip install mcp` + un cliente MCP; ideal para un
   agente que consume los gates por MCP.
 - **`scripts/preflight.py` (CLI)** — cero dependencias (stdlib + modulos
-  hermanos, sin el SDK `mcp`); corre los **12 gates** (los 11 de Nivel 1
+  hermanos, sin el SDK `mcp`); corre los **13 gates** (los 12 de Nivel 1
   + `validate_attestation`, el unico lugar donde corren juntos porque
   `.agents/logs/` es local). Modo `--contract <nombre>`: 3 chequeos
   acotados a un task contract (frontmatter, sello, `test_command`). Es

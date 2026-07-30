@@ -30,7 +30,7 @@ Advisory por diseno, misma frontera que ``audit_seals``: detectar la AUSENCIA
 de una denegacion es mecanico; decidir que eso es inaceptable es del equipo
 (``--strict``). NO es un gate de Nivel 1, NO corre en CI, y deliberadamente NO
 esta en ``mcp_gate_dispatch.GATE_SPECS`` -- eso haria crecer ``LEVEL1_GATES``
-y rompería el oraculo congelado del preflight (12 gates exactos); promoverlo
+y rompería el oraculo congelado del preflight (13 gates exactos); promoverlo
 seria su propio contrato con ambos oraculos re-sellados.
 
 Solo LEE archivos. Sin subprocess, sin red, sin LLM. ASCII puro (lo audita

@@ -57,12 +57,13 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class TestGateSpecs(unittest.TestCase):
-    def test_all_12_gates_present(self):
+    def test_all_13_gates_present(self):
         expected = {
             'validate_contracts', 'validate_specs', 'validate_okf',
             'lint_ascii', 'validate_rules', 'validate_skills',
             'validate_changelog', 'validate_ux_page', 'validate_diagrams',
-            'validate_test_commands', 'scan_secrets', 'validate_attestation',
+            'validate_security_findings', 'validate_test_commands',
+            'scan_secrets', 'validate_attestation',
         }
         self.assertEqual(set(gd.GATE_SPECS.keys()), expected)
 
@@ -155,7 +156,7 @@ class TestRunAllLevel1(unittest.TestCase):
         try:
             result = gd.run_all_level1(repo_root=tmp)
             self.assertNotIn('validate_attestation', result['results'])
-            self.assertEqual(len(result['results']), 11)
+            self.assertEqual(len(result['results']), 12)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
