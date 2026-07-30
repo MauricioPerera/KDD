@@ -10,10 +10,10 @@ target: scripts/validate_test_commands.py
 signature: "def run_all(contracts_dir, repo_root, timeout=120) -> list"
 test_command: "python -m unittest tests/test_validate_test_commands.py"
 budget:
-  max_cyclomatic_complexity: 14
-  max_nesting_depth: 4
+  cyclomatic_max: 14
+  nesting_max: 4
 tests: "tests/test_validate_test_commands.py"
-tests_sha256: "6e608e684f05d4b7c2d7efecdec1704ce518489eb8d03a07ed9e952d8cb93879"
+tests_sha256: "39df8ce61fbd15cf408d1fff1d2186db1f614e2981eb0d9f39de767e150d5420"
 touch_only: ['scripts/validate_test_commands.py']
 deps_allowed: []
 forbids: ['network', 'llm']

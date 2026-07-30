@@ -10,8 +10,8 @@ target: scripts/validate_specs.py
 signature: "def validate_specs(specs_dir: str) -> list:"
 test_command: "python -m unittest tests/test_validate_specs.py"
 budget:
-  max_cyclomatic_complexity: 10
-  max_nesting_depth: 4
+  cyclomatic_max: 10
+  nesting_max: 4
 tests: "tests/test_validate_specs.py"
 tests_sha256: "b28f6f6fef69e924a7bbc741b4cf00ea6fe1110d9c72e9d51ecfb41fe91106b3"
 touch_only: ['scripts/validate_specs.py']

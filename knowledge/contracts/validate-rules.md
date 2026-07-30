@@ -1,7 +1,7 @@
 ---
 type: 'Task Contract'
 title: 'Motor de reglas declarativo (rule contract)'
-description: 'Checker determinista que evalua un record contra un rule-set declarativo (required/type/enums/bounds/refs/keyed) y devuelve las violaciones, sin LLM.'
+description: 'Checker determinista que evalua un record contra un rule-set declarativo (9 familias: required/type/enums/bounds/refs/keyed_bounds/keyed_enums/each/matches) y devuelve las violaciones, sin LLM.'
 tags: ['ccdd', 'rule-contract', 'reglas', 'declarativo']
 
 task: validate-rules
@@ -10,8 +10,8 @@ target: scripts/rule_engine.py
 signature: "def evaluate(ruleset: dict, record: dict, refs: dict) -> list:"
 test_command: "python -m unittest tests/test_rule_engine.py"
 budget:
-  max_cyclomatic_complexity: 10
-  max_nesting_depth: 4
+  cyclomatic_max: 10
+  nesting_max: 4
 tests: "tests/test_rule_engine.py"
 tests_sha256: "154fb9f6e2645161930fb03728dedc5dde422d6aa3e55ac7a39a889cccc1c319"
 touch_only: ['scripts/rule_engine.py', 'scripts/validate_rules.py']
@@ -40,9 +40,11 @@ def evaluate(ruleset: dict, record: dict, refs: dict) -> list:
   (number|string|dict; number excluye bool; solo si el valor esta presente), `bounds`
   (gt/min/max/integer; solo sobre numbers), `enums` (igualdad de valor, `in`), `refs`
   (el valor debe ser clave en `refs[collection]`), `keyed_bounds` y `keyed_enums` (el
-  tope/conjunto se busca en `refs[table][record[key]]`; se saltan si la clave no resuelve).
+  tope/conjunto se busca en `refs[table][record[key]]`; se saltan si la clave no resuelve),
+  `matches` (propiedad de texto `{field, pattern}`; `re.search`, anclar con `^...$` para
+  match total; ausente/None y no-string se saltan — trabajo de `required`/`type`).
 - `each` ({collection, where?, rules}): cuantificacion sobre colecciones — el subset
-  interno v1 (required/type/enums/bounds, misma semantica) se evalua sobre cada elemento
+  interno v1 (required/type/enums/bounds/matches, misma semantica) se evalua sobre cada elemento
   dict de la lista `record[collection]`, filtrado por `where` {field, equals}; toda
   violacion lleva el prefijo del nombre de la coleccion (el campo top-level ES la
   coleccion); coleccion ausente o no-lista se salta; elemento no-dict = violacion de la

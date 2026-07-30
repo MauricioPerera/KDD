@@ -27,7 +27,7 @@ Nivel 1 — sin tener que saber que existe `validate_contracts.py`,
   usando el SDK oficial `mcp` (`FastMCP`) para exponer cada entrada como
   tool via stdio. **NO tiene task contract**: depende de un paquete
   externo (`mcp`), lo que rompe la convencion `deps_allowed: []` que
-  siguen los demas 13 contratos de este repo. Es deliberado — separar la
+  siguen los demas contratos de este repo. Es deliberado — separar la
   logica testeable-sin-SDK de su wiring MCP es lo que permite que
   `mcp_gate_dispatch.py` SI tenga oraculo congelado sin forzar esa
   dependencia sobre el resto del pipeline.
@@ -55,11 +55,11 @@ config (`.mcp.json` o equivalente):
 }
 ```
 
-## Tools expuestas (14)
+## Tools expuestas (15)
 
 Una tool por cada gate de `mcp_gate_dispatch.GATE_SPECS` (los mismos 12
 gates documentados en [validacion.md](./validacion.md), con los mismos
-parametros y defaults que usa `.github/workflows/validate.yml`), mas dos
+parametros y defaults que usa `.github/workflows/validate.yml`), mas tres
 de orquestacion/utilidad:
 
 - `validate_contracts`, `validate_specs`, `validate_okf`, `lint_ascii`,
@@ -74,10 +74,60 @@ de orquestacion/utilidad:
 - `seal_tests(tests_path)` — corre `validate_contracts.py --hash` y
   devuelve el hash a copiar en `tests_sha256`, sin que el agente tenga que
   invocar el CLI a mano.
+- `rule_hint(rule_id)` — la **receta de arreglo** de un rule-id: el QUE
+  HACER que el mensaje del gate no da. Devuelve
+  `{'rule_id', 'hint', 'known'}`. Es el complemento natural de un veredicto
+  en rojo: un agente que recibe `FM_TESTS_FROZEN` de `validate_contracts`
+  pide el arreglo sin salir del protocolo. Un `rule_id` desconocido **no es
+  un error**: devuelve el fallback con `known: false`, para que preguntar de
+  mas oriente en vez de abortar. Ver la seccion "Recetas de arreglo por
+  rule-id" de [validacion.md](./validacion.md).
+
+`rule_hint` es la unica tool que **no** pasa por `mcp_gate_dispatch`: no es
+un gate y no corre subprocess, asi que llama directo a
+`rule_hints.hint_for` (stdlib pura). Por lo mismo **no** entra en
+`GATE_SPECS` — meterla ahi la sumaria a `LEVEL1_GATES` y romperia el
+oraculo congelado del preflight (12 gates exactos).
 
 No se incluyen `assemble_context`/`export_gate_contract` (prep de Nivel 2)
 en esta primera version — extensible siguiendo el mismo patron si hace
 falta.
+
+## Que entra como tool y que no
+
+> **Por MCP viajan veredictos y utilidades; los diagnosticos se corren en
+> local.**
+
+| Herramienta | Tipo | Tool MCP |
+|---|---|---|
+| los 12 gates, `run_all_level1` | veredicto (exit 0/1) | si |
+| `seal_tests`, `rule_hint` | utilidad puntual | si |
+| `preflight`, `audit_seals`, `benchmark_gates` | diagnostico advisory | **no** |
+
+Tres razones, no simetria:
+
+1. **Un advisory no es accionable en remoto.** Sin `--strict`,
+   `audit_seals` sale **exit 0 aunque haya findings**. Un cliente que
+   recibe "ok" no puede distinguir "sano" de "hay 6 seals debiles" sin
+   interpretar el payload — justo la ambiguedad que un gate determinista
+   existe para evitar.
+2. **Se usan cuando ya estas en el repo.** `preflight` corre antes de
+   delegar; `audit_seals`, al autorar o revisar un oraculo antes de
+   sellarlo (ver [supervision-humana](./supervision-humana.md)). En esos
+   momentos hay shell abierta y el MCP no ahorra nada.
+3. **Operan sobre el arbol local** (contratos, tests y logs en disco), asi
+   que un cliente remoto no tiene sobre que accionar el resultado.
+
+El contraste que hace util la regla: `rule_hint` **si** se expone porque es
+una **consulta pura** — sin estado, sin tocar el arbol — que responde a un
+veredicto que el agente acaba de recibir por el mismo canal. Ahi el MCP si
+ahorra un cambio de contexto.
+
+Romper la regla es legitimo, pero **con la excepcion escrita aqui**: si
+algun dia `audit_seals` gana un modo con veredicto real (`--strict` por
+default, exit code accionable) o aparece un flujo donde un cliente remoto
+deba auditar un repo que no tiene delante, se expone y se documenta por que
+deja de ser un diagnostico.
 
 ## Por que NO corre en CI ni es Nivel 1
 
@@ -109,3 +159,22 @@ modulo; es una interaccion real con el test de auto-copia de
 - [validacion.md](./validacion.md) — que verifica cada gate en detalle.
 - [por-que-kdd.md](./por-que-kdd.md) — posicionamiento; menciona este gap
   como parte de "no consumible como infraestructura".
+
+## Preflight CLI vs `run_all_level1`
+
+Dos bocas sobre la misma logica de despacho (`mcp_gate_dispatch`), para
+distintos consumidores:
+
+- **`run_all_level1` (tool MCP)** — corre los **11 gates de Nivel 1**
+  (excluye `validate_attestation`, que es local-only) en una sola
+  llamada. Requiere `pip install mcp` + un cliente MCP; ideal para un
+  agente que consume los gates por MCP.
+- **`scripts/preflight.py` (CLI)** — cero dependencias (stdlib + modulos
+  hermanos, sin el SDK `mcp`); corre los **12 gates** (los 11 de Nivel 1
+  + `validate_attestation`, el unico lugar donde corren juntos porque
+  `.agents/logs/` es local). Modo `--contract <nombre>`: 3 chequeos
+  acotados a un task contract (frontmatter, sello, `test_command`). Es
+  diagnostico opt-in, NO un gate de Nivel 1 (el conteo sigue en 11) y no
+  corre en CI — mismo estatus que `benchmark_gates.py`. Ver
+  [preflight](./contracts/preflight.md) y
+  [validacion.md](./validacion.md#preflight--diagnóstico-local-opt-in-no-es-un-gate).

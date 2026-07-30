@@ -25,6 +25,20 @@ Plantillas: `specs/TEMPLATE-CONTRACT.md` y `docs/reports/TEMPLATE-REPORT.md`. El
 RECON / red-team / perímetro / aborto de este nodo; este nodo es la fuente normativa —
 ante divergencia manda la metodología y el checklist se re-alinea.
 
+## DEFINIR (opcional, antes de PLAN)
+
+`PLAN` (abajo) asume que ya existe un «pedido» convertible en tareas atómicas. Cuando el
+proyecto todavía no está elegido, o está elegido pero su forma (arquitectura, alcance,
+stack) no cerró, ese pedido no existe todavía — **DEFINIR** es el paso que lo produce.
+Se hace UNA vez por proyecto (no por tarea), en conversación con un humano, y termina en
+un único artefacto: `DEFINITION.md` en la raíz (plantilla: `TEMPLATE-DEFINITION.md`).
+`DEFINITION.md` no es un nodo OKF ni lo valida ningún gate — es documentación previa a
+que exista el primer contrato. Proceso completo, reglas y estilo:
+[skill `kdd-definir`](../.agents/skills/kdd-definir/SKILL.md) — o, sin agente propio,
+el GPT [Arquitecto de Definición KDD](https://chatgpt.com/g/g-6a566a4ad3248191821751cd14800573-arquitecto-de-definicion-kdd)
+configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ahí arranca
+`PLAN`.
+
 ## Proceso
 
 1. **PLAN** — convertir el pedido en contrato de ejecución con tareas atómicas; mostrarlo
@@ -38,13 +52,18 @@ ante divergencia manda la metodología y el checklist se re-alinea.
    y siguen la misma regla: si el check no se corrió, la spec no afirma — condiciona
    («si falta X, instalarlo con Y»). Un fallo ambiental se parece a una «causa
    preexistente» y dispara un ABORTAR SI legítimo, quemando la delegación
-   ([caso real](./casos-reales.md#entorno-afirmado)).
+   ([caso real](./casos-reales.md#entorno-afirmado-plan--recon)).
    La misma regla aplica a la EXISTENCIA de recursos nombrados: un pedido de «crear X»
    (repo, worker, base de datos) es en realidad «asegurar que X exista con este
    contenido». Verificar primero con un check barato (`gh repo view`, listado del
    proveedor, `ls`); si X ya existe, inspeccionar su contenido y reconciliar con lo
    pedido — nunca crear ni forzar por encima
-   ([caso real](./casos-reales.md#crear-sobre-existente)).
+   ([caso real](./casos-reales.md#crear-sobre-existente-plan--recon)).
+   **Cuando el espacio de "qué falta hacer" es grande y abstracto, un artefacto real
+   representativo corrido por el pipeline real prioriza más rápido que seguir
+   clasificando en la cabeza** — un único esquema/caso de uso escrito a mano encontró en
+   un pase gaps concretos que sesiones previas de categorización no habían señalado
+   ([caso real](./casos-reales.md#artefacto-real-encuentra-gaps-que-la-clasificacion-abstracta-no-plan)).
 2. **SPEC por tarea** — autocontenida y por OBJETIVO (estado final + definición de hecho
    con comando y resultado esperado), no por pasos. El agente efímero no tiene memoria:
    todo el contexto va en la spec (o se ensambla con el ensamblador de contexto).
@@ -61,13 +80,57 @@ ante divergencia manda la metodología y el checklist se re-alinea.
    de retorno en CADA modo?» — fijarlo en la definición de hecho (p. ej.
    `Array.isArray(...) === true` en todos los modos), no solo la shape del elemento.
    Las cinco clases verificadas de «comando cumplido sin cumplir la intención» que este
-   paso previene están en [casos reales](./casos-reales.md#hecho-sin-intencion).
+   paso previene están en [casos reales](./casos-reales.md#hecho-sin-intencion-spec--red-team-de-la-definición-de-hecho).
    Complemento verificado: exigir sección de **trade-offs** en el reporte del agente es
    el detector más barato de estas clases — se cazan leyendo esa sección + el diff
    puntual de la zona, nunca el diff entero.
+   **Los nombres de entregables se verifican como libres antes de asignarlos** (`ls` del
+   directorio destino al redactar la spec) y toda spec lleva la cláusula «si el archivo ya
+   existe, no lo sobrescribas» ([caso real](./casos-reales.md#colision-de-entregables-spec)).
+   **Si el orquestador conoce una tensión de diseño fundamental de la tarea, va EN la
+   spec** — con dirección candidata, requisitos innegociables verificables y cláusula de
+   honestidad, dejando el CÓMO libre; ocultarla condena al agente a iterar a ciegas
+   ([caso real](./casos-reales.md#tension-de-diseno-en-la-spec-spec)).
+   **Cambio de formato en un artefacto persistente** (journal, wire format, schema): la
+   spec pregunta «¿qué pasa con los datos in-flight de la versión vieja?» — el fix y su
+   contrato de upgrade son la misma tarea
+   ([caso real](./casos-reales.md#formato-persistente-sin-contrato-de-upgrade-spec--cierre)).
+   Y si el fix incluye una **nota de upgrade**, la spec exige EJECUTAR el escenario
+   legado que la nota describe — construir el artefacto viejo cuesta minutos; una nota
+   con outcomes narrados y no ejecutados es un claim sin evidencia
+   ([caso real](./casos-reales.md#nota-de-upgrade-no-ejecutada-spec--verificar)).
+   **Una clase de fallo cazada dos veces se convierte en cláusula estándar** de toda spec
+   que toque esa zona — prevenir en la spec es más barato que re-cazar en cada
+   verificación ([caso real](./casos-reales.md#clase-cazada-a-clausula-de-spec-spec)).
+   **Si el comportamiento a cambiar está descrito en un contrato documentado, docs, código
+   y asserts se actualizan en la MISMA tarea** — cero claims que el artefacto no cumpla
+   ([caso real](./casos-reales.md#contrato-documentado-cambia-junto-spec--verificar)).
+   **En cambios que prometen preservar comportamiento** (refactor, unificación,
+   migración), las divergencias deliberadas se enumeran explícitas y cerradas: «idéntico
+   salvo exactamente esto» es verificable, «básicamente igual» no
+   ([caso real](./casos-reales.md#excepcion-unica-declarada-spec)).
+   **Al agregar a un compilador/gramática compartida un nodo con una propiedad atípica**
+   (no determinismo, efectos secundarios, coste variable), la spec pregunta «¿en qué
+   OTROS contextos alcanzables por el compilador aparece esto, más allá de los que
+   documenté como intención?» — un compilador genérico no distingue intención de alcance
+   ([caso real](./casos-reales.md#propiedad-atipica-en-compilador-generico-spec)).
 3. **DELEGAR** — un agente efímero por tarea. Tareas que compartan archivos → secuenciales.
    Las tareas en **paralelo** deben declarar en su spec el conjunto de archivos que tocan,
    y ese conjunto debe ser **disjunto** respecto a otras tareas corriendo al mismo tiempo.
+   **Una credencial efímera puede viajar al agente delegado** solo si muere con la infra,
+   la spec ordena el enmascarado explícito, y el orquestador verifica con grep cero
+   ocurrencias literales en los entregables
+   ([caso real](./casos-reales.md#credencial-efimera-a-delegados-delegar)).
+   **Ante una muerte del agente a mitad de tarea** (cuota, crash): triar el disco — lo
+   verde sobrevive verificado y CERCADO; solo lo faltante se re-delega, idealmente por un
+   mecanismo alternativo que no comparta la causa de la muerte
+   ([caso real](./casos-reales.md#rescate-hibrido-por-cuota-delegar--recuperación)).
+   **Si se delega investigar la viabilidad de algo riesgoso aceptando BLOQUEADO como
+   resultado válido, y el propio EXPERIMENTO puede reproducir ese riesgo** (una prueba de
+   terminación que puede no terminar), la spec le da a la investigación su propio arnés
+   de seguridad (timeout, límite del lado servidor, cleanup garantizado) — distinto del
+   arnés de la feature que se investiga
+   ([caso real](./casos-reales.md#investigacion-bloqueada-necesita-arnes-delegar)).
 4. **VERIFICAR por artefacto** — la palabra del agente no cuenta: solo salidas reales de
    comandos (validador, tests). El orquestador re-corre los comandos antes de integrar.
    Todo trade-off declarado por el agente se inspecciona puntualmente.
@@ -81,11 +144,104 @@ ante divergencia manda la metodología y el checklist se re-alinea.
    final esperado; borrarlo antes destruye la única evidencia re-testeable. Y en sistemas
    de propagación eventual (secrets, DNS, caches), un resultado inmediato contrario al
    esperado no es fallo: se re-verifica con reintentos espaciados antes de concluir
-   ([caso real](./casos-reales.md#verificar-antes-de-limpiar)).
+   ([caso real](./casos-reales.md#verificar-antes-de-limpiar-verificar)).
+   **Un fix a una función que un lado de un contrato bilateral produce y otro consume
+   (firmar/verificar, escribir/leer, serializar/deserializar) no está verificado con solo
+   probar el lado que tocaste:** grep del nombre de la función en todo el repo antes de dar
+   el fix por completo — "mis tests pasan" no es lo mismo que "soy consistente con quien
+   consume mi output" ([caso real](./casos-reales.md#contrato-bilateral-mitad-arreglado-verificar)).
+   **Una verificación de ausencia solo vale si la herramienta corrió de verdad:**
+   distinguir «corrió y no encontró» de «no corrió» — un fallback (`|| echo OK`) sobre un
+   comando inexistente fabrica falsos negativos limpios
+   ([caso real](./casos-reales.md#check-que-fallo-no-es-check-verificar)).
+   **Antes de confiar en un gate para cerrar un ciclo, leer qué CHEQUEA REALMENTE
+   (el código del gate, no su nombre)** — un gate de links puede validar solo que el
+   archivo destino exista y no que un fragmento de ancla resuelva, y esa fracción sin
+   cubrir es exactamente donde vive el próximo bug silencioso
+   ([caso real](./casos-reales.md#alcance-real-de-un-gate-no-es-el-prometido-verificar)).
+   **Toda edición programática de documentación se verifica con grep de PRESENCIA
+   antes de commitear**, o se hace con una herramienta que falle ruidoso si el ancla no
+   existe — un `replace` que no matchea puede imprimir éxito igual y perder contenido en
+   silencio
+   ([caso real](./casos-reales.md#replace-silencioso-en-docs-cerrar--documentación)).
+   **La re-demostración del orquestador usa la invocación DOCUMENTADA**, no la que el
+   agente eligió para su propia verificación — si ambos caminos difieren, el bug vive en
+   esa diferencia ([caso real](./casos-reales.md#demo-por-el-camino-documentado-verificar)).
+   *(Verificación de un LOTE completo mediante agentes auditores independientes — no de
+   una tarea sola — tiene su propio ciclo: ver [Rondas de auditoría y confirmación](#rondas-de-auditoría-y-confirmación) más abajo.)*
 5. **COMMIT por tarea verificada** — baseline limpio para la siguiente tarea.
 6. **CIERRE** — suite completa 2× (dos corridas idénticas ≈ sin flaky; un flaky detectado
    es una tarea futura, no se ignora), reporte del contrato en `docs/reports/`, estado en
    el README.
+   Si el cierre involucró agentes auditores sobre un lote completo, el cierre real
+   ocurre cuando converge el ciclo de [Rondas de auditoría y confirmación](#rondas-de-auditoría-y-confirmación) — no antes.
+   **Tras una interrupción, la infraestructura huérfana es evidencia antes que basura:**
+   inspeccionarla y extraer lo que documenta (credenciales efímeras, estado) antes de
+   desmontarla ([caso real](./casos-reales.md#infra-huerfana-es-evidencia-cierre)).
+   **Los residuos que el ejecutor declaró se MUEVEN al documento vivo de pendientes**, con
+   su peso y la razón de ese peso. No alcanza con que estén en el reporte: un reporte es
+   registro histórico de un momento, y lo que solo vive ahí está archivado, no publicado.
+   **El dueño de este paso es quien cierra, no quien declaró** — el ejecutor ya cumplió su
+   parte al declarar en vez de afirmar cobertura que no tenía, y un deber sin dueño
+   explícito es un deber de nadie. Relatarlo de palabra no cuenta: se *siente* como
+   haberlo registrado y es el medio más volátil de todos
+   ([caso real](./casos-reales.md#declarar-un-residuo-no-lo-registra-cierre)).
+
+## Rondas de auditoría y confirmación
+
+Ciclo **posterior al CIERRE** que se repite tantas veces como haga falta — distinto del
+ciclo por-tarea de arriba. Aplica cuando un lote de trabajo termina y hace falta
+CONFIRMAR que quedó limpio, no solo que compila y pasa sus propios tests. Validado en
+producción de forma intensiva (más de diez rondas encadenadas sobre un mismo proyecto).
+
+**Mandato del auditor.** Agente efímero, read-only, con un scope declarado y **disjunto**
+respecto a otros auditores corriendo en paralelo. Entregable obligatorio: hallazgos
+clasificados por severidad (ALTA/MEDIA/BAJA) con evidencia **ejecutada** (comando real +
+salida real, nunca «debería andar»), y las áreas revisadas SIN hallazgo declaradas
+explícitamente como «área limpia» — un auditor que solo reporta lo que encuentra no dice
+si algo no se rompió porque está bien o porque no lo miró.
+
+**El ciclo**:
+
+1. **Ronda inicial** — mandato de BUSCAR sobre el estado actual.
+2. El orquestador arregla ALTA/MEDIA (o difiere BAJA con criterio documentado).
+3. **Ronda de confirmación** — mandato INVERTIDO: (a) re-ejecutar la reproducción
+   original de cada hallazgo previo → tabla CERRADO/PERSISTE con salida real; (b) atacar
+   adversarialmente el código NUEVO del fix, apuntando en particular al límite/alcance
+   que el fix haya declarado por escrito.
+4. Repetir 2-3 hasta que una ronda de confirmación vuelva **completamente en blanco**
+   (cero hallazgos nuevos en cualquier severidad) — esa es la condición de parada, no
+   «ya arreglamos todo lo que vimos»
+   ([caso real](./casos-reales.md#ronda-de-confirmacion-cierre)).
+   **El ciclo no exige un motor vivo.** Cuando el cambio a confirmar no tiene código ni
+   engines contra los que probar equivalencia (p. ej. una reestructuración de la propia
+   documentación de proceso), se aplica el espíritu del ciclo al artefacto que sí
+   cambió: identificar qué propiedad podría haberse roto en silencio (aquí, integridad
+   referencial de un grafo de documentos) y verificarla con evidencia ejecutada
+   ([caso real](./casos-reales.md#auditoria-de-artefacto-sin-motor-vivo-cierre)).
+
+**Reglas duras del ciclo**:
+
+- El «PERSISTE» o «imposible» de un auditor se re-verifica con reproducción barata del
+  orquestador antes de re-delegar o aceptar el veredicto — es una afirmación como
+  cualquier otra, no un hecho
+  ([caso real](./casos-reales.md#persiste-de-auditor-refutado-verificar)).
+- Los «NO VERIFICADO» que se repiten entre rondas por falta de una dependencia son
+  **deuda de auditoría**, no una anotación neutral — la ronda siguiente provisiona la
+  dependencia (infra efímera) en vez de re-anotar el hueco
+  ([caso real](./casos-reales.md#no-verificado-acumulado-verificar)).
+- Cuando un fix documenta un límite/alcance explícito, la ronda de confirmación
+  siguiente rinde más atacando ESE límite con evidencia real que repitiendo el caso ya
+  cerrado — y una hipótesis propia del auditor («esto podría divergir») es un claim más
+  a verificar contra el sistema real, no una conclusión válida por razonamiento desde el
+  estándar en abstracto
+  ([caso real](./casos-reales.md#limite-declarado-es-el-siguiente-objetivo-de-auditoria-verificar)).
+- La regla de **credenciales efímeras a delegados** (paso DELEGAR arriba) aplica igual
+  a un auditor: muere con la infra, enmascarado explícito ordenado en la spec,
+  verificación con grep de cero ocurrencias literales en los entregables.
+- La regla de **investigación con su propio arnés** (paso DELEGAR arriba) aplica igual
+  cuando lo que se delega es una investigación de causa raíz durante una ronda de
+  auditoría, no sólo durante DELEGAR.
 
 ## Política de reintentos (tope de gasto)
 

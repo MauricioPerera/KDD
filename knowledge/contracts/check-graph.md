@@ -10,8 +10,8 @@ target: src/check_workflow_graph.py
 signature: "def find_graph_cycles(connections: dict) -> list:"
 test_command: "python -m unittest tests/test_check_graph.py"
 budget:
-  max_cyclomatic_complexity: 10
-  max_nesting_depth: 4
+  cyclomatic_max: 10
+  nesting_max: 4
 tests: "tests/test_check_graph.py"
 tests_sha256: "c1740621cadbb77bba8919efe78e20d0f50368cbcafc9473ff42774d676858c4"
 touch_only: ['src/check_workflow_graph.py']

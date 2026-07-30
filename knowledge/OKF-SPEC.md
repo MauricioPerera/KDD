@@ -44,7 +44,7 @@ Cualquier otro valor de `type` se considera **inválido** para la plantilla.
 
 ## 4. Reglas de enlazado
 
-- Los enlaces entre nodos son **enlaces Markdown relativos** (p. ej. `[texto](../architecture/overview.md)`).
+- Los enlaces entre nodos son **enlaces Markdown relativos** (p. ej. `[texto](./architecture/overview.md)`).
 - **Prohibido duplicar contenido de otro nodo.** Si la información ya vive en otro nodo, se **enlaza** al nodo fuente en lugar de reproducirla.
 - Un enlace debe apuntar, dentro de `knowledge/`, a un archivo `.md` existente o a una carpeta existente. Un archivo existente con otra extensión (p. ej. `.txt`) es un enlace inválido. No se enlazan rutas externas al bundle como si fueran nodos.
 

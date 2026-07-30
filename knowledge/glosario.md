@@ -48,11 +48,13 @@ duplicar contenido).
   rutas/patrones `fnmatch` que el implementador puede tocar.
   `scripts/validate_perimeter.py` lo verifica contra el diff real
   (`OUT_OF_PERIMETER` / `TESTS_TOUCHED` si se viola).
-- **`budget`** — topes declarativos de complejidad
-  (`max_cyclomatic_complexity`, `max_nesting_depth`). En Nivel 1 son
-  informativos (el validador solo checkea que esten presentes); se
-  ENFORCEAN de verdad solo con el gate MCP de Nivel 2. Ver precedencia en
-  [validacion.md](./validacion.md).
+- **`budget`** — topes declarativos de complejidad. Las subclaves validas son
+  exactamente las que el gate de Nivel 2 LEE: `cyclomatic_max`, `nesting_max`,
+  `lines_max`, `params_max`. En Nivel 1 los VALORES son informativos (no se
+  enforcean), pero los NOMBRES y las formas SI se validan
+  (`FM_BUDGET_KEY` / `FM_BUDGET_VALUE`): un nombre que el gate no lee dejaria
+  el tope sin aplicar en silencio. Se ENFORCEAN de verdad solo con el gate MCP
+  de Nivel 2. Ver precedencia en [validacion.md](./validacion.md).
 - **`deps_allowed`** — dependencias externas permitidas para el target
   (vacio = solo stdlib del lenguaje).
 - **`forbids`** — capacidades explicitamente prohibidas para el
@@ -76,6 +78,25 @@ duplicar contenido).
   en verificacion (no en CI): compara el diff real contra `touch_only`.
 - **Export del gate** (`<task>.gate.md`) — `scripts/export_gate_contract.py`
   produce un contrato exportado consumible por el gate MCP de Nivel 2.
+- **Preflight** — diagnostico local opt-in (NO es gate) que corre los 11
+  gates de Nivel 1 + `validate_attestation` (local-only) en dry-run, una
+  linea `PASS`/`FAIL`/`TIMEOUT` por gate + resumen `N/12`. Ver
+  [preflight](./contracts/preflight.md) y la seccion "Preflight" de
+  [validacion.md](./validacion.md).
+- **Seal debil** — oraculo congelado que el sello (`tests_sha256`)
+  certifica como integro pero que no puede fallar (sin asserts reales, sin
+  funciones de test, sin referenciar al target). Lo detecta
+  `python scripts/audit_seals.py` (auditor advisory, 6 reglas `WEAK_*`).
+  Ver [seal-audit](./contracts/seal-audit.md) y la seccion "Auditor de
+  seals debiles" de [validacion.md](./validacion.md).
+- **Receta de arreglo** (hint) — el QUE HACER que acompania a un rule-id.
+  Los validadores reportan QUE fallo (`clave requerida ausente: type`);
+  `scripts/rule_hints.py` mapea cada uno de los 107 rule-ids a su receta
+  accionable, y `preflight.py --agent` la adjunta a cada gate en rojo. La
+  cobertura se gatea en las dos direcciones (`tests/test_rule_hints.py`):
+  todo rule-id emitido tiene receta, y ninguna receta documenta un codigo
+  inexistente. Ver la seccion "Recetas de arreglo por rule-id" de
+  [validacion.md](./validacion.md).
 
 ## Ciclo de vida y proceso
 
