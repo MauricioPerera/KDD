@@ -52,6 +52,9 @@ on:
       dependency_eol_scan_dir:
         type: string
         default: 'dependency-eol/scan'
+      observability_scan_dir:
+        type: string
+        default: 'observability/scan'
       src_dir_secrets:
         type: string
         default: 'src'
@@ -116,6 +119,9 @@ jobs:
 
       - name: Validate dependency EOL findings (Capa 3)
         run: python scripts/validate_dependency_eol_findings.py ${{ inputs.dependency_eol_scan_dir || 'dependency-eol/scan' }}
+
+      - name: Validate observability findings (Capa 3)
+        run: python scripts/validate_observability_findings.py ${{ inputs.observability_scan_dir || 'observability/scan' }}
 
       - name: Run each contract's test_command
         run: python scripts/validate_test_commands.py ${{ inputs.contracts_dir || 'knowledge/contracts' }} .
