@@ -421,8 +421,8 @@
     <section id="pillars">
       <div class="col-wide">
         <span class="exhibit-tag" data-i18n="pillars.tag">Exhibit B</span>
-        <h2 data-i18n="pillars.h2">Two pillars, four domains</h2>
-        <p class="lead" data-i18n="pillars.lead">Code contracts and rule contracts both live under CCDD's frozen-contract discipline. Two more domains — security findings (vendored, model-agnostic) and license/compliance findings (native) — reuse the same rule engine as the rest (see <a href="#domains">Exhibit G</a>).</p>
+        <h2 data-i18n="pillars.h2">Two pillars, five domains</h2>
+        <p class="lead" data-i18n="pillars.lead">Code contracts and rule contracts both live under CCDD's frozen-contract discipline. Three more domains — security findings (vendored, model-agnostic), license/compliance findings, and privacy/PII findings (both native) — reuse the same rule engine as the rest (see <a href="#domains">Exhibit G</a>).</p>
         <div class="pillars">
           <div class="pillar">
             <span class="mark">OKF</span>
@@ -532,6 +532,7 @@
           <div class="tab"><span class="t" data-i18n="domains.d10t">Commit messages</span><span class="s" data-i18n="domains.d10s">Conventional Commits grammar, opt-in by design</span></div>
           <div class="tab"><span class="t" data-i18n="domains.d11t">Security findings</span><span class="s" data-i18n="domains.d11s">A vendored, model-agnostic scanner sealer — Codex not required</span></div>
           <div class="tab"><span class="t" data-i18n="domains.d12t">Compliance findings</span><span class="s" data-i18n="domains.d12s">License-compatibility sealer — no vendoring needed</span></div>
+          <div class="tab"><span class="t" data-i18n="domains.d13t">Privacy findings</span><span class="s" data-i18n="domains.d13s">Personal-data and legal-basis sealer — no vendoring needed</span></div>
         </div>
       </div>
     </section>
@@ -639,8 +640,8 @@
       "problem.tag":"Exhibit A","problem.h2":"The problem no demo shows you",
       "problem.p1":"AI agents write code fast. Nothing in that sentence tells you whether the code is correct, safe, or stayed inside its assigned scope.",
       "problem.p2":"Today, verifying that is still a human doing it by hand — reading the diff, re-running the tests, checking the file list — every single time, for every task.",
-      "pillars.tag":"Exhibit B","pillars.h2":"Two pillars, four domains",
-      "pillars.lead":"Code contracts and rule contracts both live under CCDD's frozen-contract discipline. Two more domains — security findings (vendored, model-agnostic) and license/compliance findings (native) — reuse the same rule engine as the rest (see Exhibit G).",
+      "pillars.tag":"Exhibit B","pillars.h2":"Two pillars, five domains",
+      "pillars.lead":"Code contracts and rule contracts both live under CCDD's frozen-contract discipline. Three more domains — security findings (vendored, model-agnostic), license/compliance findings, and privacy/PII findings (both native) — reuse the same rule engine as the rest (see Exhibit G).",
       "pillars.okf":"Open Knowledge Format. Your project's data models, decisions, and architecture live as versioned markdown nodes an agent can traverse — not prose it has to guess at.",
       "pillars.ccdd":"The frozen contract. A task carries a signature, invariants, and a test file. The tests are hash-sealed before any agent touches the target — edit them, and the seal breaks the build.",
       "flow.tag":"Exhibit C","flow.h2":"How a contract moves through the file",
@@ -680,6 +681,7 @@
       "domains.d10t":"Commit messages","domains.d10s":"Conventional Commits grammar, opt-in by design",
       "domains.d11t":"Security findings","domains.d11s":"A vendored, model-agnostic scanner sealer — Codex not required",
       "domains.d12t":"Compliance findings","domains.d12s":"License-compatibility sealer — no vendoring needed",
+      "domains.d13t":"Privacy findings","domains.d13s":"Personal-data and legal-basis sealer — no vendoring needed",
       "closing.h2":"Read the file yourself",
       "closing.p":"MIT-licensed. Every claim on this page is checked into the repository that makes it.",
       "closing.cta1":"Open the repository","closing.cta2":"See the releases"
@@ -697,8 +699,8 @@
       "problem.tag":"Exhibit A","problem.h2":"El problema que ningún demo muestra",
       "problem.p1":"Los agentes de IA escriben código rápido. Nada en esa frase te dice si el código es correcto, seguro, o se quedó dentro de su alcance asignado.",
       "problem.p2":"Hoy, verificar eso lo sigue haciendo un humano a mano — leyendo el diff, corriendo los tests de nuevo, revisando la lista de archivos — cada vez, para cada tarea.",
-      "pillars.tag":"Exhibit B","pillars.h2":"Dos pilares, cuatro dominios",
-      "pillars.lead":"Los contratos de código y los contratos de reglas viven bajo la misma disciplina de contrato congelado de CCDD. Dos dominios más — hallazgos de seguridad (vendorizado, agnóstico de modelo) y hallazgos de compliance/licencias (nativo) — reutilizan el mismo motor de reglas que el resto (ver Exhibit G).",
+      "pillars.tag":"Exhibit B","pillars.h2":"Dos pilares, cinco dominios",
+      "pillars.lead":"Los contratos de código y los contratos de reglas viven bajo la misma disciplina de contrato congelado de CCDD. Tres dominios más — hallazgos de seguridad (vendorizado, agnóstico de modelo), hallazgos de compliance/licencias y hallazgos de privacidad/PII (ambos nativos) — reutilizan el mismo motor de reglas que el resto (ver Exhibit G).",
       "pillars.okf":"Open Knowledge Format. El conocimiento de tu proyecto — modelos de datos, decisiones, arquitectura — vive como nodos markdown versionados que un agente puede recorrer, no prosa que tiene que adivinar.",
       "pillars.ccdd":"El contrato congelado. Una tarea lleva firma, invariantes y un archivo de tests. Los tests quedan sellados por hash antes de que cualquier agente toque el target — si los edita, el sello rompe el build.",
       "flow.tag":"Exhibit C","flow.h2":"Cómo avanza un contrato por el expediente",
@@ -738,6 +740,7 @@
       "domains.d10t":"Mensajes de commit","domains.d10s":"Gramática Conventional Commits, opt-in por diseño",
       "domains.d11t":"Hallazgos de seguridad","domains.d11s":"Un sellador de escaneos vendorizado y agnóstico de modelo — Codex no es necesario",
       "domains.d12t":"Hallazgos de compliance","domains.d12s":"Sellador de compatibilidad de licencias — sin vendoring necesario",
+      "domains.d13t":"Hallazgos de privacidad","domains.d13s":"Sellador de datos personales y base legal — sin vendoring necesario",
       "closing.h2":"Leé el expediente vos mismo",
       "closing.p":"Licencia MIT. Cada afirmación de esta página está commiteada en el repositorio que la respalda.",
       "closing.cta1":"Abrir el repositorio","closing.cta2":"Ver los releases"
@@ -755,8 +758,8 @@
       "problem.tag":"Exhibit A","problem.h2":"O problema que nenhum demo mostra",
       "problem.p1":"Agentes de IA escrevem código rápido. Nada nessa frase te diz se o código está correto, é seguro, ou ficou dentro do escopo atribuído.",
       "problem.p2":"Hoje, verificar isso ainda é um humano fazendo à mão — lendo o diff, rodando os testes de novo, revisando a lista de arquivos — toda vez, para cada tarefa.",
-      "pillars.tag":"Exhibit B","pillars.h2":"Dois pilares, quatro domínios",
-      "pillars.lead":"Contratos de código e contratos de regras vivem sob a mesma disciplina de contrato congelado do CCDD. Mais dois domínios — achados de segurança (vendorizado, agnóstico de modelo) e achados de compliance/licenças (nativo) — reutilizam o mesmo motor de regras dos demais (ver Exhibit G).",
+      "pillars.tag":"Exhibit B","pillars.h2":"Dois pilares, cinco domínios",
+      "pillars.lead":"Contratos de código e contratos de regras vivem sob a mesma disciplina de contrato congelado do CCDD. Mais três domínios — achados de segurança (vendorizado, agnóstico de modelo), achados de compliance/licenças e achados de privacidade/PII (ambos nativos) — reutilizam o mesmo motor de regras dos demais (ver Exhibit G).",
       "pillars.okf":"Open Knowledge Format. Os modelos de dados, decisões e arquitetura do seu projeto vivem como nós markdown versionados que um agente pode percorrer — não prosa que ele precisa adivinhar.",
       "pillars.ccdd":"O contrato congelado. Uma tarefa carrega assinatura, invariantes e um arquivo de testes. Os testes ficam selados por hash antes de qualquer agente tocar o alvo — edite-os, e o selo quebra o build.",
       "flow.tag":"Exhibit C","flow.h2":"Como um contrato avança pelo expediente",
@@ -796,6 +799,7 @@
       "domains.d10t":"Mensagens de commit","domains.d10s":"Gramática Conventional Commits, opt-in por design",
       "domains.d11t":"Achados de segurança","domains.d11s":"Um selador de scanner vendorizado e agnóstico de modelo — Codex não é necessário",
       "domains.d12t":"Achados de compliance","domains.d12s":"Selador de compatibilidade de licenças — sem vendoring necessário",
+      "domains.d13t":"Achados de privacidade","domains.d13s":"Selador de dados pessoais e base legal — sem vendoring necessário",
       "closing.h2":"Leia o expediente você mesmo",
       "closing.p":"Licenciado sob MIT. Cada afirmação desta página está commitada no repositório que a sustenta.",
       "closing.cta1":"Abrir o repositório","closing.cta2":"Ver os releases"
