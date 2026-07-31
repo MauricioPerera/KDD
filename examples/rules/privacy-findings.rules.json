@@ -1,0 +1,58 @@
+{
+ "_comment": "Rule contract del dominio hallazgos de privacidad/PII (Capa 3 de KDD). Opera sobre un record aplanado desde findings.json YA SELLADO por quien produce el scan (ver knowledge/data_models/privacy_findings.md y skill kdd-privacy-scan) -- este rule-set NO revalida el JSON Schema completo; audita politica de calidad de datos que el schema permite pero no exige. Formato del record y fronteras: knowledge/data_models/privacy_findings.md.",
+ "required": [
+  {"field": "findings"}
+ ],
+ "each": [
+  {
+   "collection": "findings",
+   "rules": {
+    "required": [{"field": "findingId"}, {"field": "dataCategory"}, {"field": "legalBasis"}],
+    "enums": [
+     {"field": "dataCategory", "values": ["none", "personal", "sensitive-personal", "financial", "health", "biometric"]},
+     {"field": "legalBasis", "values": ["consent", "contract", "legitimate-interest", "legal-obligation", "none-declared"]}
+    ]
+   }
+  },
+  {
+   "collection": "findings",
+   "where": {"field": "legalBasis", "equals": "none-declared"},
+   "rules": {
+    "bounds": [{"field": "remediationLength", "min": 20, "integer": true}],
+    "enums": [{"field": "severityLevel", "values": ["critical", "high"]}]
+   }
+  },
+  {
+   "collection": "findings",
+   "where": {"field": "dataCategory", "equals": "sensitive-personal"},
+   "rules": {
+    "bounds": [{"field": "remediationLength", "min": 20, "integer": true}]
+   }
+  },
+  {
+   "collection": "findings",
+   "where": {"field": "dataCategory", "equals": "health"},
+   "rules": {
+    "bounds": [{"field": "remediationLength", "min": 20, "integer": true}]
+   }
+  },
+  {
+   "collection": "findings",
+   "where": {"field": "dataCategory", "equals": "biometric"},
+   "rules": {
+    "bounds": [{"field": "remediationLength", "min": 20, "integer": true}]
+   }
+  }
+ ],
+ "code_only": [
+  {
+   "rule": "cross-border-transfer-mechanisms",
+   "field": "transfer_mechanism_doc",
+   "reason": "clausulas contractuales tipo, decisiones de adecuacion y binding corporate rules, y el registro formal de actividades de tratamiento (RoPA), viven en documentos legales/contractuales externos al findings.json sellado; auditarlos exige leer esos documentos -- fuera del nivel 1 declarativo, sin red"
+  }
+ ],
+ "golden": {
+  "path": "privacy-findings-golden.json",
+  "sha256": "340c534cdf5b0afcb8fb1de88409d0f9623ec2caa7bb147543c93cde5b379ace"
+ }
+}

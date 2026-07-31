@@ -1,7 +1,7 @@
 ---
 type: 'Concept'
 title: 'MCP server propio: los gates de KDD como tools'
-description: 'Como instalar y registrar scripts/mcp_server.py, que expone los 14 gates + orquestacion + sellado como tools MCP. Herramienta opt-in (depende del paquete externo mcp), no parte de Nivel 1/CI.'
+description: 'Como instalar y registrar scripts/mcp_server.py, que expone los 15 gates + orquestacion + sellado como tools MCP. Herramienta opt-in (depende del paquete externo mcp), no parte de Nivel 1/CI.'
 tags: ['ccdd', 'mcp', 'infra', 'reference']
 ---
 
@@ -67,11 +67,11 @@ de orquestacion/utilidad:
   `validate_ux_page`, `validate_diagrams`, `validate_security_findings`,
   `validate_compliance_findings`, `validate_test_commands`,
   `scan_secrets`, `validate_attestation` — un wrapper 1:1 por gate.
-- `run_all_level1` — corre los 13 gates de Nivel 1 (todos excepto
+- `run_all_level1` — corre los 14 gates de Nivel 1 (todos excepto
   `validate_attestation`, que es local-only) en una sola llamada. Devuelve
   `{'overall_ok': bool, 'results': {...}}`. **La tool de mayor valor**:
   un agente que quiere saber "¿este repo esta Nivel 1 verde?" no necesita
-  conocer los 13 gates por separado.
+  conocer los 14 gates por separado.
 - `seal_tests(tests_path)` — corre `validate_contracts.py --hash` y
   devuelve el hash a copiar en `tests_sha256`, sin que el agente tenga que
   invocar el CLI a mano.
@@ -88,7 +88,7 @@ de orquestacion/utilidad:
 un gate y no corre subprocess, asi que llama directo a
 `rule_hints.hint_for` (stdlib pura). Por lo mismo **no** entra en
 `GATE_SPECS` — meterla ahi la sumaria a `LEVEL1_GATES` y romperia el
-oraculo congelado del preflight (14 gates exactos).
+oraculo congelado del preflight (15 gates exactos).
 
 No se incluyen `assemble_context`/`export_gate_contract` (prep de Nivel 2)
 en esta primera version — extensible siguiendo el mismo patron si hace
@@ -101,7 +101,7 @@ falta.
 
 | Herramienta | Tipo | Tool MCP |
 |---|---|---|
-| los 14 gates, `run_all_level1` | veredicto (exit 0/1) | si |
+| los 15 gates, `run_all_level1` | veredicto (exit 0/1) | si |
 | `seal_tests`, `rule_hint` | utilidad puntual | si |
 | `preflight`, `audit_seals`, `benchmark_gates` | diagnostico advisory | **no** |
 
@@ -166,12 +166,12 @@ modulo; es una interaccion real con el test de auto-copia de
 Dos bocas sobre la misma logica de despacho (`mcp_gate_dispatch`), para
 distintos consumidores:
 
-- **`run_all_level1` (tool MCP)** — corre los **13 gates de Nivel 1**
+- **`run_all_level1` (tool MCP)** — corre los **14 gates de Nivel 1**
   (excluye `validate_attestation`, que es local-only) en una sola
   llamada. Requiere `pip install mcp` + un cliente MCP; ideal para un
   agente que consume los gates por MCP.
 - **`scripts/preflight.py` (CLI)** — cero dependencias (stdlib + modulos
-  hermanos, sin el SDK `mcp`); corre los **14 gates** (los 13 de Nivel 1
+  hermanos, sin el SDK `mcp`); corre los **15 gates** (los 14 de Nivel 1
   + `validate_attestation`, el unico lugar donde corren juntos porque
   `.agents/logs/` es local). Modo `--contract <nombre>`: 3 chequeos
   acotados a un task contract (frontmatter, sello, `test_command`). Es
