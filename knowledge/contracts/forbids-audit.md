@@ -69,7 +69,7 @@ def audit_contract(contract_path, repo_root) -> list
   `#![forbid(unsafe_code)]`) sobre el scan del archivo: cubre el crate entero.
 - DON'T: promoverlo a gate de Nivel 1 agregandolo a
   `mcp_gate_dispatch.GATE_SPECS` — eso hace crecer `LEVEL1_GATES` y rompe el
-  oraculo congelado del preflight (15 gates exactos). Promoverlo es su propio
+  oraculo congelado del preflight (16 gates exactos). Promoverlo es su propio
   contrato, con ambos oraculos re-sellados.
 - DON'T: usar `tomllib` para leer el `Cargo.toml`: fijaria un piso de Python
   3.11 en una plantilla que se distribuye a terceros. El parser de secciones
