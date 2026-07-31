@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
-"""Preflight: dry-run local de los 18 gates de KDD (Contrato: preflight).
+"""Preflight: dry-run local de los 19 gates de KDD (Contrato: preflight).
 
 Diagnostico opt-in (NO es un gate de CI, misma familia que
 ``benchmark_gates.py``). Dos modos:
 
-  Modo full (``contract is None``): corre los 18 gates (los 17 de Nivel 1 +
+  Modo full (``contract is None``): corre los 19 gates (los 18 de Nivel 1 +
   ``validate_attestation``, el local-only) contra el repo actual via
   ``run_gate`` y reporta cuales fallarian, ANTES de delegar trabajo a un
   agente. Reporta TODOS aunque el primero falle (es dry-run, no short-circuit).
 
-  Modo contract (``contract='<task>'``): NO corre los 18 gates. Corre 3
+  Modo contract (``contract='<task>'``): NO corre los 19 gates. Corre 3
   chequeos acotados a ``knowledge/contracts/<task>.md`` -- frontmatter,
   seal del oraculo, test_command -- en ese orden. Un chequeo previo fallido
   marca los siguientes como fallidos (se saltean, no se ejecutan).
 
   API (fijada por el oraculo congelado ``tests/test_preflight.py``):
-    ``ALL_GATES`` -- ``LEVEL1_GATES`` + ``['validate_attestation']`` (18).
+    ``ALL_GATES`` -- ``LEVEL1_GATES`` + ``['validate_attestation']`` (19).
     ``run_gate`` -- referencia de modulo inicializada a
       ``mcp_gate_dispatch.run_gate`` (indireccion deliberada: el oraculo la
       parchea; ``run_preflight`` con ``runner=None`` la resuelve EN CADA
@@ -239,7 +239,7 @@ def _contract_payload(results, agent=False):
 def run_preflight(repo_root='.', contract=None, runner=None, agent=False):
     """Corre el preflight y devuelve ``{'mode','overall_ok','results','lines'}``.
 
-    Modo full (``contract is None``): los 18 gates via ``runner`` (default:
+    Modo full (``contract is None``): los 19 gates via ``runner`` (default:
     la referencia de modulo ``run_gate``, resuelta EN CADA llamada). Modo
     contract: 3 chequeos, jamas invoca ``runner``. Nunca lanza por un fallo.
     Con ``agent=True`` cada gate en rojo arrastra la receta de sus rule-ids.

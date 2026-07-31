@@ -55,6 +55,9 @@ on:
       observability_scan_dir:
         type: string
         default: 'observability/scan'
+      test_coverage_scan_dir:
+        type: string
+        default: 'test-coverage/scan'
       src_dir_secrets:
         type: string
         default: 'src'
@@ -122,6 +125,9 @@ jobs:
 
       - name: Validate observability findings (Capa 3)
         run: python scripts/validate_observability_findings.py ${{ inputs.observability_scan_dir || 'observability/scan' }}
+
+      - name: Validate test-coverage findings (Capa 3)
+        run: python scripts/validate_test_coverage_findings.py ${{ inputs.test_coverage_scan_dir || 'test-coverage/scan' }}
 
       - name: Run each contract's test_command
         run: python scripts/validate_test_commands.py ${{ inputs.contracts_dir || 'knowledge/contracts' }} .

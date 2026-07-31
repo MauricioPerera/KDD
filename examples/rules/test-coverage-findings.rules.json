@@ -1,0 +1,43 @@
+{
+ "_comment": "Rule contract del dominio hallazgos de cobertura de tests (Capa 3 de KDD). Opera sobre un record aplanado desde findings.json YA SELLADO por quien produce el scan (ver knowledge/data_models/test_coverage_findings.md y skill kdd-test-coverage-scan) -- este rule-set NO revalida el JSON Schema completo; audita politica de calidad de datos que el schema permite pero no exige. Distinto de CCDD (oraculo congelado por task contract, ya Nivel 1): este dominio cubre codigo fuera de contratos y gaps de TIPO de cobertura, no de presencia. Formato del record y fronteras: knowledge/data_models/test_coverage_findings.md.",
+ "required": [
+  {"field": "findings"}
+ ],
+ "each": [
+  {
+   "collection": "findings",
+   "rules": {
+    "required": [{"field": "findingId"}, {"field": "gapType"}, {"field": "severityLevel"}],
+    "enums": [
+     {"field": "gapType", "values": ["untested-critical-path", "no-error-case-coverage", "no-regression-test", "flaky-test-untracked", "other"]},
+     {"field": "severityLevel", "values": ["critical", "high", "medium", "low", "informational"]}
+    ]
+   }
+  },
+  {
+   "collection": "findings",
+   "where": {"field": "severityLevel", "equals": "critical"},
+   "rules": {
+    "bounds": [{"field": "remediationLength", "min": 20, "integer": true}]
+   }
+  },
+  {
+   "collection": "findings",
+   "where": {"field": "severityLevel", "equals": "high"},
+   "rules": {
+    "bounds": [{"field": "remediationLength", "min": 20, "integer": true}]
+   }
+  }
+ ],
+ "code_only": [
+  {
+   "rule": "regression-test-catches-original-bug",
+   "field": "regression_revert_test_doc",
+   "reason": "verificar que un test de regresion REALMENTE hubiera atrapado el bug original exige revertir la correccion y confirmar que el test falla antes de re-aplicarla; vive fuera del findings.json sellado -- fuera del nivel 1 declarativo, sin mutar codigo real"
+  }
+ ],
+ "golden": {
+  "path": "test-coverage-findings-golden.json",
+  "sha256": "6c133bc5a196cf33c37738bfb1ec916169b5bfa9c58744511ba31585ee0f4ff9"
+ }
+}

@@ -78,9 +78,9 @@ duplicar contenido).
   en verificacion (no en CI): compara el diff real contra `touch_only`.
 - **Export del gate** (`<task>.gate.md`) — `scripts/export_gate_contract.py`
   produce un contrato exportado consumible por el gate MCP de Nivel 2.
-- **Preflight** — diagnostico local opt-in (NO es gate) que corre los 17
+- **Preflight** — diagnostico local opt-in (NO es gate) que corre los 18
   gates de Nivel 1 + `validate_attestation` (local-only) en dry-run, una
-  linea `PASS`/`FAIL`/`TIMEOUT` por gate + resumen `N/18`. Ver
+  linea `PASS`/`FAIL`/`TIMEOUT` por gate + resumen `N/19`. Ver
   [preflight](./contracts/preflight.md) y la seccion "Preflight" de
   [validacion.md](./validacion.md).
 - **Seal debil** — oraculo congelado que el sello (`tests_sha256`)
