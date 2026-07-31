@@ -157,6 +157,19 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    DISTINTOS (texto de licencia vs. actividad de commits, por ejemplo) es más fuerte
    que la convergencia entre copias del mismo instrumento
    ([caso real](./casos-reales.md#dos-dominios-de-capa-3-que-nunca-se-hablan-convergen-en-el-mismo-riesgo-verificar)).
+   **Arreglar el código que un hallazgo de auditoría describe y re-sellar el artefacto
+   que lo declara son la misma tarea, no dos tareas separables:** un fix sin resello deja
+   una afirmación pública de vulnerabilidad que ya no es cierta. Si el dominio tiene
+   identidad derivada (fingerprint por finding), los campos de identidad del target
+   (`revision`/`targetId`) son material de HASH, no metadata libre — tocarlos invalida
+   la identidad de TODOS los findings, no solo el que se corrigió
+   ([caso real](./casos-reales.md#un-hallazgo-arreglado-en-el-codigo-sigue-abierto-si-el-artefacto-no-se-resella-cierre--verificar)).
+   **La remediación que sugiere un hallazgo de auditoría (Capa 3 o cualquier scanner) es
+   una hipótesis a verificar, no una receta a ejecutar:** el hallazgo certifica CON
+   precisión que algo está mal, no que el camino de arreglo más obvio sea seguro —
+   aplicar la sugerencia sin leer el código real del cambio puede cambiar la naturaleza
+   del bug en vez de cerrarlo
+   ([caso real](./casos-reales.md#el-fix-obvio-de-un-hallazgo-de-capa-3-puede-romper-en-silencio-lo-que-arregla-verificar)).
    **Una verificación de ausencia solo vale si la herramienta corrió de verdad:**
    distinguir «corrió y no encontró» de «no corrió» — un fallback (`|| echo OK`) sobre un
    comando inexistente fabrica falsos negativos limpios
