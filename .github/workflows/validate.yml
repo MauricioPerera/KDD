@@ -40,6 +40,9 @@ on:
       security_scan_dir:
         type: string
         default: 'security/scan'
+      compliance_scan_dir:
+        type: string
+        default: 'compliance/scan'
       src_dir_secrets:
         type: string
         default: 'src'
@@ -92,6 +95,9 @@ jobs:
 
       - name: Validate security findings (Capa 3, vendored codex-security)
         run: python scripts/validate_security_findings.py ${{ inputs.security_scan_dir || 'security/scan' }}
+
+      - name: Validate compliance/license findings (Capa 3)
+        run: python scripts/validate_compliance_findings.py ${{ inputs.compliance_scan_dir || 'compliance/scan' }}
 
       - name: Run each contract's test_command
         run: python scripts/validate_test_commands.py ${{ inputs.contracts_dir || 'knowledge/contracts' }} .
