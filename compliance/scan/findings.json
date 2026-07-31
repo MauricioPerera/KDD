@@ -1,0 +1,10 @@
+{
+  "documentType": "kdd-compliance.findings",
+  "schemaVersion": "1.0",
+  "scanId": "example_compliance",
+  "projectLicense": "MIT",
+  "findings": [
+    {"findingId": "lic_left-pad-1.3.0", "dependencyName": "left-pad", "dependencyVersion": "1.3.0", "license": "MIT", "licenseCategory": "permissive", "compatibleWithProjectLicense": true, "severity": "informational", "remediation": "Sin accion requerida, licencia compatible.", "source": "pip-licenses"},
+    {"findingId": "lic_gpl-tool-2.0.0", "dependencyName": "gpl-tool", "dependencyVersion": "2.0.0", "license": "GPL-3.0", "licenseCategory": "strong-copyleft", "compatibleWithProjectLicense": false, "severity": "high", "remediation": "Reemplazar por alternativa MIT/BSD antes del proximo release publico.", "source": "pip-licenses"}
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "documentType": "kdd-test-coverage.findings",
+  "schemaVersion": "1.0",
+  "scanId": "example_test_coverage",
+  "findings": [
+    {"findingId": "cov_admin-ui-001", "gapType": "no-error-case-coverage", "location": "admin panel", "severity": "low", "remediation": "Ninguna, impacto bajo documentado.", "source": "coverage report"},
+    {"findingId": "cov_refund-flow-001", "gapType": "untested-critical-path", "location": "refund handler", "criticalPath": true, "severity": "critical", "remediation": "Agregar test de integracion cubriendo el flujo completo de reembolso.", "source": "coverage report"}
+  ]
+}

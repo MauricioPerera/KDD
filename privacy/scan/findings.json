@@ -1,0 +1,9 @@
+{
+  "documentType": "kdd-privacy.findings",
+  "schemaVersion": "1.0",
+  "scanId": "example_privacy",
+  "findings": [
+    {"findingId": "priv_signup-email-001", "dataCategory": "personal", "collectionPoint": "signup form", "legalBasis": "consent", "severity": "low", "remediation": "Ninguna, base legal declarada.", "source": "manual review"},
+    {"findingId": "priv_analytics-ip-001", "dataCategory": "personal", "collectionPoint": "analytics middleware", "legalBasis": "none-declared", "severity": "high", "remediation": "Agregar base legal declarada o anonimizar la IP antes de almacenarla.", "source": "manual review"}
+  ]
+}
