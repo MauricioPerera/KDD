@@ -150,6 +150,13 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    probar el lado que tocaste:** grep del nombre de la función en todo el repo antes de dar
    el fix por completo — "mis tests pasan" no es lo mismo que "soy consistente con quien
    consume mi output" ([caso real](./casos-reales.md#contrato-bilateral-mitad-arreglado-verificar)).
+   **Cuando varios auditores de dominio corren sobre el mismo target sin comunicarse
+   entre sí, una convergencia de dos o más en el mismo artefacto pesa más que la suma
+   de sus severidades individuales:** tratala como un solo hallazgo compuesto, no como
+   entradas separadas en backlogs distintos — la convergencia entre instrumentos
+   DISTINTOS (texto de licencia vs. actividad de commits, por ejemplo) es más fuerte
+   que la convergencia entre copias del mismo instrumento
+   ([caso real](./casos-reales.md#dos-dominios-de-capa-3-que-nunca-se-hablan-convergen-en-el-mismo-riesgo-verificar)).
    **Una verificación de ausencia solo vale si la herramienta corrió de verdad:**
    distinguir «corrió y no encontró» de «no corrió» — un fallback (`|| echo OK`) sobre un
    comando inexistente fabrica falsos negativos limpios
