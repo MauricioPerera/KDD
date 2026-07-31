@@ -43,6 +43,9 @@ on:
       compliance_scan_dir:
         type: string
         default: 'compliance/scan'
+      privacy_scan_dir:
+        type: string
+        default: 'privacy/scan'
       src_dir_secrets:
         type: string
         default: 'src'
@@ -98,6 +101,9 @@ jobs:
 
       - name: Validate compliance/license findings (Capa 3)
         run: python scripts/validate_compliance_findings.py ${{ inputs.compliance_scan_dir || 'compliance/scan' }}
+
+      - name: Validate privacy/PII findings (Capa 3)
+        run: python scripts/validate_privacy_findings.py ${{ inputs.privacy_scan_dir || 'privacy/scan' }}
 
       - name: Run each contract's test_command
         run: python scripts/validate_test_commands.py ${{ inputs.contracts_dir || 'knowledge/contracts' }} .

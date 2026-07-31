@@ -30,7 +30,7 @@ proposito para que esta logica sea testeable sin el SDK ``mcp`` instalado.
       ``{'exit_code': None, 'stdout': '', 'stderr': 'timeout after Ns'}``.
     ``run_all_level1(repo_root='.') -> {'overall_ok': bool, 'results':
       {tool_name: {'exit_code','stdout','stderr'}}}`` -- corre, EN ESTE
-      ORDEN, los 13 gates de Nivel 1 (todas las claves de ``GATE_SPECS``
+      ORDEN, los 14 gates de Nivel 1 (todas las claves de ``GATE_SPECS``
       EXCEPTO ``validate_attestation``, que es local-only y no forma parte
       del pipeline de Nivel 1 -- ver knowledge/contracts/attestation-gate.md)
       con sus params default, contra ``repo_root``. ``overall_ok`` es
@@ -57,13 +57,14 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class TestGateSpecs(unittest.TestCase):
-    def test_all_14_gates_present(self):
+    def test_all_15_gates_present(self):
         expected = {
             'validate_contracts', 'validate_specs', 'validate_okf',
             'lint_ascii', 'validate_rules', 'validate_skills',
             'validate_changelog', 'validate_ux_page', 'validate_diagrams',
             'validate_security_findings', 'validate_compliance_findings',
-            'validate_test_commands', 'scan_secrets', 'validate_attestation',
+            'validate_privacy_findings', 'validate_test_commands',
+            'scan_secrets', 'validate_attestation',
         }
         self.assertEqual(set(gd.GATE_SPECS.keys()), expected)
 
@@ -156,7 +157,7 @@ class TestRunAllLevel1(unittest.TestCase):
         try:
             result = gd.run_all_level1(repo_root=tmp)
             self.assertNotIn('validate_attestation', result['results'])
-            self.assertEqual(len(result['results']), 13)
+            self.assertEqual(len(result['results']), 14)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 

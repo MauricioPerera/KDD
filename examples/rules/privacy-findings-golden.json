@@ -1,0 +1,99 @@
+{
+ "_comment": "Golden set congelado del dominio hallazgos de privacidad/PII (fixtures sinteticos, forma aplanada de findings.json sellado). Dominio: knowledge/data_models/privacy_findings.md.",
+ "refs": {},
+ "cases": [
+  {
+   "name": "scan limpio sin findings",
+   "record": {"findings": []},
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "un finding personal con consentimiento, conforme",
+   "record": {
+    "findings": [
+     {"findingId": "priv_signup-email-001", "dataCategory": "personal", "legalBasis": "consent", "severityLevel": "low", "remediationLength": 0}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "sin la clave findings",
+   "record": {},
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "finding con dataCategory fuera de enum",
+   "record": {
+    "findings": [
+     {"findingId": "priv_xyz-001", "dataCategory": "misc", "legalBasis": "consent", "severityLevel": "low", "remediationLength": 0}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "none-declared con remediacion placeholder y severidad baja (doble violacion)",
+   "record": {
+    "findings": [
+     {"findingId": "priv_no-basis-001", "dataCategory": "personal", "legalBasis": "none-declared", "severityLevel": "low", "remediationLength": 4}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "none-declared con remediacion documentada y severidad high (conforme)",
+   "record": {
+    "findings": [
+     {"findingId": "priv_no-basis-002", "dataCategory": "personal", "legalBasis": "none-declared", "severityLevel": "high", "remediationLength": 55}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "sensitive-personal con remediacion placeholder",
+   "record": {
+    "findings": [
+     {"findingId": "priv_sensitive-001", "dataCategory": "sensitive-personal", "legalBasis": "consent", "severityLevel": "high", "remediationLength": 3}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "health con remediacion documentada (conforme)",
+   "record": {
+    "findings": [
+     {"findingId": "priv_health-001", "dataCategory": "health", "legalBasis": "consent", "severityLevel": "high", "remediationLength": 62}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "biometric con remediacion placeholder",
+   "record": {
+    "findings": [
+     {"findingId": "priv_bio-001", "dataCategory": "biometric", "legalBasis": "legitimate-interest", "severityLevel": "medium", "remediationLength": 8}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "frontera code_only: mecanismo de transferencia internacional vive fuera del artefacto sellado",
+   "record": {
+    "findings": [
+     {"findingId": "priv_transfer-001", "dataCategory": "personal", "legalBasis": "contract", "severityLevel": "informational", "remediationLength": 0}
+    ],
+    "transfer_mechanism_doc": "sccs-firmadas-fuera-de-repo.pdf"
+   },
+   "violations": ["transfer_mechanism_doc"],
+   "code_only_miss": ["transfer_mechanism_doc"]
+  }
+ ]
+}

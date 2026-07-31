@@ -13,8 +13,8 @@ description: |
   top, at `_kdd/`, without overwriting the caller's files.
 
   Optional gates (rules / skills / ux-page / diagrams / security findings /
-  compliance findings / secrets) auto-skip with INFO / exit 0 when their
-  target dir does not exist
+  compliance findings / privacy findings / secrets) auto-skip with INFO /
+  exit 0 when their target dir does not exist
   (documented as the "capa opcional" in knowledge/validacion.md).
   `validate_specs.py` does NOT
   auto-skip (it ERRORs on a missing dir), so this action guards it with an
@@ -71,6 +71,10 @@ inputs:
     description: 'Path to a sealed license/compliance scan dir (findings.json). OPTIONAL — auto-skips (INFO) if absent.'
     required: false
     default: 'compliance/scan'
+  privacy-scan-dir:
+    description: 'Path to a sealed privacy/PII scan dir (findings.json). OPTIONAL — auto-skips (INFO) if absent.'
+    required: false
+    default: 'privacy/scan'
   src-dir:
     description: 'Path to scan for leaked secrets. OPTIONAL — scan_secrets returns [] on a missing dir.'
     required: false
@@ -135,6 +139,10 @@ runs:
     - name: Validate compliance/license findings (OPTIONAL — auto-skip)
       shell: bash
       run: python _kdd/scripts/validate_compliance_findings.py "${{ inputs.compliance-scan-dir }}"
+
+    - name: Validate privacy/PII findings (OPTIONAL — auto-skip)
+      shell: bash
+      run: python _kdd/scripts/validate_privacy_findings.py "${{ inputs.privacy-scan-dir }}"
 
     - name: Scan for leaked secrets (OPTIONAL — auto-skip)
       shell: bash
