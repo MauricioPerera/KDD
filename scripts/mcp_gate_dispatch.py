@@ -32,7 +32,7 @@ cero drift entre el CLI y la tool MCP.
       ``{'exit_code': None, 'stdout': '', 'stderr': 'timeout after Ns'}``.
     ``run_all_level1(repo_root='.') -> {'overall_ok': bool, 'results':
       {tool_name: {'exit_code','stdout','stderr'}}}`` -- corre, EN ESTE
-      ORDEN, los 12 gates de Nivel 1 (todas las claves de ``GATE_SPECS``
+      ORDEN, los 13 gates de Nivel 1 (todas las claves de ``GATE_SPECS``
       EXCEPTO ``validate_attestation``, que es local-only) con sus params
       default, contra ``repo_root``. ``overall_ok`` es ``True`` solo si TODOS
       los ``exit_code`` son ``0``.
@@ -107,6 +107,11 @@ GATE_SPECS = {
         'script': 'scripts/validate_security_findings.py',
         'params': ['dir'],
         'defaults': {'dir': 'security/scan'},
+    },
+    'validate_compliance_findings': {
+        'script': 'scripts/validate_compliance_findings.py',
+        'params': ['dir'],
+        'defaults': {'dir': 'compliance/scan'},
     },
     'validate_test_commands': {
         'script': 'scripts/validate_test_commands.py',
@@ -190,7 +195,7 @@ def run_gate(tool_name, params, repo_root='.', timeout=120):
 
 
 def run_all_level1(repo_root='.'):
-    """Corre los 12 gates de Nivel 1 con sus defaults contra ``repo_root``.
+    """Corre los 13 gates de Nivel 1 con sus defaults contra ``repo_root``.
 
     ``overall_ok`` es ``True`` solo si todos los ``exit_code`` son ``0``.
     ``validate_attestation`` NUNCA esta en ``results`` (es local-only).

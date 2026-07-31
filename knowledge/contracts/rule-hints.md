@@ -39,7 +39,7 @@ mitad que faltaba: el mapa de cada rule-id a su receta.
 
 Es la contraparte de `preflight.py` (que dice CUALES gates fallan) y de
 `audit_seals.py` (que dice si un oraculo es debil). Diagnostico opt-in, no
-gate: Nivel 1 sigue siendo 11 gates y el conteo no cambia.
+gate: Nivel 1 sigue siendo 13 gates y el conteo no cambia.
 
 Linaje: analogo de `tools/rule-hints.js` del proyecto hermano
 [game-protocol](https://github.com/MauricioPerera/game-protocol), donde cada

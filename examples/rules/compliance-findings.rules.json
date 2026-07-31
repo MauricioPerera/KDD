@@ -1,0 +1,41 @@
+{
+ "_comment": "Rule contract del dominio hallazgos de compliance/licencias (Capa 3 de KDD). Opera sobre un record aplanado desde findings.json YA SELLADO por quien produce el scan (ver knowledge/data_models/compliance_findings.md y skill kdd-compliance-scan) -- este rule-set NO revalida el JSON Schema completo (compatibleWithProjectLicense ya lo decidio el normalizador); audita politica de calidad de datos que el schema permite pero no exige. Formato del record y fronteras: knowledge/data_models/compliance_findings.md.",
+ "required": [
+  {"field": "findings"}
+ ],
+ "each": [
+  {
+   "collection": "findings",
+   "rules": {
+    "required": [{"field": "findingId"}, {"field": "dependencyName"}, {"field": "licenseCategory"}],
+    "enums": [{"field": "licenseCategory", "values": ["permissive", "weak-copyleft", "strong-copyleft", "proprietary", "unknown"]}]
+   }
+  },
+  {
+   "collection": "findings",
+   "where": {"field": "licenseCategory", "equals": "strong-copyleft"},
+   "rules": {
+    "bounds": [{"field": "remediationLength", "min": 20, "integer": true}]
+   }
+  },
+  {
+   "collection": "findings",
+   "where": {"field": "licenseCategory", "equals": "unknown"},
+   "rules": {
+    "bounds": [{"field": "remediationLength", "min": 20, "integer": true}],
+    "enums": [{"field": "severityLevel", "values": ["critical", "high"]}]
+   }
+  }
+ ],
+ "code_only": [
+  {
+   "rule": "commercial-license-exceptions",
+   "field": "license_exception_doc",
+   "reason": "excepciones de licencia dual o acuerdos comerciales puntuales viven en documentos externos al findings.json sellado (p.ej. un PDF firmado fuera del repo); auditarlos exige leer ese documento externo -- fuera del nivel 1 declarativo, sin red"
+  }
+ ],
+ "golden": {
+  "path": "compliance-findings-golden.json",
+  "sha256": "8030112c17bb29a256dedab7a2e13bd69a9f60d845a44ce7b4831a4b10911d23"
+ }
+}

@@ -1,0 +1,89 @@
+{
+ "_comment": "Golden set congelado del dominio hallazgos de compliance/licencias (fixtures sinteticos, forma aplanada de findings.json sellado). Dominio: knowledge/data_models/compliance_findings.md.",
+ "refs": {},
+ "cases": [
+  {
+   "name": "scan limpio sin findings",
+   "record": {"findings": []},
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "un finding permissive conforme",
+   "record": {
+    "findings": [
+     {"findingId": "lic_left-pad-1.3.0", "dependencyName": "left-pad", "licenseCategory": "permissive", "severityLevel": "informational", "remediationLength": 0}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "sin la clave findings",
+   "record": {},
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "finding sin licenseCategory (fuera de enum)",
+   "record": {
+    "findings": [
+     {"findingId": "lic_xyz-1.0.0", "dependencyName": "xyz", "licenseCategory": "who-knows", "severityLevel": "low", "remediationLength": 0}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "strong-copyleft con remediacion placeholder (muy corta)",
+   "record": {
+    "findings": [
+     {"findingId": "lic_gpl-lib-2.0.0", "dependencyName": "gpl-lib", "licenseCategory": "strong-copyleft", "severityLevel": "high", "remediationLength": 5}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "strong-copyleft con remediacion documentada (conforme)",
+   "record": {
+    "findings": [
+     {"findingId": "lic_gpl-lib-2.0.1", "dependencyName": "gpl-lib", "licenseCategory": "strong-copyleft", "severityLevel": "high", "remediationLength": 87}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "unknown con remediacion corta y severidad baja (doble violacion)",
+   "record": {
+    "findings": [
+     {"findingId": "lic_mystery-0.1.0", "dependencyName": "mystery", "licenseCategory": "unknown", "severityLevel": "low", "remediationLength": 3}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "unknown con remediacion documentada y severidad high (conforme)",
+   "record": {
+    "findings": [
+     {"findingId": "lic_mystery-0.2.0", "dependencyName": "mystery", "licenseCategory": "unknown", "severityLevel": "high", "remediationLength": 45}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "frontera code_only: excepcion de licencia comercial vive fuera del artefacto sellado",
+   "record": {
+    "findings": [
+     {"findingId": "lic_dual-1.0.0", "dependencyName": "dual-licensed-lib", "licenseCategory": "proprietary", "severityLevel": "medium", "remediationLength": 30}
+    ],
+    "license_exception_doc": "acuerdo-comercial-fuera-de-repo.pdf"
+   },
+   "violations": ["license_exception_doc"],
+   "code_only_miss": ["license_exception_doc"]
+  }
+ ]
+}
