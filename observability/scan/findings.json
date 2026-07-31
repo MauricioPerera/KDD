@@ -1,0 +1,9 @@
+{
+  "documentType": "kdd-observability.findings",
+  "schemaVersion": "1.0",
+  "scanId": "example_observability",
+  "findings": [
+    {"findingId": "obs_health-check-001", "gapType": "no-metrics", "location": "health check endpoint", "severity": "low", "remediation": "Ninguna, impacto bajo documentado.", "source": "manual review"},
+    {"findingId": "obs_payment-catch-001", "gapType": "silent-failure", "location": "payment handler catch block", "criticalPath": true, "severity": "critical", "remediation": "Agregar logging estructurado y alerta de PagerDuty en el catch.", "source": "manual review"}
+  ]
+}

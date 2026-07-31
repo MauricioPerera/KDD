@@ -1,0 +1,9 @@
+{
+  "documentType": "kdd-accessibility.findings",
+  "schemaVersion": "1.0",
+  "scanId": "example_accessibility",
+  "findings": [
+    {"findingId": "a11y_footer-link-001", "wcagCriterion": "2.4.4", "wcagLevel": "A", "impact": "minor", "location": "footer nav", "remediation": "Ninguna, impacto menor documentado.", "source": "axe-core"},
+    {"findingId": "a11y_checkout-contrast-001", "wcagCriterion": "1.4.3", "wcagLevel": "AA", "impact": "serious", "location": "checkout submit button", "remediation": "Aumentar contraste del boton a 4.5:1 minimo segun WCAG AA.", "source": "axe-core"}
+  ]
+}

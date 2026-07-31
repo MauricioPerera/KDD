@@ -1,0 +1,9 @@
+{
+  "documentType": "kdd-dependency-eol.findings",
+  "schemaVersion": "1.0",
+  "scanId": "example_dependency_eol",
+  "findings": [
+    {"findingId": "eol_leftpad-1.3.0", "dependencyName": "left-pad", "dependencyVersion": "1.3.0", "eolStatus": "supported", "severity": "informational", "remediation": "Ninguna, dependencia vigente.", "source": "endoflife.date"},
+    {"findingId": "eol_oldcrypto-1.0.0", "dependencyName": "old-crypto-lib", "dependencyVersion": "1.0.0", "eolStatus": "eol", "severity": "high", "remediation": "Migrar a la libreria sucesora mantenida antes del proximo release.", "source": "endoflife.date"}
+  ]
+}
