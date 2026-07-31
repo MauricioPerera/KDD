@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: "tests/test_mcp_gate_dispatch.py"
-tests_sha256: "d217bb0abb8a7d3bf4011a8edd2f5ebc9f4f93e5e41d033bdf1c0ff53ecfdbf6"
+tests_sha256: "18f4a50015e93d874dbe4fe45f0fd65fcf9a70de657dbe60ec3ced8f8810ddeb"
 touch_only: ['scripts/mcp_gate_dispatch.py']
 deps_allowed: []
 forbids: ['network', 'llm']
@@ -41,11 +41,12 @@ reusar `scripts/*.py` sin invocarlos como proceso. `forbids` es
 
 ## Interface
 - `GATE_SPECS` — dict `{tool_name: {'script','params','defaults'}}` para
-  los 15 gates: `validate_contracts`, `validate_specs`, `validate_okf`,
+  los 16 gates: `validate_contracts`, `validate_specs`, `validate_okf`,
   `lint_ascii`, `validate_rules`, `validate_skills`, `validate_changelog`,
   `validate_ux_page`, `validate_diagrams`, `validate_security_findings`,
   `validate_compliance_findings`, `validate_privacy_findings`,
-  `validate_test_commands`, `scan_secrets`, `validate_attestation`.
+  `validate_accessibility_findings`, `validate_test_commands`,
+  `scan_secrets`, `validate_attestation`.
 - `build_argv(tool_name, params) -> list[str]` — arma
   `[sys.executable, '<repo>/scripts/<gate>.py', ...args]`. Un valor
   `list` en `params` se expande a multiples argv (nunca se unen con
@@ -59,7 +60,7 @@ reusar `scripts/*.py` sin invocarlos como proceso. `forbids` es
   `{'exit_code': None, 'stdout': '', 'stderr': 'timeout after Ns'}`, sin
   propagar la excepcion.
 - `run_all_level1(repo_root='.') -> {'overall_ok': bool, 'results':
-  {tool_name: {...}}}` — corre los 14 gates de Nivel 1 (todo
+  {tool_name: {...}}}` — corre los 15 gates de Nivel 1 (todo
   `GATE_SPECS` EXCEPTO `validate_attestation`, que es local-only, ver
   [attestation-gate](./attestation-gate.md)) con sus defaults.
 - `seal_tests(tests_path, repo_root='.') -> {'hash': str|None,
@@ -80,7 +81,7 @@ reusar `scripts/*.py` sin invocarlos como proceso. `forbids` es
 - `build_argv('scan_secrets', {'dirs': ['a', 'b']})` -> termina en
   `['a', 'b']` (dos argv separados).
 - `run_all_level1(repo_root='.')` sobre un repo con contratos rotos/faltantes
-  -> `overall_ok: False`, 14 entradas en `results` (ver nota de RECON abajo
+  -> `overall_ok: False`, 15 entradas en `results` (ver nota de RECON abajo
   sobre por que el oraculo NUNCA corre esto contra el repo real).
 - `seal_tests('tests/test_x.py', repo_root='.')` -> `{'hash': '<64
   hex>', 'exit_code': 0, ...}`.

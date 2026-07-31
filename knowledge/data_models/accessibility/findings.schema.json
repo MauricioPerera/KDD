@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MauricioPerera/KDD/schemas/accessibility/findings.schema.json",
+  "title": "KDD accessibility (a11y audit) findings",
+  "type": "object",
+  "required": [
+    "documentType",
+    "schemaVersion",
+    "scanId",
+    "findings"
+  ],
+  "properties": {
+    "documentType": {
+      "const": "kdd-accessibility.findings"
+    },
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "scanId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "findingId",
+          "wcagCriterion",
+          "wcagLevel",
+          "impact",
+          "location",
+          "remediation",
+          "source"
+        ],
+        "properties": {
+          "findingId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "wcagCriterion": {
+            "type": "string",
+            "minLength": 1,
+            "description": "WCAG success criterion number, e.g. '1.4.3', '2.1.1', or 'n/a' if not WCAG-mappable."
+          },
+          "wcagLevel": {
+            "enum": [
+              "A",
+              "AA",
+              "AAA",
+              "n/a"
+            ]
+          },
+          "impact": {
+            "enum": [
+              "critical",
+              "serious",
+              "moderate",
+              "minor"
+            ],
+            "description": "Same vocabulary as axe-core's impact field."
+          },
+          "location": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Page/route + selector or component where the violation occurs."
+          },
+          "ruleId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Scanner-specific rule id (e.g. axe-core 'color-contrast'), if known."
+          },
+          "remediation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Tool that produced this finding, e.g. 'axe-core', 'lighthouse', 'pa11y', 'manual review'."
+          }
+        }
+      }
+    }
+  }
+}

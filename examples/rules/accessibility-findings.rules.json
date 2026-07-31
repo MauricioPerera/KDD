@@ -1,0 +1,40 @@
+{
+ "_comment": "Rule contract del dominio hallazgos de accesibilidad (Capa 3 de KDD). Opera sobre un record aplanado desde findings.json YA SELLADO por quien produce el scan (ver knowledge/data_models/accessibility_findings.md y skill kdd-accessibility-scan) -- este rule-set NO revalida el JSON Schema completo; audita politica de calidad de datos que el schema permite pero no exige. Formato del record y fronteras: knowledge/data_models/accessibility_findings.md. Distinto del gate mecanico validate_ux_page.py (linter estatico sobre HTML propio del repo) -- este dominio sella hallazgos de auditoria externa sobre el producto en ejecucion.",
+ "required": [
+  {"field": "findings"}
+ ],
+ "each": [
+  {
+   "collection": "findings",
+   "rules": {
+    "required": [{"field": "findingId"}, {"field": "wcagCriterion"}, {"field": "impactLevel"}],
+    "enums": [{"field": "impactLevel", "values": ["critical", "serious", "moderate", "minor"]}]
+   }
+  },
+  {
+   "collection": "findings",
+   "where": {"field": "impactLevel", "equals": "critical"},
+   "rules": {
+    "bounds": [{"field": "remediationLength", "min": 20, "integer": true}]
+   }
+  },
+  {
+   "collection": "findings",
+   "where": {"field": "impactLevel", "equals": "serious"},
+   "rules": {
+    "bounds": [{"field": "remediationLength", "min": 20, "integer": true}]
+   }
+  }
+ ],
+ "code_only": [
+  {
+   "rule": "assistive-tech-verification",
+   "field": "assistive_tech_test_doc",
+   "reason": "pruebas con tecnologia asistiva real (recorridos con lector de pantalla, navegacion solo-teclado con usuarios reales) viven fuera del findings.json sellado; verificar una correccion para un usuario real exige esas pruebas -- fuera del nivel 1 declarativo, sin red"
+  }
+ ],
+ "golden": {
+  "path": "accessibility-findings-golden.json",
+  "sha256": "1907800955c0418c711c6661eedd5051b1bda81bd21ff3fc70a979c04e91a6b2"
+ }
+}

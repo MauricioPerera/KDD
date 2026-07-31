@@ -1,0 +1,99 @@
+{
+ "_comment": "Golden set congelado del dominio hallazgos de accesibilidad (fixtures sinteticos, forma aplanada de findings.json sellado). Dominio: knowledge/data_models/accessibility_findings.md.",
+ "refs": {},
+ "cases": [
+  {
+   "name": "scan limpio sin findings",
+   "record": {"findings": []},
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "un finding minor conforme",
+   "record": {
+    "findings": [
+     {"findingId": "a11y_footer-link-001", "wcagCriterion": "2.4.4", "impactLevel": "minor", "remediationLength": 0}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "sin la clave findings",
+   "record": {},
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "finding con impactLevel fuera de enum",
+   "record": {
+    "findings": [
+     {"findingId": "a11y_xyz-001", "wcagCriterion": "1.1.1", "impactLevel": "urgent", "remediationLength": 0}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "critical con remediacion placeholder",
+   "record": {
+    "findings": [
+     {"findingId": "a11y_form-label-001", "wcagCriterion": "1.3.1", "impactLevel": "critical", "remediationLength": 4}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "critical con remediacion documentada (conforme)",
+   "record": {
+    "findings": [
+     {"findingId": "a11y_form-label-002", "wcagCriterion": "1.3.1", "impactLevel": "critical", "remediationLength": 58}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "serious con remediacion placeholder",
+   "record": {
+    "findings": [
+     {"findingId": "a11y_contrast-001", "wcagCriterion": "1.4.3", "impactLevel": "serious", "remediationLength": 6}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "serious con remediacion documentada (conforme)",
+   "record": {
+    "findings": [
+     {"findingId": "a11y_contrast-002", "wcagCriterion": "1.4.3", "impactLevel": "serious", "remediationLength": 66}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "moderate sin remediacion (no exige longitud minima)",
+   "record": {
+    "findings": [
+     {"findingId": "a11y_heading-order-001", "wcagCriterion": "1.3.1", "impactLevel": "moderate", "remediationLength": 0}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "frontera code_only: prueba con tecnologia asistiva vive fuera del artefacto sellado",
+   "record": {
+    "findings": [
+     {"findingId": "a11y_screenreader-001", "wcagCriterion": "4.1.2", "impactLevel": "moderate", "remediationLength": 0}
+    ],
+    "assistive_tech_test_doc": "recorrido-nvda-2026-07.pdf"
+   },
+   "violations": ["assistive_tech_test_doc"],
+   "code_only_miss": ["assistive_tech_test_doc"]
+  }
+ ]
+}
