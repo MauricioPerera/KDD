@@ -23,29 +23,32 @@ forbids: ['network', 'llm']
 
 ## Intent
 Cerrar el hueco mas critico del pipeline de verificacion de este repo:
-Nivel 1 (los 9 gates deterministas listados en `knowledge/validacion.md`)
-verifica que cada `knowledge/contracts/*.md` este bien formado — que tenga
-`test_command`, `tests_sha256`, `touch_only`, etc. como texto — pero
-ninguno de esos 9 gates corre el `test_command` declarado. Un contrato
-puede pasar los 9 gates con un `test_command` que falla, esta mal escrito,
-o apunta a un archivo que no existe, y nadie lo nota salvo que un humano
-corra manualmente los 24 comandos. Este gate corre los 24 (o los que haya)
-y reporta PASS/FAIL por contrato.
+Nivel 1 (en su momento, los gates deterministas listados en
+`knowledge/validacion.md` -- hoy son 18 en total) verifica que cada
+`knowledge/contracts/*.md` este bien formado — que tenga `test_command`,
+`tests_sha256`, `touch_only`, etc. como texto — pero ninguno de los demas
+gates corre el `test_command` declarado. Un contrato puede pasar todos los
+demas gates con un `test_command` que falla, esta mal escrito, o apunta a
+un archivo que no existe, y nadie lo nota salvo que un humano corra
+manualmente cada comando a mano. Este gate corre el `test_command` de cada
+contrato existente y reporta PASS/FAIL por contrato.
 
 ## Por que este gate rompe la convencion forbids: subprocess
-Los otros 9 gates de Nivel 1 declaran `forbids: [..., 'subprocess', ...]`
-porque para SU intent (parsear un YAML, un JSON, un .md, un diagrama) usar
-`subprocess` seria una salida de emergencia evitable — ver
-`knowledge/contracts/diagram-gate.md` como ejemplo canonico de esa
-restriccion. Este gate es la excepcion deliberada: su intent ES ejecutar
-un comando arbitrario (`test_command`, texto libre del contrato, ej.
-`"python -m unittest tests/test_x.py"` o, en un proyecto no-Python,
-`"npm test"`/`"cargo test"`) y leer su exit code. No hay forma de cumplir
-ese intent sin `subprocess`. Por eso `forbids` en este contrato es
-`['network', 'llm']` unicamente — sigue prohibiendo red y LLM, pero no
-subprocess. Esta es la unica excepcion en el repo; cualquier gate nuevo
-que NO sea "ejecutar el test_command de un contrato" debe seguir sin
-`subprocess`.
+La mayoria de los demas gates de Nivel 1 declaran
+`forbids: [..., 'subprocess', ...]` porque para SU intent (parsear un
+YAML, un JSON, un .md, un diagrama) usar `subprocess` seria una salida de
+emergencia evitable — ver `knowledge/contracts/diagram-gate.md` como
+ejemplo canonico de esa restriccion. Este gate es una excepcion
+deliberada: su intent ES ejecutar un comando arbitrario (`test_command`,
+texto libre del contrato, ej. `"python -m unittest tests/test_x.py"` o, en
+un proyecto no-Python, `"npm test"`/`"cargo test"`) y leer su exit code.
+No hay forma de cumplir ese intent sin `subprocess`. Por eso `forbids` en
+este contrato es `['network', 'llm']` unicamente — sigue prohibiendo red y
+LLM, pero no subprocess. Esta es una de dos excepciones entre los gates de
+Nivel 1 (la otra es [mcp-gate-dispatch](./mcp-gate-dispatch.md), con el
+mismo motivo: reusar `scripts/*.py` via subprocess ES su intent); cualquier
+gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
+"despachar otro gate como subprocess" debe seguir sin `subprocess`.
 
 ## Interface
 - `extract_test_command(text) -> str|None` — valor de `test_command` en el
