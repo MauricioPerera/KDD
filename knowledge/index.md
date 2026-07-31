@@ -41,7 +41,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Ejemplo multi-lenguaje: greet en Node.js](./contracts/example-node-greet.md)
   - [Gate de atestacion de reportes locales](./contracts/attestation-gate.md)
   - [Capa de despacho del MCP server de gates KDD](./contracts/mcp-gate-dispatch.md)
-  - [Preflight: dry-run local de los 16 gates](./contracts/preflight.md)
+  - [Preflight: dry-run local de los 17 gates](./contracts/preflight.md)
   - [Auditor de seals débiles (advisory, no es un gate)](./contracts/seal-audit.md) — `scripts/audit_seals.py`
   - [Auditor de `forbids` (advisory, no es un gate)](./contracts/forbids-audit.md) — `scripts/audit_forbids.py`
 - [Recetas de arreglo por rule-id (no es un gate)](./contracts/rule-hints.md) — `scripts/rule_hints.py`
@@ -65,6 +65,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Hallazgos de compliance/licencias (Capa 3)](./data_models/compliance_findings.md)
   - [Hallazgos de privacidad/PII (Capa 3)](./data_models/privacy_findings.md)
   - [Hallazgos de accesibilidad (Capa 3)](./data_models/accessibility_findings.md)
+  - [Hallazgos de vigencia de dependencias / EOL (Capa 3)](./data_models/dependency_eol_findings.md)
   - [Cableado de agentes](./data_models/agent_wiring.md)
   - [Convención UX/accesibilidad](./data_models/ux_page_contract.md)
   - [Convención de mensaje de commit](./data_models/commit_message_contract.md)

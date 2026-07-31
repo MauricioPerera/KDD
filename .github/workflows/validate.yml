@@ -49,6 +49,9 @@ on:
       accessibility_scan_dir:
         type: string
         default: 'accessibility/scan'
+      dependency_eol_scan_dir:
+        type: string
+        default: 'dependency-eol/scan'
       src_dir_secrets:
         type: string
         default: 'src'
@@ -110,6 +113,9 @@ jobs:
 
       - name: Validate accessibility findings (Capa 3)
         run: python scripts/validate_accessibility_findings.py ${{ inputs.accessibility_scan_dir || 'accessibility/scan' }}
+
+      - name: Validate dependency EOL findings (Capa 3)
+        run: python scripts/validate_dependency_eol_findings.py ${{ inputs.dependency_eol_scan_dir || 'dependency-eol/scan' }}
 
       - name: Run each contract's test_command
         run: python scripts/validate_test_commands.py ${{ inputs.contracts_dir || 'knowledge/contracts' }} .

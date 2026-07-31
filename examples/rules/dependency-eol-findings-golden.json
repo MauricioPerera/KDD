@@ -1,0 +1,99 @@
+{
+ "_comment": "Golden set congelado del dominio hallazgos de vigencia de dependencias / EOL (fixtures sinteticos, forma aplanada de findings.json sellado). Dominio: knowledge/data_models/dependency_eol_findings.md.",
+ "refs": {},
+ "cases": [
+  {
+   "name": "scan limpio sin findings",
+   "record": {"findings": []},
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "un finding supported conforme",
+   "record": {
+    "findings": [
+     {"findingId": "eol_leftpad-1.3.0", "dependencyName": "left-pad", "eolStatus": "supported", "severityLevel": "informational", "remediationLength": 0}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "sin la clave findings",
+   "record": {},
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "finding con eolStatus fuera de enum",
+   "record": {
+    "findings": [
+     {"findingId": "eol_xyz-1.0.0", "dependencyName": "xyz", "eolStatus": "deprecated-ish", "severityLevel": "low", "remediationLength": 0}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "eol con remediacion placeholder y severidad baja (doble violacion)",
+   "record": {
+    "findings": [
+     {"findingId": "eol_oldlib-2.0.0", "dependencyName": "oldlib", "eolStatus": "eol", "severityLevel": "low", "remediationLength": 5}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "eol con remediacion documentada y severidad high (conforme)",
+   "record": {
+    "findings": [
+     {"findingId": "eol_oldlib-2.0.1", "dependencyName": "oldlib", "eolStatus": "eol", "severityLevel": "high", "remediationLength": 62}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "unmaintained con remediacion placeholder",
+   "record": {
+    "findings": [
+     {"findingId": "eol_abandoned-0.9.0", "dependencyName": "abandoned-pkg", "eolStatus": "unmaintained", "severityLevel": "high", "remediationLength": 4}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "unmaintained con remediacion documentada (conforme)",
+   "record": {
+    "findings": [
+     {"findingId": "eol_abandoned-0.9.1", "dependencyName": "abandoned-pkg", "eolStatus": "unmaintained", "severityLevel": "critical", "remediationLength": 71}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "approaching-eol sin remediacion (no exige longitud minima)",
+   "record": {
+    "findings": [
+     {"findingId": "eol_soonish-3.0.0", "dependencyName": "soonish", "eolStatus": "approaching-eol", "severityLevel": "medium", "remediationLength": 0}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "frontera code_only: acuerdo de soporte extendido vive fuera del artefacto sellado",
+   "record": {
+    "findings": [
+     {"findingId": "eol_legacy-1.0.0", "dependencyName": "legacy-db-driver", "eolStatus": "eol", "severityLevel": "high", "remediationLength": 45}
+    ],
+    "extended_support_doc": "acuerdo-soporte-extendido-vendor.pdf"
+   },
+   "violations": ["extended_support_doc"],
+   "code_only_miss": ["extended_support_doc"]
+  }
+ ]
+}

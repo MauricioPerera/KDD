@@ -1,7 +1,7 @@
 ---
 type: 'Task Contract'
-title: 'Preflight: dry-run local de los 16 gates'
-description: 'CLI de diagnostico que corre los 16 gates de KDD (los 15 de Nivel 1 + validate_attestation, el local-only que CI nunca ve) contra el repo actual y reporta cuales fallarian ANTES de que un agente toque el codigo. Modo --contract: 3 chequeos acotados a un solo task contract (frontmatter, seal del oraculo, test_command). Nace de feedback externo real de adopcion. Misma familia que benchmark_gates.py: herramienta de mantenimiento, NO gate de CI.'
+title: 'Preflight: dry-run local de los 17 gates'
+description: 'CLI de diagnostico que corre los 17 gates de KDD (los 16 de Nivel 1 + validate_attestation, el local-only que CI nunca ve) contra el repo actual y reporta cuales fallarian ANTES de que un agente toque el codigo. Modo --contract: 3 chequeos acotados a un solo task contract (frontmatter, seal del oraculo, test_command). Nace de feedback externo real de adopcion. Misma familia que benchmark_gates.py: herramienta de mantenimiento, NO gate de CI.'
 tags: ['ccdd', 'gate', 'infra', 'dx']
 
 task: preflight
@@ -13,13 +13,13 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: "tests/test_preflight.py"
-tests_sha256: "e7973b71dc4df4fe3945f5acd54ec366c255fd50c6411e4b4ccf103f0b3a53d8"
+tests_sha256: "1ff0ba334a5137f71aa6d6325beb47a408ef65b0d00992acce47e8e4f81ecde2"
 touch_only: ['scripts/preflight.py']
 deps_allowed: []
 forbids: ['network', 'llm']
 ---
 
-# Contract: Preflight (dry-run de los 16 gates)
+# Contract: Preflight (dry-run de los 17 gates)
 
 ## Intent
 Feedback externo textual: "a built-in dry-run mode that shows which of the
@@ -28,7 +28,7 @@ code". El motor ya existe (`mcp_gate_dispatch.run_all_level1`, Contrato
 mcp-gate-dispatch) pero SOLO es invocable via el MCP server (`pip install
 mcp` + cliente MCP): para onboarding eso es una barrera. Este contrato le
 pone una boca CLI de cero dependencias, y agrega el unico lugar donde los
-16 gates pueden correr juntos (CI corre 15; `validate_attestation` es
+17 gates pueden correr juntos (CI corre 16; `validate_attestation` es
 local-only porque `.agents/logs/` esta gitignoreado).
 
 NO es un gate nuevo de Nivel 1: es diagnostico opt-in, mismo estatus que
@@ -40,19 +40,19 @@ gates de Nivel 1.
 
 ## Interface
 - `ALL_GATES`: lista = `mcp_gate_dispatch.LEVEL1_GATES` +
-  `['validate_attestation']` (16 nombres, en ese orden). Derivada del
+  `['validate_attestation']` (17 nombres, en ese orden). Derivada del
   dispatch, nunca hardcodeada aparte.
 - `run_gate`: referencia de modulo inicializada a
   `mcp_gate_dispatch.run_gate` (indireccion deliberada: el oraculo la
   parchea; `run_preflight` con `runner=None` la resuelve EN CADA llamada,
   no la captura en el default).
 - `run_preflight(repo_root='.', contract=None, runner=None) -> dict`:
-  - Modo full (`contract is None`): corre los 16 gates de `ALL_GATES` en
+  - Modo full (`contract is None`): corre los 17 gates de `ALL_GATES` en
     orden via `runner(name, {}, repo_root=repo_root)`. Devuelve
     `{'mode': 'full', 'overall_ok': bool, 'results': {gate: dict},
     'lines': [str]}` donde cada dict de gate es el retorno de `run_gate`
     (`{'exit_code','stdout','stderr'}`; timeout => `exit_code None`).
-  - Modo contract (`contract='<task>'`): NO corre los 16 gates. Corre 3
+  - Modo contract (`contract='<task>'`): NO corre los 17 gates. Corre 3
     chequeos, en este orden y con estas claves en `results`:
     1. `frontmatter` -- `knowledge/contracts/<task>.md` existe bajo
        `repo_root` y su frontmatter declara `tests`, `tests_sha256` y
@@ -72,7 +72,7 @@ gates de Nivel 1.
   stdout y devuelve 0 si `overall_ok`, 1 si no.
 - `lines`: una linea por gate/chequeo conteniendo el nombre y su estado
   `PASS` / `FAIL` / `TIMEOUT` (`TIMEOUT` = `exit_code None`), mas una
-  linea resumen con `<pasados>/<total>` (`16/16`, `15/16`, `3/3`, ...).
+  linea resumen con `<pasados>/<total>` (`17/17`, `16/17`, `3/3`, ...).
 
 ## Invariants
 - Cero dependencias externas: stdlib + modulos hermanos de `scripts/`
@@ -90,15 +90,15 @@ gates de Nivel 1.
   `forbids` mantiene `network` y `llm`.
 
 ## Examples
-- `python scripts/preflight.py` -> tabla de 16 lineas + resumen `16/16`,
+- `python scripts/preflight.py` -> tabla de 17 lineas + resumen `17/17`,
   exit 0 (repo verde).
 - `python scripts/preflight.py --contract preflight` -> 3 lineas
   (`frontmatter`, `seal`, `test_command`) + resumen `3/3`.
 - Un gate que excede 120s aparece como `TIMEOUT` y el resumen baja a
-  `15/16`, exit 1.
+  `16/17`, exit 1.
 
 ## Do / Don't
-- DO derivar los 16 nombres del dispatch (`LEVEL1_GATES` +
+- DO derivar los 17 nombres del dispatch (`LEVEL1_GATES` +
   `validate_attestation`); un gate nuevo en `GATE_SPECS` debe aparecer
   solo con actualizar el dispatch.
 - DO reportar TODOS los gates aunque el primero falle (es un dry-run de
@@ -115,7 +115,7 @@ gates de Nivel 1.
 ## Tests
 Oraculo congelado en `tests/test_preflight.py` (sellado en
 `tests_sha256`): 17 tests (14 + 3 de robustez post-AUDIT-05) -- constante `ALL_GATES`, modo full (orden,
-params, repo_root, PASS/FAIL/TIMEOUT, resumen `N/16`, exit codes de
+params, repo_root, PASS/FAIL/TIMEOUT, resumen `N/17`, exit codes de
 `main` con `run_gate` parcheado), modo contract (fixtures tmpdir: sano
 LF, sano CRLF, seal desincronizado, exit code propagado del
 test_command, contrato inexistente, prohibicion de correr gates, `main`

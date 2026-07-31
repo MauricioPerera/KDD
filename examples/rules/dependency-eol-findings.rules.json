@@ -1,0 +1,42 @@
+{
+ "_comment": "Rule contract del dominio hallazgos de vigencia de dependencias / EOL (Capa 3 de KDD). Opera sobre un record aplanado desde findings.json YA SELLADO por quien produce el scan (ver knowledge/data_models/dependency_eol_findings.md y skill kdd-dependency-eol-scan) -- este rule-set NO revalida el JSON Schema completo; audita politica de calidad de datos que el schema permite pero no exige. Formato del record y fronteras: knowledge/data_models/dependency_eol_findings.md.",
+ "required": [
+  {"field": "findings"}
+ ],
+ "each": [
+  {
+   "collection": "findings",
+   "rules": {
+    "required": [{"field": "findingId"}, {"field": "dependencyName"}, {"field": "eolStatus"}],
+    "enums": [{"field": "eolStatus", "values": ["supported", "approaching-eol", "eol", "unmaintained", "unknown"]}]
+   }
+  },
+  {
+   "collection": "findings",
+   "where": {"field": "eolStatus", "equals": "eol"},
+   "rules": {
+    "bounds": [{"field": "remediationLength", "min": 20, "integer": true}],
+    "enums": [{"field": "severityLevel", "values": ["critical", "high"]}]
+   }
+  },
+  {
+   "collection": "findings",
+   "where": {"field": "eolStatus", "equals": "unmaintained"},
+   "rules": {
+    "bounds": [{"field": "remediationLength", "min": 20, "integer": true}],
+    "enums": [{"field": "severityLevel", "values": ["critical", "high"]}]
+   }
+  }
+ ],
+ "code_only": [
+  {
+   "rule": "extended-support-agreements",
+   "field": "extended_support_doc",
+   "reason": "acuerdos de soporte extendido pagado con el vendor, o la decision documentada de mantener un fork interno de una dependencia EOL, viven en documentos contractuales externos al findings.json sellado; auditarlos exige leer esos documentos -- fuera del nivel 1 declarativo, sin red"
+  }
+ ],
+ "golden": {
+  "path": "dependency-eol-findings-golden.json",
+  "sha256": "b424a88ca194db9bd3e002033023be948bbf5854e7b64427a80ba0613324ebc7"
+ }
+}
