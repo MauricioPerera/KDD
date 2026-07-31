@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MauricioPerera/KDD/schemas/observability/findings.schema.json",
+  "title": "KDD observability (logging/monitoring gap) findings",
+  "type": "object",
+  "required": [
+    "documentType",
+    "schemaVersion",
+    "scanId",
+    "findings"
+  ],
+  "properties": {
+    "documentType": {
+      "const": "kdd-observability.findings"
+    },
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "scanId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "findingId",
+          "gapType",
+          "location",
+          "severity",
+          "remediation",
+          "source"
+        ],
+        "properties": {
+          "findingId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "gapType": {
+            "enum": [
+              "unlogged-error-path",
+              "silent-failure",
+              "no-alerting",
+              "no-tracing",
+              "no-metrics",
+              "other"
+            ]
+          },
+          "location": {
+            "type": "string",
+            "minLength": 1,
+            "description": "File:line, service/endpoint name, or operation where the gap occurs."
+          },
+          "criticalPath": {
+            "type": "boolean",
+            "description": "Whether this location is on a critical path (payment, auth, data loss risk), if known."
+          },
+          "severity": {
+            "enum": [
+              "critical",
+              "high",
+              "medium",
+              "low",
+              "informational"
+            ]
+          },
+          "remediation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "How this finding was produced, e.g. 'manual review', 'static analysis', 'incident postmortem'."
+          }
+        }
+      }
+    }
+  }
+}

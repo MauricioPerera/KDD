@@ -1,0 +1,43 @@
+{
+ "_comment": "Rule contract del dominio hallazgos de observabilidad (Capa 3 de KDD). Opera sobre un record aplanado desde findings.json YA SELLADO por quien produce el scan (ver knowledge/data_models/observability_findings.md y skill kdd-observability-scan) -- este rule-set NO revalida el JSON Schema completo; audita politica de calidad de datos que el schema permite pero no exige. Formato del record y fronteras: knowledge/data_models/observability_findings.md.",
+ "required": [
+  {"field": "findings"}
+ ],
+ "each": [
+  {
+   "collection": "findings",
+   "rules": {
+    "required": [{"field": "findingId"}, {"field": "gapType"}, {"field": "severityLevel"}],
+    "enums": [
+     {"field": "gapType", "values": ["unlogged-error-path", "silent-failure", "no-alerting", "no-tracing", "no-metrics", "other"]},
+     {"field": "severityLevel", "values": ["critical", "high", "medium", "low", "informational"]}
+    ]
+   }
+  },
+  {
+   "collection": "findings",
+   "where": {"field": "severityLevel", "equals": "critical"},
+   "rules": {
+    "bounds": [{"field": "remediationLength", "min": 20, "integer": true}]
+   }
+  },
+  {
+   "collection": "findings",
+   "where": {"field": "severityLevel", "equals": "high"},
+   "rules": {
+    "bounds": [{"field": "remediationLength", "min": 20, "integer": true}]
+   }
+  }
+ ],
+ "code_only": [
+  {
+   "rule": "alert-firing-verification",
+   "field": "alert_fire_test_doc",
+   "reason": "verificar que una alerta configurada REALMENTE dispara exige simular el incidente en un entorno real o esperar el proximo incidente real; vive fuera del findings.json sellado -- fuera del nivel 1 declarativo, sin red"
+  }
+ ],
+ "golden": {
+  "path": "observability-findings-golden.json",
+  "sha256": "2f7f5ef377c63298eda9732046f11177f95a0a90e4e5fa6d9bce4ed64533f62b"
+ }
+}

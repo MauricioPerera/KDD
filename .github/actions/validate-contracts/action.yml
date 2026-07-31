@@ -14,8 +14,8 @@ description: |
 
   Optional gates (rules / skills / ux-page / diagrams / security findings /
   compliance findings / privacy findings / accessibility findings /
-  dependency EOL findings / secrets) auto-skip with INFO / exit 0 when
-  their target dir does not exist
+  dependency EOL findings / observability findings / secrets) auto-skip
+  with INFO / exit 0 when their target dir does not exist
   (documented as the "capa opcional" in knowledge/validacion.md).
   `validate_specs.py` does NOT
   auto-skip (it ERRORs on a missing dir), so this action guards it with an
@@ -84,6 +84,10 @@ inputs:
     description: 'Path to a sealed dependency-EOL scan dir (findings.json). OPTIONAL — auto-skips (INFO) if absent.'
     required: false
     default: 'dependency-eol/scan'
+  observability-scan-dir:
+    description: 'Path to a sealed observability (logging/monitoring gap) scan dir (findings.json). OPTIONAL — auto-skips (INFO) if absent.'
+    required: false
+    default: 'observability/scan'
   src-dir:
     description: 'Path to scan for leaked secrets. OPTIONAL — scan_secrets returns [] on a missing dir.'
     required: false
@@ -160,6 +164,10 @@ runs:
     - name: Validate dependency EOL findings (OPTIONAL — auto-skip)
       shell: bash
       run: python _kdd/scripts/validate_dependency_eol_findings.py "${{ inputs.dependency-eol-scan-dir }}"
+
+    - name: Validate observability findings (OPTIONAL — auto-skip)
+      shell: bash
+      run: python _kdd/scripts/validate_observability_findings.py "${{ inputs.observability-scan-dir }}"
 
     - name: Scan for leaked secrets (OPTIONAL — auto-skip)
       shell: bash

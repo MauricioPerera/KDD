@@ -1,0 +1,99 @@
+{
+ "_comment": "Golden set congelado del dominio hallazgos de observabilidad (fixtures sinteticos, forma aplanada de findings.json sellado). Dominio: knowledge/data_models/observability_findings.md.",
+ "refs": {},
+ "cases": [
+  {
+   "name": "scan limpio sin findings",
+   "record": {"findings": []},
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "un finding low conforme",
+   "record": {
+    "findings": [
+     {"findingId": "obs_health-check-001", "gapType": "no-metrics", "severityLevel": "low", "remediationLength": 0}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "sin la clave findings",
+   "record": {},
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "finding con gapType fuera de enum",
+   "record": {
+    "findings": [
+     {"findingId": "obs_xyz-001", "gapType": "misc-issue", "severityLevel": "low", "remediationLength": 0}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "critical con remediacion placeholder",
+   "record": {
+    "findings": [
+     {"findingId": "obs_payment-catch-001", "gapType": "silent-failure", "severityLevel": "critical", "remediationLength": 5}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "critical con remediacion documentada (conforme)",
+   "record": {
+    "findings": [
+     {"findingId": "obs_payment-catch-002", "gapType": "silent-failure", "severityLevel": "critical", "remediationLength": 68}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "high con remediacion placeholder",
+   "record": {
+    "findings": [
+     {"findingId": "obs_auth-noalert-001", "gapType": "no-alerting", "severityLevel": "high", "remediationLength": 6}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "high con remediacion documentada (conforme)",
+   "record": {
+    "findings": [
+     {"findingId": "obs_auth-noalert-002", "gapType": "no-alerting", "severityLevel": "high", "remediationLength": 55}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "medium sin remediacion (no exige longitud minima)",
+   "record": {
+    "findings": [
+     {"findingId": "obs_batch-notrace-001", "gapType": "no-tracing", "severityLevel": "medium", "remediationLength": 0}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "frontera code_only: verificacion de que una alerta dispara vive fuera del artefacto sellado",
+   "record": {
+    "findings": [
+     {"findingId": "obs_disk-alert-001", "gapType": "no-alerting", "severityLevel": "medium", "remediationLength": 0}
+    ],
+    "alert_fire_test_doc": "simulacro-incidente-2026-07.pdf"
+   },
+   "violations": ["alert_fire_test_doc"],
+   "code_only_miss": ["alert_fire_test_doc"]
+  }
+ ]
+}
