@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MauricioPerera/KDD/schemas/dependency-eol/findings.schema.json",
+  "title": "KDD dependency EOL / maintenance-health findings",
+  "type": "object",
+  "required": [
+    "documentType",
+    "schemaVersion",
+    "scanId",
+    "findings"
+  ],
+  "properties": {
+    "documentType": {
+      "const": "kdd-dependency-eol.findings"
+    },
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "scanId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "findingId",
+          "dependencyName",
+          "dependencyVersion",
+          "eolStatus",
+          "severity",
+          "remediation",
+          "source"
+        ],
+        "properties": {
+          "findingId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dependencyName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dependencyVersion": {
+            "type": "string",
+            "minLength": 1
+          },
+          "latestVersion": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Latest available version at scan time, if known."
+          },
+          "eolStatus": {
+            "enum": [
+              "supported",
+              "approaching-eol",
+              "eol",
+              "unmaintained",
+              "unknown"
+            ],
+            "description": "'unmaintained' = no known EOL date but no releases/activity in a long time (upstream abandoned); 'eol' = a publisher-declared end-of-life/end-of-support date has passed."
+          },
+          "eolDate": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Publisher-declared end-of-life/end-of-support date (free-form string, e.g. an ISO date), if known."
+          },
+          "severity": {
+            "enum": [
+              "critical",
+              "high",
+              "medium",
+              "low",
+              "informational"
+            ]
+          },
+          "remediation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "How this finding was produced, e.g. 'endoflife.date', 'npm outdated', 'pip list --outdated', 'manual review'."
+          }
+        }
+      }
+    }
+  }
+}
