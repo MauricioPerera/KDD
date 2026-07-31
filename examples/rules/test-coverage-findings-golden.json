@@ -1,0 +1,99 @@
+{
+ "_comment": "Golden set congelado del dominio hallazgos de cobertura de tests (fixtures sinteticos, forma aplanada de findings.json sellado). Dominio: knowledge/data_models/test_coverage_findings.md.",
+ "refs": {},
+ "cases": [
+  {
+   "name": "scan limpio sin findings",
+   "record": {"findings": []},
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "un finding low conforme",
+   "record": {
+    "findings": [
+     {"findingId": "cov_admin-ui-001", "gapType": "no-error-case-coverage", "severityLevel": "low", "remediationLength": 0}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "sin la clave findings",
+   "record": {},
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "finding con gapType fuera de enum",
+   "record": {
+    "findings": [
+     {"findingId": "cov_xyz-001", "gapType": "misc-gap", "severityLevel": "low", "remediationLength": 0}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "critical con remediacion placeholder",
+   "record": {
+    "findings": [
+     {"findingId": "cov_refund-flow-001", "gapType": "untested-critical-path", "severityLevel": "critical", "remediationLength": 5}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "critical con remediacion documentada (conforme)",
+   "record": {
+    "findings": [
+     {"findingId": "cov_refund-flow-002", "gapType": "untested-critical-path", "severityLevel": "critical", "remediationLength": 63}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "high con remediacion placeholder",
+   "record": {
+    "findings": [
+     {"findingId": "cov_login-noregtest-001", "gapType": "no-regression-test", "severityLevel": "high", "remediationLength": 6}
+    ]
+   },
+   "violations": ["findings"],
+   "code_only_miss": []
+  },
+  {
+   "name": "high con remediacion documentada (conforme)",
+   "record": {
+    "findings": [
+     {"findingId": "cov_login-noregtest-002", "gapType": "no-regression-test", "severityLevel": "high", "remediationLength": 58}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "medium sin remediacion (no exige longitud minima)",
+   "record": {
+    "findings": [
+     {"findingId": "cov_flaky-batch-001", "gapType": "flaky-test-untracked", "severityLevel": "medium", "remediationLength": 0}
+    ]
+   },
+   "violations": [],
+   "code_only_miss": []
+  },
+  {
+   "name": "frontera code_only: verificacion de que el test de regresion atrapa el bug vive fuera del artefacto sellado",
+   "record": {
+    "findings": [
+     {"findingId": "cov_regression-verify-001", "gapType": "no-regression-test", "severityLevel": "medium", "remediationLength": 0}
+    ],
+    "regression_revert_test_doc": "verificacion-manual-revert-2026-07.md"
+   },
+   "violations": ["regression_revert_test_doc"],
+   "code_only_miss": ["regression_revert_test_doc"]
+  }
+ ]
+}
