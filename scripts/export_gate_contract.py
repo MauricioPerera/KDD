@@ -234,6 +234,23 @@ def cross_drive_io_error(repo_root_abs: str, out_dir_abs: str):
 # Reescritura de rutas target/tests relativas al export
 # ---------------------------------------------------------------------------
 
+def _within(path, base):
+    """True si ``path`` (resuelto con realpath) cae dentro de ``base``.
+
+    Defensa en profundidad frente a valores externos (``task``) que con
+    ``..`` o separadores absolutos escaparian del arbol esperado: ningun
+    path construido a partir de un campo del contrato debe leerse/escribirse
+    fuera de su subdirectorio esperado. ``ValueError`` (unidades distintas en
+    Windows) tambien cuenta como fuera. Funcion pura: sin I/O, sin entorno.
+    """
+    try:
+        rp = os.path.realpath(path)
+        rb = os.path.realpath(base)
+        return os.path.commonpath([rp, rb]) == rb
+    except ValueError:
+        return False
+
+
 def _rewrite_path(orig_value: str, out_dir_abs: str, repo_root: str) -> str:
     """Reescribe ``orig_value`` (relativo a ``repo_root``) relativo al
     archivo de export, que vive directamente bajo ``out_dir_abs``. Devuelve
@@ -419,6 +436,13 @@ def export_gate_contract(contract_path: str, out_dir: str,
 
     os.makedirs(out_dir_abs, exist_ok=True)
     out_path = os.path.join(out_dir_abs, task_ascii + ".gate.md")
+    # Anclaje: task viene del contrato y arma la ruta de salida; un valor con
+    # ``..`` o separador absoluto escribiria fuera de out_dir. Se trata como
+    # contrato invalido (no crash, no escritura fuera del arbol).
+    if not _within(out_path, out_dir_abs):
+        raise ValueError(
+            "la clave 'task' resuelve a una ruta fuera del out-dir: {!r}".format(
+                task))
     with open(out_path, "w", encoding="ascii", newline="") as fh:
         fh.write(normalized)
     return out_path

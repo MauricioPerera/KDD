@@ -131,6 +131,22 @@ def _normalize_lf(text):
     return text.replace('\r\n', '\n').replace('\r', '\n')
 
 
+def _within(path, base):
+    """True si ``path`` resuelto cae dentro de ``base`` resuelto.
+
+    Defensa en profundidad: ``data['tests']`` viene del contrato y se une a
+    ``repo_root``; un valor con ``..`` escaparia del arbol esperado y
+    permitiria leer/hashear un archivo fuera del repo. ``ValueError``
+    (unidades distintas en Windows) tambien cuenta como fuera.
+    """
+    try:
+        rp = os.path.realpath(path)
+        rb = os.path.realpath(base)
+        return os.path.commonpath([rp, rb]) == rb
+    except ValueError:
+        return False
+
+
 def _parse_contract(contract_path):
     """Devuelve (exit_code, stderr, data). exit_code 0 -> data es dict.
 
@@ -159,6 +175,13 @@ def _check_seal(repo_root, data):
     """sha256 del archivo ``tests`` (LF-normalizado, utf-8) == tests_sha256."""
     tests_rel = data['tests']
     tests_path = os.path.join(repo_root, tests_rel)
+    # Anclaje: tests viene del contrato y se une a repo_root; un valor con
+    # ``..`` escaparia del arbol y permitiria leer/hashear un archivo fuera
+    # del repo. Se trata como FAIL del chequeo seal (no crash, no lectura
+    # fuera del arbol).
+    if not _within(tests_path, repo_root):
+        return _result(1, stderr='tests path escapes repo_root: {}'.format(
+            tests_rel))
     if not os.path.isfile(tests_path):
         return _result(1, stderr='tests file not found: {}'.format(tests_path))
     try:
