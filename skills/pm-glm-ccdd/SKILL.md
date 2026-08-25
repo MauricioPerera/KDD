@@ -145,13 +145,39 @@ mecánica — solo agrega lo específico de GLM y de la orquestación de proyect
 ## Paralelismo y control
 - Tareas independientes → varios devs GLM en paralelo (run_in_background). **Cap práctico: ~3 modelos
   cloud concurrentes en Ollama** — no dispares más a la vez.
-- **Devs concurrentes = conjuntos de archivos DISJUNTOS, declarados en la spec.** Trabajan sobre el
-  mismo working tree: dos devs editando el mismo archivo se pisan. En cada spec poné "Toca SOLO <files>"
-  y, si otro dev toca archivos vecinos, "NO toques <file>, otro dev trabaja ahí" (verificado: los devs
-  lo respetan si está explícito). Tareas que compartan un archivo → batches secuenciales.
+- **Modo liviano — archivos DISJUNTOS, declarados en la spec, mismo working tree.** Dos devs editando
+  el mismo archivo se pisan. En cada spec poné "Toca SOLO <files>" y, si otro dev toca archivos
+  vecinos, "NO toques <file>, otro dev trabaja ahí" (verificado: los devs lo respetan si está
+  explícito). Tareas que compartan un archivo → batches secuenciales. Usalo cuando el reparto de
+  archivos es genuinamente limpio y no querés pagar el costo de un worktree por tarea.
+- **Aislamiento fuerte — `git worktree`, cuando no querés depender de que el dev respete "NO toques
+  X"** (o la spec no puede garantizar archivos disjuntos, p.ej. specs que tocan zonas vecinas o corren
+  comandos que podrían afectar el árbol compartido): por tarea, `git worktree add
+  ../<repo>-wt-<tarea> -b fix/<tarea>` desde el repo base, y lanzá el dev GLM con `cd` explícito a ese
+  path (la mecánica de `ollama launch` de `delegar-ollama` no cambia, solo el cwd). Cada worktree es un
+  checkout completo — el gate/suite del dev corre ahí adentro sin ver a los otros devs.
+  Verificado en producción (2026-08-24): 4 devs GLM en paralelo, cada uno en su worktree, cero
+  colisión, sin necesidad de declarar "archivos disjuntos" en la spec.
+  - **Compatible con contratos CCDD sellados** (`touch_only`/`tests_sha256`): el worktree resuelve
+    DÓNDE trabaja el dev, no QUÉ puede tocar — la spec sigue exigiendo `touch_only` y prohibiendo
+    tocar el test sellado del contrato. Verificado con 4 fixes reales sobre 3 contratos sellados
+    distintos sin romper un solo sello (`tests_sha256` recomputado = idéntico al declarado).
+  - **Integración**: verificá DENTRO del worktree (suite del dev + gate + hash del sello si aplica)
+    ANTES de commitear ahí; recién entonces `git merge --no-ff fix/<tarea>` a la rama base (main u otra
+    de integración) y `git worktree remove ../<repo>-wt-<tarea>`. Si vas a integrar varias tareas del
+    mismo batch, mergealas una por una y corré la suite completa 2× sobre la rama base al final (no
+    alcanza con el veredicto de cada worktree por separado: un merge sin conflictos de líneas puede
+    igual romper algo por interacción entre archivos).
+  - **Costo**: ~200-500ms de setup + disco por worktree (un checkout completo cada uno). Para tareas
+    secuenciales, o cuando el modo liviano ya te da archivos disjuntos reales, no lo uses — es
+    overhead puro.
+  - Mismo patrón que usa [`pm-native-ccdd`](../pm-native-ccdd/SKILL.md) con `isolation: "worktree"`
+    para subagentes nativos; acá es manual (`git worktree` + `cd` en el comando de lanzamiento) porque
+    el dev es un proceso externo (`ollama launch`), no la tool `Agent`.
 - **Los conteos de tests que reporta un dev concurrente son solo informativos**: su suite corrió
-  mientras otros editaban (compilación rota transitoria, totales cambiantes). El ÚNICO conteo válido es
-  el que corrés VOS tras integrar el batch.
+  mientras otros editaban (compilación rota transitoria, totales cambiantes) — en modo liviano por
+  compartir árbol; en modo worktree no aplica (cada uno corre aislado), pero igual el ÚNICO conteo
+  válido es el que corrés VOS tras integrar el batch completo en la rama base.
 - Para "mayor control": 2 devs sobre la misma tarea con enfoques distintos y comparás, o un dev
   implementa y otro revisa.
 
@@ -248,6 +274,11 @@ mecánica — solo agrega lo específico de GLM y de la orquestación de proyect
   una sección del CHANGELOG se encargó en una línea al dev de la tarea siguiente, sin tarea propia.
 
 ### Delegación y batches
+- **`git worktree` para paralelismo sin colisión, portado desde `pm-native-ccdd`** (2026-08-24): en un
+  batch real de 4 devs GLM sobre 3 contratos CCDD sellados (`touch_only`/`tests_sha256`), aislar cada
+  dev en su propio worktree eliminó la necesidad de declarar "archivos disjuntos" en la spec y dio 0
+  colisiones; el merge posterior a la rama base fue sin conflictos porque cada worktree ya arrancaba
+  desde el mismo HEAD. Detalle operativo en "Paralelismo y control" arriba.
 - **El gate lo puede correr el PM, no el dev** (2026-07-04). Con el MCP `ccdd-complexity` en TU sesión,
   es más barato dar a los devs MCP vacío + hecho verificable por suite/greps, y correr vos
   `lint_task_contract` sobre el entregable. Mismo veredicto determinista, cero riesgo de flota MCP en los
