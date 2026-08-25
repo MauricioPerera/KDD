@@ -43,6 +43,7 @@ cero drift entre el CLI y la tool MCP.
       exit code no fue 0 o no se encontro un hash valido.
 """
 
+import os
 import re
 import subprocess
 import sys
@@ -162,6 +163,45 @@ LEVEL1_GATES = [name for name in GATE_SPECS if name != 'validate_attestation']
 _HEX64 = re.compile(r'^[0-9a-f]{64}$')
 
 
+def _within(path, repo_root):
+    """True si ``path`` (absoluta o relativa a ``repo_root``) resuelve
+    (``os.path.realpath``) dentro de ``repo_root``.
+
+    Un path inexistente pero lexicamente dentro de ``repo_root`` cuenta como
+    confinado: el confinamiento es de frontera, no de existencia -- el gate
+    propio reportara si falta. ``os.path.join`` descarta ``repo_root`` si
+    ``path`` es absoluta, asi que una absoluta fuera del repo se detecta, y
+    una absoluta dentro se acepta.
+    """
+    root = os.path.realpath(repo_root)
+    resolved = os.path.realpath(os.path.join(root, str(path)))
+    return resolved == root or resolved.startswith(root + os.sep)
+
+
+def _confine_params(params, repo_root):
+    """Dict de error (sin lanzar) si algun path en ``params`` escapa de
+    ``repo_root``; ``None`` si todos confinados.
+
+    Preserva el invariante del contrato ``run_gate`` nunca lanza``: devuelve
+    un dict de error (``exit_code`` 2 + ``stderr`` claro), nunca raise. ``None``
+    se salta (param no pasado -> se usa el default, que siempre es relativo a
+    ``repo_root``). Valores ``list`` se chequean elemento por elemento.
+    """
+    for name, value in params.items():
+        if value is None:
+            continue
+        items = value if isinstance(value, (list, tuple)) else [value]
+        for v in items:
+            if not _within(v, repo_root):
+                return {
+                    'exit_code': 2,
+                    'stdout': '',
+                    'stderr': 'rejected: {}={!r} escapes repo_root={!r}'.format(
+                        name, value, repo_root),
+                }
+    return None
+
+
 def build_argv(tool_name, params):
     """Arma ``[sys.executable, script, ...args]`` para ``tool_name``.
 
@@ -189,6 +229,15 @@ def run_gate(tool_name, params, repo_root='.', timeout=120):
     traduce a ``{'exit_code': None, 'stdout': '', 'stderr': 'timeout after Ns'}``.
     """
     argv = build_argv(tool_name, params)
+    # Confinamiento de frontera (defensa en profundidad): todo path que llega
+    # en `params` debe resolver dentro de `repo_root` antes de tocar
+    # subprocess.run. Si escapa, se rechaza con un dict de error (exit_code 2)
+    # sin correr nada -- preserva el invariante "nunca lanza". El wiring MCP
+    # (mcp_server.py) confina contra el repo_root real ANTES de llegar aqui;
+    # este check protege a cualquier otro caller directo de este modulo.
+    rejected = _confine_params(params, repo_root)
+    if rejected is not None:
+        return rejected
     try:
         proc = subprocess.run(
             argv,
@@ -238,6 +287,18 @@ def seal_tests(tests_path, repo_root='.'):
     ``hash`` es el primer renglon de 64 hex del stdout, o ``None`` si el exit
     code no fue 0 o no se encontro un hash valido.
     """
+    # Confinamiento de frontera (defensa en profundidad): ``tests_path`` debe
+    # resolver dentro de ``repo_root`` antes de pasar a
+    # ``validate_contracts.py --hash``. Si escapa, se rechaza sin correr el
+    # subprocess (hash None, exit_code 2, stderr claro).
+    if not _within(tests_path, repo_root):
+        return {
+            'hash': None,
+            'exit_code': 2,
+            'stdout': '',
+            'stderr': 'rejected: tests_path={!r} escapes repo_root={!r}'.format(
+                tests_path, repo_root),
+        }
     argv = [
         sys.executable,
         GATE_SPECS['validate_contracts']['script'],
