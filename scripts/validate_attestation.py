@@ -100,6 +100,22 @@ def _expected_task(file_name):
     return file_name
 
 
+def _within(path, base):
+    """True si ``path`` resuelto cae dentro de ``base`` resuelto.
+
+    Defensa en profundidad: ``data['task']`` viene del envelope local y se
+    une a ``knowledge/contracts``; un valor con ``..`` escaparia del arbol
+    esperado y podria leer un contrato fuera de ``repo_root``. ``ValueError``
+    (unidades distintas en Windows) tambien cuenta como fuera.
+    """
+    try:
+        rp = os.path.realpath(path)
+        rb = os.path.realpath(base)
+        return os.path.commonpath([rp, rb]) == rb
+    except ValueError:
+        return False
+
+
 def validate_report(path, repo_root='.'):
     """Valida un unico ``<task>-REPORT.md``. Ver docstring del modulo."""
     file_name = os.path.basename(path)
@@ -158,22 +174,40 @@ def validate_report(path, repo_root='.'):
 
     # CONTRACT_*: solo si 'task' y 'contract_sha256' estan presentes.
     if present('task') and present('contract_sha256'):
-        contract_path = os.path.join(
-            repo_root, 'knowledge', 'contracts', data['task'] + '.md')
-        if not os.path.isfile(contract_path):
+        contracts_dir = os.path.join(repo_root, 'knowledge', 'contracts')
+        contract_path = os.path.join(contracts_dir, data['task'] + '.md')
+        # Anclaje: task viene del envelope y arma la ruta del contrato; un
+        # valor con ``..`` escaparia de knowledge/contracts y podria leer un
+        # archivo fuera de repo_root. Se reporta como CONTRACT_MISSING (no
+        # crash, no lectura fuera del arbol).
+        if not _within(contract_path, contracts_dir):
+            findings.append(_finding(
+                file_name, 'ERROR', 'CONTRACT_MISSING',
+                "task resuelve a una ruta fuera de knowledge/contracts: "
+                "{!r}".format(data['task'])))
+        elif not os.path.isfile(contract_path):
             findings.append(_finding(
                 file_name, 'ERROR', 'CONTRACT_MISSING',
                 "no existe knowledge/contracts/{}.md bajo repo_root".format(
                     data['task'])))
         else:
-            with open(contract_path, 'r', encoding='utf-8') as handle:
-                contract_text = handle.read()
-            actual = _sha256(contract_text)
-            if actual != data['contract_sha256']:
+            try:
+                with open(contract_path, 'r', encoding='utf-8') as handle:
+                    contract_text = handle.read()
+            except OSError:
+                # No dejar crashear validate_report (y con ello
+                # validate_directory): un fallo de lectura del contrato es un
+                # finding, no un traceback.
                 findings.append(_finding(
-                    file_name, 'ERROR', 'CONTRACT_HASH_MISMATCH',
-                    "contract_sha256={} no coincide con el hash real del "
-                    "contrato ({})".format(data['contract_sha256'], actual)))
+                    file_name, 'ERROR', 'CONTRACT_MISSING',
+                    "no se pudo leer el contrato: {}".format(contract_path)))
+            else:
+                actual = _sha256(contract_text)
+                if actual != data['contract_sha256']:
+                    findings.append(_finding(
+                        file_name, 'ERROR', 'CONTRACT_HASH_MISMATCH',
+                        "contract_sha256={} no coincide con el hash real del "
+                        "contrato ({})".format(data['contract_sha256'], actual)))
 
     findings.sort(key=lambda f: f['rule'])
     return findings
