@@ -138,6 +138,90 @@ class TestMcpServerSmoke(unittest.TestCase):
     # el smoke test de 'validate_contracts' arriba (que ejercen el mismo
     # camino MCP real sin disparar validate_test_commands).
 
+    # --- Confinamiento de paths del cliente al repo_root (AUDIT-MCP) -----
+    # Un cliente MCP comprometido podria pasar un dir/tests_path que resuelva
+    # fuera del repo y leer o hashear archivos arbitrarios del host. La tool
+    # debe rechazarlo (exit_code 2 + stderr claro) sin correr subprocess, en
+    # vez de ejecutarlo o crashear. Un path normal dentro del repo sigue
+    # funcionando. El path que escapa se arma relativo con os.path.join para
+    # ser portable (sube suficientes niveles para salir del repo en cualquier
+    # layout).
+    _ESCAPE = os.path.join(*(['..'] * 6))
+
+    def test_gate_rejects_dir_escaping_repo(self):
+        import mcp_server  # noqa: E402
+
+        async def _call():
+            async with create_connected_server_and_client_session(
+                mcp_server.mcp._mcp_server
+            ) as session:
+                await session.initialize()
+                return await session.call_tool(
+                    'validate_contracts', {'dir': self._ESCAPE})
+
+        result = self._run(_call())
+        self.assertFalse(result.isError, result.content)
+        payload = json.loads(result.content[0].text)
+        self.assertEqual(payload['exit_code'], 2, payload)
+        self.assertIn('escapes repo_root', payload['stderr'])
+        self.assertIn('dir', payload['stderr'])
+
+    def test_gate_rejects_list_dir_escaping_repo(self):
+        # Un elemento que escapa dentro de un list (dirs de scan_secrets) basta
+        # para rechazar toda la llamada.
+        import mcp_server  # noqa: E402
+
+        async def _call():
+            async with create_connected_server_and_client_session(
+                mcp_server.mcp._mcp_server
+            ) as session:
+                await session.initialize()
+                return await session.call_tool(
+                    'scan_secrets', {'dirs': ['scripts', self._ESCAPE]})
+
+        result = self._run(_call())
+        self.assertFalse(result.isError, result.content)
+        payload = json.loads(result.content[0].text)
+        self.assertEqual(payload['exit_code'], 2, payload)
+        self.assertIn('escapes repo_root', payload['stderr'])
+
+    def test_gate_accepts_explicit_dir_inside_repo(self):
+        # Contraparte: un path del cliente que SI esta dentro del repo se
+        # despacha y corre el gate normalmente.
+        import mcp_server  # noqa: E402
+
+        async def _call():
+            async with create_connected_server_and_client_session(
+                mcp_server.mcp._mcp_server
+            ) as session:
+                await session.initialize()
+                return await session.call_tool(
+                    'lint_ascii', {'dir': 'scripts'})
+
+        result = self._run(_call())
+        self.assertFalse(result.isError, result.content)
+        payload = json.loads(result.content[0].text)
+        self.assertEqual(payload['exit_code'], 0, payload)
+
+    def test_seal_tests_rejects_path_escaping_repo(self):
+        import mcp_server  # noqa: E402
+
+        async def _call():
+            async with create_connected_server_and_client_session(
+                mcp_server.mcp._mcp_server
+            ) as session:
+                await session.initialize()
+                return await session.call_tool(
+                    'seal_tests',
+                    {'tests_path': os.path.join(self._ESCAPE, 'passwd')})
+
+        result = self._run(_call())
+        self.assertFalse(result.isError, result.content)
+        payload = json.loads(result.content[0].text)
+        self.assertIsNone(payload['hash'])
+        self.assertEqual(payload['exit_code'], 2, payload)
+        self.assertIn('escapes repo_root', payload['stderr'])
+
 
 if __name__ == '__main__':
     unittest.main()
