@@ -71,8 +71,16 @@ def main(argv=None):
         print(f"INFO [PATH_MISSING] {findings_path}: no existe (capa opcional, sin findings que auditar)")
         return 0
 
-    with open(findings_path, "r", encoding="utf-8") as fh:
-        findings_doc = json.load(fh)
+    try:
+        with open(findings_path, "r", encoding="utf-8") as fh:
+            findings_doc = json.load(fh)
+    except json.JSONDecodeError as exc:
+        print(
+            f"ERROR [PARSE_ERROR] {findings_path}: JSON invalido/corrupto -- "
+            f"no se pudo parsear el artefacto sellado ({exc})",
+            file=sys.stderr,
+        )
+        return 2
     if findings_doc.get("documentType") != "kdd-observability.findings":
         print(
             f"ERROR [DOCUMENT_TYPE] {findings_path}: documentType inesperado -- "
