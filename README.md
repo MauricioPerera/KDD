@@ -39,6 +39,22 @@ This is a template repository for projects that implement the **Knowledge-Driven
   business rules validated as declarative data with a hash-sealed golden set (format:
   [`knowledge/rule-contract-spec.md`](knowledge/rule-contract-spec.md); examples under
   `examples/rules/`).
+- `scripts/run_board.sh` / `scripts/run_board.ps1`: launcher for **KDD-Board** (interactive Kanban UI, WebMCP bridge, Blind Secrets Vault, and live contract/test runner).
+
+### Visual Companion: KDD-Board (WebMCP & Blind Vault)
+
+For teams and developers who prefer a visual, real-time workflow, the repository includes **KDD-Board**:
+- **Interactive Kanban**: Manage backlog, agent-assigned tasks, and human gates across 5 stages (`backlog` -> `ready` -> `in_progress` -> `needs_human_input` -> `done`).
+- **Blind Secrets Vault**: Let agents implement third-party integrations (APIs, databases) safely; secrets are stored in `.env.local` and injected into the test runtime while masked from the agent.
+- **WebMCP Bridge (`fastwebmcp`)**: Exposes 8 declarative MCP tools directly into browser sessions for autonomous agent collaboration.
+- **Project Definition & Contracts Explorer**: Live viewer for `DEFINITION.md`, OKF specs, and CCDD contracts with 1-click bidirectional navigation.
+- **Automated Evidence Generation**: Generates verified reports (`.agents/logs/<task>-REPORT.md`) capturing raw test execution to complete the KDD lifecycle.
+
+To launch the board for your project:
+```bash
+bash scripts/run_board.sh   # Linux / macOS
+pwsh scripts/run_board.ps1  # Windows
+```
 
 ### How to use this template
 
@@ -146,6 +162,22 @@ Este repositorio plantilla es para proyectos que implementan la metodología **K
   reglas de negocio validadas como datos declarativos con golden set sellado por hash
   (formato: [`knowledge/rule-contract-spec.md`](knowledge/rule-contract-spec.md); ejemplos
   en `examples/rules/`).
+- `scripts/run_board.sh` / `scripts/run_board.ps1`: lanzador de **KDD-Board** (tablero Kanban interactivo, puente WebMCP, Blind Secrets Vault y ejecutor de contratos/tests).
+
+### Entorno Visual: KDD-Board (WebMCP & Blind Vault)
+
+Para desarrolladores y equipos que buscan una experiencia visual en tiempo real, la plantilla incluye **KDD-Board**:
+- **Tablero Kanban Interactivo**: Gestiona el flujo colaborativo en 5 estados (`backlog` -> `ready` -> `in_progress` -> `needs_human_input` -> `done`).
+- **Blind Secrets Vault**: Permite a los agentes implementar integraciones (APIs, bases de datos) de forma segura; las credenciales se guardan en `.env.local` y se inyectan en los tests sin que el agente pueda ver el texto claro.
+- **Puente WebMCP (`fastwebmcp`)**: Expone 8 herramientas MCP declarativas directamente en el navegador para que agentes autónomos operen el tablero.
+- **Explorador de Contratos y `DEFINITION.md`**: Navegación en 1 clic entre tareas y contratos formales con validador determinista en vivo.
+- **Evidencia Automatizada KDD**: Genera reportes de auditoría (`.agents/logs/<task>-REPORT.md`) con la salida real de los tests para certificar el estado `verified`.
+
+Para iniciar el tablero en tu proyecto:
+```bash
+bash scripts/run_board.sh   # Linux / macOS
+pwsh scripts/run_board.ps1  # Windows
+```
 
 ### Cómo usar esta plantilla
 
