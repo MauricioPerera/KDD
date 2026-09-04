@@ -1,0 +1,22 @@
+{
+  "name": "kdd-board",
+  "version": "1.0.0",
+  "description": "Collaborative Human-Agent Kanban Board with WebMCP and Blind Secrets Vault",
+  "type": "module",
+  "main": "src/server.ts",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/**/*.test.ts",
+    "start": "node src/server.ts",
+    "dev": "node --watch src/server.ts"
+  },
+  "dependencies": {
+    "fastwebmcp": "^0.4.2",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^7.0.2"
+  }
+}

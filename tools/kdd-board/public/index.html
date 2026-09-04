@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KDD-Board — Humano & Agente con WebMCP y Blind Vault</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="brand-area">
+      <h1 class="brand-title">kdd<span>board</span></h1>
+      <span class="badge-kdd">KDD &bull; fastwebmcp</span>
+    </div>
+    <nav class="view-nav" role="tablist">
+      <button type="button" class="nav-tab active" id="tab-board">
+        📋 Tablero
+      </button>
+      <button type="button" class="nav-tab" id="tab-dashboard">
+        📊 Resumen KDD
+      </button>
+      <button type="button" class="nav-tab" id="tab-docs">
+        📚 Documentación KDD
+      </button>
+      <button type="button" class="nav-tab hidden" id="tab-task">
+        🔍 Detalle de Tarea
+      </button>
+    </nav>
+    <div class="header-actions">
+      <button type="button" class="btn" id="btn-open-vault">
+        🔒 Blind Vault
+      </button>
+      <button type="button" class="btn btn-agent" id="btn-agent-tools">
+        🤖 WebMCP Tools
+      </button>
+      <button type="button" class="btn btn-primary" id="btn-new-task">
+        + Nueva Tarea
+      </button>
+    </div>
+  </header>
+
+  <!-- WebMCP Status Bar -->
+  <div class="webmcp-bar">
+    <div class="webmcp-status">
+      <span class="status-dot"></span>
+      <span>WebMCP Bridge: <strong>7 Tools Activas</strong> (list_tasks, get_task, create_task, update_task_status, request_human_input, list_available_credentials, run_task_tests)</span>
+    </div>
+    <div>
+      <span>Colaboración Humano-Agente en tiempo real &bull; <code>fastwebmcp v0.4.2</code></span>
+    </div>
+  </div>
+
+  <!-- View 1: Kanban Board -->
+  <div class="view-container" id="view-board">
+    <div class="board-container">
+      <!-- 1. Backlog -->
+      <div class="kanban-column" data-status="backlog">
+        <div class="column-header">
+          <span class="column-title">📋 Backlog</span>
+          <span class="column-count" id="count-backlog">0</span>
+        </div>
+        <div class="cards-list" id="col-backlog"></div>
+      </div>
+
+      <!-- 2. Ready for Agent -->
+      <div class="kanban-column" data-status="ready">
+        <div class="column-header">
+          <span class="column-title">⚡ Ready for Agent</span>
+          <span class="column-count" id="count-ready">0</span>
+        </div>
+        <div class="cards-list" id="col-ready"></div>
+      </div>
+
+      <!-- 3. In Progress -->
+      <div class="kanban-column" data-status="in_progress">
+        <div class="column-header">
+          <span class="column-title">🔄 In Progress</span>
+          <span class="column-count" id="count-in_progress">0</span>
+        </div>
+        <div class="cards-list" id="col-in_progress"></div>
+      </div>
+
+      <!-- 4. Needs Human Input -->
+      <div class="kanban-column" data-status="needs_human_input" style="border-color: rgba(244, 63, 94, 0.4);">
+        <div class="column-header" style="background: rgba(244, 63, 94, 0.08);">
+          <span class="column-title" style="color: var(--accent-rose);">🛑 Needs Human Input</span>
+          <span class="column-count" id="count-needs_human_input">0</span>
+        </div>
+        <div class="cards-list" id="col-needs_human_input"></div>
+      </div>
+
+      <!-- 5. Done -->
+      <div class="kanban-column" data-status="done">
+        <div class="column-header">
+          <span class="column-title">✅ Done</span>
+          <span class="column-count" id="count-done">0</span>
+        </div>
+        <div class="cards-list" id="col-done"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View 2: Resumen KDD / Project Dashboard -->
+  <div class="view-container hidden" id="view-dashboard">
+    <div class="dashboard-layout">
+      <!-- Hero Progress -->
+      <div class="dashboard-hero">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+          <div>
+            <span class="badge-kdd">Estado General del Proyecto</span>
+            <h2 style="font-size:1.45rem; font-weight:700; margin-top:0.35rem;">Progreso &amp; Verificación KDD</h2>
+          </div>
+          <div style="text-align:right;">
+            <span id="dash-pct-text" style="font-size:1.7rem; font-weight:700; font-family:var(--font-mono); color:var(--accent-emerald);">0%</span>
+            <span style="display:block; font-size:0.75rem; color:var(--text-dim);">Completitud del Backlog</span>
+          </div>
+        </div>
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar-fill" id="dash-progress-bar" style="width: 0%;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-muted); font-family:var(--font-mono);">
+          <span id="dash-progress-summary">0 de 0 tareas completadas</span>
+          <span id="dash-ready-summary">0 listas para agente</span>
+        </div>
+      </div>
+
+      <!-- 4 KPI Cards -->
+      <div class="dash-kpis-grid">
+        <div class="dash-kpi-card">
+          <span class="dash-kpi-title">Total de Tareas</span>
+          <span class="dash-kpi-value" id="dash-kpi-total">0</span>
+          <span style="font-size:0.78rem; color:var(--text-dim);" id="dash-kpi-total-sub">En 5 columnas</span>
+        </div>
+        <div class="dash-kpi-card">
+          <span class="dash-kpi-title">Carga de Trabajo</span>
+          <span class="dash-kpi-value" id="dash-kpi-workload" style="color:var(--accent-purple);">0 / 0</span>
+          <span style="font-size:0.78rem; color:var(--text-dim);">🤖 Agente vs 👤 Humano</span>
+        </div>
+        <div class="dash-kpi-card">
+          <span class="dash-kpi-title">Salud Tests KDD</span>
+          <span class="dash-kpi-value" id="dash-kpi-tests" style="color:var(--accent-emerald);">0%</span>
+          <span style="font-size:0.78rem; color:var(--text-dim);" id="dash-kpi-tests-sub">0 verificadas con éxito</span>
+        </div>
+        <div class="dash-kpi-card">
+          <span class="dash-kpi-title">Blind Secrets Vault</span>
+          <span class="dash-kpi-value" id="dash-kpi-vault" style="color:var(--accent-orange);">0</span>
+          <span style="font-size:0.78rem; color:var(--text-dim);">Credenciales redactadas (.env)</span>
+        </div>
+      </div>
+
+      <!-- Breakdown & Urgent Blockers Grid -->
+      <div class="dash-sections-grid">
+        <!-- Breakdown by status -->
+        <div class="report-section">
+          <h4 style="font-size:1rem; font-weight:600; margin-bottom:0.75rem;">Distribución por Columna</h4>
+          <div id="dash-status-breakdown" style="display:flex; flex-direction:column; gap:0.6rem;">
+            <!-- Renderizado dinámicamente -->
+          </div>
+        </div>
+
+        <!-- Blocked / Actionable Items -->
+        <div class="report-section">
+          <h4 style="font-size:1rem; font-weight:600; margin-bottom:0.75rem; color:var(--accent-rose);">Tareas que Requieren Atención Humana</h4>
+          <div id="dash-blocked-list" style="display:flex; flex-direction:column; gap:0.6rem;">
+            <!-- Renderizado dinámicamente -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View 3: Dedicated Full-Screen Task Workspace -->
+  <div class="view-container hidden" id="view-task-detail">
+    <div class="task-workspace" id="workspace-container">
+      <!-- Renderizado dinámicamente con todo el ancho de pantalla -->
+    </div>
+  </div>
+
+  <!-- View 4: Documentación KDD & Contratos Explorer -->
+  <div class="view-container hidden" id="view-docs">
+    <div class="docs-explorer-layout">
+      <!-- Left Sidebar: Documents Tree & Validator -->
+      <aside class="docs-sidebar">
+        <div style="padding:1rem 1rem 0.5rem;">
+          <input type="text" id="docs-search-input" placeholder="🔍 Filtrar contratos y specs..." style="width:100%; font-size:0.82rem;" />
+        </div>
+        <div style="padding:0 1rem 0.75rem;">
+          <button type="button" class="btn btn-primary" id="btn-validate-all-contracts" style="width:100%; font-size:0.78rem; justify-content:center; gap:0.4rem;">
+            🧪 Validar Todos los Contratos
+          </button>
+        </div>
+        <div class="docs-nav-list" id="docs-nav-tree">
+          <!-- Grupos cargados dinámicamente -->
+        </div>
+      </aside>
+
+      <!-- Right Main: Document Reader -->
+      <main class="docs-reader" id="docs-reader-pane">
+        <!-- Contenido renderizado dinámicamente -->
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal: Nueva Tarea -->
+  <div class="modal-overlay hidden" id="modal-new-task">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Crear Nueva Tarea KDD</h3>
+        <button type="button" class="close-btn" data-close>&times;</button>
+      </div>
+      <form id="form-new-task">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="task-title">Título de la Tarea</label>
+            <input type="text" id="task-title" required placeholder="Ej. Implementar autenticación OAuth" />
+          </div>
+          <div class="form-group">
+            <label for="task-desc">Descripción / Criterios KDD</label>
+            <textarea id="task-desc" rows="3" placeholder="Contexto y requerimientos específicos..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="task-assignee">Asignado a</label>
+            <select id="task-assignee">
+              <option value="unassigned">Sin asignar</option>
+              <option value="agent">🤖 Agente (AI)</option>
+              <option value="human">👤 Humano</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="task-priority">Prioridad</label>
+            <select id="task-priority">
+              <option value="low">Baja</option>
+              <option value="medium" selected>Media</option>
+              <option value="high">Alta</option>
+              <option value="urgent">Urgente</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="task-contract">Vincular a Contrato KDD (Opcional)</label>
+            <select id="task-contract">
+              <option value="">-- Sin contrato vinculado --</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn" data-close>Cancelar</button>
+          <button type="submit" class="btn btn-primary">Crear Tarea</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Detalle de Tarea y Formulario de Requerimientos Ciegos -->
+  <div class="modal-overlay hidden" id="modal-task-detail">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="detail-title">Detalle de la Tarea</h3>
+        <button type="button" class="close-btn" data-close>&times;</button>
+      </div>
+      <div class="modal-body" id="detail-content">
+        <!-- Renderizado dinámicamente -->
+      </div>
+      <div class="modal-footer" id="detail-footer">
+        <button type="button" class="btn" data-close>Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Blind Vault Drawer -->
+  <div class="modal-overlay hidden" id="modal-vault">
+    <div class="modal-box" style="max-width:640px;">
+      <div class="modal-header">
+        <h3>🔒 Blind Secrets Vault (.env.local)</h3>
+        <button type="button" class="close-btn" data-close>&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="vault-banner">
+          <strong>Seguridad Ciega para Agentes:</strong> Las credenciales guardadas aquí son escritas directamente en <code>data/.env.local</code>. El agente de IA puede verificar su presencia con <code>list_available_credentials</code> e invocarlas en su código como <code>process.env.VARIABLE</code>, pero sus valores permanecen <strong>completamente enmascarados</strong> en el protocolo WebMCP.
+        </div>
+
+        <!-- Formulario para agregar / editar credencial -->
+        <form id="form-vault-save" style="background:var(--bg-column); border:1px solid var(--border-subtle); border-radius:6px; padding:1rem; display:flex; flex-direction:column; gap:0.75rem;">
+          <h4 style="font-size:0.88rem; font-weight:600; color:var(--text-main);" id="vault-form-title">+ Agregar o Modificar Credencial</h4>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem;">
+            <div>
+              <label for="vault-key" style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Nombre de la Clave (ENV)</label>
+              <input type="text" id="vault-key" required placeholder="Ej. OPENAI_API_KEY" style="width:100%; margin-top:0.25rem; text-transform:uppercase; font-family:var(--font-mono); font-size:0.82rem;" />
+            </div>
+            <div>
+              <label for="vault-val" style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Valor Secreto</label>
+              <input type="password" id="vault-val" required placeholder="sk-... / token" style="width:100%; margin-top:0.25rem; font-family:var(--font-mono); font-size:0.82rem;" />
+            </div>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.25rem;">
+            <button type="button" class="btn" id="btn-vault-cancel-edit" style="display:none; font-size:0.8rem; padding:0.35rem 0.7rem;">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="btn-vault-submit" style="font-size:0.8rem; padding:0.35rem 0.85rem;">🔒 Guardar en Vault</button>
+          </div>
+        </form>
+
+        <div class="form-group" style="margin-top:0.5rem;">
+          <label style="font-size:0.8rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Credenciales Configuradas Actualmente:</label>
+          <div class="vault-items-list" id="vault-list-container">
+            <span style="color:var(--text-muted); font-size:0.85rem;">Cargando...</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" data-close>Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: WebMCP Tools Inspector & Simulator -->
+  <div class="modal-overlay hidden" id="modal-agent-tools">
+    <div class="modal-box" style="max-width:680px;">
+      <div class="modal-header">
+        <h3>🤖 WebMCP Tools Superficie (fastwebmcp)</h3>
+        <button type="button" class="close-btn" data-close>&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.85rem; color:var(--text-muted);">
+          Estas son las 6 herramientas WebMCP registradas mediante <code>fastwebmcp</code> y disponibles para que agentes de IA naveguen e interactúen con el tablero:
+        </p>
+        <div id="tools-list-container" style="display:flex; flex-direction:column; gap:0.75rem;">
+          <!-- Renderizado dinámicamente -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" data-close>Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -5,6 +5,8 @@ __pycache__/
 .venv/
 venv/
 env/
+.env.local
+*.local
 
 # IDE y Sistema Operativo
 .vscode/
