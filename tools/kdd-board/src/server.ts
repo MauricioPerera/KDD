@@ -1,4 +1,6 @@
 import http from 'node:http';
+import crypto from 'node:crypto';
+import { runTaskTests } from './task-execution.ts';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,22 +19,22 @@ let projectDir = process.env.KDD_PROJECT_DIR || process.argv[2];
 if (!projectDir) {
   if (fs.existsSync(path.join(process.cwd(), 'knowledge'))) {
     projectDir = process.cwd();
-  } else if (fs.existsSync(path.join(rootDir, '..', 'knowledge'))) {
-    projectDir = path.resolve(rootDir, '..');
+  } else if (fs.existsSync(path.join(rootDir, '..', '..', 'knowledge'))) {
+    projectDir = path.resolve(rootDir, '..', '..');
   } else {
     projectDir = rootDir;
   }
 }
 projectDir = path.resolve(projectDir);
 
-const dataDir = path.join(rootDir, 'data');
+const dataDir = path.join(projectDir, '.kdd-board');
 const tasksFile = path.join(dataDir, 'tasks.json');
 const vaultFile = path.join(projectDir, '.env.local');
 const publicDir = path.join(rootDir, 'public');
 
 const taskStore = new TaskStore(tasksFile);
 const vault = new BlindVault(vaultFile);
-const bridge = createWebMcpBridge(taskStore, vault);
+const bridge = createWebMcpBridge(taskStore, vault, projectDir);
 
 // Populate default sample tasks if store is empty
 if (taskStore.getAllTasks().length === 0) {
@@ -69,7 +71,10 @@ if (taskStore.getAllTasks().length === 0) {
 function parseJsonBody<T>(req: http.IncomingMessage): Promise<T> {
   return new Promise((resolve, reject) => {
     let body = '';
-    req.on('data', (chunk: Buffer | string) => (body += chunk));
+    req.on('data', (chunk: Buffer | string) => {
+      body += chunk;
+      if (Buffer.byteLength(body) > 1024 * 1024) { reject(new Error('Request body too large')); req.destroy(); }
+    });
     req.on('end', () => {
       try {
         resolve(body ? JSON.parse(body) : ({} as T));
@@ -84,9 +89,6 @@ function parseJsonBody<T>(req: http.IncomingMessage): Promise<T> {
 function sendJson(res: http.ServerResponse, statusCode: number, data: unknown) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
   });
   res.end(JSON.stringify(data));
 }
@@ -212,17 +214,30 @@ function parseDocContent(filePath: string) {
   return { raw, body, frontmatter };
 }
 
-export function createServer() {
+export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.randomBytes(32).toString('hex')) {
   return http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
-    const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+    let url: URL;
+    try { url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`); }
+    catch { return sendJson(res, 400, {error: 'Invalid URL'}); }
     const pathname = url.pathname;
 
-    // Handle CORS preflight
+    const allowedHosts = new Set(['localhost', '127.0.0.1', '[::1]']);
+    if (!allowedHosts.has(url.hostname)) return sendJson(res, 403, {error: 'Local host required'});
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    if (req.headers.origin && req.headers.origin !== url.origin) return sendJson(res, 403, {error: 'Origin rejected'});
+    if (pathname.startsWith('/api/')) {
+      const supplied = Buffer.from(req.headers.authorization || '');
+      const expected = Buffer.from(`Bearer ${apiToken}`);
+      if (supplied.length !== expected.length || !crypto.timingSafeEqual(supplied, expected)) {
+        return sendJson(res, 401, {error: 'Open the authenticated URL printed by the launcher'});
+      }
+    }
+
+    // Handle same-origin authenticated preflight
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
       });
       res.end();
       return;
@@ -328,13 +343,7 @@ export function createServer() {
         if (!task) {
           return sendJson(res, 404, { error: `Tarea "${taskId}" no encontrada` });
         }
-        const cmd = task.testCommand || 'npm test';
-        const report = await executeTaskTest(cmd, rootDir);
-        const updated = taskStore.recordTestReport(taskId, report);
-        return sendJson(res, 200, {
-          task: updated,
-          report,
-        });
+        return sendJson(res, 200, await runTaskTests(taskStore, vault, projectDir, taskId));
       }
 
       // 7.1 POST /api/tasks/:id/report (Generate .agents/logs/<TASK>-REPORT.md)
@@ -425,8 +434,7 @@ export function createServer() {
         let cmd = 'python scripts/validate_contracts.py knowledge/contracts';
         let execDir = projectDir;
         if (!fs.existsSync(path.join(projectDir, 'scripts', 'validate_contracts.py'))) {
-          cmd = 'python scripts/validate_contracts.py kdd-board/knowledge/contracts';
-          execDir = path.resolve(rootDir, '..');
+          return sendJson(res, 400, {error: 'Project has no KDD validator; use a KDD project'});
         }
         const report = await executeTaskTest(cmd, execDir);
 
@@ -458,12 +466,13 @@ export function createServer() {
 // Start server if executed directly
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const PORT = Number(process.env.PORT) || 3456;
-  const server = createServer();
-  server.listen(PORT, () => {
+  const token = process.env.KDD_BOARD_TOKEN || crypto.randomBytes(32).toString('hex');
+  const server = createServer(token);
+  server.listen(PORT, '127.0.0.1', () => {
     console.log(`\n======================================================`);
-    console.log(`🚀 KDD-Board escuchando en http://localhost:${PORT}`);
+    console.log(`🚀 KDD-Board escuchando en http://127.0.0.1:${PORT}/#token=${encodeURIComponent(token)}`);
     console.log(`🤖 Soporte WebMCP activo con fastwebmcp`);
-    console.log(`🔒 Blind Secrets Vault activo en data/.env.local`);
+    console.log(`🔒 Vault local activo (no aisla codigo hostil)`);
     console.log(`======================================================\n`);
   });
 }

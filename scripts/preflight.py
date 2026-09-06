@@ -104,16 +104,22 @@ def _format_lines(results, total, agent=False):
     """
     lines = []
     passed = 0
+    skipped = 0
     for name, res in results.items():
         code = res['exit_code']
-        if code == 0:
+        missing = code == 0 and 'INFO [PATH_MISSING]' in (res.get('stdout') or '')
+        if missing:
+            skipped += 1
+        elif code == 0:
             passed += 1
         lines.append('{name}: {status}'.format(name=name,
-                                               status=_status(code)))
+                                               status='SKIP' if missing else _status(code)))
         if agent and code != 0 and name not in _FORWARDS_FOREIGN_OUTPUT:
             lines.extend(_hint_lines(res))
     lines.append('Summary: {passed}/{total}'.format(passed=passed,
                                                     total=total))
+    if skipped:
+        lines.append('Skipped: {} (optional evidence absent, not verified)'.format(skipped))
     return lines
 
 

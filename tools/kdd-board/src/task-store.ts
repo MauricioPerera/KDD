@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { evidenceCurrent } from './task-execution.ts';
 import type { Task, TaskStatus, TaskAssignee, TaskPriority, HumanInputRequirement, TaskComment, TaskTestReport } from './types.ts';
 
 export class TaskStore {
@@ -20,6 +21,7 @@ export class TaskStore {
       const data = fs.readFileSync(this.filePath, 'utf-8');
       const list: Task[] = JSON.parse(data);
       for (const t of list) {
+        if (t.status === 'done' && !evidenceCurrent(t)) t.status = 'ready';
         this.tasks.set(t.id, t);
       }
     } catch {
@@ -98,6 +100,10 @@ export class TaskStore {
     if (!task) {
       throw new Error(`TaskStore: task with id "${id}" not found`);
     }
+    if (!['backlog', 'ready', 'in_progress', 'needs_human_input', 'done'].includes(newStatus)) throw new Error('Invalid status');
+    if (newStatus === 'done' && (!evidenceCurrent(task) || task.requirements.some(r => !r.isSatisfied))) {
+      throw new Error('Current contract evidence and satisfied requirements are required');
+    }
     task.status = newStatus;
     task.updatedAt = new Date().toISOString();
     if (comment) {
@@ -156,6 +162,7 @@ export class TaskStore {
     } else {
       task.requirements.push(req);
     }
+    task.testReport = undefined;
     task.status = 'needs_human_input';
     task.assignee = 'human';
     task.updatedAt = new Date().toISOString();
@@ -228,6 +235,7 @@ export class TaskStore {
       throw new Error(`TaskStore: task with id "${id}" not found`);
     }
     task.testReport = report;
+    if (task.status === 'done' && !evidenceCurrent(task)) task.status = 'ready';
     task.metrics = {
       requirementsCount: task.requirements.length,
       satisfiedCount: task.requirements.filter((r) => r.isSatisfied).length,
@@ -252,6 +260,7 @@ export class TaskStore {
     if (!task) {
       throw new Error(`TaskStore: task with id "${id}" not found`);
     }
+    if (task.testCommand !== command) { task.testReport = undefined; if (task.status === 'done') task.status = 'ready'; }
     task.testCommand = command;
     task.updatedAt = new Date().toISOString();
     this.save();
@@ -263,6 +272,7 @@ export class TaskStore {
     if (!task) {
       throw new Error(`TaskStore: task with id "${id}" not found`);
     }
+    if (task.contractId !== contractId) { task.testReport = undefined; if (task.status === 'done') task.status = 'ready'; }
     task.contractId = contractId;
     task.updatedAt = new Date().toISOString();
     task.comments.push({
@@ -281,6 +291,7 @@ export class TaskStore {
       throw new Error(`TaskStore: task with id "${id}" not found`);
     }
 
+    if (!evidenceCurrent(task)) throw new Error('Current contract evidence is required for a verified report');
     const slug =
       task.title
         .toUpperCase()
@@ -289,13 +300,13 @@ export class TaskStore {
         .replace(/[^A-Z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '') || task.id.toUpperCase();
 
-    const parentDir = path.resolve(path.dirname(this.filePath), '..');
+    const parentDir = task.testReport!.cwd!;
     const logsDir = path.join(parentDir, '.agents', 'logs');
     if (!fs.existsSync(logsDir)) {
       fs.mkdirSync(logsDir, { recursive: true });
     }
 
-    const filename = `${slug}-REPORT.md`;
+    const filename = `${slug}-${task.id}-REPORT.md`;
     const filePath = path.join(logsDir, filename);
     const relativePath = `.agents/logs/${filename}`;
 
@@ -327,6 +338,11 @@ ${task.description || 'Sin descripción adicional.'}
 \`\`\`
 ${task.testReport?.output || 'No se ha ejecutado batería de tests aún.'}
 \`\`\`
+
+### Evidencia
+Directorio: ${task.testReport?.cwd}
+Hashes SHA-256 (contrato, target y oraculo):
+${JSON.stringify(task.testReport?.evidence, null, 2)}
 
 ### Historial de Auditoría
 ${task.comments.map((c) => `- [${c.timestamp}] **${c.author.toUpperCase()}**: ${c.text}`).join('\n')}

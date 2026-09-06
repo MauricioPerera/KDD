@@ -33,6 +33,10 @@ export interface TaskTestReport {
   failedTests: number;
   output: string;
   reportPath?: string;
+  command?: string;
+  cwd?: string;
+  contractId?: string;
+  evidence?: Record<string, string>;
 }
 
 export interface TaskMetrics {

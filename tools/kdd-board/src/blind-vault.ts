@@ -12,6 +12,7 @@ export class BlindVault {
   }
 
   private load(): void {
+    this.secrets.clear();
     if (!fs.existsSync(this.filePath)) {
       return;
     }
@@ -28,7 +29,9 @@ export class BlindVault {
         (val.startsWith('"') && val.endsWith('"')) ||
         (val.startsWith("'") && val.endsWith("'"))
       ) {
-        val = val.substring(1, val.length - 1);
+        if (val.startsWith('"')) {
+          try { val = JSON.parse(val); } catch { val = val.substring(1, val.length - 1); }
+        } else val = val.substring(1, val.length - 1);
       }
       this.secrets.set(key, { value: val, updatedAt: new Date().toISOString() });
     }
@@ -102,6 +105,11 @@ export class BlindVault {
       this.save();
     }
     return existed;
+  }
+
+  public environment(): Record<string, string> {
+    this.load();
+    return Object.fromEntries([...this.secrets].map(([key, item]) => [key, item.value]));
   }
 
   public exportToProcessEnv(): void {

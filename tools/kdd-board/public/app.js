@@ -1,4 +1,20 @@
 // KDD-Board Client Application
+const tokenFromLink = new URLSearchParams(location.hash.slice(1)).get('token');
+if (tokenFromLink) {
+  sessionStorage.setItem('kdd-token', tokenFromLink);
+  history.replaceState(null, '', location.pathname + location.search);
+}
+async function apiFetch(url, options = {}) {
+  const headers = new Headers(options.headers);
+  headers.set('Authorization', `Bearer ${sessionStorage.getItem('kdd-token') || ''}`);
+  const response = await fetch(url, {...options, headers});
+  if (!response.ok) {
+    const detail = await response.json().catch(() => ({}));
+    throw new Error(detail.error || `HTTP ${response.status}`);
+  }
+  return response;
+}
+
 
 let currentTasks = [];
 let selectedTaskId = null;
@@ -85,7 +101,8 @@ function closeAllModals() {
 // 1. Fetch & Render Tasks
 async function loadTasks() {
   try {
-    const res = await fetch('/api/tasks');
+    await loadContractCatalog();
+    const res = await apiFetch('/api/tasks');
     currentTasks = await res.json();
     renderBoard();
     if (activeView === 'dashboard') {
@@ -157,7 +174,7 @@ document.getElementById('form-new-task').addEventListener('submit', async (e) =>
   const contractId = document.getElementById('task-contract').value || undefined;
 
   try {
-    const res = await fetch('/api/tasks', {
+    const res = await apiFetch('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, description, assignee, priority, contractId }),
@@ -418,7 +435,7 @@ function renderTaskWorkspace(taskId) {
 // 4. Update Status & Assignee
 async function updateStatus(taskId, status) {
   try {
-    const res = await fetch(`/api/tasks/${taskId}/status`, {
+    const res = await apiFetch(`/api/tasks/${taskId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status, comment: { author: 'human', text: `Estado actualizado a ${status}` } }),
@@ -432,7 +449,7 @@ async function updateStatus(taskId, status) {
 
 async function updateAssignee(taskId, assignee) {
   try {
-    const res = await fetch(`/api/tasks/${taskId}/assign`, {
+    const res = await apiFetch(`/api/tasks/${taskId}/assign`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ assignee }),
@@ -458,7 +475,7 @@ window.fulfillRequirement = async function (taskId, fieldKey, isSecret) {
       ? { fieldKey, secretValue: val }
       : { fieldKey, value: val };
 
-    const res = await fetch(`/api/tasks/${taskId}/fulfill`, {
+    const res = await apiFetch(`/api/tasks/${taskId}/fulfill`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -480,7 +497,7 @@ window.runTaskTests = async function (taskId) {
   }
 
   try {
-    const res = await fetch(`/api/tasks/${taskId}/run-tests`, {
+    const res = await apiFetch(`/api/tasks/${taskId}/run-tests`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -506,7 +523,7 @@ window.generateTaskKddReport = async function (taskId) {
   }
 
   try {
-    const res = await fetch(`/api/tasks/${taskId}/report`, {
+    const res = await apiFetch(`/api/tasks/${taskId}/report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -550,7 +567,7 @@ async function renderDashboard() {
   document.getElementById('dash-kpi-tests-sub').textContent = `${testedTasks} de ${total} verificadas`;
 
   try {
-    const vaultRes = await fetch('/api/vault');
+    const vaultRes = await apiFetch('/api/vault');
     const vaultData = await vaultRes.json();
     document.getElementById('dash-kpi-vault').textContent = vaultData.length;
   } catch {
@@ -613,7 +630,7 @@ let isEditingVaultKey = null;
 async function loadVault() {
   const container = document.getElementById('vault-list-container');
   try {
-    const res = await fetch('/api/vault');
+    const res = await apiFetch('/api/vault');
     const secrets = await res.json();
     if (secrets.length === 0) {
       container.innerHTML =
@@ -656,7 +673,7 @@ if (formVaultSave) {
     if (!key || !value) return;
 
     try {
-      const res = await fetch('/api/vault', {
+      const res = await apiFetch('/api/vault', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, value }),
@@ -696,7 +713,7 @@ window.deleteVaultSecret = async function (key) {
     return;
   }
   try {
-    const res = await fetch(`/api/vault/${encodeURIComponent(key)}`, {
+    const res = await apiFetch(`/api/vault/${encodeURIComponent(key)}`, {
       method: 'DELETE',
     });
     if (!res.ok) throw new Error('Error al eliminar credencial');
@@ -730,7 +747,7 @@ function resetVaultForm() {
 async function loadTools() {
   const container = document.getElementById('tools-list-container');
   try {
-    const res = await fetch('/api/tools');
+    const res = await apiFetch('/api/tools');
     const tools = await res.json();
     container.innerHTML = tools
       .map(
@@ -764,16 +781,30 @@ function escapeHtml(str) {
 let docsCatalog = [];
 let selectedDocId = null;
 
-async function initDocsView() {
-  if (docsCatalog.length === 0) {
-    try {
-      const res = await fetch('/api/docs');
-      docsCatalog = await res.json();
-    } catch (err) {
-      console.error('Error cargando catálogo de documentación:', err);
-      return;
-    }
+let catalogRequest = null;
+async function loadContractCatalog() {
+  if (!catalogRequest) {
+    catalogRequest = (async () => {
+      const res = await apiFetch('/api/docs');
+      const catalog = await res.json();
+      if (!Array.isArray(catalog)) throw new Error('Invalid contract catalog');
+      docsCatalog = catalog;
+      const select = document.getElementById('task-contract');
+      if (select) {
+        const previous = select.value;
+        select.innerHTML = '<option value="">-- Sin contrato vinculado --</option>' +
+          docsCatalog.filter(doc => doc.isContract).map(doc =>
+            `<option value="${escapeHtml(doc.id)}">${escapeHtml(doc.title)}</option>`).join('');
+        if (docsCatalog.some(doc => doc.id === previous)) select.value = previous;
+      }
+    })().catch(error => { catalogRequest = null; throw error; });
   }
+  return catalogRequest;
+}
+
+async function initDocsView() {
+  try { await loadContractCatalog(); }
+  catch (err) { console.error('Error cargando catalogo:', err); return; }
   renderDocsNav();
 
   const searchInput = document.getElementById('docs-search-input');
@@ -847,7 +878,7 @@ window.loadDocItem = async function (id) {
   pane.innerHTML = '<span style="color:var(--text-muted); font-size:0.9rem;">Cargando documento...</span>';
 
   try {
-    const res = await fetch(`/api/docs/item?id=${encodeURIComponent(id)}`);
+    const res = await apiFetch(`/api/docs/item?id=${encodeURIComponent(id)}`);
     if (!res.ok) throw new Error('Error al cargar documento');
     const data = await res.json();
     const { item, body, frontmatter } = data;
@@ -963,7 +994,7 @@ window.linkTaskContract = async function (taskId) {
     return;
   }
   try {
-    const res = await fetch(`/api/tasks/${taskId}/contract`, {
+    const res = await apiFetch(`/api/tasks/${taskId}/contract`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contractId }),
@@ -984,7 +1015,7 @@ async function runAllContractsValidation() {
   }
 
   try {
-    const res = await fetch('/api/docs/validate', { method: 'POST' });
+    const res = await apiFetch('/api/docs/validate', { method: 'POST' });
     const result = await res.json();
     
     const pane = document.getElementById('docs-reader-pane');

@@ -3,9 +3,9 @@ import { registerTool, defineTool, type ToolSpec, type DefinedTool, type Registe
 import type { TaskStore } from './task-store.ts';
 import type { BlindVault } from './blind-vault.ts';
 import type { TaskStatus } from './types.ts';
-import { executeTaskTest } from './test-runner.ts';
+import { runTaskTests } from './task-execution.ts';
 
-export function createWebMcpBridge(taskStore: TaskStore, vault: BlindVault) {
+export function createWebMcpBridge(taskStore: TaskStore, vault: BlindVault, projectDir = process.cwd()) {
   // 1. list_tasks
   const listTasksSpec = {
     name: 'list_tasks',
@@ -103,7 +103,7 @@ export function createWebMcpBridge(taskStore: TaskStore, vault: BlindVault) {
       const secrets = vault.listSecrets();
       return {
         credentials: secrets,
-        note: 'Las credenciales estan disponibles en el entorno local del proceso (ej. process.env.API_KEY). El agente puede invocarlas por nombre pero no leer su valor crudo.',
+        note: 'Los valores se inyectan solo al proceso de prueba. El codigo ejecutado puede leerlos; el vault no aisla codigo hostil. La salida redacta valores conocidos, no transformaciones.',
       };
     },
     annotations: { readOnlyHint: true },
@@ -119,14 +119,7 @@ export function createWebMcpBridge(taskStore: TaskStore, vault: BlindVault) {
     execute: async ({ task_id }: { task_id: string }) => {
       const task = taskStore.getTask(task_id);
       if (!task) throw new Error(`Tarea "${task_id}" no encontrada`);
-      const cmd = task.testCommand || 'npm test';
-      const rootDir = process.cwd();
-      const report = await executeTaskTest(cmd, rootDir);
-      const updated = taskStore.recordTestReport(task_id, report);
-      return {
-        task: updated,
-        report,
-      };
+      return runTaskTests(taskStore, vault, projectDir, task_id);
     },
   };
 

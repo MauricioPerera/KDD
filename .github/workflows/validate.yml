@@ -87,7 +87,7 @@ jobs:
       - name: Set up Node.js (for the multi-language example contract)
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Validate contracts
         run: python scripts/validate_contracts.py ${{ inputs.contracts_dir || 'knowledge/contracts' }}
@@ -171,3 +171,22 @@ jobs:
 
       - name: Assemble context (smoke)
         run: python scripts/assemble_context.py ccdd/context.json "smoke"
+  board:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+        working-directory: tools/kdd-board
+      - run: npm run typecheck
+        working-directory: tools/kdd-board
+      - run: npm test
+        working-directory: tools/kdd-board

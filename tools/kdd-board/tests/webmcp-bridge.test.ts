@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { createWebMcpMock, withMockDocument } from 'fastwebmcp';
+import { createWebMcpMock } from 'fastwebmcp';
+import { projectFixture } from './project-fixture.ts';
 import { TaskStore } from '../src/task-store.ts';
 import { BlindVault } from '../src/blind-vault.ts';
 import { createWebMcpBridge } from '../src/webmcp-bridge.ts';
@@ -12,13 +13,17 @@ test('createWebMcpBridge: flujo WebMCP de extremo a extremo con mock', async () 
   const tmpTasks = path.join(os.tmpdir(), `bridge-tasks-${Date.now()}.json`);
   const tmpVault = path.join(os.tmpdir(), `bridge-vault-${Date.now()}.env`);
 
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kdd-bridge-project-'));
+  projectFixture(root);
+  const previousDocument = globalThis.document;
   try {
     const taskStore = new TaskStore(tmpTasks);
     const vault = new BlindVault(tmpVault);
-    const bridge = createWebMcpBridge(taskStore, vault);
+    const bridge = createWebMcpBridge(taskStore, vault, root);
     const mock = createWebMcpMock();
 
-    await withMockDocument(mock, async () => {
+    globalThis.document = mock.document as any;
+    {
       // 1. Registrar todas las tools en el mock de WebMCP
       const registrationResults = bridge.registerAll();
       assert.equal(registrationResults.every(Boolean), true);
@@ -74,6 +79,7 @@ test('createWebMcpBridge: flujo WebMCP de extremo a extremo con mock', async () 
       assert.equal(readyTask.status, 'ready');
       assert.equal(readyTask.assignee, 'agent');
 
+      taskStore.linkContract(created.id, 'app-sample_task.md');
       // 8. El agente ejecuta la batería de tests de la tarea
       const testRunResult = (await mock.invokeTool('run_task_tests', { task_id: created.id })) as any;
       assert.ok(testRunResult.report);
@@ -88,8 +94,10 @@ test('createWebMcpBridge: flujo WebMCP de extremo a extremo con mock', async () 
       assert.ok(reportRes.relativePath.startsWith('.agents/logs/'));
       assert.equal(fs.existsSync(reportRes.filePath), true);
       if (fs.existsSync(reportRes.filePath)) fs.unlinkSync(reportRes.filePath);
-    });
+    }
   } finally {
+    globalThis.document = previousDocument;
+    fs.rmSync(root, {recursive: true, force: true});
     if (fs.existsSync(tmpTasks)) fs.unlinkSync(tmpTasks);
     if (fs.existsSync(tmpVault)) fs.unlinkSync(tmpVault);
   }

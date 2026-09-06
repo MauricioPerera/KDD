@@ -60,13 +60,10 @@ test('TaskStore: ciclo completo de creación, asignación y transición de estad
       author: 'agent',
       text: 'Iniciando implementación con la credencial cargada.',
     });
-    store.updateTaskStatus(task.id, 'done', {
-      author: 'agent',
-      text: 'Implementación finalizada y testeada.',
-    });
+    assert.throws(() => store.updateTaskStatus(task.id, 'done'), /evidence/i);
 
     updated = store.getTask(task.id)!;
-    assert.equal(updated.status, 'done');
+    assert.equal(updated.status, 'in_progress');
     assert.ok(updated.comments.length >= 4);
   } finally {
     if (fs.existsSync(tmpFile)) {

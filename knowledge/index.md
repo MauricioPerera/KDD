@@ -74,6 +74,12 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Convención de mensaje de commit](./data_models/commit_message_contract.md)
 - [Arquitectura](./architecture/)
   - [Arquitectura general](./architecture/overview.md)
+- [Verificacion del tablero](./contracts/board-hardening.md)
+- [Evidencia de seguridad](./contracts/evidence-hardening.md)
+- [Referencia aprobada](./contracts/validate-baseline.md)
+- [Garantias verificables](./verification-guarantees.md)
+
+- [Catalogo al iniciar](./contracts/catalog-startup.md)
 
 - [Aprobacion integrada de calidad](quality-approval.md)
 - [Contrato verify-quality](contracts/verify-quality.md)
