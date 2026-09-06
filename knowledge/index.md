@@ -74,3 +74,6 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Convención de mensaje de commit](./data_models/commit_message_contract.md)
 - [Arquitectura](./architecture/)
   - [Arquitectura general](./architecture/overview.md)
+
+- [Aprobacion integrada de calidad](quality-approval.md)
+- [Contrato verify-quality](contracts/verify-quality.md)

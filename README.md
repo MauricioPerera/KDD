@@ -275,3 +275,7 @@ A referência normativa completa — níveis de validação 1 e 2, o gate multil
 ### Versionamento
 
 O modelo usa **versionamento semântico** começando em `v1.0.0`. Veja [`CHANGELOG.md`](CHANGELOG.md) para o histórico de releases. Quando você instanciar este modelo com `init_project`, você herda uma base versionada que pode atualizar: o nó [`Upgrade de la plantilla`](knowledge/plantilla-upgrade.md) documenta o que é infraestrutura do modelo (atualizável a partir do upstream) e o que pertence ao seu projeto (seu, para manter ou modificar como preferir).
+
+### Aprobacion integrada de calidad
+
+Para que los controles disponibles sean obligatorios en la entrega de un proyecto, consulta el [protocolo de calidad](knowledge/quality-approval.md) y la [politica de ejemplo](examples/quality-approval/README.md). El comando verify_quality.py exige una referencia aprobada explicita, protege oraculos y politica, comprueba el perimetro real y ejecuta los checks declarados dos veces. No atribuye calidad universal a un sello ni a una suite verde.

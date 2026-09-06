@@ -61,6 +61,12 @@ on:
       src_dir_secrets:
         type: string
         default: 'src'
+      quality_policy_path:
+        type: string
+        default: 'quality.json'
+      quality_approved_ref:
+        type: string
+        default: ''
 
 jobs:
   validate:
@@ -70,6 +76,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -143,16 +151,23 @@ jobs:
       - name: Run unit tests (2/2)
         run: python -m unittest discover -s tests -p "test_*.py"
 
-      - name: Run project test suite
-        # This step is separate from the two above on purpose: those validate the KDD
-        # tooling itself (scripts/*.py) and stay Python forever, regardless of your
-        # project's language. THIS step is a placeholder for YOUR project's own tests.
-        # Swap the command below for your language's runner (e.g. `npm test`,
-        # `cargo test`, `go test ./...`) once your project has its own tests; add
-        # `actions/setup-node`/`actions/setup-go`/etc. above if your runtime needs setup.
-        # Left as a no-op echo by default so a clean fork of the template stays green
-        # without editing anything and the Python suite is not run a third time.
-        run: echo "No project-specific test runner configured yet. Replace this step's command with your language's test runner (e.g. npm test, cargo test, go test ./...) once your project has its own tests."
+      - name: Approve project quality (when configured)
+        shell: python
+        env:
+          KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
+          KDD_QUALITY_APPROVED_REF: ${{ inputs.quality_approved_ref || vars.KDD_QUALITY_APPROVED_REF || '' }}
+        run: |
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          policy = os.environ['KDD_QUALITY_POLICY']
+          approved = os.environ['KDD_QUALITY_APPROVED_REF']
+          if Path(policy).exists() or approved:
+              if not approved:
+                  raise SystemExit('FAIL: project policy requires an explicitly approved reference')
+              raise SystemExit(subprocess.call([sys.executable, 'scripts/verify_quality.py', '--policy', policy, '--approved-ref', approved]))
+          print('SKIP: no project quality policy configured; template validation does not approve a project')
 
       - name: Assemble context (smoke)
         run: python scripts/assemble_context.py ccdd/context.json "smoke"

@@ -4,6 +4,8 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- Calidad: punto de aprobación de proyectos con política/oráculos contra commit explícito, perímetro real (incluido índice y archivos nuevos), checks funcionales/adversariales/UI y dos vueltas. CI exige referencia cuando hay política. [Evidencia y límites](docs/reports/QUALITY-APPROVAL-REPORT.md).
+
 _Sin cambios pendientes._
 
 ## v1.12.0 — 2026-07-26

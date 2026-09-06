@@ -1,10 +1,10 @@
 ---
 type: 'Task Contract'
 title: 'Aprobacion integrada de calidad'
-description: 'Detectar cambios de contrato y test respecto de un commit aprobado.'
+description: 'Aprobar calidad mediante politica congelada, perimetro real y checks obligatorios.'
 tags: ['ccdd', 'security']
 task: verify-quality
-intent: 'Comparar contrato y oraculo contra una referencia independiente.'
+intent: 'Integrar controles de integridad y comportamiento en una aprobacion verificable.'
 target: scripts/verify_quality.py
 language: python
 signature: 'def main():'
@@ -15,24 +15,24 @@ budget:
 tests: 'tests/test_verify_quality.py'
 tests_sha256: '7a45563015e79e991cfa8ebbeb4edbb10bf1015d5e2b3d5b28dbd2e7288140fd'
 touch_only: ['scripts/verify_quality.py']
-deps_allowed: ['stdlib', 'vendored-codex-security']
+deps_allowed: ['stdlib']
 forbids: ['llm']
 ---
 
 ## Intent
-Aplicar la [validacion](../validacion.md) a la evidencia local del tablero.
+Aplicar la [validacion](../validacion.md) mediante una politica de aprobacion del proyecto.
 
 ## Interface
-`validate_baseline(contract, approved_ref, repo_root)` devuelve diferencias o falla si la referencia es invalida.
+`main()` procesa --repo-root, --policy y --approved-ref. Devuelve 0 solo tras integridad, perimetro y todos los checks aprobados dos veces; errores devuelven codigo no cero.
 
 ## Invariants
 - Re-sellar contrato y test no evade una referencia aprobada distinta.
-- No modificar el repositorio ni la referencia.
+- El runner no altera la referencia ni los oraculos; verifica tambien los efectos de los comandos ejecutados.
 - Normalizar LF igual que el validador de contratos.
 
 ## Examples
-- Mismos archivos aprobados -> cero diferencias.
-- Test y hash modificados -> dos diferencias.
+- Politica integra, cambio permitido y checks exitosos -> aprobacion tras dos vueltas.
+- Test o politica modificados -> rechazo antes de ejecutar checks.
 
 ## Do / Don't
 - DO: resolver git mediante argumentos, sin shell.
