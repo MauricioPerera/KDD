@@ -6,10 +6,10 @@ scripts/vendor/codex-security/finalize_scan_contract.py) contra la politica
 declarativa de examples/rules/security-findings.rules.json, via el mismo
 rule_engine.evaluate que gobierna los demas dominios de reglas de este repo.
 
-NO revalida el JSON Schema de codex-security (eso ya lo hizo el finalizer al
-sellar). Este script solo aplana el findings.json sellado a la forma
-{findings: [...]} que consume el rule-set y corre el motor. Sin LLM, sin red,
-solo stdlib.
+Revalida schemas, manifest, coverage y hashes mediante el finalizer vendorizado
+EN MODO SOLO LECTURA antes de aplanar findings para evaluar la politica.
+No genera ni repara sellos. --required rechaza ausencia de evidencia.
+Sin LLM, sin red, solo stdlib.
 
 Capa opcional (mismo patron que validate_diagrams.py/validate_ux_page.py):
 si <scan_dir>/findings.json no existe, se reporta INFO y exit 0 -- un fork sin
@@ -23,6 +23,8 @@ Uso:
 (error real de datos, no ausencia).
 """
 
+import importlib.util
+from pathlib import Path
 import json
 import os
 import sys
@@ -61,32 +63,48 @@ def flatten(findings_doc: dict) -> dict:
 
 def main(argv=None):
     args = argv if argv is not None else sys.argv[1:]
+    required = '--required' in args
+    args = [arg for arg in args if arg != '--required']
     if len(args) > 1:
-        print("Uso: validate_security_findings.py [scan_dir]", file=sys.stderr)
+        print("Uso: validate_security_findings.py [scan_dir] [--required]", file=sys.stderr)
         return 2
     scan_dir = args[0] if args else _DEFAULT_SCAN_DIR
 
     findings_path = os.path.join(scan_dir, "findings.json")
     if not os.path.isfile(findings_path):
         print(f"INFO [PATH_MISSING] {findings_path}: no existe (capa opcional, sin findings que auditar)")
-        return 0
+        return 1 if required else 0
 
     try:
         with open(findings_path, "r", encoding="utf-8") as fh:
             findings_doc = json.load(fh)
-    except json.JSONDecodeError as exc:
+    except (json.JSONDecodeError, OSError, UnicodeError) as exc:
         print(
             f"ERROR [PARSE_ERROR] {findings_path}: JSON invalido/corrupto -- "
             f"no se pudo parsear el artefacto sellado ({exc})",
             file=sys.stderr,
         )
         return 2
-    if findings_doc.get("documentType") != "codex-security.findings":
+    if not isinstance(findings_doc, dict) or findings_doc.get("documentType") != "codex-security.findings":
         print(
             f"ERROR [DOCUMENT_TYPE] {findings_path}: documentType inesperado -- "
             "no parece un artefacto sellado por finalize_scan_contract.py",
             file=sys.stderr,
         )
+        return 2
+
+    try:
+        # Read-only entry point from the pinned vendored finalizer. Never call
+        # finalize_scan: verification must not repair/reseal its own evidence.
+        vendor = Path(__file__).resolve().parent / "vendor" / "codex-security" / "finalize_scan_contract.py"
+        spec = importlib.util.spec_from_file_location("kdd_security_seal_validator", vendor)
+        validator = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(validator)
+        scan_path = Path(scan_dir).resolve()
+        schemas = Path(__file__).resolve().parent.parent / "knowledge" / "data_models" / "security"
+        _, findings_doc, _, _ = validator._read_sealed_scan(scan_path, schemas, "KDD policy validation")
+    except (ValueError, OSError, KeyError, TypeError, AttributeError) as exc:
+        print(f"ERROR [PARSE_ERROR] {findings_path}: invalid sealed evidence: {exc}", file=sys.stderr)
         return 2
 
     if not os.path.isfile(_RULES_PATH):

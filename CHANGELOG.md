@@ -4,7 +4,13 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
-_Sin cambios pendientes._
+- Calidad: punto de aprobación de proyectos con política/oráculos contra commit explícito, perímetro real (incluido índice y archivos nuevos), checks funcionales/adversariales/UI y dos vueltas. CI exige referencia cuando hay política. [Evidencia y límites](docs/reports/QUALITY-APPROVAL-REPORT.md).
+
+- Tablero: el catálogo de contratos se carga al iniciar y alimenta el formulario de nueva tarea sin visitar Documentación; regresión de arranque y flujo real en navegador verificados.
+
+- Tablero: acceso HTTP autenticado en loopback, ejecución unificada por contrato, evidencia vigente para cerrar tareas y conteos de tests sin éxitos inventados. CI incluye TypeScript y pruebas del tablero en Windows/Linux.
+- Evidencia: validación de sellos de seguridad en solo lectura, ausencia opcional como SKIP en preflight y comprobación opt-in de contrato/oráculo contra un commit aprobado.
+- Vault: preservación de valores escapados, recarga correcta e inyección por subproceso con redacción de valores conocidos. Se documenta su límite de confianza.
 
 ## v1.12.0 — 2026-07-26
 

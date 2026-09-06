@@ -45,7 +45,7 @@ This is a template repository for projects that implement the **Knowledge-Driven
 
 For teams and developers who prefer a visual, real-time workflow, the repository includes **KDD-Board**:
 - **Interactive Kanban**: Manage backlog, agent-assigned tasks, and human gates across 5 stages (`backlog` -> `ready` -> `in_progress` -> `needs_human_input` -> `done`).
-- **Blind Secrets Vault**: Let agents implement third-party integrations (APIs, databases) safely; secrets are stored in `.env.local` and injected into the test runtime while masked from the agent.
+- **Blind Secrets Vault**: Stores credentials in the project `.env.local` and injects them into the test subprocess. Listings are masked and known raw values are redacted from output. Executed code can read them: this is not isolation from an untrusted agent.
 - **WebMCP Bridge (`fastwebmcp`)**: Exposes 8 declarative MCP tools directly into browser sessions for autonomous agent collaboration.
 - **Project Definition & Contracts Explorer**: Live viewer for `DEFINITION.md`, OKF specs, and CCDD contracts with 1-click bidirectional navigation.
 - **Automated Evidence Generation**: Generates verified reports (`.agents/logs/<task>-REPORT.md`) capturing raw test execution to complete the KDD lifecycle.
@@ -55,6 +55,8 @@ To launch the board for your project:
 bash scripts/run_board.sh   # Linux / macOS
 pwsh scripts/run_board.ps1  # Windows
 ```
+
+The board requires Node 24+ and Python. Open the authenticated URL printed by the launcher (the fragment carries a session token). It binds to `127.0.0.1`; HTTP clients need `Authorization: Bearer <token>`. Both HTTP and MCP run the linked contract in the selected project. See [verification guarantees](knowledge/verification-guarantees.md) for evidence scope, migration and limitations.
 
 ### How to use this template
 
@@ -168,7 +170,7 @@ Este repositorio plantilla es para proyectos que implementan la metodología **K
 
 Para desarrolladores y equipos que buscan una experiencia visual en tiempo real, la plantilla incluye **KDD-Board**:
 - **Tablero Kanban Interactivo**: Gestiona el flujo colaborativo en 5 estados (`backlog` -> `ready` -> `in_progress` -> `needs_human_input` -> `done`).
-- **Blind Secrets Vault**: Permite a los agentes implementar integraciones (APIs, bases de datos) de forma segura; las credenciales se guardan en `.env.local` y se inyectan en los tests sin que el agente pueda ver el texto claro.
+- **Blind Secrets Vault**: Guarda credenciales en `.env.local` del proyecto y las inyecta al subproceso de tests. Enmascara listados y redacta valores conocidos en la salida; el código ejecutado puede leerlos. No aísla a un agente no confiable.
 - **Puente WebMCP (`fastwebmcp`)**: Expone 8 herramientas MCP declarativas directamente en el navegador para que agentes autónomos operen el tablero.
 - **Explorador de Contratos y `DEFINITION.md`**: Navegación en 1 clic entre tareas y contratos formales con validador determinista en vivo.
 - **Evidencia Automatizada KDD**: Genera reportes de auditoría (`.agents/logs/<task>-REPORT.md`) con la salida real de los tests para certificar el estado `verified`.
@@ -275,3 +277,6 @@ A referência normativa completa — níveis de validação 1 e 2, o gate multil
 ### Versionamento
 
 O modelo usa **versionamento semântico** começando em `v1.0.0`. Veja [`CHANGELOG.md`](CHANGELOG.md) para o histórico de releases. Quando você instanciar este modelo com `init_project`, você herda uma base versionada que pode atualizar: o nó [`Upgrade de la plantilla`](knowledge/plantilla-upgrade.md) documenta o que é infraestrutura do modelo (atualizável a partir do upstream) e o que pertence ao seu projeto (seu, para manter ou modificar como preferir).
+### Aprobacion integrada de calidad
+
+Para que los controles disponibles sean obligatorios en la entrega de un proyecto, consulta el [protocolo de calidad](knowledge/quality-approval.md) y la [politica de ejemplo](examples/quality-approval/README.md). El comando verify_quality.py exige una referencia aprobada explicita, protege oraculos y politica, comprueba el perimetro real y ejecuta los checks declarados dos veces. No atribuye calidad universal a un sello ni a una suite verde.
