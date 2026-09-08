@@ -41,6 +41,11 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
 
 ## Proceso
 
+En proyectos que adopten el [protocolo de sprints](./sprints.md), seleccionar el resultado
+y el backlog del sprint antes de PLAN. El sprint referencia entregas de los contratos;
+no reemplaza sus criterios de aceptación. Su admisión y presupuesto son controles
+operativos manuales hasta implementar un despachador que los aplique.
+
 1. **PLAN** — convertir el pedido en contrato de ejecución con tareas atómicas; mostrarlo
    antes de disparar trabajo pesado.
    **RECON NEEDED:** toda suposición del plan que no esté verificada (comando real de la

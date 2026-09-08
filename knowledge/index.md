@@ -3,6 +3,7 @@
 Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está especificado en [OKF-SPEC](./OKF-SPEC.md).
 
 ## Referencia
+- [Sprints orientados a resultados](./sprints.md) — protocolo piloto opt-in para seleccionar backlog, admitir tareas y medir consumo por resultado aceptado.
 - [Por que KDD](./por-que-kdd.md) — posicionamiento honesto frente a Spec Kit, BMAD-METHOD y un AGENTS.md solo: que verifica distinto KDD, y en que casos no conviene.
 - [Quickstart](./quickstart.md) — tutorial paso a paso y ejecutable: de clonar la plantilla a tu primer task contract propio en verde.
 - [Glosario](./glosario.md) — indice unico de los ~20 terminos propios de OKF+CCDD, con link al nodo normativo de cada uno.
@@ -21,6 +22,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 ## Estructura
 - [Contratos de Desarrollo](./contracts/)
+  - [Admision de tareas al sprint](./contracts/sprint-admission.md) — piloto ejecutable sobre snapshots JSON.
   - [Ejemplo de Tarea (Hello World)](./contracts/sample_task.md)
   - [Validación de registro de usuario](./contracts/validate-user-record.md)
   - [Validación de límite de pago por país](./contracts/validate-payment-limit.md)

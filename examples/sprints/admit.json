@@ -1,0 +1,9 @@
+{
+  "sprint": {
+    "status": "active",
+    "selected_tasks": ["A"],
+    "completed_tasks": ["D"],
+    "budget": {"unit": "tokens", "limit": 100, "consumed": 60, "verification_reserve": 20}
+  },
+  "request": {"task_id": "A", "dependencies": ["D"], "estimated_cost": 20, "phase": "implementation"}
+}
