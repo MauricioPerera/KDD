@@ -1,0 +1,33 @@
+{
+  "sprint": {
+    "status": "active",
+    "selected_tasks": ["credentials", "schema", "integration", "docs", "cycle-a", "cycle-b"],
+    "budget": {"unit": "tokens", "limit": 100, "consumed": 0, "verification_reserve": 20}
+  },
+  "tasks": [
+    {
+      "id": "credentials", "status": "ready", "priority": "low",
+      "dependencies": [], "estimated_cost": 10,
+      "blockers": [{"id": "access", "reason": "Service credentials missing",
+                    "owner": "project-owner", "condition": "Service access confirmed",
+                    "status": "open"}]
+    },
+    {
+      "id": "schema", "status": "ready", "priority": "low",
+      "dependencies": [], "estimated_cost": 10,
+      "relations": [{"type": "goal", "target": "working-integration"}]
+    },
+    {
+      "id": "integration", "status": "ready", "priority": "urgent",
+      "dependencies": ["credentials", "schema"], "estimated_cost": 20,
+      "relations": [{"type": "contract", "target": "integration-contract"}]
+    },
+    {
+      "id": "docs", "status": "ready", "priority": "high",
+      "dependencies": [], "estimated_cost": 10,
+      "relations": [{"type": "related_to", "target": "integration"}]
+    },
+    {"id": "cycle-a", "status": "ready", "priority": "medium", "dependencies": ["cycle-b"], "estimated_cost": 10},
+    {"id": "cycle-b", "status": "ready", "priority": "medium", "dependencies": ["cycle-a"], "estimated_cost": 10}
+  ]
+}
