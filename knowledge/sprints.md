@@ -145,6 +145,12 @@ protocolo; una muestra pequena solo aporta una senal preliminar.
 
 ## Automatizacion posterior
 
+El [planificador de backlog relacionado](./data_models/sprint-backlog.md) ya ofrece
+seleccion de candidatos, ciclos, causas de bloqueo y prioridades heredadas mediante
+`python -m src.sprint_planner examples/sprints/backlog.json`. Reutiliza la admision
+individual; su salida es de solo lectura y requiere invocacion con un snapshot nuevo
+cuando cambien estado, evidencia o presupuesto. No despacha trabajo ni observa eventos.
+
 Solo tras revisar el piloto: relacion sprint-tarea en el tablero, comprobacion de admision
 en cada entrada HTTP/MCP/CLI que pueda iniciar trabajo, registro central de ejecuciones y
 reserva atomica de presupuesto para concurrencia. Un campo visual o un validador de

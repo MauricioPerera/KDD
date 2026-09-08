@@ -22,6 +22,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 ## Estructura
 - [Contratos de Desarrollo](./contracts/)
+  - [Planificador del sprint](./contracts/sprint-planner.md) — relaciones, ciclos, bloqueos y prioridades.
   - [Admision de tareas al sprint](./contracts/sprint-admission.md) — piloto ejecutable sobre snapshots JSON.
   - [Ejemplo de Tarea (Hello World)](./contracts/sample_task.md)
   - [Validación de registro de usuario](./contracts/validate-user-record.md)
@@ -57,6 +58,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Exportador de contratos para el gate CCDD Nivel 2](./contracts/export-gate-contract.md)
   - [Regla de contexto presupuestado en las reglas de agentes](./contracts/agents-context-rule.md)
 - [Modelos de Datos](./data_models/)
+  - [Backlog relacionado](./data_models/sprint-backlog.md) — formato y reglas del planificador.
   - [Tabla users](./data_models/users_table.md)
   - [Limites de pago por pais](./data_models/payment_limits.md)
   - [Reglas de control de fronteras](./data_models/border_rules.md)
