@@ -1,0 +1,94 @@
+{
+  "ok": true,
+  "modelCount": 2,
+  "selectedId": "m_2pyka",
+  "models": [
+    {
+      "id": "m_1nfjt",
+      "name": "KDD · Cubo bajo prueba",
+      "kind": "box",
+      "params": {
+        "width": 1,
+        "height": 1,
+        "depth": 1
+      },
+      "transform": {
+        "position": [
+          1,
+          0.5,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "material": {
+        "preset": "clay",
+        "color": "#2563eb"
+      },
+      "visible": true
+    },
+    {
+      "id": "m_2pyka",
+      "name": "KDD · Referencia sin cambios",
+      "kind": "sphere",
+      "params": {
+        "radius": 0.5,
+        "widthSegments": 32,
+        "heightSegments": 16
+      },
+      "transform": {
+        "position": [
+          -2,
+          0.5,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "material": {
+        "preset": "clay",
+        "color": "#f59e0b"
+      },
+      "visible": true
+    }
+  ],
+  "scene": {
+    "background": "studio",
+    "lights": "studio",
+    "env": "studio",
+    "envIntensity": 1.1,
+    "ground": true,
+    "grid": true,
+    "shadows": true
+  },
+  "camera": {
+    "position": [
+      4.199999999999998,
+      3.2,
+      5.3999999999999995
+    ],
+    "target": [
+      0,
+      0.4,
+      0
+    ],
+    "fov": 45
+  },
+  "summary": "2 model(s) in scene"
+}

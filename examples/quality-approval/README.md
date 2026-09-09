@@ -11,6 +11,10 @@ Requisitos del runner: Python estándar y Git. Los comandos del proyecto pueden 
 
 Leer [protocolo, evidencia y límites](../../knowledge/quality-approval.md). El runner por sí solo no constituye aislamiento de código ni auditoría de seguridad.
 
+## Caso experimental: acciones en una aplicacion externa
+
+El [ejemplo de Modelar](../modelar-verification/README.md) conserva una captura antes/despues de mover un cubo, la politica Lua/WASM y tres controles negativos. Distingue explicitamente el replay de evidencia de una nueva prueba en vivo y no constituye aprobacion automatica del sitio.
+
 ## CI
 
 El workflow validate.yml busca quality.json por defecto. Si existe, exige la variable de repositorio KDD_QUALITY_APPROVED_REF o el input quality_approved_ref del workflow reutilizable; sin referencia falla. Puede configurarse otra ruta mediante quality_policy_path. Si no hay política ni referencia, declara SKIP: la plantilla aún no aprueba la calidad de una aplicación.
