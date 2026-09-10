@@ -22,6 +22,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 ## Estructura
 - [Contratos de Desarrollo](./contracts/)
+  - [Ejecutor de autoridad local](./contracts/local-authority.md) — permisos aplicados antes del IO.
   - [Planificador del sprint](./contracts/sprint-planner.md) — relaciones, ciclos, bloqueos y prioridades.
   - [Admision de tareas al sprint](./contracts/sprint-admission.md) — piloto ejecutable sobre snapshots JSON.
   - [Ejemplo de Tarea (Hello World)](./contracts/sample_task.md)
@@ -58,6 +59,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Exportador de contratos para el gate CCDD Nivel 2](./contracts/export-gate-contract.md)
   - [Regla de contexto presupuestado en las reglas de agentes](./contracts/agents-context-rule.md)
 - [Modelos de Datos](./data_models/)
+  - [Autoridad local v1](./data_models/local-authority.md) — operaciones soportadas y frontera de confianza.
   - [Backlog relacionado](./data_models/sprint-backlog.md) — formato y reglas del planificador.
   - [Tabla users](./data_models/users_table.md)
   - [Limites de pago por pais](./data_models/payment_limits.md)
@@ -87,3 +89,5 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 - [Aprobacion integrada de calidad](quality-approval.md)
 - [Contrato verify-quality](contracts/verify-quality.md)
+- [Nivel 2 nativo](native-level2.md)
+- [Contrato de integracion nativa](contracts/native-level2.md)

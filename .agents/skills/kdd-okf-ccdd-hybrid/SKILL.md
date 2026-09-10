@@ -48,6 +48,11 @@ Antes de dar un contrato por terminado o pasárselo a un agente efímero, debes 
 Además, tres herramientas de diagnóstico opt-in (**no son gates, no corren en CI; Nivel 1 sigue siendo 18 gates**) documentadas en [knowledge/validacion.md](../../../knowledge/validacion.md) (secciones "Preflight", "Auditor de seals débiles" y "Recetas de arreglo por rule-id"): `python scripts/preflight.py` (dry-run local de los 19 gates; úsalo antes de delegar o empezar trabajo), `python scripts/audit_seals.py` (auditor ADVISORY de "seals débiles"; úsalo al autorar o revisar un oráculo antes de sellarlo — el sello garantiza integridad, no fuerza) y `python scripts/rule_hints.py <RULE_ID>` (la receta de arreglo de cualquiera de los 107 rule-ids que emiten los validadores; úsalo cuando un gate falle y su mensaje no diga cómo arreglarlo). Atajo que cubre el caso normal: `python scripts/preflight.py --agent` ya trae la receta de cada gate en rojo.
 
 ## 5. Precedencia del Budget
+
+La via MCP del resumen anterior no es obligatoria: existe un perfil de
+[Nivel 2 nativo](../../../knowledge/native-level2.md) para funciones Python.
+Si el proyecto exige Nivel 2, no degradar su ausencia/error a Nivel 1. En este
+perfil la politica se fija por commit, sin autenticacion criptografica de umbrales.
 Ver [knowledge/validacion.md](../../../knowledge/validacion.md): con gate manda su config firmada (el `budget` del frontmatter solo puede ser <=); sin gate, el `budget` es declarativo y el validador solo verifica su presencia.
 
 ## 6. Ciclo de Vida del Contrato

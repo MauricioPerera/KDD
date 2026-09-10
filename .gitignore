@@ -54,3 +54,4 @@ coverage/
 
 # Local board state
 .kdd-board/
+.kdd-runtime/
