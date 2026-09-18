@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { BlindSecretMeta } from './types.ts';
+import { readVersion, writeVersion } from './persistence.ts';
 
 export class BlindVault {
   private filePath: string;
+  private version: string | null = null;
   private secrets: Map<string, { value: string; updatedAt: string }> = new Map();
 
   constructor(filePath: string) {
@@ -13,10 +15,11 @@ export class BlindVault {
 
   private load(): void {
     this.secrets.clear();
-    if (!fs.existsSync(this.filePath)) {
+    this.version = readVersion(this.filePath);
+    if (this.version === null) {
       return;
     }
-    const content = fs.readFileSync(this.filePath, 'utf-8');
+    const content = this.version;
     const lines = content.split('\n');
     for (const line of lines) {
       const trimmed = line.trim();
@@ -46,7 +49,9 @@ export class BlindVault {
     for (const [key, item] of this.secrets.entries()) {
       lines.push(`${key}=${JSON.stringify(item.value)}`);
     }
-    fs.writeFileSync(this.filePath, lines.join('\n') + '\n', 'utf-8');
+    const content = lines.join('\n') + '\n';
+    writeVersion(this.filePath, this.version, content);
+    this.version = content;
   }
 
   public setSecret(key: string, secretValue: string): void {

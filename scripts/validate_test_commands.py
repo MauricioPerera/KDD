@@ -19,6 +19,7 @@ import re
 import shlex
 import subprocess
 import sys
+from validate_contracts import parse_frontmatter
 
 
 def _frontmatter(text):
@@ -49,26 +50,11 @@ def extract_test_command(text):
     None si la clave no esta o esta vacia. Soporta escapes ``\\"`` (doble
     comilla) y ``''`` (simple comilla duplicada) segun el escalar YAML.
     """
-    fm = _frontmatter(text)
-    if not fm:
+    data, _ = parse_frontmatter(text)
+    value = data.get('test_command') if data else None
+    if not isinstance(value, str) or not value:
         return None
-    m = re.search(
-        r'^test_command:\s*"((?:\\.|[^"\\])*)"\s*$',
-        fm,
-        re.MULTILINE,
-    )
-    if m:
-        value = _unescape_double(m.group(1))
-        return value if value else None
-    m = re.search(
-        r"^test_command:\s*'((?:[^']|'')*)'\s*$",
-        fm,
-        re.MULTILINE,
-    )
-    if m:
-        value = m.group(1).replace("''", "'")
-        return value if value else None
-    return None
+    return value
 
 
 def collect_contracts(directory):

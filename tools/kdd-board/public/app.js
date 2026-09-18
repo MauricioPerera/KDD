@@ -1,4 +1,18 @@
 // KDD-Board Client Application
+// Capture before card handlers; contract identifiers are data, never JavaScript.
+document.addEventListener('click', (event) => {
+  const button = event.target.closest?.('[data-contract-action]');
+  if (!button) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const id = button.dataset.contractId;
+  switch (button.dataset.contractAction) {
+    case 'go': window.goToContract(id); break;
+    case 'load': window.loadDocItem(id); break;
+    case 'create': window.createTaskForContract(id); break;
+  }
+}, true);
+
 const tokenFromLink = new URLSearchParams(location.hash.slice(1)).get('token');
 if (tokenFromLink) {
   sessionStorage.setItem('kdd-token', tokenFromLink);
@@ -141,7 +155,7 @@ function renderBoard() {
       }
       ${
         task.contractId
-          ? `<div class="contract-pill" onclick="event.stopPropagation(); window.goToContract('${escapeHtml(task.contractId)}')">📜 ${escapeHtml(task.contractId.replace(/^app-|^core-|^spec-/, ''))}</div>`
+          ? `<div class="contract-pill" data-contract-action="go" data-contract-id="${escapeHtml(task.contractId)}">📜 ${escapeHtml(task.contractId.replace(/^app-|^core-|^spec-/, ''))}</div>`
           : ''
       }
       <div class="card-footer">
@@ -244,7 +258,7 @@ function renderTaskWorkspace(taskId) {
                   </div>
                 </div>
               </div>
-              <button type="button" class="btn" style="color:var(--accent-cyan); border-color:rgba(95,179,172,0.5); font-size:0.82rem; padding:0.35rem 0.8rem;" onclick="window.goToContract('${escapeHtml(task.contractId)}')">
+              <button type="button" class="btn" style="color:var(--accent-cyan); border-color:rgba(95,179,172,0.5); font-size:0.82rem; padding:0.35rem 0.8rem;" data-contract-action="go" data-contract-id="${escapeHtml(task.contractId)}">
                 👁️ Ver Contrato KDD en 1 Clic &rarr;
               </button>
             </div>
@@ -257,7 +271,7 @@ function renderTaskWorkspace(taskId) {
                   <option value="">-- Seleccionar contrato KDD --</option>
                   ${docsCatalog
                     .filter((d) => d.isContract)
-                    .map((d) => `<option value="${d.id}">${escapeHtml(d.title)}</option>`)
+                    .map((d) => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.title)}</option>`)
                     .join('')}
                 </select>
                 <button type="button" class="btn btn-primary" style="font-size:0.8rem; padding:0.3rem 0.75rem;" onclick="window.linkTaskContract('${task.id}')">
@@ -855,7 +869,7 @@ function renderDocsNav(filter = '') {
           ${items
             .map(
               (item) => `
-            <div class="docs-nav-item ${item.id === selectedDocId ? 'active' : ''}" onclick="window.loadDocItem('${item.id}')">
+            <div class="docs-nav-item ${item.id === selectedDocId ? 'active' : ''}" data-contract-action="load" data-contract-id="${escapeHtml(item.id)}">
               <span class="docs-nav-title">${escapeHtml(item.title)}</span>
               <span class="docs-nav-sub">${escapeHtml(item.filename)}</span>
             </div>
@@ -916,7 +930,7 @@ window.loadDocItem = async function (id) {
       <div class="report-section" style="margin-bottom:1.5rem;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
           <h4 style="font-size:0.95rem; font-weight:600; color:var(--text-main);">📋 Tareas Asociadas en el Tablero (${linkedTasks.length})</h4>
-          <button type="button" class="btn btn-primary" style="font-size:0.75rem; padding:0.25rem 0.65rem;" onclick="window.createTaskForContract('${escapeHtml(id)}')">
+          <button type="button" class="btn btn-primary" style="font-size:0.75rem; padding:0.25rem 0.65rem;" data-contract-action="create" data-contract-id="${escapeHtml(id)}">
             + Crear Tarea para este Contrato
           </button>
         </div>

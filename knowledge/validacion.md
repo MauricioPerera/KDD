@@ -11,6 +11,12 @@ tags: ['ccdd', 'validacion', 'gate', 'reference']
 
 ## Nivel 1 — Incluido y obligatorio (local + CI)
 
+La migracion de behavior agrega `validate_behavior` al catalogo compartido: 19
+gates de Nivel 1 y 20 en preflight contando la atestacion local. Se actualizaron
+los oraculos de MCP/preflight y sus sellos como cambio de contrato revisable.
+`python scripts/validate_behavior.py behavior` valida el esquema sin ejecutar
+candidatos; la ejecucion sigue siendo opt-in. Ver [behavior](behavior-contract-spec.md).
+
 - `python scripts/validate_contracts.py knowledge/contracts` — valida frontmatter, secciones obligatorias y examples de cada contrato. La clave `tests_sha256` es **obligatoria**: contiene el SHA256 normalizado (LF) del archivo de tests, congelando el oráculo (un cambio legítimo al archivo de tests exige re-sellar el hash; el diff del sello hace visible el cambio en review). Para sellar un contrato nuevo: `python scripts/validate_contracts.py --hash <tests_path>` imprime el hash a copiar al frontmatter. Trade-off aceptado: en proyectos ya instanciados desde la plantilla, los contratos sin sello pasan de WARNING a ERROR al actualizar el validador — el mensaje de error nombra el comando de sellado.
 - **Subclaves de `budget` verificadas por nombre (`FM_BUDGET_KEY` / `FM_BUDGET_VALUE`).** Las únicas válidas son las que el gate de Nivel 2 realmente LEE (`GLOBAL_MAX` de `tc_lint.py`): `cyclomatic_max`, `nesting_max`, `lines_max`, `params_max`, cada una con un entero positivo. El motivo es un fallo silencioso real: hasta esta versión la plantilla documentaba `max_cyclomatic_complexity`/`max_nesting_depth`, que el gate **nunca leyó** — el tope declarado en el contrato se descartaba y el gate caía a su config firmada, así que un `budget` estricto en el frontmatter no aplicaba nada y nadie lo notaba. Verificado: un contrato con `max_params: 1` y una firma de 5 parámetros pasaba el lint sin un solo error. Ahora ese caso es ERROR y el mensaje nombra el reemplazo canónico. Los **valores** siguen siendo informativos en Nivel 1 (los topes los enforce el Nivel 2, ver [precedencia](#precedencia-del-budget)); lo que Nivel 1 garantiza es que el nombre que escribiste es uno que el gate va a mirar. Trade-off aceptado, mismo patrón que `tests_sha256`: en proyectos ya instanciados, los contratos con los nombres viejos pasan a ERROR al actualizar el validador — el mensaje de error dice exactamente a qué renombrar.
 - `python scripts/validate_specs.py specs` — valida que los contratos de ejecución de nivel proyecto tengan criterios de aceptación verificables por máquina, perímetro y condiciones de aborto (abierto vs. cerrado según `docs/reports/CONTRACT-NN-REPORT.md`).
@@ -23,7 +29,7 @@ tags: ['ccdd', 'validacion', 'gate', 'reference']
 - `python scripts/validate_diagrams.py <dir>` — gate mecánico de diagramas Mermaid (infraestructura, no ejemplo; 4 tipos: `flowchart`/`graph`, `gantt`, `pie`, `journey`): parser propio en Python puro (sin `subprocess`/red/LLM, por `forbids`) para nodos/edges, verificados contra un `.diagram-contract.json` declarativo al lado de cada `.mmd`. Convención completa: [diagram-contract-spec](./diagram-contract-spec.md). Cobertura deliberadamente parcial (4 de los ~20 tipos de Mermaid); para el resto de los tipos de diagrama y fidelidad de parser real, ver el proyecto hermano `mermaid-gate` (Node.js, herramienta externa, fuera del alcance Nivel 1 de este repo por la misma razón que el gate CCDD real es Nivel 2). Capa opcional: sin diagramas, INFO; `.mmd` sin contrato, WARNING (no bloquea).
 - `python scripts/validate_security_findings.py <dir>` (default `security/scan`) — gate de la Capa 3 de seguridad: valida un `findings.json` YA SELLADO (schemas y sellador vendorizados de [openai/codex-security](https://github.com/openai/codex-security)) contra `examples/rules/security-findings.rules.json` via el mismo motor declarativo de `validate_rules.py`. Ver [security_findings.md](./data_models/security_findings.md). Capa opcional: sin `findings.json`, INFO.
 - `python scripts/validate_compliance_findings.py <dir>` (default `compliance/scan`) — gate de la Capa 3 de compliance/licencias: valida un `findings.json` de compatibilidad de licencias de dependencias (nativo, sin vendoring) contra `examples/rules/compliance-findings.rules.json` via el mismo motor declarativo. Ver [compliance_findings.md](./data_models/compliance_findings.md). Capa opcional: sin `findings.json`, INFO.
-- **Diagnóstico opcional (no gate):** `python scripts/benchmark_gates.py` mide los 18 gates de nivel 1 + la suite (min/mediana/max por gate, 2 pasadas crudas de la suite) para saber si el CI se está volviendo lento a medida que crecen los contratos. No corre en `.github/workflows/validate.yml` — es herramienta de mantenimiento, no un check de corrección.
+- **Diagnóstico opcional (no gate):** `python scripts/benchmark_gates.py` mide los 19 gates de nivel 1 + la suite (min/mediana/max por gate, 2 pasadas crudas de la suite) para saber si el CI se está volviendo lento a medida que crecen los contratos. No corre en `.github/workflows/validate.yml` — es herramienta de mantenimiento, no un check de corrección.
 - La clave **`touch_only`** del frontmatter (obligatoria) declara el perímetro de la delegación como DATO — lista de rutas/patrones `fnmatch` repo-relativos. `validate_contracts` la exige y verifica que el `target` esté cubierto y que el oráculo (`tests`) quede FUERA (salvo `tests == target`). En verificación, el PM corre `git diff --name-only ... | python scripts/validate_perimeter.py <contrato>`: cualquier archivo del dev fuera del perímetro rompe con `OUT_OF_PERIMETER` (y tocar el oráculo, con `TESTS_TOUCHED`). El gate de perímetro NO es paso de CI del repo (un commit mergeado mezcla legítimamente archivos del PM); su oráculo corre en la suite y los checks estructurales corren vía `validate_contracts`.
 - `python scripts/validate_test_commands.py <contracts_dir> <repo_root>` — corre el `test_command` de CADA contrato de `<contracts_dir>` y falla si algun exit code no es 0. Uno de dos gates de Nivel 1 cuyo `forbids` no incluye `subprocess` (el otro es `mcp-gate-dispatch`): correr un comando arbitrario es literalmente su intent (ver [test-command-gate](./contracts/test-command-gate.md), seccion "Por que este gate rompe la convencion forbids: subprocess"). Antes de este gate, la linea de arriba ("el `test_command` debe terminar en verde") era una regla escrita pero NO mecanicamente verificada por ningun gate de Nivel 1 — un contrato podia pasar los otros 9 gates con un `test_command` roto y nadie lo notaba salvo corrida manual. `TEMPLATE-*.md` se excluye (no es un contrato real). Timeout de 120s por comando (no cuelga el pipeline). NO esta incluido en el conteo de `benchmark_gates.py` (herramienta de diagnostico con oraculo propio ya sellado; extenderla es una tarea aparte).
 - `python scripts/scan_secrets.py <dir1> [<dir2> ...]` (default `src`) — escaneo determinista (regex stdlib) de credenciales filtradas por prefijo de proveedor conocido (AWS `AKIA...`, GitHub `ghp_`/`gho_`/`ghu_`/`ghs_`/`ghr_`, Slack `xox[baprs]-`, Google `AIza...`, Stripe `sk_live_`/`pk_live_`) y bloques `-----BEGIN ... PRIVATE KEY-----`. Deliberadamente SIN deteccion de alta entropia generica (rompería contra los `tests_sha256` de 64 hex chars que ya viven en este repo). El default es solo `src` (no `src tests`) precisamente porque `tests/test_scan_secrets.py`, el oraculo del propio gate, se hereda en todo proyecto instanciado del template (no esta en el MANIFEST de `scripts/init_project.py`) y contiene fixtures con la FORMA exacta de los patrones — se auto-detectaria como leak si `tests` fuera parte del default. En el CI de ESTE repo corre como `python scripts/scan_secrets.py src`. **La cobertura es la lista `DEFAULT_EXTENSIONS`: lo que no esta ahi no se mira.** Cubre los lenguajes con backend en el gate (`.py`, `.rs`, `.go`, `.java`, `.cs`, `.php`, `.rb`, `.kt`, `.c`/`.cpp`, `.swift`, `.js`/`.ts`…) mas config/scripts (`.toml`, `.yaml`, `.env`, `.sh`, `.tf`…). Hasta la version anterior la lista era solo `('.py','.js','.ts','.md','.json')`, asi que **en un proyecto Rust/Go/Java el gate escaneaba CERO archivos y salia 0** — un gate de seguridad reportando verde sin haber leido nada; el mismo secreto se detectaba en un `.py` y se ignoraba en un `.rs`. Por eso ahora, si un directorio tiene archivos y ninguno matchea, emite `SECRETS_NO_FILES_SCANNED` (WARNING, no rompe el build): el modo de fallo peligroso de un escaner de secretos no es reportar de mas, es el verde silencioso. Ver [secret-scan-gate](./contracts/secret-scan-gate.md).
@@ -32,20 +38,20 @@ Todos corren localmente y en CI (`.github/workflows/validate.yml`, matriz `ubunt
 
 ## Preflight — diagnóstico local opt-in (NO es un gate)
 
-`python scripts/preflight.py` corre los **18 gates de Nivel 1** más
+`python scripts/preflight.py` corre los **19 gates de Nivel 1** más
 `validate_attestation` (el local-only que CI nunca ve, porque
 `.agents/logs/` está gitignorado) en dry-run contra el repo actual, y
 reporta cuáles fallarían en una sola pasada — una línea por gate
-(`PASS`/`FAIL`/`TIMEOUT`) + resumen `N/19`. Con `--contract <nombre>`
+(`PASS`/`FAIL`/`TIMEOUT`) + resumen `N/20`. Con `--contract <nombre>`
 hace 3 chequeos acotados a un solo task contract: frontmatter, sello del
 oráculo y `test_command` (resumen `N/3`). Exit 0/1; cero dependencias
 (stdlib + módulos hermanos de `scripts/`, sin el SDK `mcp`).
 
-Esto **no es un gate nuevo**: Nivel 1 sigue siendo **18 gates** y el
+Esto **no es un gate nuevo**: Nivel 1 sigue siendo **19 gates** y el
 conteo no cambia. Es diagnóstico opt-in, mismo estatus que
 `benchmark_gates.py` — no corre en CI (CI ya ejecuta cada gate como paso
-propio). Es la boca CLI de `run_all_level1` (la tool MCP que corre 13;
-ver [mcp-server.md](./mcp-server.md)) y el único lugar donde los 18 gates
+propio). Es la boca CLI de `run_all_level1` (la tool MCP que corre 19;
+ver [mcp-server.md](./mcp-server.md)) y el único lugar donde los 19 gates
 corren juntos, porque `validate_attestation` solo tiene sentido sobre
 `.agents/logs/` local. Uso típico: correrlo **antes de delegar trabajo a
 un agente**, para no mandarle un repo que ya rompe un gate. Ver
@@ -100,7 +106,7 @@ mutation testing (fuera de alcance). Las 6 reglas: `WEAK_TESTS_MISSING`,
 `WEAK_NO_ASSERTS`, `WEAK_TARGET_UNREFERENCED`.
 
 Sin `--strict` SIEMPRE exit 0 (advisory, warnings); con `--strict`, exit 1
-si hay findings. Esto **no es un gate nuevo**: Nivel 1 sigue siendo **18
+si hay findings. Esto **no es un gate nuevo**: Nivel 1 sigue siendo **19
 gates** y el conteo no cambia. Mismo estatus opt-in que
 `benchmark_gates.py` y `preflight.py` — no corre en CI, no está en
 `GATE_SPECS`. Casos legítimos que NO marca: contratos auto-referenciales
@@ -141,7 +147,7 @@ verificado, esto todavía no". `FORBID_UNVERIFIED` nunca cambia el exit code,
 ni con `--strict` — es una limitación del auditor, no un incumplimiento.
 
 Sin `--strict` SIEMPRE exit 0 (advisory); con `--strict`, exit 1 solo si hay
-reglas duras. Esto **no es un gate nuevo**: Nivel 1 sigue siendo **18 gates**
+reglas duras. Esto **no es un gate nuevo**: Nivel 1 sigue siendo **19 gates**
 y el conteo no cambia. Mismo estatus opt-in que `audit_seals.py` y
 `preflight.py` — no corre en CI, no está en `GATE_SPECS` (agregarlo haría
 crecer `LEVEL1_GATES` y rompería el oráculo congelado del preflight). Ver
@@ -188,4 +194,4 @@ El gate se corre sobre el **export** generado por `scripts/export_gate_contract.
 
 ## Aprobacion de calidad del proyecto
 
-La validacion estructural de la plantilla no sustituye la aprobacion de comportamiento. Para nuevos proyectos, integrar los gates aplicables, oraculos funcionales, adversariales y UI en el [protocolo de aprobacion integrada](quality-approval.md), con politica y referencia aprobada explicitas. El protocolo compone controles existentes y no altera el conteo anterior de 18 gates.
+La validacion estructural de la plantilla no sustituye la aprobacion de comportamiento. Para nuevos proyectos, integrar los gates aplicables, oraculos funcionales, adversariales y UI en el [protocolo de aprobacion integrada](quality-approval.md), con politica y referencia aprobada explicitas. El protocolo compone controles existentes y no altera el conteo anterior de 19 gates.
