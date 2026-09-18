@@ -26,6 +26,9 @@ on:
       rules_dir:
         type: string
         default: 'examples/rules'
+      behavior_dir:
+        type: string
+        default: 'behavior'
       skills_dirs:
         type: string
         # validate_skills.py accepts multiple positional dirs; single input,
@@ -103,6 +106,9 @@ jobs:
 
       - name: Validate rule contracts
         run: python scripts/validate_rules.py ${{ inputs.rules_dir || 'examples/rules' }}
+
+      - name: Validate behavior contracts (optional)
+        run: python scripts/validate_behavior.py ${{ inputs.behavior_dir || 'behavior' }}
 
       - name: Validate agent skills
         run: python scripts/validate_skills.py ${{ inputs.skills_dirs || 'skills .agents/skills' }}

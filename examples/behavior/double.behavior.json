@@ -1,0 +1,1 @@
+{"schema":"kdd-behavior/v1","domain":{"type":"integer","min":0,"max":10},"cases":{"mode":"exhaustive","batch_size":5},"property":{"op":"eq","args":[{"var":"result"},{"op":"mul","args":[{"var":"input"},{"const":2}]}]}}
