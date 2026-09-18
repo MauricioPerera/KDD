@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tests/test_init_project.py"
-tests_sha256: "2082c5c9d20b64e1f378fc3f328e03970669b65962c254a64bc18eec51455598"
+tests_sha256: "83123523996a4f808834547e3c6f3a28eed6f798d9e5d6ac8e72b8d28905c22f"
 touch_only: ['scripts/init_project.py']
 deps_allowed: []
 forbids: ['network', 'subprocess']
@@ -69,6 +69,11 @@ dry-run por default listando el plan; exit 0 ok · 1 I/O · 2 manifiesto incompl
 (Los tests están en `tests/test_init_project.py`: dry-run inocuo, apply exacto al
 manifiesto, gates verdes post-apply en la copia, intocables presentes, --name solo título,
 manifiesto incompleto aborta, exit codes CLI.)
+
+Migracion aprobada del fixture: la copia excluye solamente las dependencias locales
+en `tools/kdd-board/node_modules`, conservando fuente y lockfile. El oraculo verifica
+el alcance del filtro y preserva archivos testigo en ese directorio tanto en dry-run
+como en apply. No se reducen las aserciones existentes ni se aumenta el timeout.
 
 ## Constraints
 - PARAR y reportar si... dejar los gates verdes post-init exigiera modificar un intocable

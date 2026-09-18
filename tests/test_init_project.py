@@ -69,6 +69,10 @@ def _ignore(src, names):
                if n in (".git", "__pycache__") or n.endswith(".gate.md")]
     if os.path.basename(src) == ".agents":
         ignored.append("logs")
+    # Dependencias locales regenerables: no forman parte del clon del board.
+    if Path(src).resolve() == (Path(ROOT) / "tools" / "kdd-board").resolve():
+        if "node_modules" in names:
+            ignored.append("node_modules")
     return ignored
 
 
@@ -97,6 +101,40 @@ def _run(args, cwd):
                           capture_output=True, text=True, encoding="utf-8")
 
 
+class TestCopyFilter(unittest.TestCase):
+    def test_excludes_only_board_dependencies(self):
+        names = ["node_modules", "src", "package.json", "package-lock.json"]
+        board = Path(ROOT) / "tools" / "kdd-board"
+        self.assertEqual(_ignore(str(board), names), ["node_modules"])
+        for parent in (Path(ROOT), Path(ROOT) / "other" / "kdd-board",
+                       board / "src"):
+            with self.subTest(parent=str(parent)):
+                self.assertEqual(_ignore(str(parent), names), [])
+
+    def test_copy_preserves_board_sources_and_lockfile(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            from unittest.mock import patch
+            root = Path(tmp) / "source"
+            board = root / "tools" / "kdd-board"
+            (board / "node_modules").mkdir(parents=True)
+            (board / "src").mkdir()
+            files = {"src/index.ts": "source", "package.json": "{}",
+                     "package-lock.json": "{}", "node_modules/local": "dependency"}
+            for rel, content in files.items():
+                (board / rel).write_text(content, encoding="utf-8")
+            other = root / "other" / "node_modules"
+            other.mkdir(parents=True)
+            (other / "keep").write_text("keep", encoding="utf-8")
+            dst = Path(tmp) / "copy"
+            with patch.dict(globals(), ROOT=str(root)):
+                _copy_repo(str(dst))
+            copied = dst / "tools" / "kdd-board"
+            self.assertFalse((copied / "node_modules").exists())
+            for rel in ("src/index.ts", "package.json", "package-lock.json"):
+                self.assertEqual((copied / rel).read_text(encoding="utf-8"), files[rel])
+            self.assertEqual((dst / "other/node_modules/keep").read_text(encoding="utf-8"), "keep")
+
+
 @unittest.skipUnless(
     all(os.path.isfile(os.path.join(ROOT, rel)) for rel in MANIFEST),
     "plantilla ya inicializada: faltan artefactos del manifiesto de ejemplo")
@@ -110,22 +148,30 @@ class TestInitProject(unittest.TestCase):
 
     def test_dry_run_no_modifica_nada(self):
         _copy_repo(self.repo)
+        sentinel = Path(self.repo) / "tools/kdd-board/node_modules/preserve.txt"
+        sentinel.parent.mkdir(parents=True, exist_ok=True)
+        sentinel.write_bytes(b"preserve dependency content\n")
         before = _files(self.repo)
         r = _run_cli(self.repo)  # sin --apply
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn("dry-run", r.stdout.lower())
         after = _files(self.repo)
         self.assertEqual(before, after, "dry-run modifico el arbol")
+        self.assertEqual(sentinel.read_bytes(), b"preserve dependency content\n")
         # el index tampoco se reescribio
         idx = Path(self.repo, "knowledge", "index.md")
         self.assertIn("data_models/users_table.md", idx.read_text(encoding="utf-8"))
 
     def test_apply_elimina_exactamente_el_manifiesto(self):
         _copy_repo(self.repo)
+        sentinel = Path(self.repo) / "tools/kdd-board/node_modules/preserve.txt"
+        sentinel.parent.mkdir(parents=True, exist_ok=True)
+        sentinel.write_bytes(b"preserve dependency content\n")
         before = _files(self.repo)
         r = _run_cli(self.repo, "--apply")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         after = _files(self.repo)
+        self.assertEqual(sentinel.read_bytes(), b"preserve dependency content\n")
         self.assertEqual(before - after, set(MANIFEST),
                          "se elimino algo distinto al manifiesto: {}".format(
                              before - after))
