@@ -12,7 +12,7 @@ test('contracts are available at startup without visiting documentation', async 
   };
   const requests: string[] = [];
   const context = vm.createContext({
-    document: {getElementById:getNode, querySelectorAll:()=>[]},
+    document: {getElementById:getNode, querySelectorAll:()=>[], addEventListener(){}},
     location: {hash:'', pathname:'/', search:''}, sessionStorage: {getItem:()=> 'test-token'},
     URLSearchParams, Headers, console, setInterval:()=>0,
     fetch: async (url: string) => {

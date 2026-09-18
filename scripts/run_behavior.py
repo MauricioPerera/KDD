@@ -15,16 +15,24 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 
-from behavior_contract import evaluate, read_json, validate
+from behavior_contract import evaluate, validate
 
 
 def _hash(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def _registry(path):
-    data, error = read_json(path)
-    if error or not isinstance(data, dict) or data.get("schema") != "kdd-behavior-adapters/v1":
+def _approved_json(path, expected, label):
+    # Parse precisely the bytes checked, not a second read of a mutable path.
+    content = Path(path).read_bytes()
+    if not expected or hashlib.sha256(content).hexdigest() != expected:
+        raise ValueError(label + "_HASH_MISMATCH")
+    return json.loads(content)
+
+
+def _registry(path, expected):
+    data = _approved_json(path, expected, "ADAPTER_REGISTRY")
+    if not isinstance(data, dict) or data.get("schema") != "kdd-behavior-adapters/v1":
         raise ValueError("ADAPTER_REGISTRY_INVALID")
     adapters = data.get("adapters")
     if not isinstance(adapters, list) or not adapters:
@@ -33,10 +41,12 @@ def _registry(path):
     for item in adapters:
         if not isinstance(item, dict) or set(item) != {"name", "tool", "source", "command"}:
             raise ValueError("ADAPTER_INVALID")
+        if any(not isinstance(item[key], str) or not item[key] for key in ("source", "name", "tool")):
+            raise ValueError("ADAPTER_INVALID")
         source = Path(item["source"])
         if not isinstance(item["name"], str) or item["name"] in names or source.is_absolute() or ".." in source.parts:
             raise ValueError("ADAPTER_INVALID")
-        if not isinstance(item["command"], list) or not all(isinstance(x, str) for x in item["command"]):
+        if not isinstance(item["command"], list) or not item["command"] or not all(isinstance(x, str) for x in item["command"]):
             raise ValueError("ADAPTER_INVALID")
         names.add(item["name"])
     return adapters
@@ -55,19 +65,23 @@ def _run(command, root, values):
     return output
 
 
-def execute(root, contract_path, registry_path):
+def execute(root, contract_path, registry_path, *, contract_sha256=None, adapters_sha256=None):
     report = {"status": "ERROR", "guarantee": "bounded_exhaustive_execution", "universal_proof": False,
               "started_at": datetime.now(timezone.utc).isoformat(), "adapters": []}
     try:
         root, contract_path, registry_path = Path(root).resolve(), Path(contract_path).resolve(), Path(registry_path).resolve()
-        contract, error = read_json(contract_path)
-        if error:
-            raise ValueError("CONTRACT_JSON")
+        contract = _approved_json(contract_path, contract_sha256, "CONTRACT")
         issues = validate(contract)
         if issues:
             raise ValueError(issues[0][0])
-        adapters = _registry(registry_path)
-        report.update({"contract_sha256": _hash(contract_path), "registry_sha256": _hash(registry_path),
+        adapters = _registry(registry_path, adapters_sha256)
+        def check_integrity(source=None, source_hash=None):
+            if _hash(contract_path) != contract_sha256 or _hash(registry_path) != adapters_sha256:
+                raise ValueError("APPROVED_INPUT_CHANGED")
+            if source is not None and _hash(source) != source_hash:
+                raise ValueError("SOURCE_CHANGED")
+        check_integrity()
+        report.update({"contract_sha256": contract_sha256, "registry_sha256": adapters_sha256,
                        "domain": contract["domain"], "batch_size": contract["cases"]["batch_size"]})
         values = range(contract["domain"]["min"], contract["domain"]["max"] + 1)
         for adapter in adapters:
@@ -86,8 +100,11 @@ def execute(root, contract_path, registry_path):
             entry["command"] = command
             try:
                 for start in range(0, len(values), report["batch_size"]):
+                    check_integrity(source, entry["source_sha256"])
                     batch = list(values[start:start + report["batch_size"]])
-                    for value, result in zip(batch, _run(command, root, batch)):
+                    output = _run(command, root, batch)
+                    check_integrity(source, entry["source_sha256"])
+                    for value, result in zip(batch, output):
                         if evaluate(contract["property"], value, result) is not True and len(entry["counterexamples"]) < 5:
                             entry["counterexamples"].append({"input": value, "result": result})
                     entry["cases_checked"] += len(batch)
@@ -107,17 +124,13 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", required=True)
     parser.add_argument("--contract", required=True)
+    parser.add_argument("--contract-sha256", required=True, help="Independently reviewed SHA-256 of the behavior contract")
     parser.add_argument("--adapters", required=True)
     parser.add_argument("--adapters-sha256", required=True, help="Reviewed SHA-256 of the trusted adapter registry")
     parser.add_argument("--evidence")
     args = parser.parse_args(argv)
-    actual = _hash(args.adapters)
-    if actual != args.adapters_sha256:
-        report = {"status": "ERROR", "error": "ADAPTER_REGISTRY_HASH_MISMATCH",
-                  "expected_adapters_sha256": args.adapters_sha256,
-                  "actual_adapters_sha256": actual}
-    else:
-        report = execute(args.root, args.contract, args.adapters)
+    report = execute(args.root, args.contract, args.adapters,
+                     contract_sha256=args.contract_sha256, adapters_sha256=args.adapters_sha256)
     text = json.dumps(report, indent=2, ensure_ascii=False)
     if args.evidence:
         Path(args.evidence).write_text(text + "\n", encoding="utf-8")

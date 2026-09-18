@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: "tests/test_mcp_gate_dispatch.py"
-tests_sha256: "b8075cf1727f291316af089ba31680fa0c8c155a21ebd5ff1976151c615e01e9"
+tests_sha256: "e51703148e36b10d222f9d94fb702f755e55ba6383f0bd2dc76b5998e1824fa2"
 touch_only: ['scripts/mcp_gate_dispatch.py']
 deps_allowed: []
 forbids: ['network', 'llm']
@@ -41,8 +41,8 @@ reusar `scripts/*.py` sin invocarlos como proceso. `forbids` es
 
 ## Interface
 - `GATE_SPECS` — dict `{tool_name: {'script','params','defaults'}}` para
-  los 19 gates: `validate_contracts`, `validate_specs`, `validate_okf`,
-  `lint_ascii`, `validate_rules`, `validate_skills`, `validate_changelog`,
+  los 20 gates: `validate_contracts`, `validate_specs`, `validate_okf`,
+  `lint_ascii`, `validate_rules`, `validate_skills`, `validate_behavior`, `validate_changelog`,
   `validate_ux_page`, `validate_diagrams`, `validate_security_findings`,
   `validate_compliance_findings`, `validate_privacy_findings`,
   `validate_accessibility_findings`, `validate_dependency_eol_findings`,
@@ -61,7 +61,7 @@ reusar `scripts/*.py` sin invocarlos como proceso. `forbids` es
   `{'exit_code': None, 'stdout': '', 'stderr': 'timeout after Ns'}`, sin
   propagar la excepcion.
 - `run_all_level1(repo_root='.') -> {'overall_ok': bool, 'results':
-  {tool_name: {...}}}` — corre los 18 gates de Nivel 1 (todo
+  {tool_name: {...}}}` — corre los 19 gates de Nivel 1 (todo
   `GATE_SPECS` EXCEPTO `validate_attestation`, que es local-only, ver
   [attestation-gate](./attestation-gate.md)) con sus defaults.
 - `seal_tests(tests_path, repo_root='.') -> {'hash': str|None,
@@ -82,7 +82,7 @@ reusar `scripts/*.py` sin invocarlos como proceso. `forbids` es
 - `build_argv('scan_secrets', {'dirs': ['a', 'b']})` -> termina en
   `['a', 'b']` (dos argv separados).
 - `run_all_level1(repo_root='.')` sobre un repo con contratos rotos/faltantes
-  -> `overall_ok: False`, 18 entradas en `results` (ver nota de RECON abajo
+  -> `overall_ok: False`, 19 entradas en `results` (ver nota de RECON abajo
   sobre por que el oraculo NUNCA corre esto contra el repo real).
 - `seal_tests('tests/test_x.py', repo_root='.')` -> `{'hash': '<64
   hex>', 'exit_code': 0, ...}`.

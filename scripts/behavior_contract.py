@@ -51,10 +51,10 @@ def _expression(node, depth=0):
     if depth > 16 or not isinstance(node, dict):
         return False
     if set(node) == {"var"}:
-        return node["var"] in {"input", "result"}
+        return isinstance(node["var"], str) and node["var"] in {"input", "result"}
     if set(node) == {"const"}:
         return _integer(node["const"])
-    if set(node) != {"op", "args"} or node["op"] not in {"eq", "add", "mul"}:
+    if set(node) != {"op", "args"} or not isinstance(node["op"], str) or node["op"] not in {"eq", "add", "mul"}:
         return False
     return isinstance(node["args"], list) and len(node["args"]) == 2 and all(_expression(x, depth + 1) for x in node["args"])
 

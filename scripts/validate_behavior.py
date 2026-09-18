@@ -13,6 +13,8 @@ def findings(directory):
     root = Path(directory)
     if not root.exists():
         return []
+    if not root.is_dir():
+        return [(root.as_posix(), "BHV_DIRECTORY", "expected a directory")]
     result = []
     for path in sorted(root.rglob("*.behavior.json")):
         document, error = read_json(path)

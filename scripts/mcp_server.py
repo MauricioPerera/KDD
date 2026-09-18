@@ -130,6 +130,12 @@ def validate_rules(dir: str | None = None) -> dict:
 
 
 @mcp.tool()
+def validate_behavior(dir: str | None = None) -> dict:
+    """Validate optional behavior contracts without executing candidates."""
+    return _dispatch('validate_behavior', _params(dir=dir), repo_root=REPO_ROOT)
+
+
+@mcp.tool()
 def validate_skills(dirs: list[str] | None = None) -> dict:
     """Gate de skills de agente: SKILL.md presente, frontmatter parseable, enlaces
     resuelven. Capa opcional. Default dirs: ['skills', '.agents/skills']."""

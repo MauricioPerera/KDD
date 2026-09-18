@@ -33,10 +33,11 @@ python scripts/validate_behavior.py behavior
 ```
 
 An execution adapter is trusted configuration maintained outside the candidate's
-editable perimeter. It must state its command, source path, runtime version and
-whether it builds an artifact. Evidence must report `PASS`, `FAIL`, `ERROR`, or
-`UNSUPPORTED`; domain coverage, counterexamples, source/tool hashes and explicit
-assumptions. Exhaustive execution proves only the observed bounded domain. A formal
+editable perimeter. The reference registry declares name, tool, source and command.
+Evidence records adapter status (`PASS`, `FAIL`, `ERROR`, or `UNSUPPORTED`), domain
+coverage, counterexamples and source/contract/registry hashes. Runtime versions,
+tool hashes and build provenance are not implemented by the reference runner.
+Exhaustive execution establishes only the observed bounded domain. A formal
 backend such as Bend must report its own theorem, trusted computing base and the
 link, if any, to the implementation being evaluated.
 
@@ -44,11 +45,18 @@ link, if any, to the implementation being evaluated.
 contract, adapter-registry and evidence paths:
 
 ```text
-python scripts/run_behavior.py --root examples/behavior --contract examples/behavior/double.behavior.json --adapters examples/behavior/adapters.json --adapters-sha256 <reviewed-sha256> --evidence reports/behavior.json
+python scripts/run_behavior.py --root examples/behavior --contract examples/behavior/double.behavior.json --contract-sha256 <reviewed-contract-sha256> --adapters examples/behavior/adapters.json --adapters-sha256 <reviewed-adapters-sha256> --evidence reports/behavior.json
 ```
 
 The example adapter is intentionally small. Production registries belong in a
 protected CI/configuration repository, not in an agent-editable candidate tree.
-The runner rejects a registry whose supplied reviewed hash does not match.
+Both CLI and Python API require independently approved hashes for the contract and
+registry. A missing or mismatching hash fails before candidate execution. Computing
+fresh hashes from candidate-controlled files at verification time is not approval.
+The runner checks contract, registry and source integrity around each batch; this
+is boundary detection, not a sandbox or protection from transient edits restored
+between checks. Run untrusted candidates in an external isolated environment with
+a trusted executor, approved configuration and resource limits. See
+[quality approval](quality-approval.md) for the independent-reference boundary.
 The included example registry covers Python and JavaScript; an unavailable runtime
 is reported as `UNSUPPORTED`, never as a passing verification.
