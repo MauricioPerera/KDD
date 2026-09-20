@@ -1,7 +1,7 @@
 {
-  "name": "personal",
+  "name": "kdd",
   "interface": {
-    "displayName": "Personal"
+    "displayName": "KDD"
   },
   "plugins": [
     {

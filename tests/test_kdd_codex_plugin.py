@@ -10,10 +10,12 @@ PLUGIN = ROOT / 'plugins' / 'kdd-codex'
 class KddCodexPluginTests(unittest.TestCase):
     def test_plugin_declares_safe_local_event_delivery(self):
         manifest = json.loads((PLUGIN / '.codex-plugin' / 'plugin.json').read_text(encoding='utf-8'))
+        marketplace = json.loads((ROOT / '.agents' / 'plugins' / 'marketplace.json').read_text(encoding='utf-8'))
         hook_config = json.loads((PLUGIN / 'hooks' / 'hooks.json').read_text(encoding='utf-8'))
         relay = (PLUGIN / 'scripts' / 'kdd-event-relay.py').read_text(encoding='utf-8')
 
         self.assertEqual(manifest['name'], 'kdd-codex')
+        self.assertEqual(marketplace['name'], 'kdd')
         self.assertEqual(manifest['skills'], './skills/')
         self.assertNotIn('mcpServers', manifest)
         self.assertIn('Stop', hook_config['hooks'])
