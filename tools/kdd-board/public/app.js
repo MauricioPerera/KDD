@@ -15,6 +15,52 @@ async function apiFetch(url, options = {}) {
   return response;
 }
 
+function escapeJsArgument(value) {
+  return encodeURIComponent(String(value)).replace(/'/g, '%27');
+}
+
+function apiJson(url, options) {
+  return apiFetch(url, options).then((response) => response.json());
+}
+
+let webMcpRegistration = null;
+function registerWebMcpTools() {
+  if (webMcpRegistration) return webMcpRegistration;
+  if (!document.modelContext || typeof document.modelContext.registerTool !== 'function') {
+    return Promise.resolve(false);
+  }
+
+  webMcpRegistration = apiJson('/api/tools').then((tools) => {
+    const taskUrl = (taskId, suffix = '') => `/api/tasks/${encodeURIComponent(taskId)}${suffix}`;
+    const execute = {
+      list_tasks: ({ status } = {}) => apiJson(`/api/tasks${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+      get_task: async ({ task_id }) => {
+        const task = (await apiJson('/api/tasks')).find((item) => item.id === task_id);
+        if (!task) throw new Error(`Tarea \"${task_id}\" no encontrada`);
+        return task;
+      },
+      create_task: ({ title, description = '', assignee = 'unassigned', priority = 'medium' }) =>
+        apiJson('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, description, assignee, priority }) }),
+      update_task_status: ({ task_id, status, comment }) =>
+        apiJson(taskUrl(task_id, '/status'), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, comment: comment ? { author: 'agent', text: comment } : undefined }) }),
+      request_human_input: ({ task_id, field_key, label, description, is_secret = false }) =>
+        apiJson(taskUrl(task_id, '/requirements'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fieldKey: field_key, label, description, isSecret: is_secret }) }),
+      list_available_credentials: () => apiJson('/api/vault').then((credentials) => ({ credentials, note: 'Los valores se inyectan solo al proceso de prueba. El codigo ejecutado puede leerlos; el vault no aisla codigo hostil. La salida redacta valores conocidos, no transformaciones.' })),
+      run_task_tests: ({ task_id }) => apiJson(taskUrl(task_id, '/run-tests'), { method: 'POST' }),
+      generate_kdd_report: ({ task_id }) => apiJson(taskUrl(task_id, '/report'), { method: 'POST' }),
+    };
+
+    tools.forEach((tool) => {
+      if (execute[tool.name]) document.modelContext.registerTool({ ...tool, execute: execute[tool.name] });
+    });
+    return true;
+  }).catch((error) => {
+    webMcpRegistration = null;
+    throw error;
+  });
+  return webMcpRegistration;
+}
+
 
 let currentTasks = [];
 let selectedTaskId = null;
@@ -141,7 +187,7 @@ function renderBoard() {
       }
       ${
         task.contractId
-          ? `<div class="contract-pill" onclick="event.stopPropagation(); window.goToContract('${escapeHtml(task.contractId)}')">📜 ${escapeHtml(task.contractId.replace(/^app-|^core-|^spec-/, ''))}</div>`
+          ? `<div class="contract-pill" onclick="event.stopPropagation(); window.goToContract(decodeURIComponent('${escapeJsArgument(task.contractId)}'))">📜 ${escapeHtml(task.contractId.replace(/^app-|^core-|^spec-/, ''))}</div>`
           : ''
       }
       <div class="card-footer">
@@ -244,7 +290,7 @@ function renderTaskWorkspace(taskId) {
                   </div>
                 </div>
               </div>
-              <button type="button" class="btn" style="color:var(--accent-cyan); border-color:rgba(95,179,172,0.5); font-size:0.82rem; padding:0.35rem 0.8rem;" onclick="window.goToContract('${escapeHtml(task.contractId)}')">
+              <button type="button" class="btn" style="color:var(--accent-cyan); border-color:rgba(95,179,172,0.5); font-size:0.82rem; padding:0.35rem 0.8rem;" onclick="window.goToContract(decodeURIComponent('${escapeJsArgument(task.contractId)}'))">
                 👁️ Ver Contrato KDD en 1 Clic &rarr;
               </button>
             </div>
@@ -257,10 +303,10 @@ function renderTaskWorkspace(taskId) {
                   <option value="">-- Seleccionar contrato KDD --</option>
                   ${docsCatalog
                     .filter((d) => d.isContract)
-                    .map((d) => `<option value="${d.id}">${escapeHtml(d.title)}</option>`)
+                    .map((d) => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.title)}</option>`)
                     .join('')}
                 </select>
-                <button type="button" class="btn btn-primary" style="font-size:0.8rem; padding:0.3rem 0.75rem;" onclick="window.linkTaskContract('${task.id}')">
+                <button type="button" class="btn btn-primary" style="font-size:0.8rem; padding:0.3rem 0.75rem;" onclick="window.linkTaskContract(decodeURIComponent('${escapeJsArgument(task.id)}'))">
                   Vincular Contrato
                 </button>
               </div>
@@ -289,7 +335,7 @@ function renderTaskWorkspace(taskId) {
                       placeholder="${r.isSecret ? 'Escribe el valor secreto (Blind Vault)...' : 'Escribe el valor solicitado...'}"
                       style="flex:1; min-width:240px;"
                     />
-                    <button type="button" class="btn btn-primary" onclick="fulfillRequirement('${task.id}', '${r.fieldKey}', ${r.isSecret})">
+                    <button type="button" class="btn btn-primary" onclick="fulfillRequirement(decodeURIComponent('${escapeJsArgument(task.id)}'), decodeURIComponent('${escapeJsArgument(r.fieldKey)}'), ${r.isSecret})">
                       ${r.isSecret ? '🔒 Guardar Secreto Ciego' : 'Enviar Respuesta'}
                     </button>
                   </div>
@@ -317,10 +363,10 @@ function renderTaskWorkspace(taskId) {
               <h4 style="font-size:1.05rem; font-weight:600; color:var(--text-main); margin-top:0.1rem;">Batería de Pruebas &amp; Métricas</h4>
             </div>
             <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-              <button type="button" class="btn-run-tests" id="btn-run-task-tests" onclick="runTaskTests('${task.id}')">
+              <button type="button" class="btn-run-tests" id="btn-run-task-tests" onclick="runTaskTests(decodeURIComponent('${escapeJsArgument(task.id)}'))">
                 ▶ Ejecutar Tests de Tarea
               </button>
-              <button type="button" class="btn" id="btn-generate-kdd-report" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-size:0.8rem; padding:0.45rem 0.85rem;" onclick="generateTaskKddReport('${task.id}')">
+              <button type="button" class="btn" id="btn-generate-kdd-report" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-size:0.8rem; padding:0.45rem 0.85rem;" onclick="generateTaskKddReport(decodeURIComponent('${escapeJsArgument(task.id)}'))">
                 📝 Generar Reporte KDD (.agents/logs)
               </button>
             </div>
@@ -611,7 +657,7 @@ async function renderDashboard() {
     blockedContainer.innerHTML = blockedList
       .map(
         (t) => `
-      <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:6px; padding:0.65rem 0.85rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="openTaskDetail('${t.id}')">
+      <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:6px; padding:0.65rem 0.85rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="openTaskDetail(decodeURIComponent('${escapeJsArgument(t.id)}'))">
         <div>
           <strong style="font-size:0.86rem; color:var(--text-main); display:block;">${escapeHtml(t.title)}</strong>
           <span style="font-size:0.75rem; color:var(--accent-rose);">${t.status === 'needs_human_input' ? '🛑 Requiere entrada humana' : '🔥 Prioridad Urgente'}</span>
@@ -647,10 +693,10 @@ async function loadVault() {
             <span style="color:var(--accent-emerald); font-size:0.72rem; font-family:var(--font-mono);">✓ is_set</span>
           </div>
           <div style="display:flex; gap:0.4rem;">
-            <button type="button" class="btn" style="font-size:0.72rem; padding:0.2rem 0.5rem;" onclick="window.editVaultSecret('${escapeHtml(s.key)}')">
+            <button type="button" class="btn" style="font-size:0.72rem; padding:0.2rem 0.5rem;" onclick="window.editVaultSecret(decodeURIComponent('${escapeJsArgument(s.key)}'))">
               ✏️ Modificar
             </button>
-            <button type="button" class="btn" style="font-size:0.72rem; padding:0.2rem 0.5rem; color:var(--accent-rose); border-color:rgba(244,63,94,0.3);" onclick="window.deleteVaultSecret('${escapeHtml(s.key)}')">
+            <button type="button" class="btn" style="font-size:0.72rem; padding:0.2rem 0.5rem; color:var(--accent-rose); border-color:rgba(244,63,94,0.3);" onclick="window.deleteVaultSecret(decodeURIComponent('${escapeJsArgument(s.key)}'))">
               🗑️ Eliminar
             </button>
           </div>
@@ -855,7 +901,7 @@ function renderDocsNav(filter = '') {
           ${items
             .map(
               (item) => `
-            <div class="docs-nav-item ${item.id === selectedDocId ? 'active' : ''}" onclick="window.loadDocItem('${item.id}')">
+            <div class="docs-nav-item ${item.id === selectedDocId ? 'active' : ''}" onclick="window.loadDocItem(decodeURIComponent('${escapeJsArgument(item.id)}'))">
               <span class="docs-nav-title">${escapeHtml(item.title)}</span>
               <span class="docs-nav-sub">${escapeHtml(item.filename)}</span>
             </div>
@@ -916,7 +962,7 @@ window.loadDocItem = async function (id) {
       <div class="report-section" style="margin-bottom:1.5rem;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
           <h4 style="font-size:0.95rem; font-weight:600; color:var(--text-main);">📋 Tareas Asociadas en el Tablero (${linkedTasks.length})</h4>
-          <button type="button" class="btn btn-primary" style="font-size:0.75rem; padding:0.25rem 0.65rem;" onclick="window.createTaskForContract('${escapeHtml(id)}')">
+          <button type="button" class="btn btn-primary" style="font-size:0.75rem; padding:0.25rem 0.65rem;" onclick="window.createTaskForContract(decodeURIComponent('${escapeJsArgument(id)}'))">
             + Crear Tarea para este Contrato
           </button>
         </div>
@@ -934,7 +980,7 @@ window.loadDocItem = async function (id) {
                   </span>
                   <strong style="font-size:0.86rem; color:var(--text-main);">${escapeHtml(t.title)}</strong>
                 </div>
-                <button type="button" class="btn" style="font-size:0.75rem; padding:0.25rem 0.65rem; color:var(--accent-orange); border-color:var(--accent-orange);" onclick="window.goToTask('${t.id}')">
+                <button type="button" class="btn" style="font-size:0.75rem; padding:0.25rem 0.65rem; color:var(--accent-orange); border-color:var(--accent-orange);" onclick="window.goToTask(decodeURIComponent('${escapeJsArgument(t.id)}'))">
                   Ir a la Tarea en 1 Clic &rarr;
                 </button>
               </div>
@@ -1146,4 +1192,5 @@ function convertTableToHtml(lines) {
 
 // Initial Load & Polling
 loadTasks();
+registerWebMcpTools().catch((error) => console.warn('No fue posible registrar WebMCP:', error));
 setInterval(loadTasks, 3000);
