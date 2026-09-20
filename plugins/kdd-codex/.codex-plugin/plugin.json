@@ -1,19 +1,31 @@
 {
   "name": "kdd-codex",
-  "version": "0.1.0",
-  "description": "KDD workflow guidance and opt-in lifecycle event delivery for Codex.",
+  "version": "1.0.0+codex.20260920223108",
+  "description": "A deterministic KDD workflow skill for planning, implementation, and verification.",
   "author": {
     "name": "Mauricio Perera",
     "url": "https://github.com/MauricioPerera/KDD"
   },
   "skills": "./skills/",
+  "homepage": "https://mauricioperera.github.io/KDD/",
+  "repository": "https://github.com/MauricioPerera/KDD",
+  "license": "MIT",
   "interface": {
     "displayName": "KDD for Codex",
-    "shortDescription": "Run KDD workflows with optional signed lifecycle events.",
-    "longDescription": "Guides Codex through KDD contracts and can emit minimal signed lifecycle events to an explicitly configured HTTPS relay.",
+    "shortDescription": "Plan, build, and verify work with deterministic KDD contracts.",
+    "longDescription": "Guides developers through Knowledge-Driven Development with scoped contracts, deterministic validation, and evidence-led completion. This version is skill-only and does not send data or connect to external services.",
     "developerName": "Mauricio Perera",
     "category": "Productivity",
-    "capabilities": ["Interactive"],
-    "defaultPrompt": ["Prepare this task using KDD contracts and verification."]
+    "capabilities": [
+      "Interactive"
+    ],
+    "websiteURL": "https://mauricioperera.github.io/KDD/",
+    "privacyPolicyURL": "https://github.com/MauricioPerera/KDD/blob/main/plugins/kdd-codex/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/MauricioPerera/KDD/blob/main/plugins/kdd-codex/TERMS.md",
+    "defaultPrompt": [
+      "Prepare this task using KDD contracts and verification.",
+      "Create a KDD contract and a frozen regression test for this change.",
+      "Audit this implementation against its KDD evidence."
+    ]
   }
 }
