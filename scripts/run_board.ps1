@@ -17,7 +17,7 @@ Set-Location -Path $BoardDir
 
 if (-not (Test-Path "node_modules")) {
   Write-Host "📦 Instalando dependencias de kdd-board..." -ForegroundColor Yellow
-  npm install
+  npm ci --ignore-scripts
 }
 
 $env:KDD_PROJECT_DIR = $RepoDir

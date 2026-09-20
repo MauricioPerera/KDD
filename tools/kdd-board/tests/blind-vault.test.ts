@@ -25,14 +25,12 @@ test('BlindVault: guarda, recupera internamente y redacta para agentes', () => {
     const openAiMeta = secrets.find((s) => s.key === 'OPENAI_API_KEY');
     assert.ok(openAiMeta);
     assert.equal(openAiMeta.isSet, true);
-    // El maskedValue no expone la clave completa
-    assert.equal(openAiMeta.maskedValue.includes('sk-'), true);
-    assert.equal(openAiMeta.maskedValue.includes('1234567890abcdef'), false);
-    assert.equal(openAiMeta.maskedValue.includes('***'), true);
+    // La metadata no expone prefijos, sufijos ni longitud del secreto.
+    assert.equal(openAiMeta.maskedValue, '***');
 
     const pinMeta = secrets.find((s) => s.key === 'PIN');
     assert.ok(pinMeta);
-    assert.equal(pinMeta.maskedValue, '***[4 chars]***');
+    assert.equal(pinMeta.maskedValue, '***');
 
     // Valor real accesible internamente por el servidor
     assert.equal(vault.getSecretValue('OPENAI_API_KEY'), 'sk-proj-1234567890abcdef12345678');

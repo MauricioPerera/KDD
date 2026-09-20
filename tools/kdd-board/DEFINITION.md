@@ -7,7 +7,7 @@ Una interfaz colaborativa de gestión de tareas y ejecución KDD (Knowledge-Driv
 El sistema se compone de un backend modular en Node.js/TypeScript y un frontend reactivo sin dependencias pesadas:
 - **Core State Engine (`TaskStore`)**: Máquina de estados determinista y persistente en JSON (`.kdd-board/tasks.json` del proyecto) que rige el ciclo de vida colaborativo (`backlog` -> `ready` -> `in_progress` -> `needs_human_input` -> `done`).
 - **Blind Vault (`BlindVault`)**: Almacén local en `.env.local` que inyecta variables al subproceso de tests. Los listados se enmascaran visualmente; no hay cifrado ni protección frente al código ejecutado. La salida redacta valores conocidos, pero no sus transformaciones.
-- **WebMCP Bridge (`fastwebmcp`)**: Servidor MCP integrado en el contexto web que expone 7 herramientas declarativas con esquemas Zod estrictos (`list_tasks`, `get_task`, `create_task`, `update_task_status`, `request_human_input`, `list_available_credentials`, `run_task_tests`).
+- **WebMCP Bridge (`fastwebmcp`)**: El navegador registra 8 herramientas declarativas con esquemas Zod publicados por el servidor (`list_tasks`, `get_task`, `create_task`, `update_task_status`, `request_human_input`, `list_available_credentials`, `run_task_tests`, `generate_kdd_report`).
 - **KDD Test Runner (`TestRunner`)**: Ejecutor automatizado que corre comandos oráculo congelados (`node --test`), capturando salida, tiempos y métricas de conformidad KDD.
 - **Frontend SPA Multi-Vista**:
   - `📋 Tablero`: Tablero Kanban interactivo con soporte de desbloqueo reactivo y píldoras de contratos en 1 clic.

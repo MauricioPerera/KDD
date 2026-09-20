@@ -42,6 +42,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Gate de diagramas Mermaid (flowchart, Python puro)](./contracts/diagram-gate.md)
   - [Gate que ejecuta el test_command de cada contrato (Nivel 1)](./contracts/test-command-gate.md)
   - [Gate de secretos filtrados en codigo generado (Nivel 1)](./contracts/secret-scan-gate.md)
+  - [Remediacion de seguridad y WebMCP del tablero](./contracts/board-security-remediation.md)
   - [Ejemplo multi-lenguaje: greet en Node.js](./contracts/example-node-greet.md)
   - [Gate de atestacion de reportes locales](./contracts/attestation-gate.md)
   - [Capa de despacho del MCP server de gates KDD](./contracts/mcp-gate-dispatch.md)

@@ -19,7 +19,7 @@ cd "$BOARD_DIR"
 
 if [ ! -d "node_modules" ]; then
   echo "📦 Instalando dependencias de kdd-board..."
-  npm install
+  npm ci --ignore-scripts
 fi
 
 export KDD_PROJECT_DIR="$REPO_DIR"

@@ -46,7 +46,13 @@ export class BlindVault {
     for (const [key, item] of this.secrets.entries()) {
       lines.push(`${key}=${JSON.stringify(item.value)}`);
     }
-    fs.writeFileSync(this.filePath, lines.join('\n') + '\n', 'utf-8');
+    fs.writeFileSync(this.filePath, lines.join('\n') + '\n', {
+      encoding: 'utf-8',
+      mode: 0o600,
+    });
+    if (process.platform !== 'win32') {
+      fs.chmodSync(this.filePath, 0o600);
+    }
   }
 
   public setSecret(key: string, secretValue: string): void {
@@ -67,14 +73,8 @@ export class BlindVault {
     return this.secrets.has(sanitizedKey);
   }
 
-  public maskSecret(value: string): string {
-    if (!value) return '***';
-    if (value.length <= 8) {
-      return `***[${value.length} chars]***`;
-    }
-    const prefix = value.substring(0, 3);
-    const suffix = value.substring(value.length - 2);
-    return `${prefix}***...***${suffix}`;
+  public maskSecret(_value: string): string {
+    return '***';
   }
 
   public listSecrets(): BlindSecretMeta[] {
