@@ -11,6 +11,8 @@ Use this skill for KDD repositories and task contracts.
 2. Before implementation, run the deterministic contract validator and create or update a sealed regression oracle where the task requires one.
 3. Keep state changes evidence-led: a task is not complete merely because an agent says so. Run the declared `test_command` and preserve its actual result.
 4. Do not place credentials in task descriptions, comments, reports, webhook payloads, or prompts. Blind-vault metadata only proves presence, never confidentiality from executed code.
-5. The optional hooks send no prompts, tool arguments, file contents, or secrets. They do not block, approve, or rewrite Codex operations.
+5. This public package is skill-only: it does not install hooks, start services, send data, or connect to external systems.
 
-When an operator has configured a relay, report lifecycle progress through its signed events. Otherwise continue normally without network delivery.
+Use the repository's own approved tools only when they are already available in
+the user's environment. Do not configure a relay or lifecycle delivery from
+this package.

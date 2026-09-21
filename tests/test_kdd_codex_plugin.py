@@ -19,6 +19,12 @@ class KddCodexPluginTests(unittest.TestCase):
         self.assertNotIn('hooks', manifest)
         self.assertFalse((PLUGIN / 'hooks' / 'hooks.json').exists())
         self.assertFalse((PLUGIN / 'scripts' / 'kdd-event-relay.py').exists())
+        skill = (PLUGIN / 'skills' / 'kdd-workflow' / 'SKILL.md').read_text(
+            encoding='utf-8'
+        ).lower()
+        self.assertIn('skill-only', skill)
+        self.assertNotIn('optional hooks', skill)
+        self.assertNotIn('configured a relay', skill)
         for filename in ('PRIVACY.md', 'TERMS.md', 'SUPPORT.md', 'PUBLISHING.md'):
             self.assertTrue((PLUGIN / filename).is_file())
         self.assertEqual(len(manifest['interface']['defaultPrompt']), 3)
