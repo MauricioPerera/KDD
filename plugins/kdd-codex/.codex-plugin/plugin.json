@@ -1,6 +1,6 @@
 {
   "name": "kdd-codex",
-  "version": "1.0.0+codex.20260921001856",
+  "version": "1.0.0+codex.20260921005515",
   "description": "A deterministic KDD workflow skill for planning, implementation, and verification.",
   "author": {
     "name": "Mauricio Perera",
@@ -22,6 +22,10 @@
     "websiteURL": "https://mauricioperera.github.io/KDD/",
     "privacyPolicyURL": "https://github.com/MauricioPerera/KDD/blob/main/plugins/kdd-codex/PRIVACY.md",
     "termsOfServiceURL": "https://github.com/MauricioPerera/KDD/blob/main/plugins/kdd-codex/TERMS.md",
+    "brandColor": "#B58D3F",
+    "composerIcon": "./assets/kdd-logo.svg",
+    "logo": "./assets/kdd-logo.svg",
+    "logoDark": "./assets/kdd-logo.svg",
     "defaultPrompt": [
       "Prepare this task using KDD contracts and verification.",
       "Create a KDD contract and a frozen regression test for this change.",

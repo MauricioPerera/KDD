@@ -1,5 +1,6 @@
 # Support
 
-Report defects, security concerns, or documentation issues at
-https://github.com/MauricioPerera/KDD/issues. Do not include credentials,
-private prompts, or sensitive project files in an issue.
+For defects, security concerns, or documentation questions, use the public
+[KDD support page](https://mauricioperera.github.io/KDD/support.html). Do not
+include credentials, private prompts, customer data, or sensitive project
+files; share the smallest reproducible example instead.

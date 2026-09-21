@@ -27,6 +27,12 @@ class KddCodexPluginTests(unittest.TestCase):
         self.assertNotIn('configured a relay', skill)
         for filename in ('PRIVACY.md', 'TERMS.md', 'SUPPORT.md', 'PUBLISHING.md'):
             self.assertTrue((PLUGIN / filename).is_file())
+        self.assertEqual(manifest['interface']['brandColor'], '#B58D3F')
+        for field in ('composerIcon', 'logo', 'logoDark'):
+            self.assertEqual(manifest['interface'][field], './assets/kdd-logo.svg')
+        self.assertTrue((PLUGIN / 'assets' / 'kdd-logo.svg').is_file())
+        support = (PLUGIN / 'SUPPORT.md').read_text(encoding='utf-8')
+        self.assertIn('https://mauricioperera.github.io/KDD/support.html', support)
         self.assertEqual(len(manifest['interface']['defaultPrompt']), 3)
 
 
