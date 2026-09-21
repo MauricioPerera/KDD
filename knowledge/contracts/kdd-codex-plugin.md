@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 8
   nesting_max: 3
 tests: 'tests/test_kdd_codex_plugin.py'
-tests_sha256: 'f3d59b45a43d0dee16a8b8084dabd398e2f959c4f0afc8b8cb854efbfa9c675e'
+tests_sha256: '590a1a66e2fcc760b6852a13ad0b7e3b2359696f1142b0b0b40b8478a9c54d12'
 touch_only: ['plugins/kdd-codex/**', '.agents/plugins/marketplace.json', 'knowledge/contracts/kdd-codex-plugin.md', 'knowledge/index.md', 'README.md']
 deps_allowed: ['python', 'node']
 forbids: ['llm']
