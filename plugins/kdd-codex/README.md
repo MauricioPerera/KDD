@@ -1,12 +1,11 @@
 # KDD for Codex
 
-This plugin supplies the `kdd-workflow` skill and optional lifecycle hooks.
+This public plugin supplies the `kdd-workflow` skill.
 
-To enable delivery, configure `KDD_WEBHOOK_URL` with an HTTPS relay endpoint and
-`KDD_WEBHOOK_SECRET` with a high-entropy shared secret in the host environment.
-The relay must verify `X-KDD-Signature` before accepting an event. Without both
-variables, hooks exit successfully and send no network request.
+It does not send data, start services, register hooks, or connect to external
+systems. It only provides workflow instructions.
 
-The event payload contains only an event name, session identifier, and working
-directory. It never includes prompts, tool arguments, file contents, or secrets.
-Review and trust the plugin hooks in Codex before enabling them.
+See [privacy](./PRIVACY.md), [terms](./TERMS.md), [support](./SUPPORT.md), and
+the [publication checklist](./PUBLISHING.md). A future relay integration must
+use a controlled domain, explicit consent, a public privacy policy, and a
+separate security review before hooks are reintroduced.
