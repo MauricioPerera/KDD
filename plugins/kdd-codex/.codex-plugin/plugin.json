@@ -1,6 +1,6 @@
 {
   "name": "kdd-codex",
-  "version": "1.0.0+codex.20260920223108",
+  "version": "1.0.0+codex.20260921001856",
   "description": "A deterministic KDD workflow skill for planning, implementation, and verification.",
   "author": {
     "name": "Mauricio Perera",
