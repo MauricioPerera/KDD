@@ -30,6 +30,13 @@ Este protocolo complementa la [validación de la plantilla](validacion.md) con u
 
 Los permisos son rutas exactas, no glob. La lista real incluye cambios staged, unstaged, commits posteriores al aprobado y archivos nuevos no ignorados. Los archivos ignorados como bases locales no se incorporan automáticamente al perímetro; un oráculo protegido se verifica aunque esté ignorado. No situar código ejecutable o helpers críticos fuera del inventario de confianza.
 
+Para hacer visible la frontera antes de aprobar, genera un manifiesto de solo lectura
+con `python scripts/quality_baseline.py --policy quality.json --approved-ref <SHA>`.
+El comando rechaza `HEAD`, extrae la política y calcula hashes de todos los archivos
+`protected` desde ese commit. Guarda su salida como evidencia de revisión y pasa el
+mismo SHA explícito a `verify_quality.py`; el manifiesto no sustituye la aprobación
+humana ni crea commits.
+
 Ejemplo adaptable: [política y guía](../examples/quality-approval/README.md). No se debe usar HEAD automáticamente como referencia aprobada: hacerlo después de implementar borraría la frontera de revisión.
 
 ## Pruebas adversariales y de interfaz

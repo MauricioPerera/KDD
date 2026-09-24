@@ -44,6 +44,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Gate que ejecuta el test_command de cada contrato (Nivel 1)](./contracts/test-command-gate.md)
   - [Enforcement determinista de budgets](./contracts/budget-enforcement.md)
   - [Perfiles de validación KDD](./contracts/run-profile.md)
+  - [Manifiesto determinista de baseline de calidad](./contracts/quality-baseline.md)
   - [Gate de secretos filtrados en codigo generado (Nivel 1)](./contracts/secret-scan-gate.md)
   - [Remediacion de seguridad y WebMCP del tablero](./contracts/board-security-remediation.md)
   - [Plugin seguro de Codex para KDD](./contracts/kdd-codex-plugin.md)
