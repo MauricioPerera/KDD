@@ -60,6 +60,8 @@ The board requires Node 24+ and Python. Open the authenticated URL printed by th
 
 ### How to use this template
 
+For a non-technical introduction to the workflow, see [`docs/KDD-PARA-PERSONAS.md`](docs/KDD-PARA-PERSONAS.md).
+
 1. Use this repository as a "Template" on GitHub or clone it locally.
 2. Explore `knowledge/index.md` to see how concepts are structured.
 3. When delegating work to an agent (e.g. an AI coding agent), the agent will read `.agents/AGENTS.md` and immediately understand that it must respect the CCDD contracts of this repository. Cursor, GitHub Copilot, Cline and Windsurf each have their own convention file (`.cursorrules`, `.github/copilot-instructions.md`, `.clinerules`, `.windsurfrules`) — all four are thin pointers to `.agents/AGENTS.md`, so any of those tools picks up the same rules automatically. For a human reviewing what an agent produced, see [`knowledge/supervision-humana.md`](knowledge/supervision-humana.md). **[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) users** can skip the convention-file route entirely: [kdd-gates](https://github.com/MauricioPerera/kdd-gates) exposes these gates as native model Tools (`kdd_validate`, `kdd_seal`, `kdd_perimeter`, `kdd_preflight`), and [kdd-scaffold](https://github.com/MauricioPerera/kdd-scaffold) generates a new task contract from an existing oracle test file instead of copying `TEMPLATE-task-contract.md` by hand.
@@ -134,6 +136,8 @@ The template uses **semantic versioning** starting from `v1.0.0`. See [`CHANGELO
 <a id="español"></a>
 
 ## Español
+
+Para una explicación de KDD sin tecnicismos, consulta [`docs/KDD-PARA-PERSONAS.md`](docs/KDD-PARA-PERSONAS.md).
 
 🌐 **[Landing page](https://mauricioperera.github.io/KDD/)** — un recorrido visual de la metodología (toggle EN/ES).
 
