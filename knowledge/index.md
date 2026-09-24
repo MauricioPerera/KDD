@@ -46,6 +46,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Perfiles de validación KDD](./contracts/run-profile.md)
   - [Manifiesto determinista de baseline de calidad](./contracts/quality-baseline.md)
   - [Auditor determinista de mutación](./contracts/mutation-audit.md)
+  - [Arranque guiado de un proyecto KDD](./contracts/bootstrap-project.md)
   - [Gate de secretos filtrados en codigo generado (Nivel 1)](./contracts/secret-scan-gate.md)
   - [Remediacion de seguridad y WebMCP del tablero](./contracts/board-security-remediation.md)
   - [Plugin seguro de Codex para KDD](./contracts/kdd-codex-plugin.md)
