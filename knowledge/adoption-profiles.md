@@ -37,6 +37,12 @@ migran los contratos históricos; una tarea nueva puede limitarlo con
 python scripts/run_profile.py --profile strict
 ```
 
+Para incorporar mutación a una revisión concreta:
+
+```text
+python scripts/run_profile.py --profile strict --mutation-contract knowledge/contracts/<task>.md
+```
+
 Todos los perfiles se detienen en el primer fallo, muestran el paso responsable
 y usan comandos explícitos sin shell. Así la adopción puede crecer por etapas sin
 convertir un proyecto pequeño en una instalación de infraestructura completa.

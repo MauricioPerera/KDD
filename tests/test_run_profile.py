@@ -21,6 +21,12 @@ class RunProfileTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             run_profile.build_profile("experimental")
 
+    def test_mutation_contract_is_strict_only_and_explicit(self):
+        with self.assertRaises(ValueError):
+            run_profile.build_profile("standard", "knowledge/contracts/task.md")
+        profile = run_profile.build_profile("strict", "knowledge/contracts/task.md")
+        self.assertEqual(profile[-1][0], "mutation")
+
     def test_runner_stops_after_first_failure(self):
         calls = []
 

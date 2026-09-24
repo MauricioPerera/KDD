@@ -6,7 +6,7 @@ tags: ['kdd', 'adopcion', 'tooling']
 task: run-profile
 intent: 'Ejecuta un perfil progresivo de validación.'
 target: scripts/run_profile.py
-signature: 'def run_profile(name: str, repo_root: str, runner=None) -> dict:'
+signature: 'def run_profile(name: str, repo_root: str, mutation_contract: str | None = None, runner=None) -> dict:'
 test_command: 'python -m unittest tests/test_run_profile.py'
 budget:
   cyclomatic_max: 8
@@ -14,7 +14,7 @@ budget:
   lines_max: 140
   params_max: 3
 tests: 'tests/test_run_profile.py'
-tests_sha256: 'a29e2aaa83a85f8da3ad133d9d1d3b859269bf6bfc5c07396a18f0af4db7d6dc'
+tests_sha256: '02950b8fcd64544771183cfa0a038c1f83915bd3eddfdf9fdc82ac9406feca10'
 touch_only: ['scripts/run_profile.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -29,7 +29,7 @@ recomendada; `strict` añade diagnósticos profundos y auditorías.
 ## Interface
 
 ```python
-def run_profile(name: str, repo_root: str, runner=None) -> dict:
+def run_profile(name: str, repo_root: str, mutation_contract: str | None = None, runner=None) -> dict:
     """Run profile steps and stop at the first non-zero result."""
 ```
 
@@ -45,12 +45,14 @@ def run_profile(name: str, repo_root: str, runner=None) -> dict:
 - `minimal` ejecuta contratos y la suite del proyecto una sola vez.
 - `standard` añade specs, OKF, ASCII, rules, skills, changelog y secretos.
 - `strict` añade budgets, seals, forbids y preflight.
+- `strict --mutation-contract <ruta>` añade mutación controlada de una tarea concreta.
 
 ## Do / Don't
 
 - DO: comenzar proyectos nuevos con `minimal` y subir a `standard` cuando el contrato base esté estable.
 - DO: usar `strict` antes de una entrega o en CI de proyectos maduros.
 - DON'T: interpretar `minimal` como ausencia de tests; siempre ejecuta la suite del proyecto.
+- DON'T: activar mutación sin indicar un contrato concreto.
 
 ## Tests
 
