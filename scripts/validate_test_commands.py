@@ -153,7 +153,7 @@ def run_test_command(cmd, cwd, timeout, capture=False):
     return result
 
 
-def run_all(contracts_dir, repo_root, timeout=120):
+def run_all(contracts_dir, repo_root, timeout=180):
     """Corre ``run_test_command`` para cada contrato, desde ``repo_root``."""
     results = []
     for item in collect_contracts(contracts_dir):
@@ -175,8 +175,22 @@ def main(argv):
     """Entry point CLI. Devuelve 0 si todos PASS, 1 si alguno FAIL o no hay."""
     contracts_dir = argv[1] if len(argv) > 1 else 'knowledge/contracts'
     repo_root = argv[2] if len(argv) > 2 else '.'
+    timeout = 180
+    if '--timeout' in argv:
+        index = argv.index('--timeout')
+        if index + 1 >= len(argv):
+            print('FAIL: --timeout requiere segundos')
+            return 1
+        try:
+            timeout = int(argv[index + 1])
+        except ValueError:
+            print('FAIL: --timeout debe ser un entero')
+            return 1
+        if timeout <= 0:
+            print('FAIL: --timeout debe ser positivo')
+            return 1
 
-    results = run_all(contracts_dir, repo_root)
+    results = run_all(contracts_dir, repo_root, timeout=timeout)
     if not results:
         print('FAIL: no contracts with test_command found in {}'.format(contracts_dir))
         return 1

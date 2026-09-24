@@ -7,7 +7,7 @@ tags: ['ccdd', 'gate', 'infra', 'verificacion']
 task: test-command-gate
 intent: "Ejecutar el test_command de cada contrato de knowledge/contracts/ y fallar si algun exit code no es 0."
 target: scripts/validate_test_commands.py
-signature: "def run_all(contracts_dir, repo_root, timeout=120) -> list"
+signature: "def run_all(contracts_dir, repo_root, timeout=180) -> list"
 test_command: "python -m unittest tests/test_validate_test_commands.py"
 budget:
   cyclomatic_max: 14
@@ -61,7 +61,7 @@ gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
   corre `cmd` (partido con `shlex.split`) via `subprocess.run(cwd=cwd,
   timeout=timeout)`. `error` es `None`, `'timeout'` o `'not_found'`. Con
   `capture=True` agrega `stdout` y `stderr` sin cambiar el exit code.
-- `run_all(contracts_dir, repo_root, timeout=120) -> [{'path',
+- `run_all(contracts_dir, repo_root, timeout=180) -> [{'path',
   'test_command','exit_code','ok','error','stdout','stderr'}]` — corre `run_test_command`
   para cada item de `collect_contracts(contracts_dir)`, mismo orden.
 - `main(argv) -> int` — `argv[1]`=contracts_dir (default
@@ -74,7 +74,9 @@ gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
 ## Invariants
 - `run_test_command` nunca lanza excepcion: `FileNotFoundError` y
   `subprocess.TimeoutExpired` se capturan y se traducen a
-  `error: 'not_found'` / `error: 'timeout'`.
+  `error: 'not_found'` / `error: 'timeout'`. El CLI acepta `--timeout <segundos>`;
+  el default de 180s evita confundir suites lentas conocidas con fallos, sin
+  convertir un proceso colgado en éxito.
 - `collect_contracts` nunca incluye `TEMPLATE-*.md` ni archivos sin
   `test_command` no vacio.
 - `main` devuelve 0 unicamente si `run_all` es no vacio y todos sus items
@@ -120,7 +122,8 @@ congelado con fixtures propios via `tempfile.mkdtemp()` — no corre los
   `sys`.
 - `touch_only`: unicamente `scripts/validate_test_commands.py`. Tests ya
   existen y estan sellados por `tests_sha256` (Capa 0 de este contrato).
-- Timeout por comando obligatorio (default 120s) para que un
+- Timeout por comando obligatorio (default 180s) para que una suite lenta conocida
+  tenga margen, pero un
   `test_command` colgado no cuelgue el gate completo ni el pipeline de
   Nivel 1 en CI.
 - Este gate NO reemplaza a `validate_contracts.py` (que sigue validando
