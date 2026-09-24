@@ -133,8 +133,8 @@ target: src/saludar.py
 signature: "def saludar(nombre: str) -> str:"
 test_command: "python -m unittest tests/test_saludar.py"
 budget:
-  max_cyclomatic_complexity: 2
-  max_nesting_depth: 1
+  cyclomatic_max: 2
+  nesting_max: 1
 tests: "tests/test_saludar.py"
 tests_sha256: "<el hash del paso 4.2>"
 touch_only: ['src/saludar.py']
