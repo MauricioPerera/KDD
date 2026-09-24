@@ -195,6 +195,15 @@ class TestRunTestCommand(unittest.TestCase):
         )
         self.assertEqual(result, {'exit_code': 0, 'ok': True, 'error': None})
 
+    def test_capture_keeps_fixture_output_separate_from_verdict(self):
+        result = vtc.run_test_command(
+            '{} -c "print(\'fixture ERROR text\')"'.format(sys.executable),
+            cwd='.', timeout=10, capture=True,
+        )
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['exit_code'], 0)
+        self.assertIn('fixture ERROR text', result['stdout'])
+
     def test_nonzero_exit(self):
         script = _write_exit_script(self.tmp, 'exit3.py', 3)
         result = vtc.run_test_command(

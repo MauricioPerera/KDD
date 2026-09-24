@@ -9,7 +9,7 @@ exit code. Ver ``knowledge/contracts/test-command-gate.md``, seccion
 API publica (fijada por ``tests/test_validate_test_commands.py``):
     extract_test_command(text) -> str|None
     collect_contracts(directory) -> list[dict]
-    run_test_command(cmd, cwd, timeout) -> dict
+    run_test_command(cmd, cwd, timeout, capture=False) -> dict
     run_all(contracts_dir, repo_root, timeout=120) -> list[dict]
     main(argv) -> int
 """
@@ -118,7 +118,7 @@ def _strip_quotes(token):
     return token
 
 
-def run_test_command(cmd, cwd, timeout):
+def run_test_command(cmd, cwd, timeout, capture=False):
     """Ejecuta ``cmd`` (string) partido con ``shlex.split`` via subprocess.run.
 
     Devuelve ``{'exit_code','ok','error'}``:
@@ -140,25 +140,33 @@ def run_test_command(cmd, cwd, timeout):
     if not posix:
         tokens = [_strip_quotes(t) for t in tokens]
     try:
-        proc = subprocess.run(tokens, cwd=cwd, timeout=timeout)
+        proc = subprocess.run(tokens, cwd=cwd, timeout=timeout,
+                              capture_output=capture, text=True)
     except FileNotFoundError:
         return {'exit_code': None, 'ok': False, 'error': 'not_found'}
     except subprocess.TimeoutExpired:
         return {'exit_code': None, 'ok': False, 'error': 'timeout'}
-    return {'exit_code': proc.returncode, 'ok': proc.returncode == 0, 'error': None}
+    result = {'exit_code': proc.returncode, 'ok': proc.returncode == 0, 'error': None}
+    if capture:
+        result['stdout'] = proc.stdout or ''
+        result['stderr'] = proc.stderr or ''
+    return result
 
 
 def run_all(contracts_dir, repo_root, timeout=120):
     """Corre ``run_test_command`` para cada contrato, desde ``repo_root``."""
     results = []
     for item in collect_contracts(contracts_dir):
-        ran = run_test_command(item['test_command'], cwd=repo_root, timeout=timeout)
+        ran = run_test_command(item['test_command'], cwd=repo_root, timeout=timeout,
+                               capture=True)
         results.append({
             'path': item['path'],
             'test_command': item['test_command'],
             'exit_code': ran['exit_code'],
             'ok': ran['ok'],
             'error': ran['error'],
+            'stdout': ran.get('stdout', ''),
+            'stderr': ran.get('stderr', ''),
         })
     return results
 
@@ -184,6 +192,11 @@ def main(argv):
             else:
                 detail = 'exit_code={}'.format(item['exit_code'])
             print('FAIL {}: {}'.format(item['path'], detail))
+        output = (item.get('stdout', '') + item.get('stderr', '')).strip()
+        if output:
+            print('  TEST_OUTPUT (informativo; el exit code es el veredicto):')
+            for line in output.splitlines():
+                print('    ' + line)
     return exit_code
 
 

@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: "tests/test_validate_test_commands.py"
-tests_sha256: "39df8ce61fbd15cf408d1fff1d2186db1f614e2981eb0d9f39de767e150d5420"
+tests_sha256: "c5469ad99abf8c136f629b868ec78858fd3b933c1bce35a080adbdf3effaeac6"
 touch_only: ['scripts/validate_test_commands.py']
 deps_allowed: []
 forbids: ['network', 'llm']
@@ -57,11 +57,12 @@ gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
 - `collect_contracts(directory) -> [{'path','test_command'}]` — un item
   por cada `*.md` de `directory` que NO empieza con `TEMPLATE-` y tiene
   `test_command` no vacio. Ordenado por `path`.
-- `run_test_command(cmd, cwd, timeout) -> {'exit_code','ok','error'}` —
+- `run_test_command(cmd, cwd, timeout, capture=False) -> {'exit_code','ok','error'}` —
   corre `cmd` (partido con `shlex.split`) via `subprocess.run(cwd=cwd,
-  timeout=timeout)`. `error` es `None`, `'timeout'` o `'not_found'`.
+  timeout=timeout)`. `error` es `None`, `'timeout'` o `'not_found'`. Con
+  `capture=True` agrega `stdout` y `stderr` sin cambiar el exit code.
 - `run_all(contracts_dir, repo_root, timeout=120) -> [{'path',
-  'test_command','exit_code','ok','error'}]` — corre `run_test_command`
+  'test_command','exit_code','ok','error','stdout','stderr'}]` — corre `run_test_command`
   para cada item de `collect_contracts(contracts_dir)`, mismo orden.
 - `main(argv) -> int` — `argv[1]`=contracts_dir (default
   `knowledge/contracts`), `argv[2]`=repo_root (default `.`). Imprime
@@ -78,6 +79,8 @@ gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
   `test_command` no vacio.
 - `main` devuelve 0 unicamente si `run_all` es no vacio y todos sus items
   tienen `ok is True`.
+- La salida del `test_command` se etiqueta como informativa y separada del
+  resultado del gate para distinguir findings de fixtures de fallos reales.
 - El orden de `collect_contracts`/`run_all` es siempre por `path`
   ascendente (determinismo del reporte).
 
@@ -91,6 +94,9 @@ gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
 - `main(['prog', 'knowledge/contracts', '.'])` sobre un repo con un solo
   contrato cuyo `test_command` falla -> imprime `FAIL <path>: exit_code=1`
   y devuelve 1.
+- Una suite negativa que escribe `ERROR` pero termina con exit code 0 se
+  reporta como `PASS` y su texto se muestra bajo `TEST_OUTPUT (informativo)`;
+  el texto de la fixture nunca sustituye al veredicto del exit code.
 
 ## Do / Don't
 - DO: correr cada `test_command` con un timeout explicito.
