@@ -6,7 +6,7 @@ tags: ['kdd', 'adopcion', 'tooling']
 task: run-profile
 intent: 'Ejecuta un perfil progresivo de validación.'
 target: scripts/run_profile.py
-signature: 'def run_profile(name: str, repo_root: str, mutation_contract: str | None = None, runner=None) -> dict:'
+signature: 'def run_profile(name: str, repo_root: str, mutation_contract: str | None = None, budget_contract: str | None = None, runner=None) -> dict:'
 test_command: 'python -m unittest tests/test_run_profile.py'
 budget:
   cyclomatic_max: 8
@@ -14,7 +14,7 @@ budget:
   lines_max: 140
   params_max: 3
 tests: 'tests/test_run_profile.py'
-tests_sha256: '02950b8fcd64544771183cfa0a038c1f83915bd3eddfdf9fdc82ac9406feca10'
+tests_sha256: 'c1d1794f02df5aca815e51f7c3c52667af45c52f494f0b41846c667cb3e57ee0'
 touch_only: ['scripts/run_profile.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -29,7 +29,7 @@ recomendada; `strict` añade diagnósticos profundos y auditorías.
 ## Interface
 
 ```python
-def run_profile(name: str, repo_root: str, mutation_contract: str | None = None, runner=None) -> dict:
+def run_profile(name: str, repo_root: str, mutation_contract: str | None = None, budget_contract: str | None = None, runner=None) -> dict:
     """Run profile steps and stop at the first non-zero result."""
 ```
 
@@ -46,6 +46,7 @@ def run_profile(name: str, repo_root: str, mutation_contract: str | None = None,
 - `standard` añade specs, OKF, ASCII, rules, skills, changelog y secretos.
 - `strict` añade budgets, seals, forbids y preflight.
 - `strict --mutation-contract <ruta>` añade mutación controlada de una tarea concreta.
+- `strict --budget-contract <ruta>` reemplaza el diagnóstico global por enforcement de una tarea concreta.
 
 ## Do / Don't
 
@@ -53,6 +54,7 @@ def run_profile(name: str, repo_root: str, mutation_contract: str | None = None,
 - DO: usar `strict` antes de una entrega o en CI de proyectos maduros.
 - DON'T: interpretar `minimal` como ausencia de tests; siempre ejecuta la suite del proyecto.
 - DON'T: activar mutación sin indicar un contrato concreto.
+- DON'T: interpretar el diagnóstico global de budgets históricos como enforcement de una tarea nueva.
 
 ## Tests
 

@@ -27,6 +27,12 @@ class RunProfileTests(unittest.TestCase):
         profile = run_profile.build_profile("strict", "knowledge/contracts/task.md")
         self.assertEqual(profile[-1][0], "mutation")
 
+    def test_budget_contract_replaces_global_diagnostic(self):
+        profile = run_profile.build_profile("strict", budget_contract="task")
+        budgets = [command for step, command in profile if step == "budgets"]
+        self.assertEqual(len(budgets), 1)
+        self.assertEqual(budgets[0][-2:], ("--contract", "task"))
+
     def test_runner_stops_after_first_failure(self):
         calls = []
 

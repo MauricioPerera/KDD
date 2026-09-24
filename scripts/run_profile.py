@@ -32,9 +32,9 @@ _PROFILES = {
 }
 
 
-def build_profile(name, mutation_contract=None):
-    if mutation_contract and name != "strict":
-        raise ValueError("--mutation-contract requiere el perfil strict")
+def build_profile(name, mutation_contract=None, budget_contract=None):
+    if (mutation_contract or budget_contract) and name != "strict":
+        raise ValueError("--mutation-contract y --budget-contract requieren el perfil strict")
     try:
         profile = list(_PROFILES[name])
     except KeyError as exc:
@@ -42,6 +42,13 @@ def build_profile(name, mutation_contract=None):
     if mutation_contract:
         profile.append(("mutation", ("python", "scripts/mutation_audit.py",
                                       mutation_contract, "--repo-root", ".", "--strict")))
+    if budget_contract:
+        for index, (step, command) in enumerate(profile):
+            if step == "budgets":
+                profile[index] = (step, ("python", "scripts/validate_budgets.py",
+                                        "knowledge/contracts", "--repo-root", ".",
+                                        "--contract", budget_contract))
+                break
     return profile
 
 
@@ -50,10 +57,10 @@ def _run_command(command, cwd):
     return completed.returncode
 
 
-def run_profile(name, repo_root, mutation_contract=None, runner=None):
+def run_profile(name, repo_root, mutation_contract=None, budget_contract=None, runner=None):
     runner = runner or _run_command
     results = []
-    for step, command in build_profile(name, mutation_contract):
+    for step, command in build_profile(name, mutation_contract, budget_contract):
         exit_code = runner(command, repo_root)
         results.append({"step": step, "command": list(command), "exit_code": exit_code})
         if exit_code != 0:
@@ -66,8 +73,10 @@ def main(argv=None):
     parser.add_argument("--profile", choices=sorted(_PROFILES), default="standard")
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--mutation-contract", help="contract to mutate in strict mode")
+    parser.add_argument("--budget-contract", help="contract whose budget is enforced in strict mode")
     args = parser.parse_args(argv)
-    result = run_profile(args.profile, os.path.abspath(args.repo_root), args.mutation_contract)
+    result = run_profile(args.profile, os.path.abspath(args.repo_root),
+                         args.mutation_contract, args.budget_contract)
     for item in result["results"]:
         print("{}: {}".format(item["step"], "PASS" if item["exit_code"] == 0 else "FAIL"))
     return 0 if result["ok"] else 1
