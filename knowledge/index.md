@@ -3,6 +3,7 @@
 Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está especificado en [OKF-SPEC](./OKF-SPEC.md).
 
 ## Referencia
+- [Perfiles de adopción KDD](./adoption-profiles.md) — niveles minimal, standard y strict para incorporar gates progresivamente.
 - [Sprints orientados a resultados](./sprints.md) — protocolo piloto opt-in para seleccionar backlog, admitir tareas y medir consumo por resultado aceptado.
 - [Por que KDD](./por-que-kdd.md) — posicionamiento honesto frente a Spec Kit, BMAD-METHOD y un AGENTS.md solo: que verifica distinto KDD, y en que casos no conviene.
 - [Quickstart](./quickstart.md) — tutorial paso a paso y ejecutable: de clonar la plantilla a tu primer task contract propio en verde.
@@ -42,6 +43,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Gate de diagramas Mermaid (flowchart, Python puro)](./contracts/diagram-gate.md)
   - [Gate que ejecuta el test_command de cada contrato (Nivel 1)](./contracts/test-command-gate.md)
   - [Enforcement determinista de budgets](./contracts/budget-enforcement.md)
+  - [Perfiles de validación KDD](./contracts/run-profile.md)
   - [Gate de secretos filtrados en codigo generado (Nivel 1)](./contracts/secret-scan-gate.md)
   - [Remediacion de seguridad y WebMCP del tablero](./contracts/board-security-remediation.md)
   - [Plugin seguro de Codex para KDD](./contracts/kdd-codex-plugin.md)
