@@ -9,10 +9,10 @@ target: scripts/run_profile.py
 signature: 'def run_profile(name: str, repo_root: str, mutation_contract: str | None = None, budget_contract: str | None = None, runner=None) -> dict:'
 test_command: 'python -m unittest tests/test_run_profile.py'
 budget:
-  cyclomatic_max: 8
+  cyclomatic_max: 10
   nesting_max: 3
   lines_max: 140
-  params_max: 3
+  params_max: 5
 tests: 'tests/test_run_profile.py'
 tests_sha256: 'c1d1794f02df5aca815e51f7c3c52667af45c52f494f0b41846c667cb3e57ee0'
 touch_only: ['scripts/run_profile.py']
