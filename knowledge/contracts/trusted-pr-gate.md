@@ -12,7 +12,7 @@ budget:
   cyclomatic_max: 20
   nesting_max: 4
 tests: 'tests/test_guard_pr_baseline.py'
-tests_sha256: '88aa85861d21e332179ef533522369642bc26a06c8ddb2d198e0e7b734e3fb68'
+tests_sha256: 'ebaee9c721f9f6cee4cfda4b09a75a82daa82103f5857e825a11c77980b08990'
 touch_only: ['scripts/guard_pr_baseline.py', '.github/workflows/trusted-pr-gate.yml']
 deps_allowed: ['stdlib']
 forbids: ['llm']
@@ -37,6 +37,8 @@ cambios al workflow y a los validadores que forman la raiz de confianza.
 - Un contrato u oraculo agregado, eliminado o modificado sin aprobar falla.
 - Un cambio al workflow o a los scripts protegidos falla incluso si el PR
   contiene el mismo SHA configurado como referencia aprobada.
+- El clasificador de evidencia opcional tambien esta protegido: no se puede
+  convertir un SKIP en PASS editando el helper dentro del mismo PR.
 - El PR solo se lee mediante `git show`, `git diff` y `git ls-tree`.
 - El gate no ejecuta scripts, pruebas ni comandos declarados por el PR.
 

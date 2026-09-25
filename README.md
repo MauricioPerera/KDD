@@ -83,6 +83,7 @@ There are two complementary ways to run the KDD gates against your repo without 
         contracts_dir: knowledge/contracts   # override only the paths you moved
         specs_dir: specs
         okf_dir: knowledge
+        # required_evidence: security,privacy,quality  # require these layers
         # rules_dir, skills_dirs, ux_page_dir, diagrams_dir, src_dir_secrets
         # all have defaults matching the template; omit the ones you didn't move.
   ```
@@ -99,6 +100,7 @@ There are two complementary ways to run the KDD gates against your repo without 
         kdd-ref: <FULL_KDD_COMMIT_SHA>   # use the same reviewed 40-character SHA
         contracts-dir: knowledge/contracts
         okf-dir: knowledge
+        # required-evidence: security,privacy  # require these scans
         # specs-dir is optional and auto-skipped if your repo has no specs/.
         # rules-dir / skills-dirs / ux-page-dir / diagrams-dir / src-dir
         # auto-skip (INFO, exit 0) when absent.

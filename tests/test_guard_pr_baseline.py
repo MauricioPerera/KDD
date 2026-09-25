@@ -71,6 +71,12 @@ class TestTrustedPrBaseline(unittest.TestCase):
         self.assertTrue(any('trusted gate file changed' in item
                             for item in guard.check(self.base, candidate, self.base)))
 
+    def test_optional_evidence_guard_change_fails(self):
+        self.write('scripts/optional_evidence.py', 'raise SystemExit(0)\n')
+        candidate = self.commit()
+        self.assertTrue(any('scripts/optional_evidence.py' in item
+                            for item in guard.check(self.base, candidate, candidate)))
+
 
 if __name__ == '__main__':
     unittest.main()

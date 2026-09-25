@@ -100,6 +100,10 @@ inputs:
     description: "If 'true', also run validate_test_commands.py against the caller's contracts dir (repo_root = caller workspace '.')."
     required: false
     default: 'true'
+  required-evidence:
+    description: 'Comma-separated required scan layers: security, compliance, privacy, accessibility, dependency-eol, observability, test-coverage.'
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -125,6 +129,19 @@ runs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+
+    - name: Check required optional evidence
+      shell: bash
+      env:
+        KDD_REQUIRED_EVIDENCE: ${{ inputs.required-evidence }}
+        KDD_SECURITY_SCAN_DIR: ${{ inputs.security-scan-dir }}
+        KDD_COMPLIANCE_SCAN_DIR: ${{ inputs.compliance-scan-dir }}
+        KDD_PRIVACY_SCAN_DIR: ${{ inputs.privacy-scan-dir }}
+        KDD_ACCESSIBILITY_SCAN_DIR: ${{ inputs.accessibility-scan-dir }}
+        KDD_DEPENDENCY_EOL_SCAN_DIR: ${{ inputs.dependency-eol-scan-dir }}
+        KDD_OBSERVABILITY_SCAN_DIR: ${{ inputs.observability-scan-dir }}
+        KDD_TEST_COVERAGE_SCAN_DIR: ${{ inputs.test-coverage-scan-dir }}
+      run: python _kdd/scripts/optional_evidence.py check --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage
 
     - name: Validate contracts (REQUIRED)
       shell: bash
@@ -176,42 +193,49 @@ runs:
       run: python _kdd/scripts/validate_diagrams.py "$KDD_DIAGRAMS_DIR"
 
     - name: Validate security findings (OPTIONAL — auto-skip, vendored codex-security)
+      id: security_scan
       shell: bash
       env:
         KDD_SECURITY_SCAN_DIR: ${{ inputs.security-scan-dir }}
       run: python _kdd/scripts/validate_security_findings.py "$KDD_SECURITY_SCAN_DIR"
 
     - name: Validate compliance/license findings (OPTIONAL — auto-skip)
+      id: compliance_scan
       shell: bash
       env:
         KDD_COMPLIANCE_SCAN_DIR: ${{ inputs.compliance-scan-dir }}
       run: python _kdd/scripts/validate_compliance_findings.py "$KDD_COMPLIANCE_SCAN_DIR"
 
     - name: Validate privacy/PII findings (OPTIONAL — auto-skip)
+      id: privacy_scan
       shell: bash
       env:
         KDD_PRIVACY_SCAN_DIR: ${{ inputs.privacy-scan-dir }}
       run: python _kdd/scripts/validate_privacy_findings.py "$KDD_PRIVACY_SCAN_DIR"
 
     - name: Validate accessibility findings (OPTIONAL — auto-skip)
+      id: accessibility_scan
       shell: bash
       env:
         KDD_ACCESSIBILITY_SCAN_DIR: ${{ inputs.accessibility-scan-dir }}
       run: python _kdd/scripts/validate_accessibility_findings.py "$KDD_ACCESSIBILITY_SCAN_DIR"
 
     - name: Validate dependency EOL findings (OPTIONAL — auto-skip)
+      id: dependency_eol_scan
       shell: bash
       env:
         KDD_DEPENDENCY_EOL_SCAN_DIR: ${{ inputs.dependency-eol-scan-dir }}
       run: python _kdd/scripts/validate_dependency_eol_findings.py "$KDD_DEPENDENCY_EOL_SCAN_DIR"
 
     - name: Validate observability findings (OPTIONAL — auto-skip)
+      id: observability_scan
       shell: bash
       env:
         KDD_OBSERVABILITY_SCAN_DIR: ${{ inputs.observability-scan-dir }}
       run: python _kdd/scripts/validate_observability_findings.py "$KDD_OBSERVABILITY_SCAN_DIR"
 
     - name: Validate test-coverage findings (OPTIONAL — auto-skip)
+      id: test_coverage_scan
       shell: bash
       env:
         KDD_TEST_COVERAGE_SCAN_DIR: ${{ inputs.test-coverage-scan-dir }}
@@ -229,3 +253,24 @@ runs:
       env:
         KDD_CONTRACTS_DIR: ${{ inputs.contracts-dir }}
       run: python _kdd/scripts/validate_test_commands.py "$KDD_CONTRACTS_DIR" .
+
+    - name: Summarize optional evidence
+      if: always()
+      shell: bash
+      env:
+        KDD_REQUIRED_EVIDENCE: ${{ inputs.required-evidence }}
+        KDD_SECURITY_SCAN_DIR: ${{ inputs.security-scan-dir }}
+        KDD_COMPLIANCE_SCAN_DIR: ${{ inputs.compliance-scan-dir }}
+        KDD_PRIVACY_SCAN_DIR: ${{ inputs.privacy-scan-dir }}
+        KDD_ACCESSIBILITY_SCAN_DIR: ${{ inputs.accessibility-scan-dir }}
+        KDD_DEPENDENCY_EOL_SCAN_DIR: ${{ inputs.dependency-eol-scan-dir }}
+        KDD_OBSERVABILITY_SCAN_DIR: ${{ inputs.observability-scan-dir }}
+        KDD_TEST_COVERAGE_SCAN_DIR: ${{ inputs.test-coverage-scan-dir }}
+        KDD_SECURITY_OUTCOME: ${{ steps.security_scan.outcome }}
+        KDD_COMPLIANCE_OUTCOME: ${{ steps.compliance_scan.outcome }}
+        KDD_PRIVACY_OUTCOME: ${{ steps.privacy_scan.outcome }}
+        KDD_ACCESSIBILITY_OUTCOME: ${{ steps.accessibility_scan.outcome }}
+        KDD_DEPENDENCY_EOL_OUTCOME: ${{ steps.dependency_eol_scan.outcome }}
+        KDD_OBSERVABILITY_OUTCOME: ${{ steps.observability_scan.outcome }}
+        KDD_TEST_COVERAGE_OUTCOME: ${{ steps.test_coverage_scan.outcome }}
+      run: python _kdd/scripts/optional_evidence.py summary --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage

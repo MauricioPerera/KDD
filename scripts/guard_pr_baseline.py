@@ -15,6 +15,7 @@ from validate_contracts import parse_frontmatter
 
 
 PROTECTED_FILES = {
+    'scripts/optional_evidence.py',
     'scripts/guard_pr_baseline.py',
     'scripts/validate_baseline.py',
     'scripts/validate_contracts.py',
