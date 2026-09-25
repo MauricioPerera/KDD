@@ -27,6 +27,15 @@ La [ejecución de CI 36178139712](https://github.com/MauricioPerera/KDD/actions/
 completó los cuatro jobs: `board` pasó en Ubuntu y Windows; `validate`
 falló en ambos solo en el paso final de baseline, frente al `main` anterior.
 
+Como diagnóstico local, `python scripts/run_profile.py --profile standard
+--approved-ref 4444bcc8d1ec58b4bbb3a2ac80a66a47152b5699` salió 0:
+11 pasos PASS, 0 FAIL, 0 SKIP; el gate ejecutó 10 contratos de producto y
+37 de infraestructura, todos PASS. Esta prueba demuestra que el perfil puede
+operar con ese commit, **no que el commit ya esté aprobado**. La
+[ejecución de CI 36180590169](https://github.com/MauricioPerera/KDD/actions/runs/36180590169)
+también completó los cuatro jobs, con el baseline como único fallo en ambos
+jobs `validate` mientras sigue sin aprobación externa.
+
 ## Comprobaciones de regresión
 
 - `python -m unittest tests.test_run_profile tests.test_validate_baseline
