@@ -1,0 +1,12 @@
+{
+  "protected": ["tests/test_feature.py", "tests/test_adversarial.py", "tests/ui.test.cjs", "knowledge/contracts/feature.md"],
+  "implementation": ["src/feature.py", "public/app.js"],
+  "pm": ["docs/feature-report.md"],
+  "required_kinds": ["functional", "adversarial", "ui"],
+  "checks": [
+    {"name": "contracts", "kind": "structural", "argv": ["python", "scripts/validate_contracts.py", "knowledge/contracts"], "timeout": 60},
+    {"name": "functional", "kind": "functional", "argv": ["python", "-m", "unittest", "tests.test_feature"], "timeout": 120},
+    {"name": "adversarial", "kind": "adversarial", "argv": ["python", "-m", "unittest", "tests.test_adversarial"], "timeout": 120},
+    {"name": "ui", "kind": "ui", "argv": ["node", "--test", "tests/ui.test.cjs"], "timeout": 120}
+  ]
+}

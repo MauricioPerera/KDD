@@ -3,6 +3,8 @@
 Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está especificado en [OKF-SPEC](./OKF-SPEC.md).
 
 ## Referencia
+- [Perfiles de adopción KDD](./adoption-profiles.md) — niveles minimal, standard y strict para incorporar gates progresivamente.
+- [Sprints orientados a resultados](./sprints.md) — protocolo piloto opt-in para seleccionar backlog, admitir tareas y medir consumo por resultado aceptado.
 - [Por que KDD](./por-que-kdd.md) — posicionamiento honesto frente a Spec Kit, BMAD-METHOD y un AGENTS.md solo: que verifica distinto KDD, y en que casos no conviene.
 - [Quickstart](./quickstart.md) — tutorial paso a paso y ejecutable: de clonar la plantilla a tu primer task contract propio en verde.
 - [Glosario](./glosario.md) — indice unico de los ~20 terminos propios de OKF+CCDD, con link al nodo normativo de cada uno.
@@ -15,11 +17,14 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Upgrade de la plantilla](./plantilla-upgrade.md) — qué es infraestructura sobreescribible desde upstream vs. propiedad del proyecto; procedimiento manual de upgrade.
 - [Rule contract](./rule-contract-spec.md) — vertiente que valida reglas de negocio como datos declarativos (no solo código); familias, golden set y frontera dato/lógica.
 - [Puente GAME Protocol](./game-data-bridge.md) — receta canónica para poner datos de juego (gameplay as data) bajo contratos KDD: toolchain vendoreado, perfil propio, oráculo sellado con lint/export/no-drift.
+- [Patrón de estructura para paneles admin](./patron-panel-admin.md) — convención de sidebar por entidad, listados sin ID crudo y rutas separadas para auth/recuperación/verificación, contra la tendencia del LLM a apilar todo en una vista. Sin gate propio (no es un dominio de Capa 3): es referencia a aplicar y verificar a mano.
 - [Diagram contract](./diagram-contract-spec.md) — convención para referenciar diagramas Mermaid verificables desde un concept doc OKF; formato del `.diagram-contract.json`; alcance (solo flowchart) y relación con el proyecto hermano `mermaid-gate`.
 - [Mermaid como DSL: tradeoffs](./mermaid-dsl-tradeoffs.md) — por qué Mermaid generado por IA es mal fit como DSL de una plataforma de automatización (sintaxis frágil, sin semántica nativa, sin round-trip), y por qué esas mismas propiedades invertidas son justo las tres que KDD exige a todo artefacto (diffable, escribible por agente sin GUI, verificable por máquina).
 
 ## Estructura
 - [Contratos de Desarrollo](./contracts/)
+  - [Planificador del sprint](./contracts/sprint-planner.md) — relaciones, ciclos, bloqueos y prioridades.
+  - [Admision de tareas al sprint](./contracts/sprint-admission.md) — piloto ejecutable sobre snapshots JSON.
   - [Ejemplo de Tarea (Hello World)](./contracts/sample_task.md)
   - [Validación de registro de usuario](./contracts/validate-user-record.md)
   - [Validación de límite de pago por país](./contracts/validate-payment-limit.md)
@@ -37,11 +42,19 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Gate de formato de mensaje de commit](./contracts/commit-message-gate.md)
   - [Gate de diagramas Mermaid (flowchart, Python puro)](./contracts/diagram-gate.md)
   - [Gate que ejecuta el test_command de cada contrato (Nivel 1)](./contracts/test-command-gate.md)
+  - [Gate confiable para PR y referencia aprobada](./contracts/trusted-pr-gate.md)
+  - [Enforcement determinista de budgets](./contracts/budget-enforcement.md)
+  - [Perfiles de validación KDD](./contracts/run-profile.md)
+  - [Manifiesto determinista de baseline de calidad](./contracts/quality-baseline.md)
+  - [Auditor determinista de mutación](./contracts/mutation-audit.md)
+  - [Arranque guiado de un proyecto KDD](./contracts/bootstrap-project.md)
   - [Gate de secretos filtrados en codigo generado (Nivel 1)](./contracts/secret-scan-gate.md)
+  - [Remediacion de seguridad y WebMCP del tablero](./contracts/board-security-remediation.md)
+  - [Plugin seguro de Codex para KDD](./contracts/kdd-codex-plugin.md)
   - [Ejemplo multi-lenguaje: greet en Node.js](./contracts/example-node-greet.md)
   - [Gate de atestacion de reportes locales](./contracts/attestation-gate.md)
   - [Capa de despacho del MCP server de gates KDD](./contracts/mcp-gate-dispatch.md)
-  - [Preflight: dry-run local de los 12 gates](./contracts/preflight.md)
+  - [Preflight: dry-run local de los 19 gates](./contracts/preflight.md)
   - [Auditor de seals débiles (advisory, no es un gate)](./contracts/seal-audit.md) — `scripts/audit_seals.py`
   - [Auditor de `forbids` (advisory, no es un gate)](./contracts/forbids-audit.md) — `scripts/audit_forbids.py`
 - [Recetas de arreglo por rule-id (no es un gate)](./contracts/rule-hints.md) — `scripts/rule_hints.py`
@@ -54,6 +67,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Exportador de contratos para el gate CCDD Nivel 2](./contracts/export-gate-contract.md)
   - [Regla de contexto presupuestado en las reglas de agentes](./contracts/agents-context-rule.md)
 - [Modelos de Datos](./data_models/)
+  - [Backlog relacionado](./data_models/sprint-backlog.md) — formato y reglas del planificador.
   - [Tabla users](./data_models/users_table.md)
   - [Limites de pago por pais](./data_models/payment_limits.md)
   - [Reglas de control de fronteras](./data_models/border_rules.md)
@@ -62,8 +76,23 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Estilo editorial de articulos](./data_models/editorial_style.md)
   - [Registro de servidores MCP](./data_models/mcp_registry.md)
   - [Hallazgos de seguridad (Capa 3)](./data_models/security_findings.md)
+  - [Hallazgos de compliance/licencias (Capa 3)](./data_models/compliance_findings.md)
+  - [Hallazgos de privacidad/PII (Capa 3)](./data_models/privacy_findings.md)
+  - [Hallazgos de accesibilidad (Capa 3)](./data_models/accessibility_findings.md)
+  - [Hallazgos de vigencia de dependencias / EOL (Capa 3)](./data_models/dependency_eol_findings.md)
+  - [Hallazgos de observabilidad (Capa 3)](./data_models/observability_findings.md)
+  - [Hallazgos de cobertura de tests (Capa 3)](./data_models/test_coverage_findings.md)
   - [Cableado de agentes](./data_models/agent_wiring.md)
   - [Convención UX/accesibilidad](./data_models/ux_page_contract.md)
   - [Convención de mensaje de commit](./data_models/commit_message_contract.md)
 - [Arquitectura](./architecture/)
   - [Arquitectura general](./architecture/overview.md)
+- [Verificacion del tablero](./contracts/board-hardening.md)
+- [Evidencia de seguridad](./contracts/evidence-hardening.md)
+- [Referencia aprobada](./contracts/validate-baseline.md)
+- [Garantias verificables](./verification-guarantees.md)
+
+- [Catalogo al iniciar](./contracts/catalog-startup.md)
+
+- [Aprobacion integrada de calidad](quality-approval.md)
+- [Contrato verify-quality](contracts/verify-quality.md)
