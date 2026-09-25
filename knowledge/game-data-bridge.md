@@ -45,8 +45,9 @@ no-drift ata datos ↔ artefacto.
 ## Fricciones conocidas (y mitigación)
 
 - **Doble toolchain**: los validadores KDD son Python, los del protocolo Node. En CI se
-  corren ambos (el paso "Run project test suite" del workflow usa el runner del
-  proyecto; los validadores Python del template quedan como están).
+  corren ambos: los `test_command` de contratos Node usan su runner y los
+  validadores Python del template quedan como están. Si el proyecto necesita
+  una suite adicional, se agrega un paso propio al workflow.
 - **Gate CCDD Nivel 2 y targets JS**: `check_signature` del MCP es AST Python puro y no
   parsea JS; el `budget` sobre perfiles/motor JS no es exigible por el gate real. El
   veredicto práctico para lo JS es Nivel 1 + oráculos congelados (`node --test`).

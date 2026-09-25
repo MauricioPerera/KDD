@@ -1,5 +1,10 @@
 # Verificación del perfil KDD con Reparto Justo
 
+> **Registro histórico del piloto.** Los SHA, resultados y reglas de protección
+> siguientes describen el estado observado entonces; para el control vigente,
+> consultar [Garantías de verificación](../../knowledge/verification-guarantees.md)
+> y comprobar la configuración actual en GitHub.
+
 ## Alcance
 
 Experimento aislado sobre una copia local de `KDD-Pilot` (commit original
