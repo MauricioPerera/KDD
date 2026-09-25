@@ -1,7 +1,7 @@
 ---
 type: 'Task Contract'
 title: 'Gate que ejecuta el test_command de cada contrato (Nivel 1)'
-description: 'Unico gate de este repo que ejecuta subprocess a proposito: corre el test_command declarado en el frontmatter de cada knowledge/contracts/*.md y falla si algun exit code no es 0. Cierra el hueco mas grave del pipeline de verificacion: hasta este gate, Nivel 1 solo validaba que un contrato estuviera bien escrito (validate_contracts.py), nunca que sus tests realmente pasaran.'
+description: 'Ejecuta el test_command de cada contrato, falla ante exit code no cero y separa los resultados de producto e infraestructura.'
 tags: ['ccdd', 'gate', 'infra', 'verificacion']
 
 task: test-command-gate
@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: "tests/test_validate_test_commands.py"
-tests_sha256: "c5469ad99abf8c136f629b868ec78858fd3b933c1bce35a080adbdf3effaeac6"
+tests_sha256: "de5320b89316db118941deaec4a1aa5afd5bba92929865c9e3c17540053f6cbf"
 touch_only: ['scripts/validate_test_commands.py']
 deps_allowed: []
 forbids: ['network', 'llm']
@@ -54,9 +54,12 @@ gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
 - `extract_test_command(text) -> str|None` — valor de `test_command` en el
   frontmatter YAML de un contrato (comillas simples o dobles). `None` si
   la clave no esta o esta vacia.
-- `collect_contracts(directory) -> [{'path','test_command'}]` — un item
+- `collect_contracts(directory) -> [{'path','test_command','scope'}]` — un item
   por cada `*.md` de `directory` que NO empieza con `TEMPLATE-` y tiene
-  `test_command` no vacio. Ordenado por `path`.
+  `test_command` no vacio. Ordenado por `path`. `scope` es `product` o
+  `infrastructure`: `test_scope` explícito prevalece; sin él, los targets en
+  `scripts/`, `tools/`, `plugins/`, `.github/` o `tests/` son infraestructura
+  y los demás son producto.
 - `run_test_command(cmd, cwd, timeout, capture=False) -> {'exit_code','ok','error'}` —
   corre `cmd` (partido con `shlex.split`) via `subprocess.run(cwd=cwd,
   timeout=timeout)`. `error` es `None`, `'timeout'` o `'not_found'`. Con
@@ -66,7 +69,9 @@ gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
   para cada item de `collect_contracts(contracts_dir)`, mismo orden.
 - `main(argv) -> int` — `argv[1]`=contracts_dir (default
   `knowledge/contracts`), `argv[2]`=repo_root (default `.`). Imprime
-  `PASS <path>` o `FAIL <path>: <detalle>` por linea. Devuelve 0 si todos
+  `PASS [scope] <path>` o `FAIL [scope] <path>: <detalle>` por linea, y
+  resumen separado para cada scope. Si no hay contratos de un scope imprime
+  `SKIP [scope]`; no suma PASS. Devuelve 0 si todos
   los items de `run_all` tienen `ok is True`; 1 si alguno es `False`; 1 si
   `collect_contracts` no encuentra ningun contrato (config vacia es error,
   no exito vacuo).
@@ -83,6 +88,8 @@ gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
   tienen `ok is True`.
 - La salida del `test_command` se etiqueta como informativa y separada del
   resultado del gate para distinguir findings de fixtures de fallos reales.
+- Un contrato de producto que falla hace fallar el gate aunque toda la
+  infraestructura esté verde.
 - El orden de `collect_contracts`/`run_all` es siempre por `path`
   ascendente (determinismo del reporte).
 

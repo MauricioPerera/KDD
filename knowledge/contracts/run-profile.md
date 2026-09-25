@@ -4,17 +4,17 @@ title: 'Perfiles de validación KDD'
 description: 'Ejecuta una secuencia determinista de gates según el nivel de adopción elegido.'
 tags: ['kdd', 'adopcion', 'tooling']
 task: run-profile
-intent: 'Ejecuta un perfil progresivo de validación.'
+intent: 'Ejecuta perfiles progresivos; standard/strict exigen oráculos aprobados y todos los test_command.'
 target: scripts/run_profile.py
-signature: 'def run_profile(name: str, repo_root: str, mutation_contract: str | None = None, budget_contract: str | None = None, runner=None) -> dict:'
+signature: 'def run_profile(name: str, repo_root: str, mutation_contract: str | None = None, budget_contract: str | None = None, runner=None, approved_ref: str | None = None) -> dict:'
 test_command: 'python -m unittest tests/test_run_profile.py'
 budget:
   cyclomatic_max: 10
   nesting_max: 3
   lines_max: 140
-  params_max: 5
+  params_max: 6
 tests: 'tests/test_run_profile.py'
-tests_sha256: 'c1d1794f02df5aca815e51f7c3c52667af45c52f494f0b41846c667cb3e57ee0'
+tests_sha256: '536ea56d215ce8dc01943f42b556f265c8fbf5eef44e16f600c722a977cdfabe'
 touch_only: ['scripts/run_profile.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -29,7 +29,7 @@ recomendada; `strict` añade diagnósticos profundos y auditorías.
 ## Interface
 
 ```python
-def run_profile(name: str, repo_root: str, mutation_contract: str | None = None, budget_contract: str | None = None, runner=None) -> dict:
+def run_profile(name: str, repo_root: str, mutation_contract: str | None = None, budget_contract: str | None = None, runner=None, approved_ref: str | None = None) -> dict:
     """Run profile steps and stop at the first non-zero result."""
 ```
 
@@ -38,12 +38,19 @@ def run_profile(name: str, repo_root: str, mutation_contract: str | None = None,
 - Los perfiles son inclusivos: `minimal` es prefijo de `standard`, y `standard` de `strict`.
 - El orden de comandos es estable y no usa shell.
 - Un fallo detiene el perfil y nombra el paso que falló.
+- `standard` y `strict` requieren `approved_ref` como SHA completo de un commit;
+  el gate compara todos los contratos y oráculos antes de ejecutar sus tests.
+- `contract_tests` ejecuta todos los `test_command` de los contratos, incluidos
+  los del producto; un fallo del producto hace fallar el perfil.
+- El resultado distingue PASS, FAIL y SKIP; un gate opcional sin datos no cuenta
+  como PASS. El reporte de contratos separa producto e infraestructura.
 - Un perfil desconocido produce `ValueError`.
 
 ## Examples
 
 - `minimal` ejecuta contratos y la suite del proyecto una sola vez.
-- `standard` añade specs, OKF, ASCII, rules, skills, changelog y secretos.
+- `standard` añade referencia aprobada, test_command de cada contrato, specs,
+  OKF, ASCII, rules, skills, changelog y secretos.
 - `strict` añade budgets, seals, forbids y preflight.
 - `strict --mutation-contract <ruta>` añade mutación controlada de una tarea concreta.
 - `strict --budget-contract <ruta>` reemplaza el diagnóstico global por enforcement de una tarea concreta.
@@ -59,9 +66,10 @@ def run_profile(name: str, repo_root: str, mutation_contract: str | None = None,
 ## Tests
 
 El oráculo congelado está en `tests/test_run_profile.py` y verifica orden,
-composición, rechazo de perfiles desconocidos y parada ante fallos.
+referencia obligatoria, ejecución de tests de contratos, SKIP y parada ante fallos.
 
 ## Constraints
 
 - PARAR y reportar si un perfil necesita un comando no disponible en el entorno.
-- Este contrato no autoriza a modificar los gates individuales ni sus oráculos.
+- Los cambios del gate de test_command y de baseline están regidos por sus
+  respectivos contratos.

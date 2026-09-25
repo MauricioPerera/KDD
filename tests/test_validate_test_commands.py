@@ -48,6 +48,8 @@ import sys
 import tempfile
 import shutil
 import unittest
+import io
+from contextlib import redirect_stdout
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
@@ -137,6 +139,15 @@ class TestCollectContracts(unittest.TestCase):
         _write(os.path.join(self.tmp, 'notes.txt'), 'hello')
         result = vtc.collect_contracts(self.tmp)
         self.assertEqual(result, [])
+
+    def test_classifies_product_and_infrastructure(self):
+        _write(os.path.join(self.tmp, 'product.md'),
+               _contract('target: src/app.py\ntest_command: "echo ok"'))
+        _write(os.path.join(self.tmp, 'infra.md'),
+               _contract('target: scripts/gate.py\ntest_command: "echo ok"'))
+        scopes = {os.path.basename(item['path']): item['scope']
+                  for item in vtc.collect_contracts(self.tmp)}
+        self.assertEqual(scopes, {'product.md': 'product', 'infra.md': 'infrastructure'})
 
 
 class TestCrlfCoherence(unittest.TestCase):
@@ -290,6 +301,21 @@ class TestMain(unittest.TestCase):
     def test_empty_directory_returns_1(self):
         code = vtc.main(['prog', self.tmp, '.'])
         self.assertEqual(code, 1)
+
+    def test_report_separates_product_failure_from_infrastructure_pass(self):
+        ok = _write_exit_script(self.tmp, 'ok.py', 0)
+        bad = _write_exit_script(self.tmp, 'bad.py', 1)
+        _write(os.path.join(self.tmp, 'infra.md'),
+               _contract('target: scripts/gate.py\ntest_command: "{} {}"'.format(sys.executable, ok)))
+        _write(os.path.join(self.tmp, 'product.md'),
+               _contract('target: src/app.py\ntest_command: "{} {}"'.format(sys.executable, bad)))
+        output = io.StringIO()
+        with redirect_stdout(output):
+            code = vtc.main(['prog', self.tmp, '.'])
+        self.assertEqual(code, 1)
+        self.assertIn('PASS [infrastructure]', output.getvalue())
+        self.assertIn('FAIL [product]', output.getvalue())
+        self.assertIn('Summary: product PASS=0 FAIL=1 SKIP=0', output.getvalue())
 
 
 if __name__ == '__main__':

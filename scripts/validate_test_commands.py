@@ -19,6 +19,7 @@ import re
 import shlex
 import subprocess
 import sys
+from validate_contracts import parse_frontmatter
 
 
 def _frontmatter(text):
@@ -101,7 +102,15 @@ def collect_contracts(directory):
         cmd = extract_test_command(text)
         if not cmd:
             continue
-        items.append({'path': path, 'test_command': cmd})
+        metadata, _ = parse_frontmatter(text)
+        target = metadata.get('target', '') if isinstance(metadata, dict) else ''
+        scope = metadata.get('test_scope') if isinstance(metadata, dict) else None
+        if scope not in ('product', 'infrastructure'):
+            scope = ('infrastructure' if isinstance(target, str) and
+                     target.replace('\\', '/').startswith(
+                         ('scripts/', 'tools/', 'plugins/', '.github/', 'tests/'))
+                     else 'product')
+        items.append({'path': path, 'test_command': cmd, 'scope': scope})
     items.sort(key=lambda item: item['path'])
     return items
 
@@ -161,6 +170,7 @@ def run_all(contracts_dir, repo_root, timeout=180):
                                capture=True)
         results.append({
             'path': item['path'],
+            'scope': item['scope'],
             'test_command': item['test_command'],
             'exit_code': ran['exit_code'],
             'ok': ran['ok'],
@@ -169,6 +179,34 @@ def run_all(contracts_dir, repo_root, timeout=180):
             'stderr': ran.get('stderr', ''),
         })
     return results
+
+
+def _print_results(results):
+    counts = {'product': {'PASS': 0, 'FAIL': 0},
+              'infrastructure': {'PASS': 0, 'FAIL': 0}}
+    for item in results:
+        status = 'PASS' if item['ok'] else 'FAIL'
+        counts[item['scope']][status] += 1
+        if item['ok']:
+            print('PASS [{}] {}'.format(item['scope'], item['path']))
+        else:
+            if item['error'] is not None:
+                detail = item['error']
+            else:
+                detail = 'exit_code={}'.format(item['exit_code'])
+            print('FAIL [{}] {}: {}'.format(item['scope'], item['path'], detail))
+        output = (item.get('stdout', '') + item.get('stderr', '')).strip()
+        if output:
+            print('  TEST_OUTPUT (informativo; el exit code es el veredicto):')
+            for line in output.splitlines():
+                print('    ' + line)
+    for scope in ('infrastructure', 'product'):
+        group = counts[scope]
+        if not any(group.values()):
+            print('SKIP [{}] no contracts with test_command'.format(scope))
+        print('Summary: {} PASS={} FAIL={} SKIP={}'.format(
+            scope, group['PASS'], group['FAIL'], int(not any(group.values()))))
+    return 1 if any(not item['ok'] for item in results) else 0
 
 
 def main(argv):
@@ -189,29 +227,11 @@ def main(argv):
         if timeout <= 0:
             print('FAIL: --timeout debe ser positivo')
             return 1
-
     results = run_all(contracts_dir, repo_root, timeout=timeout)
     if not results:
         print('FAIL: no contracts with test_command found in {}'.format(contracts_dir))
         return 1
-
-    exit_code = 0
-    for item in results:
-        if item['ok']:
-            print('PASS {}'.format(item['path']))
-        else:
-            exit_code = 1
-            if item['error'] is not None:
-                detail = item['error']
-            else:
-                detail = 'exit_code={}'.format(item['exit_code'])
-            print('FAIL {}: {}'.format(item['path'], detail))
-        output = (item.get('stdout', '') + item.get('stderr', '')).strip()
-        if output:
-            print('  TEST_OUTPUT (informativo; el exit code es el veredicto):')
-            for line in output.splitlines():
-                print('    ' + line)
-    return exit_code
+    return _print_results(results)
 
 
 if __name__ == '__main__':

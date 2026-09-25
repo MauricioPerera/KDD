@@ -30,8 +30,14 @@ class BootstrapProjectTests(unittest.TestCase):
             init.assert_called_once_with(root, True, "Demo")
             self.assertTrue(result["applied"])
             content = (Path(root) / "KDD-START-HERE.md").read_text(encoding="utf-8")
-            self.assertIn("python scripts/run_profile.py --profile standard", content)
+            self.assertIn("python scripts/run_profile.py --profile standard --approved-ref <SHA_APROBADO>", content)
+            self.assertIn("pide a una persona que apruebe", content)
             self.assertIn("Demo", content)
+
+    def test_minimal_guide_needs_no_approved_ref(self):
+        guide = bootstrap_project._start_here("Demo", "minimal")
+        self.assertIn("python scripts/run_profile.py --profile minimal\n", guide)
+        self.assertNotIn("--approved-ref", guide)
 
     def test_rejects_unknown_profile(self):
         with self.assertRaises(ValueError):

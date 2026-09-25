@@ -14,7 +14,7 @@ budget:
   lines_max: 150
   params_max: 4
 tests: 'tests/test_bootstrap_project.py'
-tests_sha256: 'a1d4f959bc87d95edb00c56cb7ea1f1f7a5b716274cee1f4566dc01518d013ef'
+tests_sha256: '90e10c2b49edc4a698a0515a807de69fef116216aa467af69533b341e08f7b2b'
 touch_only: ['scripts/bootstrap_project.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'subprocess', 'llm']
@@ -44,7 +44,9 @@ def bootstrap_project(repo_dir: str, apply: bool, name: str,
 ## Examples
 
 - Dry-run minimal calcula el plan y no crea archivos.
-- Apply standard crea `KDD-START-HERE.md` con el comando del perfil standard.
+- Apply standard crea `KDD-START-HERE.md` con el comando del perfil standard,
+  incluyendo la referencia aprobada obligatoria.
+- El perfil minimal no exige `--approved-ref`.
 - Un perfil desconocido produce `ValueError` sin escribir la guía.
 
 ## Do / Don't
