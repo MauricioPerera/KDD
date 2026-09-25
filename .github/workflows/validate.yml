@@ -180,7 +180,8 @@ jobs:
         if: always()
         shell: python
         env:
-          KDD_APPROVED_BASELINE_REF: ${{ github.event_name == 'pull_request' && (vars.KDD_APPROVED_BASELINE_REF || github.event.pull_request.base.sha) || inputs.approved_baseline_ref || github.sha }}
+          KDD_APPROVED_BASELINE_REF: ${{ inputs.approved_baseline_ref || vars.KDD_APPROVED_BASELINE_REF || (github.event_name == 'pull_request' && github.event.pull_request.base.sha) || '' }}
+          KDD_CONTRACTS_DIR: ${{ inputs.contracts_dir || 'knowledge/contracts' }}
         run: |
           import os
           import subprocess
@@ -191,6 +192,7 @@ jobs:
           raise SystemExit(subprocess.call([
               sys.executable, 'scripts/validate_baseline.py', '--all',
               '--approved-ref', approved,
+              '--contracts-dir', os.environ['KDD_CONTRACTS_DIR'],
           ]))
   board:
     strategy:

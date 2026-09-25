@@ -40,8 +40,9 @@ una versión nueva del oráculo, el mantenedor puede proporcionar
 `KDD_APPROVED_BASELINE_REF` como variable del repositorio o el input
 `approved_baseline_ref` del workflow reutilizable. Esos valores, la
 configuración del CI y la protección de ramas deben quedar fuera del control
-del implementador. En `push` a `main`, el commit ya integrado sirve como
-referencia. Este control no autentica por sí solo la aprobación humana ni
+del implementador. En `push` a `main`, el workflow exige una referencia
+configurada por el mantenedor y falla si falta; nunca usa el mismo commit
+que está validando como aprobación automática. Este control no autentica por sí solo la aprobación humana ni
 protege un workflow que el autor del PR pueda alterar sin revisión.
 
 ## Evidencia de seguridad
