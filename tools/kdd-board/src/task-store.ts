@@ -63,6 +63,9 @@ export class TaskStore {
     if (!params.title || params.title.trim() === '') {
       throw new Error('TaskStore: title must be a non-empty string');
     }
+    if (params.priority !== undefined && !['low', 'medium', 'high', 'urgent'].includes(params.priority)) {
+      throw new Error('TaskStore: invalid priority');
+    }
     const now = new Date().toISOString();
     const id = `task-${crypto.randomBytes(4).toString('hex')}`;
     const task: Task = {
