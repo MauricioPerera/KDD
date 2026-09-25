@@ -8,8 +8,8 @@ su exit code. Ver knowledge/contracts/test-command-gate.md, seccion
 
   API:
     ``extract_test_command(text) -> str|None`` — valor de la clave
-      ``test_command`` en el frontmatter YAML de un contrato (comillas simples
-      o dobles). None si la clave no esta presente.
+      ``test_command`` segun el parser del validador de contratos (con o sin
+      comillas). None si la clave no esta presente.
     ``collect_contracts(directory) -> [{'path','test_command'}]`` — un item
       por cada ``*.md`` de ``directory`` que:
         - NO empieza con ``TEMPLATE-`` (no es un contrato real).
@@ -92,6 +92,15 @@ class TestExtractTestCommand(unittest.TestCase):
             vtc.extract_test_command(text),
             "python -m unittest tests/test_x.py",
         )
+
+    def test_plain_scalar_accepted_by_contract_validator(self):
+        text = _contract('test_command: python -m unittest tests/test_x.py')
+        self.assertEqual(vtc.extract_test_command(text),
+                         'python -m unittest tests/test_x.py')
+
+    def test_duplicate_key_uses_same_last_value_as_contract_validator(self):
+        text = _contract('test_command: "echo first"\ntest_command: "echo second"')
+        self.assertEqual(vtc.extract_test_command(text), 'echo second')
 
     def test_missing_key(self):
         text = "---\ntype: 'Task Contract'\ntitle: 'x'\n---\n\n# Contract\n"
@@ -271,6 +280,15 @@ class TestRunAll(unittest.TestCase):
         self.assertTrue(by_name['ok.md']['ok'])
         self.assertFalse(by_name['bad.md']['ok'])
         self.assertEqual(by_name['bad.md']['exit_code'], 1)
+
+    def test_plain_scalar_failure_is_not_skipped(self):
+        bad_script = _write_exit_script(self.tmp, 'bad_script.py', 1)
+        _write(os.path.join(self.tmp, 'bad.md'),
+               _contract('test_command: {} {}'.format(sys.executable, bad_script)))
+        result = vtc.run_all(self.tmp, repo_root='.', timeout=10)
+        self.assertEqual(len(result), 1)
+        self.assertFalse(result[0]['ok'])
+        self.assertEqual(result[0]['exit_code'], 1)
 
 
 class TestMain(unittest.TestCase):

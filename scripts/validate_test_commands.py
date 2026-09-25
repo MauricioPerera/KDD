@@ -15,61 +15,21 @@ API publica (fijada por ``tests/test_validate_test_commands.py``):
 """
 
 import os
-import re
 import shlex
 import subprocess
 import sys
 from validate_contracts import parse_frontmatter
 
 
-def _frontmatter(text):
-    """Devuelve el bloque YAML entre los delimitadores ``---`` iniciales, o ''.
-
-    Normaliza CRLF/CR a LF antes de matchear para que un contrato guardado con
-    CRLF (Windows) se parsee igual que con LF, coherente con el dialecto
-    ``splitlines()`` de validate_contracts.py (Contrato: test-command-gate).
-    """
-    text = text.replace('\r\n', '\n').replace('\r', '\n')
-    m = re.match(r'^---\n(.*?)\n---', text, re.DOTALL)
-    return m.group(1) if m else ''
-
-
-def _unescape_double(value):
-    """YAML double-quoted: solo convierte ``\\"`` en ``"``.
-
-    Las demas barras (ej. ``C:\\Python``) se conservan literales — el oraculo
-    trata la ruta de ``sys.executable`` en Windows como texto, no como escapes
-    YAML completos.
-    """
-    return re.sub(r'\\"', '"', value)
-
-
 def extract_test_command(text):
-    """Valor de ``test_command`` en el frontmatter (comillas simples o dobles).
+    """Read the same frontmatter value accepted by ``validate_contracts``.
 
-    None si la clave no esta o esta vacia. Soporta escapes ``\\"`` (doble
-    comilla) y ``''`` (simple comilla duplicada) segun el escalar YAML.
+    The shared parser accepts both quoted and plain scalars. A second regex
+    parser silently skipped otherwise valid contracts, producing false PASS.
     """
-    fm = _frontmatter(text)
-    if not fm:
-        return None
-    m = re.search(
-        r'^test_command:\s*"((?:\\.|[^"\\])*)"\s*$',
-        fm,
-        re.MULTILINE,
-    )
-    if m:
-        value = _unescape_double(m.group(1))
-        return value if value else None
-    m = re.search(
-        r"^test_command:\s*'((?:[^']|'')*)'\s*$",
-        fm,
-        re.MULTILINE,
-    )
-    if m:
-        value = m.group(1).replace("''", "'")
-        return value if value else None
-    return None
+    metadata, _ = parse_frontmatter(text)
+    value = metadata.get('test_command') if isinstance(metadata, dict) else None
+    return value if isinstance(value, str) and value else None
 
 
 def collect_contracts(directory):

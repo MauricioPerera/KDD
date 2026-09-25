@@ -42,6 +42,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Gate de formato de mensaje de commit](./contracts/commit-message-gate.md)
   - [Gate de diagramas Mermaid (flowchart, Python puro)](./contracts/diagram-gate.md)
   - [Gate que ejecuta el test_command de cada contrato (Nivel 1)](./contracts/test-command-gate.md)
+  - [Gate confiable para PR y referencia aprobada](./contracts/trusted-pr-gate.md)
   - [Enforcement determinista de budgets](./contracts/budget-enforcement.md)
   - [Perfiles de validación KDD](./contracts/run-profile.md)
   - [Manifiesto determinista de baseline de calidad](./contracts/quality-baseline.md)

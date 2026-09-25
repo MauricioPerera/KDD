@@ -1,0 +1,32 @@
+name: trusted-pr-gate
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  trusted-pr-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compare proposed merge with approved baseline
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          KDD_APPROVED_BASELINE_REF: ${{ vars.KDD_APPROVED_BASELINE_REF }}
+        run: >-
+          python scripts/guard_pr_baseline.py
+          --pr-number "$PR_NUMBER"
+          --base-ref "$BASE_SHA"
+          --approved-ref "$KDD_APPROVED_BASELINE_REF"
