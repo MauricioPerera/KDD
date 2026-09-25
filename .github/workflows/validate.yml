@@ -95,22 +95,6 @@ jobs:
       - name: Validate contracts
         run: python scripts/validate_contracts.py ${{ inputs.contracts_dir || 'knowledge/contracts' }}
 
-      - name: Check approved contract and oracle baseline
-        shell: python
-        env:
-          KDD_APPROVED_BASELINE_REF: ${{ github.event_name == 'pull_request' && (vars.KDD_APPROVED_BASELINE_REF || github.event.pull_request.base.sha) || inputs.approved_baseline_ref || github.sha }}
-        run: |
-          import os
-          import subprocess
-          import sys
-          approved = os.environ['KDD_APPROVED_BASELINE_REF']
-          if not approved:
-              raise SystemExit('FAIL: an approved baseline reference is required')
-          raise SystemExit(subprocess.call([
-              sys.executable, 'scripts/validate_baseline.py', '--all',
-              '--approved-ref', approved,
-          ]))
-
       - name: "Validate specs contracts"
         run: python scripts/validate_specs.py ${{ inputs.specs_dir || 'specs' }}
 
@@ -190,6 +174,23 @@ jobs:
 
       - name: Assemble context (smoke)
         run: python scripts/assemble_context.py ccdd/context.json "smoke"
+
+      - name: Check approved contract and oracle baseline
+        if: always()
+        shell: python
+        env:
+          KDD_APPROVED_BASELINE_REF: ${{ github.event_name == 'pull_request' && (vars.KDD_APPROVED_BASELINE_REF || github.event.pull_request.base.sha) || inputs.approved_baseline_ref || github.sha }}
+        run: |
+          import os
+          import subprocess
+          import sys
+          approved = os.environ['KDD_APPROVED_BASELINE_REF']
+          if not approved:
+              raise SystemExit('FAIL: an approved baseline reference is required')
+          raise SystemExit(subprocess.call([
+              sys.executable, 'scripts/validate_baseline.py', '--all',
+              '--approved-ref', approved,
+          ]))
   board:
     strategy:
       matrix:
