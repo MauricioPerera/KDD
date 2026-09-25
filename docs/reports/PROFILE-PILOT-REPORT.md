@@ -64,3 +64,9 @@ aplica la regla a administradores y bloquea force push y eliminación de la rama
 Se verificó con la API de GitHub después de crear la regla. El resultado de CI
 de esta rama seguirá rojo en el paso de baseline frente a `main` hasta la
 aprobación de la referencia nueva.
+
+La protección exige que los checks los publique GitHub Actions, pero no congela
+el contenido del workflow ni del validador dentro de un pull request. Un cambio
+en `.github/workflows/validate.yml` o `scripts/validate_baseline.py` requiere
+revisión humana antes del merge; la referencia aprobada por sí sola no prueba
+que un workflow modificado siga ejecutando la comparación.
