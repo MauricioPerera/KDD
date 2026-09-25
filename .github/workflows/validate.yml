@@ -1,4 +1,5 @@
 name: validate-contracts
+# Probe: a PR must not change this workflow without trusted approval.
 
 permissions:
   contents: read
