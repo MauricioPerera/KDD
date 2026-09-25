@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: "tests/test_validate_test_commands.py"
-tests_sha256: "de5320b89316db118941deaec4a1aa5afd5bba92929865c9e3c17540053f6cbf"
+tests_sha256: "36a643da370dcd65788dcbb02cb7b6ea2151d009962b945d3d5039780ccd1266"
 touch_only: ['scripts/validate_test_commands.py']
 deps_allowed: []
 forbids: ['network', 'llm']
@@ -51,9 +51,10 @@ gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
 "despachar otro gate como subprocess" debe seguir sin `subprocess`.
 
 ## Interface
-- `extract_test_command(text) -> str|None` — valor de `test_command` en el
-  frontmatter YAML de un contrato (comillas simples o dobles). `None` si
-  la clave no esta o esta vacia.
+- `extract_test_command(text) -> str|None` — valor de `test_command` segun
+  el mismo parser de frontmatter que usa `validate_contracts.py`, con o sin
+  comillas. `None` si la clave no esta o esta vacia. Si la clave aparece
+  dos veces, usa el ultimo valor, igual que el validador de contratos.
 - `collect_contracts(directory) -> [{'path','test_command','scope'}]` — un item
   por cada `*.md` de `directory` que NO empieza con `TEMPLATE-` y tiene
   `test_command` no vacio. Ordenado por `path`. `scope` es `product` o
@@ -90,6 +91,8 @@ gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
   resultado del gate para distinguir findings de fixtures de fallos reales.
 - Un contrato de producto que falla hace fallar el gate aunque toda la
   infraestructura esté verde.
+- Un comando sin comillas aceptado por el validador de contratos se ejecuta;
+  no se omite silenciosamente ni puede producir un PASS falso.
 - El orden de `collect_contracts`/`run_all` es siempre por `path`
   ascendente (determinismo del reporte).
 

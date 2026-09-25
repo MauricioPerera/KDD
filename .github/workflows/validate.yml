@@ -1,5 +1,8 @@
 name: validate-contracts
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -82,11 +85,30 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Check approved contract and oracle baseline
+        shell: python
+        env:
+          KDD_APPROVED_BASELINE_REF: ${{ inputs.approved_baseline_ref || vars.KDD_APPROVED_BASELINE_REF || '' }}
+          KDD_CONTRACTS_DIR: ${{ inputs.contracts_dir || 'knowledge/contracts' }}
+        run: |
+          import os
+          import subprocess
+          import sys
+          approved = os.environ['KDD_APPROVED_BASELINE_REF']
+          if not approved:
+              raise SystemExit('FAIL: an approved baseline reference is required')
+          raise SystemExit(subprocess.call([
+              sys.executable, 'scripts/validate_baseline.py', '--all',
+              '--approved-ref', approved,
+              '--contracts-dir', os.environ['KDD_CONTRACTS_DIR'],
+          ]))
 
       - name: Set up Node.js (for the multi-language example contract)
         uses: actions/setup-node@v4
@@ -176,24 +198,6 @@ jobs:
       - name: Assemble context (smoke)
         run: python scripts/assemble_context.py ccdd/context.json "smoke"
 
-      - name: Check approved contract and oracle baseline
-        if: always()
-        shell: python
-        env:
-          KDD_APPROVED_BASELINE_REF: ${{ inputs.approved_baseline_ref || vars.KDD_APPROVED_BASELINE_REF || (github.event_name == 'pull_request' && github.event.pull_request.base.sha) || '' }}
-          KDD_CONTRACTS_DIR: ${{ inputs.contracts_dir || 'knowledge/contracts' }}
-        run: |
-          import os
-          import subprocess
-          import sys
-          approved = os.environ['KDD_APPROVED_BASELINE_REF']
-          if not approved:
-              raise SystemExit('FAIL: an approved baseline reference is required')
-          raise SystemExit(subprocess.call([
-              sys.executable, 'scripts/validate_baseline.py', '--all',
-              '--approved-ref', approved,
-              '--contracts-dir', os.environ['KDD_CONTRACTS_DIR'],
-          ]))
   board:
     strategy:
       matrix:
@@ -201,6 +205,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
