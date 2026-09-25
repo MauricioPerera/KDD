@@ -23,6 +23,10 @@ En el repositorio KDD, `python scripts/validate_baseline.py --all
 y señala los cuatro contratos actualizados junto con sus cuatro oráculos. Es la
 respuesta esperada hasta que un mantenedor apruebe una referencia nueva.
 
+La [ejecución de CI 36178139712](https://github.com/MauricioPerera/KDD/actions/runs/36178139712)
+completó los cuatro jobs: `board` pasó en Ubuntu y Windows; `validate`
+falló en ambos solo en el paso final de baseline, frente al `main` anterior.
+
 ## Comprobaciones de regresión
 
 - `python -m unittest tests.test_run_profile tests.test_validate_baseline
@@ -54,6 +58,9 @@ respuesta esperada hasta que un mantenedor apruebe una referencia nueva.
 La CLI exige un SHA explícito, pero no puede demostrar quién lo aprobó. En
 pull requests, el workflow usa por defecto el SHA de la rama base; aprobar un
 oráculo nuevo requiere que un mantenedor configure una referencia de confianza
-fuera del control del implementador. El propietario también debe proteger la
-rama y el workflow exigido. El resultado de CI de esta rama seguirá rojo en el
-paso de baseline frente a `main` hasta esa aprobación.
+fuera del control del implementador. `main` está protegido: exige pull request,
+los cuatro checks `validate` y `board` en Ubuntu y Windows (con rama actualizada),
+aplica la regla a administradores y bloquea force push y eliminación de la rama.
+Se verificó con la API de GitHub después de crear la regla. El resultado de CI
+de esta rama seguirá rojo en el paso de baseline frente a `main` hasta la
+aprobación de la referencia nueva.
