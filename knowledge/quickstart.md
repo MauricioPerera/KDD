@@ -133,8 +133,8 @@ target: src/saludar.py
 signature: "def saludar(nombre: str) -> str:"
 test_command: "python -m unittest tests/test_saludar.py"
 budget:
-  max_cyclomatic_complexity: 2
-  max_nesting_depth: 1
+  cyclomatic_max: 2
+  nesting_max: 1
 tests: "tests/test_saludar.py"
 tests_sha256: "<el hash del paso 4.2>"
 touch_only: ['src/saludar.py']
@@ -182,9 +182,9 @@ python scripts/preflight.py
 ```
 
 Esperado: una linea por gate con su estado `PASS`/`FAIL`/`TIMEOUT` y un
-resumen `N/12`. Si algo falla, arreglalo antes de delegar — no tiene
+resumen `N/19`. Si algo falla, arreglalo antes de delegar — no tiene
 sentido mandarle a un agente un repo que ya rompe un gate. Diagnostico
-opt-in, mismo estatus que `benchmark_gates.py` (Nivel 1 sigue siendo 11
+opt-in, mismo estatus que `benchmark_gates.py` (Nivel 1 sigue siendo 18
 gates; el preflight suma `validate_attestation`, el local-only).
 
 Si un gate falla y su mensaje no te dice COMO arreglarlo, agrega `--agent`:

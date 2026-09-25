@@ -41,6 +41,11 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
 
 ## Proceso
 
+En proyectos que adopten el [protocolo de sprints](./sprints.md), seleccionar el resultado
+y el backlog del sprint antes de PLAN. El sprint referencia entregas de los contratos;
+no reemplaza sus criterios de aceptación. Su admisión y presupuesto son controles
+operativos manuales hasta implementar un despachador que los aplique.
+
 1. **PLAN** — convertir el pedido en contrato de ejecución con tareas atómicas; mostrarlo
    antes de disparar trabajo pesado.
    **RECON NEEDED:** toda suposición del plan que no esté verificada (comando real de la
@@ -150,6 +155,26 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
    probar el lado que tocaste:** grep del nombre de la función en todo el repo antes de dar
    el fix por completo — "mis tests pasan" no es lo mismo que "soy consistente con quien
    consume mi output" ([caso real](./casos-reales.md#contrato-bilateral-mitad-arreglado-verificar)).
+   **Cuando varios auditores de dominio corren sobre el mismo target sin comunicarse
+   entre sí, una convergencia de dos o más en el mismo artefacto pesa más que la suma
+   de sus severidades individuales:** tratala como un solo hallazgo compuesto, no como
+   entradas separadas en backlogs distintos — la convergencia entre instrumentos
+   DISTINTOS (texto de licencia vs. actividad de commits, por ejemplo) es más fuerte
+   que la convergencia entre copias del mismo instrumento
+   ([caso real](./casos-reales.md#dos-dominios-de-capa-3-que-nunca-se-hablan-convergen-en-el-mismo-riesgo-verificar)).
+   **Arreglar el código que un hallazgo de auditoría describe y re-sellar el artefacto
+   que lo declara son la misma tarea, no dos tareas separables:** un fix sin resello deja
+   una afirmación pública de vulnerabilidad que ya no es cierta. Si el dominio tiene
+   identidad derivada (fingerprint por finding), los campos de identidad del target
+   (`revision`/`targetId`) son material de HASH, no metadata libre — tocarlos invalida
+   la identidad de TODOS los findings, no solo el que se corrigió
+   ([caso real](./casos-reales.md#un-hallazgo-arreglado-en-el-codigo-sigue-abierto-si-el-artefacto-no-se-resella-cierre--verificar)).
+   **La remediación que sugiere un hallazgo de auditoría (Capa 3 o cualquier scanner) es
+   una hipótesis a verificar, no una receta a ejecutar:** el hallazgo certifica CON
+   precisión que algo está mal, no que el camino de arreglo más obvio sea seguro —
+   aplicar la sugerencia sin leer el código real del cambio puede cambiar la naturaleza
+   del bug en vez de cerrarlo
+   ([caso real](./casos-reales.md#el-fix-obvio-de-un-hallazgo-de-capa-3-puede-romper-en-silencio-lo-que-arregla-verificar)).
    **Una verificación de ausencia solo vale si la herramienta corrió de verdad:**
    distinguir «corrió y no encontró» de «no corrió» — un fallback (`|| echo OK`) sobre un
    comando inexistente fabrica falsos negativos limpios

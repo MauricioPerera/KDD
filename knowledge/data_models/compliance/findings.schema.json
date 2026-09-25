@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MauricioPerera/KDD/schemas/compliance/findings.schema.json",
+  "title": "KDD compliance (license) findings",
+  "type": "object",
+  "required": [
+    "documentType",
+    "schemaVersion",
+    "scanId",
+    "projectLicense",
+    "findings"
+  ],
+  "properties": {
+    "documentType": {
+      "const": "kdd-compliance.findings"
+    },
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "scanId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "projectLicense": {
+      "type": "string",
+      "minLength": 1,
+      "description": "SPDX identifier of the host project's own license, used to judge compatibleWithProjectLicense."
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "findingId",
+          "dependencyName",
+          "dependencyVersion",
+          "license",
+          "licenseCategory",
+          "compatibleWithProjectLicense",
+          "severity",
+          "remediation",
+          "source"
+        ],
+        "properties": {
+          "findingId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dependencyName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dependencyVersion": {
+            "type": "string",
+            "minLength": 1
+          },
+          "license": {
+            "type": "string",
+            "minLength": 1,
+            "description": "SPDX identifier, or 'unknown' if the scanner could not determine it."
+          },
+          "licenseCategory": {
+            "enum": [
+              "permissive",
+              "weak-copyleft",
+              "strong-copyleft",
+              "proprietary",
+              "unknown"
+            ]
+          },
+          "compatibleWithProjectLicense": {
+            "type": "boolean",
+            "description": "Decided by the producer (scanner/normalizer) against projectLicense, not by the rule gate."
+          },
+          "severity": {
+            "enum": [
+              "critical",
+              "high",
+              "medium",
+              "low",
+              "informational"
+            ]
+          },
+          "remediation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Tool that produced this finding, e.g. 'pip-licenses', 'license-checker', 'cargo-license', 'go-licenses'."
+          }
+        }
+      }
+    }
+  }
+}

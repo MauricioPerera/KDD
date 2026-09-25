@@ -61,9 +61,10 @@ el mismo que define "esto esta bien".** Concretamente:
    `test_command` y falla si algun exit code no es 0: el hueco entre "el
    contrato dice que hay tests" y "los tests realmente pasan" queda
    cerrado por un gate, no por confianza.
-4. **Cero LLM en el camino obligatorio.** Los 10 gates de Nivel 1 son
-   Python puro, sin red ni subprocess salvo la unica excepcion documentada
-   (el gate de arriba, cuyo intent ES correr un comando). Nada del
+4. **Cero LLM en el camino obligatorio.** Los 18 gates de Nivel 1 son
+   Python puro, sin red ni subprocess salvo las dos excepciones
+   documentadas (el gate de arriba y `mcp-gate-dispatch`, cuyo intent en
+   ambos casos ES correr un comando/subprocess). Nada del
    veredicto "paso"/"no paso" depende de que un modelo interprete bien un
    prompt de evaluacion — evita la clase de fragilidad de "el juez LLM lo
    dejo pasar esta vez".

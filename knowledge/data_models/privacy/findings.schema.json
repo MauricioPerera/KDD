@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MauricioPerera/KDD/schemas/privacy/findings.schema.json",
+  "title": "KDD privacy (PII / data-flow) findings",
+  "type": "object",
+  "required": [
+    "documentType",
+    "schemaVersion",
+    "scanId",
+    "findings"
+  ],
+  "properties": {
+    "documentType": {
+      "const": "kdd-privacy.findings"
+    },
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "scanId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "findingId",
+          "dataCategory",
+          "collectionPoint",
+          "legalBasis",
+          "severity",
+          "remediation",
+          "source"
+        ],
+        "properties": {
+          "findingId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dataCategory": {
+            "enum": [
+              "none",
+              "personal",
+              "sensitive-personal",
+              "financial",
+              "health",
+              "biometric"
+            ]
+          },
+          "collectionPoint": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Where the data is collected (form field, API endpoint, log line, third-party SDK, etc.)."
+          },
+          "storageLocation": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Where the data is persisted (DB table, log sink, analytics vendor, cache), if known."
+          },
+          "legalBasis": {
+            "enum": [
+              "consent",
+              "contract",
+              "legitimate-interest",
+              "legal-obligation",
+              "none-declared"
+            ]
+          },
+          "retentionDefined": {
+            "type": "boolean",
+            "description": "Whether a retention/deletion policy is declared for this data."
+          },
+          "severity": {
+            "enum": [
+              "critical",
+              "high",
+              "medium",
+              "low",
+              "informational"
+            ]
+          },
+          "remediation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "How this finding was produced (manual review, static data-flow scan, DPIA excerpt, etc.)."
+          }
+        }
+      }
+    }
+  }
+}

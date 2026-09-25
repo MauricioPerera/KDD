@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MauricioPerera/KDD/schemas/test-coverage/findings.schema.json",
+  "title": "KDD test-coverage gap findings",
+  "type": "object",
+  "required": [
+    "documentType",
+    "schemaVersion",
+    "scanId",
+    "findings"
+  ],
+  "properties": {
+    "documentType": {
+      "const": "kdd-test-coverage.findings"
+    },
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "scanId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "findingId",
+          "gapType",
+          "location",
+          "severity",
+          "remediation",
+          "source"
+        ],
+        "properties": {
+          "findingId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "gapType": {
+            "enum": [
+              "untested-critical-path",
+              "no-error-case-coverage",
+              "no-regression-test",
+              "flaky-test-untracked",
+              "other"
+            ]
+          },
+          "location": {
+            "type": "string",
+            "minLength": 1,
+            "description": "File:function/method, module, or operation with the coverage gap."
+          },
+          "criticalPath": {
+            "type": "boolean",
+            "description": "Whether this location is on a critical path (payment, auth, data integrity risk), if known."
+          },
+          "severity": {
+            "enum": [
+              "critical",
+              "high",
+              "medium",
+              "low",
+              "informational"
+            ]
+          },
+          "remediation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "How this finding was produced, e.g. 'manual review', 'coverage report', 'incident postmortem'."
+          }
+        }
+      }
+    }
+  }
+}
