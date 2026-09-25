@@ -78,7 +78,7 @@ There are two complementary ways to run the KDD gates against your repo without 
   ```yaml
   jobs:
     kdd:
-      uses: MauricioPerera/KDD/.github/workflows/validate.yml@main
+      uses: MauricioPerera/KDD/.github/workflows/validate.yml@<FULL_KDD_COMMIT_SHA>
       with:
         contracts_dir: knowledge/contracts   # override only the paths you moved
         specs_dir: specs
@@ -87,16 +87,16 @@ There are two complementary ways to run the KDD gates against your repo without 
         # all have defaults matching the template; omit the ones you didn't move.
   ```
 
-  Every input has a default equal to the template's hardcoded path, so a vanilla fork can call it with an empty `with:` block. (Note: these defaults apply only when called via `workflow_call`; the workflow's own native `push`/`pull_request` triggers fall back to the same literals embedded in the run expressions, so the KDD repo's own CI is unchanged.)
+  Replace `<FULL_KDD_COMMIT_SHA>` with the reviewed 40-character commit SHA. Every input has a default equal to the template's hardcoded path, so a vanilla fork can call it with an empty `with:` block. (Note: these defaults apply only when called via `workflow_call`; the workflow's own native `push`/`pull_request` triggers fall back to the same literals in the job environment, so the KDD repo's own CI is unchanged.)
 
 - **Mode 2 — your repo is NOT a fork of the template but has its own `knowledge/contracts/`** (no vendored `scripts/`). Use the composite action, which checks out this repo's tooling for you:
 
   ```yaml
   steps:
     - uses: actions/checkout@v4          # YOUR repo (the action assumes this is done first)
-    - uses: MauricioPerera/KDD/.github/actions/validate-contracts@main
+    - uses: MauricioPerera/KDD/.github/actions/validate-contracts@<FULL_KDD_COMMIT_SHA>
       with:
-        kdd-ref: main                     # pin to a tag for reproducibility
+        kdd-ref: <FULL_KDD_COMMIT_SHA>   # use the same reviewed 40-character SHA
         contracts-dir: knowledge/contracts
         okf-dir: knowledge
         # specs-dir is optional and auto-skipped if your repo has no specs/.

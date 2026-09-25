@@ -29,12 +29,10 @@ tags: ['ccdd', 'validacion', 'gate', 'reference']
 
 El perfil `standard` también corre ese gate: un producto roto ya no queda en
 verde porque sólo pasó la suite heredada. Por diseño, `standard` y `strict`
-ejecutan primero los dos pasos de `minimal` (validación de contratos y suite
-heredada), después comparan todos los contratos/oráculos con
-`--approved-ref <SHA>` y sólo entonces ejecutan los `test_command` de cada
-contrato. La referencia se exige como SHA completo; no se deduce de `HEAD`.
-Esta secuencia del perfil local no impide que la suite heredada corra antes de
-la comparación. En el CI de este repositorio, `.github/workflows/validate.yml`
+validan primero los contratos y comparan todos los contratos/oráculos con
+`--approved-ref <SHA>` antes de ejecutar la suite heredada o los
+`test_command` de cada contrato. La referencia se exige como SHA completo;
+no se deduce de `HEAD`. En el CI de este repositorio, `.github/workflows/validate.yml`
 comprueba la referencia antes de ejecutar los `test_command` y la suite del PR: toma el input
 `approved_baseline_ref` del workflow reutilizable o la variable
 `KDD_APPROVED_BASELINE_REF`, y falla si no se configuró ninguno. No usa el SHA
@@ -49,7 +47,7 @@ suma a `PASS`.
 
 Enforcement local opt-in de budgets Python: `python scripts/validate_budgets.py knowledge/contracts --repo-root . --contract <task>` mide el target de una tarea contra `cyclomatic_max`, `nesting_max`, `lines_max` y `params_max`. Exit 1 significa exceso. La ejecución global, sin `--contract`, es diagnóstica para revelar la deuda de budgets históricos sin convertirla silenciosamente en un gate de CI. Los targets no Python se omiten explícitamente hasta incorporar un medidor equivalente. Este paso no sustituye al gate CCDD multi-lenguaje; permite avanzar con una comprobación determinista aunque no esté disponible el servidor MCP.
 
-Todos corren localmente y en CI (`.github/workflows/validate.yml`, matriz `ubuntu-latest` + `windows-latest`, que además valida los nodos OKF y corre la suite dos veces — dos corridas idénticas ≈ sin flaky). **Ningún contrato se considera terminado hasta que pase el nivel 1.**
+Todos corren localmente y en CI (`.github/workflows/validate.yml`, matriz `ubuntu-latest` + `windows-latest`, que además valida los nodos OKF y corre la suite dos veces — dos corridas idénticas ≈ sin flaky). El caso costoso de post-init se ejecuta una vez dentro del `test_command` de su contrato y se omite en las dos pasadas generales mediante `KDD_SKIP_INIT_POST_APPLY_SUITE=1`; los demás tests siguen corriendo dos veces. **Ningún contrato se considera terminado hasta que pase el nivel 1.**
 
 ## Preflight — diagnóstico local opt-in (NO es un gate)
 

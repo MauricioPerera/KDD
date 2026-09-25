@@ -72,8 +72,17 @@ def _ignore(src, names):
     return ignored
 
 
-def _copy_repo(dst):
-    shutil.copytree(ROOT, dst, ignore=_ignore, dirs_exist_ok=True)
+def _copy_repo(dst, full=False):
+    if full:
+        shutil.copytree(ROOT, dst, ignore=_ignore, dirs_exist_ok=True)
+        return
+    # Unit cases need only the manifest, init inputs and representative
+    # infrastructure. The post-apply integration case still copies everything.
+    for rel in set(MANIFEST) | set(INTACTABLES) | set(_init_mod.REQUIRED_AFTER_DELETE):
+        source = Path(ROOT, rel)
+        target = Path(dst, rel)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
 
 
 def _files(root):
@@ -135,9 +144,11 @@ class TestInitProject(unittest.TestCase):
             self.assertFalse(os.path.isfile(os.path.join(self.repo, rel)),
                              "no se elimino: {}".format(rel))
 
+    @unittest.skipIf(os.environ.get("KDD_SKIP_INIT_POST_APPLY_SUITE") == "1",
+                     "already covered by the init-project contract test_command")
     def test_gates_verdes_post_apply_en_copia(self):
         # Criterio estrella: post-init los 3 gates verdes en la copia.
-        _copy_repo(self.repo)
+        _copy_repo(self.repo, full=True)
         self.assertEqual(_run_cli(self.repo, "--apply").returncode, 0)
         vc = _run(["scripts/validate_contracts.py", "knowledge/contracts"], self.repo)
         self.assertEqual(vc.returncode, 0, "validate_contracts:\n" + vc.stdout + vc.stderr)

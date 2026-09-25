@@ -34,9 +34,8 @@ description: |
 
 inputs:
   kdd-ref:
-    description: 'Ref of MauricioPerera/KDD to check out for the tooling scripts.'
-    required: false
-    default: 'main'
+    description: 'Full 40-character commit SHA of MauricioPerera/KDD containing the tooling scripts.'
+    required: true
   contracts-dir:
     description: 'Path (relative to the caller checkout) to the KDD contracts dir. Logically REQUIRED.'
     required: false
@@ -105,6 +104,16 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Require immutable KDD tooling ref
+      shell: bash
+      env:
+        KDD_REF: ${{ inputs.kdd-ref }}
+      run: |
+        if [[ ! "$KDD_REF" =~ ^[0-9a-fA-F]{40}$ ]]; then
+          echo 'kdd-ref must be a full commit SHA' >&2
+          exit 1
+        fi
+
     - name: Check out KDD tooling repo
       uses: actions/checkout@v4
       with:
@@ -119,70 +128,104 @@ runs:
 
     - name: Validate contracts (REQUIRED)
       shell: bash
-      run: python _kdd/scripts/validate_contracts.py "${{ inputs.contracts-dir }}"
+      env:
+        KDD_CONTRACTS_DIR: ${{ inputs.contracts-dir }}
+      run: python _kdd/scripts/validate_contracts.py "$KDD_CONTRACTS_DIR"
 
     - name: Validate OKF nodes (REQUIRED)
       shell: bash
-      run: python _kdd/scripts/validate_okf.py "${{ inputs.okf-dir }}"
+      env:
+        KDD_OKF_DIR: ${{ inputs.okf-dir }}
+      run: python _kdd/scripts/validate_okf.py "$KDD_OKF_DIR"
 
     - name: Validate specs contracts (OPTIONAL — guarded)
       shell: bash
+      env:
+        KDD_SPECS_DIR: ${{ inputs.specs-dir }}
       run: |
-        if [ -d "${{ inputs.specs-dir }}" ]; then
-          python _kdd/scripts/validate_specs.py "${{ inputs.specs-dir }}"
+        if [ -d "$KDD_SPECS_DIR" ]; then
+          python _kdd/scripts/validate_specs.py "$KDD_SPECS_DIR"
         else
-          echo "skip: no specs dir at ${{ inputs.specs-dir }}"
+          echo "SKIP: no specs dir at $KDD_SPECS_DIR"
         fi
 
     - name: Validate rule contracts (OPTIONAL — auto-skip)
       shell: bash
-      run: python _kdd/scripts/validate_rules.py "${{ inputs.rules-dir }}"
+      env:
+        KDD_RULES_DIR: ${{ inputs.rules-dir }}
+      run: python _kdd/scripts/validate_rules.py "$KDD_RULES_DIR"
 
     - name: Validate agent skills (OPTIONAL — auto-skip)
       shell: bash
-      run: python _kdd/scripts/validate_skills.py ${{ inputs.skills-dirs }}
+      env:
+        KDD_SKILLS_DIRS: ${{ inputs.skills-dirs }}
+      run: |
+        read -r -a skill_dirs <<< "$KDD_SKILLS_DIRS"
+        python _kdd/scripts/validate_skills.py "${skill_dirs[@]}"
 
     - name: Validate UX/accessibility (OPTIONAL — auto-skip)
       shell: bash
-      run: python _kdd/scripts/validate_ux_page.py "${{ inputs.ux-page-dir }}"
+      env:
+        KDD_UX_PAGE_DIR: ${{ inputs.ux-page-dir }}
+      run: python _kdd/scripts/validate_ux_page.py "$KDD_UX_PAGE_DIR"
 
     - name: Validate Mermaid diagrams (OPTIONAL — auto-skip)
       shell: bash
-      run: python _kdd/scripts/validate_diagrams.py "${{ inputs.diagrams-dir }}"
+      env:
+        KDD_DIAGRAMS_DIR: ${{ inputs.diagrams-dir }}
+      run: python _kdd/scripts/validate_diagrams.py "$KDD_DIAGRAMS_DIR"
 
     - name: Validate security findings (OPTIONAL — auto-skip, vendored codex-security)
       shell: bash
-      run: python _kdd/scripts/validate_security_findings.py "${{ inputs.security-scan-dir }}"
+      env:
+        KDD_SECURITY_SCAN_DIR: ${{ inputs.security-scan-dir }}
+      run: python _kdd/scripts/validate_security_findings.py "$KDD_SECURITY_SCAN_DIR"
 
     - name: Validate compliance/license findings (OPTIONAL — auto-skip)
       shell: bash
-      run: python _kdd/scripts/validate_compliance_findings.py "${{ inputs.compliance-scan-dir }}"
+      env:
+        KDD_COMPLIANCE_SCAN_DIR: ${{ inputs.compliance-scan-dir }}
+      run: python _kdd/scripts/validate_compliance_findings.py "$KDD_COMPLIANCE_SCAN_DIR"
 
     - name: Validate privacy/PII findings (OPTIONAL — auto-skip)
       shell: bash
-      run: python _kdd/scripts/validate_privacy_findings.py "${{ inputs.privacy-scan-dir }}"
+      env:
+        KDD_PRIVACY_SCAN_DIR: ${{ inputs.privacy-scan-dir }}
+      run: python _kdd/scripts/validate_privacy_findings.py "$KDD_PRIVACY_SCAN_DIR"
 
     - name: Validate accessibility findings (OPTIONAL — auto-skip)
       shell: bash
-      run: python _kdd/scripts/validate_accessibility_findings.py "${{ inputs.accessibility-scan-dir }}"
+      env:
+        KDD_ACCESSIBILITY_SCAN_DIR: ${{ inputs.accessibility-scan-dir }}
+      run: python _kdd/scripts/validate_accessibility_findings.py "$KDD_ACCESSIBILITY_SCAN_DIR"
 
     - name: Validate dependency EOL findings (OPTIONAL — auto-skip)
       shell: bash
-      run: python _kdd/scripts/validate_dependency_eol_findings.py "${{ inputs.dependency-eol-scan-dir }}"
+      env:
+        KDD_DEPENDENCY_EOL_SCAN_DIR: ${{ inputs.dependency-eol-scan-dir }}
+      run: python _kdd/scripts/validate_dependency_eol_findings.py "$KDD_DEPENDENCY_EOL_SCAN_DIR"
 
     - name: Validate observability findings (OPTIONAL — auto-skip)
       shell: bash
-      run: python _kdd/scripts/validate_observability_findings.py "${{ inputs.observability-scan-dir }}"
+      env:
+        KDD_OBSERVABILITY_SCAN_DIR: ${{ inputs.observability-scan-dir }}
+      run: python _kdd/scripts/validate_observability_findings.py "$KDD_OBSERVABILITY_SCAN_DIR"
 
     - name: Validate test-coverage findings (OPTIONAL — auto-skip)
       shell: bash
-      run: python _kdd/scripts/validate_test_coverage_findings.py "${{ inputs.test-coverage-scan-dir }}"
+      env:
+        KDD_TEST_COVERAGE_SCAN_DIR: ${{ inputs.test-coverage-scan-dir }}
+      run: python _kdd/scripts/validate_test_coverage_findings.py "$KDD_TEST_COVERAGE_SCAN_DIR"
 
     - name: Scan for leaked secrets (OPTIONAL — auto-skip)
       shell: bash
-      run: python _kdd/scripts/scan_secrets.py "${{ inputs.src-dir }}"
+      env:
+        KDD_SRC_DIR: ${{ inputs.src-dir }}
+      run: python _kdd/scripts/scan_secrets.py "$KDD_SRC_DIR"
 
     - name: Run each contract's test_command (OPTIONAL — gated by run-test-commands)
       if: ${{ inputs.run-test-commands == 'true' }}
       shell: bash
-      run: python _kdd/scripts/validate_test_commands.py "${{ inputs.contracts-dir }}" .
+      env:
+        KDD_CONTRACTS_DIR: ${{ inputs.contracts-dir }}
+      run: python _kdd/scripts/validate_test_commands.py "$KDD_CONTRACTS_DIR" .
