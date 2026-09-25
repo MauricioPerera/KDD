@@ -60,6 +60,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Recetas de arreglo por rule-id (no es un gate)](./contracts/rule-hints.md) — `scripts/rule_hints.py`
   - [Validador OKF de la base de conocimiento](./contracts/validate-okf.md)
   - [Validador de contratos de ejecución (specs)](./contracts/validate-specs.md)
+  - [Coherencia de cierre entre spec, reporte y evidencia](./contracts/completion-evidence.md)
   - [Lint ASCII de literales en scripts](./contracts/lint-ascii.md)
   - [Inicializador de proyecto desde la plantilla](./contracts/init-project.md)
   - [Versionado de la plantilla (coherencia CHANGELOG/README/upgrade)](./contracts/versioning-plantilla.md)

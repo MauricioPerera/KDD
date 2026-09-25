@@ -23,6 +23,9 @@ on:
       specs_dir:
         type: string
         default: 'specs'
+      completion_policy_path:
+        type: string
+        default: 'completion-legacy.json'
       okf_dir:
         type: string
         default: 'knowledge'
@@ -84,6 +87,7 @@ jobs:
     env:
       KDD_CONTRACTS_DIR: ${{ inputs.contracts_dir || 'knowledge/contracts' }}
       KDD_SPECS_DIR: ${{ inputs.specs_dir || 'specs' }}
+      KDD_COMPLETION_POLICY: ${{ inputs.completion_policy_path || 'completion-legacy.json' }}
       KDD_OKF_DIR: ${{ inputs.okf_dir || 'knowledge' }}
       KDD_RULES_DIR: ${{ inputs.rules_dir || 'examples/rules' }}
       KDD_SKILLS_DIRS: ${{ inputs.skills_dirs || 'skills .agents/skills' }}
@@ -138,6 +142,15 @@ jobs:
       - name: "Validate specs contracts"
         shell: bash
         run: python scripts/validate_specs.py "$KDD_SPECS_DIR"
+
+      - name: Validate project completion evidence
+        shell: bash
+        run: |
+          if [ -f "$KDD_COMPLETION_POLICY" ]; then
+            python scripts/validate_completion.py --specs-dir "$KDD_SPECS_DIR" --policy "$KDD_COMPLETION_POLICY"
+          else
+            echo "SKIP: no completion policy at $KDD_COMPLETION_POLICY"
+          fi
 
       - name: Validate OKF nodes
         shell: bash

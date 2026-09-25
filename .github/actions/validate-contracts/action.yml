@@ -48,6 +48,10 @@ inputs:
     description: 'Path to the specs dir. OPTIONAL — auto-skipped if absent.'
     required: false
     default: 'specs'
+  completion-policy-path:
+    description: 'Path to completion-legacy.json; optional until project-level completion evidence is adopted.'
+    required: false
+    default: 'completion-legacy.json'
   rules-dir:
     description: 'Path to the rule-contracts dir. OPTIONAL — auto-skips (INFO) if absent.'
     required: false
@@ -147,6 +151,18 @@ runs:
           python _kdd/scripts/validate_specs.py "$KDD_SPECS_DIR"
         else
           echo "SKIP: no specs dir at $KDD_SPECS_DIR"
+        fi
+
+    - name: Validate project completion evidence (OPTIONAL — guarded)
+      shell: bash
+      env:
+        KDD_COMPLETION_POLICY: ${{ inputs.completion-policy-path }}
+        KDD_SPECS_DIR: ${{ inputs.specs-dir }}
+      run: |
+        if [ -f "$KDD_COMPLETION_POLICY" ]; then
+          python _kdd/scripts/validate_completion.py --repo-root . --specs-dir "$KDD_SPECS_DIR" --policy "$KDD_COMPLETION_POLICY"
+        else
+          echo "SKIP: no completion policy at $KDD_COMPLETION_POLICY"
         fi
 
     - name: Validate rule contracts (OPTIONAL — auto-skip)

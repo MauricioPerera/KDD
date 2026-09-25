@@ -71,6 +71,18 @@ class TestTrustedPrBaseline(unittest.TestCase):
         self.assertTrue(any('trusted gate file changed' in item
                             for item in guard.check(self.base, candidate, self.base)))
 
+    def test_completion_policy_change_fails(self):
+        self.write('completion-legacy.json', '{"legacy_pairs":{"CONTRACT-99":"fake"}}\n')
+        candidate = self.commit()
+        self.assertTrue(any('completion-legacy.json' in item
+                            for item in guard.check(self.base, candidate, candidate)))
+
+    def test_completion_validator_change_fails(self):
+        self.write('scripts/validate_completion.py', 'raise SystemExit(0)\n')
+        candidate = self.commit()
+        self.assertTrue(any('scripts/validate_completion.py' in item
+                            for item in guard.check(self.base, candidate, candidate)))
+
 
 if __name__ == '__main__':
     unittest.main()
