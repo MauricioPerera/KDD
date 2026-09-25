@@ -31,6 +31,7 @@ export interface TaskTestReport {
   durationMs: number;
   passedTests: number;
   failedTests: number;
+  verifiedOracle?: boolean;
   output: string;
   reportPath?: string;
   command?: string;

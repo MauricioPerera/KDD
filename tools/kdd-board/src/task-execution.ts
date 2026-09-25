@@ -18,7 +18,7 @@ export function digest(file: string): string {
 
 export function evidenceCurrent(task: Task): boolean {
   const r = task.testReport;
-  if (!task.contractId || !r?.success || !r.evidence || r.passedTests < 1 || r.failedTests !== 0) return false;
+  if (!task.contractId || !r?.success || !r.verifiedOracle || !r.evidence || r.passedTests < 1 || r.failedTests !== 0) return false;
   if (!r.cwd || Object.keys(r.evidence).length < 2) return false;
   if (r.command !== task.testCommand || r.contractId !== task.contractId) return false;
   try { return Object.entries(r.evidence).every(([file, hash]) => digest(file) === hash); }
@@ -59,7 +59,7 @@ export async function runTaskTests(store: TaskStore, vault: BlindVault, projectD
   }
   const evidence = Object.fromEntries(files.map(file => [file, digest(file)]));
   store.setTestCommand(id, command);
-  const report = await executeTaskTest(command, root, vault.environment());
+  const report = await executeTaskTest(command, root, vault.environment(), files[2]);
   report.command = command;
   report.cwd = root;
   report.contractId = contractId;

@@ -167,6 +167,7 @@ function renderBoard() {
   const tally = { backlog: 0, ready: 0, in_progress: 0, needs_human_input: 0, done: 0 };
 
   for (const task of currentTasks) {
+    const priority = safePriority(task.priority);
     tally[task.status] = (tally[task.status] || 0) + 1;
     const card = document.createElement('div');
     card.className = 'task-card';
@@ -177,7 +178,7 @@ function renderBoard() {
     card.innerHTML = `
       <div class="card-header-row">
         <span class="task-title">${escapeHtml(task.title)}</span>
-        <span class="priority-tag priority-${task.priority}">${task.priority}</span>
+        <span class="priority-tag priority-${priority}">${escapeHtml(priority)}</span>
       </div>
       <p class="task-desc">${escapeHtml(task.description || 'Sin descripción.')}</p>
       ${
@@ -244,6 +245,7 @@ window.openTaskDetail = function (taskId) {
 function renderTaskWorkspace(taskId) {
   const task = currentTasks.find((t) => t.id === taskId);
   if (!task) return;
+  const priority = safePriority(task.priority);
 
   const container = document.getElementById('workspace-container');
   const pendingReqs = task.requirements?.filter((r) => !r.isSatisfied) || [];
@@ -259,7 +261,7 @@ function renderTaskWorkspace(taskId) {
         <span style="font-family:var(--font-mono); font-size:0.82rem; color:var(--text-muted);">${task.id}</span>
       </div>
       <div style="display:flex; align-items:center; gap:0.6rem;">
-        <span class="priority-tag priority-${task.priority}">${task.priority}</span>
+        <span class="priority-tag priority-${priority}">${escapeHtml(priority)}</span>
         <span class="assignee-badge assignee-${task.assignee}">
           ${task.assignee === 'agent' ? '🤖 Agente' : task.assignee === 'human' ? '👤 Humano' : '⚪ Libre'}
         </span>
@@ -821,6 +823,10 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function safePriority(value) {
+  return ['low', 'medium', 'high', 'urgent'].includes(value) ? value : 'medium';
 }
 
 // 10. KDD Documentation & Contracts Explorer

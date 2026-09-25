@@ -260,6 +260,9 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
           contractId?: string;
           testCommand?: string;
         }>(req);
+        if (body.priority !== undefined && !['low', 'medium', 'high', 'urgent'].includes(body.priority)) {
+          return sendJson(res, 400, {error: 'Invalid priority'});
+        }
         const task = taskStore.createTask({
           title: body.title,
           description: body.description || '',
