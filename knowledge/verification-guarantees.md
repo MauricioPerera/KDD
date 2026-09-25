@@ -102,6 +102,15 @@ python scripts/validate_security_findings.py security/scan --required
 
 Sin --required, ausencia conserva exit 0 por compatibilidad y preflight muestra SKIP, fuera del numerador PASS. Con --required, ausencia bloquea. La comprobacion de integridad no autentica al productor ni prueba que el escaneo corresponda al HEAD actual; esa vinculacion debe imponerla el pipeline que produce y aprueba la evidencia. Otros dominios de Capa 3 conservan sus politicas existentes.
 
+El workflow reutilizable y la accion compuesta publican una tabla PASS/FAIL/SKIP
+para las siete capas de scan; el workflow incluye tambien quality. Un paso
+verde con archivo ausente se cuenta SKIP. `required_evidence` (o
+`required-evidence` en la accion) exige los archivos de las capas declaradas
+antes de los validadores y falla si faltan. En el repositorio KDD la capa
+security sigue ausente y debe verse SKIP; quality tambien, hasta que se
+configure una politica de proyecto. La tabla usa el outcome real de cada
+validador para no confundir archivo presente con evidencia validada.
+
 ## Migracion
 
 - Estado del tablero: antes tools/kdd-board/data/tasks.json; ahora .kdd-board/tasks.json dentro del proyecto seleccionado. Con el tablero detenido, copiar el archivo antiguo al destino si se desea conservar las tareas; no sobrescribir un destino existente sin reconciliar. La migracion no es automatica porque el estado anterior era compartido entre proyectos.

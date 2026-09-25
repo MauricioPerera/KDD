@@ -49,6 +49,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Auditor determinista de mutación](./contracts/mutation-audit.md)
   - [Arranque guiado de un proyecto KDD](./contracts/bootstrap-project.md)
   - [Gate de secretos filtrados en codigo generado (Nivel 1)](./contracts/secret-scan-gate.md)
+  - [Estados de evidencia opcional en CI](./contracts/optional-evidence.md)
   - [Remediacion de seguridad y WebMCP del tablero](./contracts/board-security-remediation.md)
   - [Plugin seguro de Codex para KDD](./contracts/kdd-codex-plugin.md)
   - [Ejemplo multi-lenguaje: greet en Node.js](./contracts/example-node-greet.md)

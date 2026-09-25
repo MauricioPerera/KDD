@@ -76,6 +76,9 @@ on:
       approved_baseline_ref:
         type: string
         default: ''
+      required_evidence:
+        type: string
+        default: ''
 
 jobs:
   validate:
@@ -101,6 +104,8 @@ jobs:
       KDD_OBSERVABILITY_SCAN_DIR: ${{ inputs.observability_scan_dir || 'observability/scan' }}
       KDD_TEST_COVERAGE_SCAN_DIR: ${{ inputs.test_coverage_scan_dir || 'test-coverage/scan' }}
       KDD_SRC_DIR_SECRETS: ${{ inputs.src_dir_secrets || 'src' }}
+      KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
+      KDD_REQUIRED_EVIDENCE: ${{ inputs.required_evidence || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -129,6 +134,9 @@ jobs:
               '--approved-ref', approved,
               '--contracts-dir', os.environ['KDD_CONTRACTS_DIR'],
           ]))
+
+      - name: Check required optional evidence
+        run: python scripts/optional_evidence.py check --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage,quality
 
       - name: Set up Node.js (for the multi-language example contract)
         uses: actions/setup-node@v4
@@ -181,30 +189,37 @@ jobs:
         run: python scripts/validate_diagrams.py "$KDD_DIAGRAMS_DIR"
 
       - name: Validate security findings (Capa 3, vendored codex-security)
+        id: security_scan
         shell: bash
         run: python scripts/validate_security_findings.py "$KDD_SECURITY_SCAN_DIR"
 
       - name: Validate compliance/license findings (Capa 3)
+        id: compliance_scan
         shell: bash
         run: python scripts/validate_compliance_findings.py "$KDD_COMPLIANCE_SCAN_DIR"
 
       - name: Validate privacy/PII findings (Capa 3)
+        id: privacy_scan
         shell: bash
         run: python scripts/validate_privacy_findings.py "$KDD_PRIVACY_SCAN_DIR"
 
       - name: Validate accessibility findings (Capa 3)
+        id: accessibility_scan
         shell: bash
         run: python scripts/validate_accessibility_findings.py "$KDD_ACCESSIBILITY_SCAN_DIR"
 
       - name: Validate dependency EOL findings (Capa 3)
+        id: dependency_eol_scan
         shell: bash
         run: python scripts/validate_dependency_eol_findings.py "$KDD_DEPENDENCY_EOL_SCAN_DIR"
 
       - name: Validate observability findings (Capa 3)
+        id: observability_scan
         shell: bash
         run: python scripts/validate_observability_findings.py "$KDD_OBSERVABILITY_SCAN_DIR"
 
       - name: Validate test-coverage findings (Capa 3)
+        id: test_coverage_scan
         shell: bash
         run: python scripts/validate_test_coverage_findings.py "$KDD_TEST_COVERAGE_SCAN_DIR"
 
@@ -229,6 +244,7 @@ jobs:
         run: python -m unittest discover -s tests -p "test_*.py"
 
       - name: Approve project quality (when configured)
+        id: quality
         shell: python
         env:
           KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
@@ -248,6 +264,19 @@ jobs:
 
       - name: Assemble context (smoke)
         run: python scripts/assemble_context.py ccdd/context.json "smoke"
+
+      - name: Summarize optional evidence
+        if: always()
+        env:
+          KDD_SECURITY_OUTCOME: ${{ steps.security_scan.outcome }}
+          KDD_COMPLIANCE_OUTCOME: ${{ steps.compliance_scan.outcome }}
+          KDD_PRIVACY_OUTCOME: ${{ steps.privacy_scan.outcome }}
+          KDD_ACCESSIBILITY_OUTCOME: ${{ steps.accessibility_scan.outcome }}
+          KDD_DEPENDENCY_EOL_OUTCOME: ${{ steps.dependency_eol_scan.outcome }}
+          KDD_OBSERVABILITY_OUTCOME: ${{ steps.observability_scan.outcome }}
+          KDD_TEST_COVERAGE_OUTCOME: ${{ steps.test_coverage_scan.outcome }}
+          KDD_QUALITY_OUTCOME: ${{ steps.quality.outcome }}
+        run: python scripts/optional_evidence.py summary --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage,quality
 
   board:
     strategy:
