@@ -10,7 +10,7 @@ on:
   # MODO 1 — Reusable workflow. When another repo calls this via `uses:`,
   # the `inputs.*` context below is populated (defaults apply too). When THIS
   # file fires on its native push/pull_request triggers, `inputs.*` is EMPTY,
-  # so every run: that references an input falls back to the literal default
+  # so each job environment variable falls back to the literal default
   # embedded in the `${{ inputs.X || 'literal' }}` expression. That literal
   # MUST match the value that was hardcoded here before this trigger existed
   # (see ITEM4-REPORT.md for the equivalence check) — otherwise the KDD repo's
@@ -81,6 +81,22 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      KDD_CONTRACTS_DIR: ${{ inputs.contracts_dir || 'knowledge/contracts' }}
+      KDD_SPECS_DIR: ${{ inputs.specs_dir || 'specs' }}
+      KDD_OKF_DIR: ${{ inputs.okf_dir || 'knowledge' }}
+      KDD_RULES_DIR: ${{ inputs.rules_dir || 'examples/rules' }}
+      KDD_SKILLS_DIRS: ${{ inputs.skills_dirs || 'skills .agents/skills' }}
+      KDD_UX_PAGE_DIR: ${{ inputs.ux_page_dir || 'examples/ux-page' }}
+      KDD_DIAGRAMS_DIR: ${{ inputs.diagrams_dir || 'examples/diagrams' }}
+      KDD_SECURITY_SCAN_DIR: ${{ inputs.security_scan_dir || 'security/scan' }}
+      KDD_COMPLIANCE_SCAN_DIR: ${{ inputs.compliance_scan_dir || 'compliance/scan' }}
+      KDD_PRIVACY_SCAN_DIR: ${{ inputs.privacy_scan_dir || 'privacy/scan' }}
+      KDD_ACCESSIBILITY_SCAN_DIR: ${{ inputs.accessibility_scan_dir || 'accessibility/scan' }}
+      KDD_DEPENDENCY_EOL_SCAN_DIR: ${{ inputs.dependency_eol_scan_dir || 'dependency-eol/scan' }}
+      KDD_OBSERVABILITY_SCAN_DIR: ${{ inputs.observability_scan_dir || 'observability/scan' }}
+      KDD_TEST_COVERAGE_SCAN_DIR: ${{ inputs.test_coverage_scan_dir || 'test-coverage/scan' }}
+      KDD_SRC_DIR_SECRETS: ${{ inputs.src_dir_secrets || 'src' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -116,65 +132,87 @@ jobs:
           node-version: '24'
 
       - name: Validate contracts
-        run: python scripts/validate_contracts.py ${{ inputs.contracts_dir || 'knowledge/contracts' }}
+        shell: bash
+        run: python scripts/validate_contracts.py "$KDD_CONTRACTS_DIR"
 
       - name: "Validate specs contracts"
-        run: python scripts/validate_specs.py ${{ inputs.specs_dir || 'specs' }}
+        shell: bash
+        run: python scripts/validate_specs.py "$KDD_SPECS_DIR"
 
       - name: Validate OKF nodes
-        run: python scripts/validate_okf.py ${{ inputs.okf_dir || 'knowledge' }}
+        shell: bash
+        run: python scripts/validate_okf.py "$KDD_OKF_DIR"
 
       - name: Lint ASCII scripts
         run: python scripts/lint_ascii.py scripts
 
       - name: Validate rule contracts
-        run: python scripts/validate_rules.py ${{ inputs.rules_dir || 'examples/rules' }}
+        shell: bash
+        run: python scripts/validate_rules.py "$KDD_RULES_DIR"
 
       - name: Validate agent skills
-        run: python scripts/validate_skills.py ${{ inputs.skills_dirs || 'skills .agents/skills' }}
+        shell: bash
+        run: |
+          read -r -a skill_dirs <<< "$KDD_SKILLS_DIRS"
+          python scripts/validate_skills.py "${skill_dirs[@]}"
 
       - name: Validate changelog coherence
         run: python scripts/validate_changelog.py
 
       - name: Validate UX/accessibility (HTML pages)
-        run: python scripts/validate_ux_page.py ${{ inputs.ux_page_dir || 'examples/ux-page' }}
+        shell: bash
+        run: python scripts/validate_ux_page.py "$KDD_UX_PAGE_DIR"
 
       - name: Validate Mermaid diagrams (flowchart)
-        run: python scripts/validate_diagrams.py ${{ inputs.diagrams_dir || 'examples/diagrams' }}
+        shell: bash
+        run: python scripts/validate_diagrams.py "$KDD_DIAGRAMS_DIR"
 
       - name: Validate security findings (Capa 3, vendored codex-security)
-        run: python scripts/validate_security_findings.py ${{ inputs.security_scan_dir || 'security/scan' }}
+        shell: bash
+        run: python scripts/validate_security_findings.py "$KDD_SECURITY_SCAN_DIR"
 
       - name: Validate compliance/license findings (Capa 3)
-        run: python scripts/validate_compliance_findings.py ${{ inputs.compliance_scan_dir || 'compliance/scan' }}
+        shell: bash
+        run: python scripts/validate_compliance_findings.py "$KDD_COMPLIANCE_SCAN_DIR"
 
       - name: Validate privacy/PII findings (Capa 3)
-        run: python scripts/validate_privacy_findings.py ${{ inputs.privacy_scan_dir || 'privacy/scan' }}
+        shell: bash
+        run: python scripts/validate_privacy_findings.py "$KDD_PRIVACY_SCAN_DIR"
 
       - name: Validate accessibility findings (Capa 3)
-        run: python scripts/validate_accessibility_findings.py ${{ inputs.accessibility_scan_dir || 'accessibility/scan' }}
+        shell: bash
+        run: python scripts/validate_accessibility_findings.py "$KDD_ACCESSIBILITY_SCAN_DIR"
 
       - name: Validate dependency EOL findings (Capa 3)
-        run: python scripts/validate_dependency_eol_findings.py ${{ inputs.dependency_eol_scan_dir || 'dependency-eol/scan' }}
+        shell: bash
+        run: python scripts/validate_dependency_eol_findings.py "$KDD_DEPENDENCY_EOL_SCAN_DIR"
 
       - name: Validate observability findings (Capa 3)
-        run: python scripts/validate_observability_findings.py ${{ inputs.observability_scan_dir || 'observability/scan' }}
+        shell: bash
+        run: python scripts/validate_observability_findings.py "$KDD_OBSERVABILITY_SCAN_DIR"
 
       - name: Validate test-coverage findings (Capa 3)
-        run: python scripts/validate_test_coverage_findings.py ${{ inputs.test_coverage_scan_dir || 'test-coverage/scan' }}
+        shell: bash
+        run: python scripts/validate_test_coverage_findings.py "$KDD_TEST_COVERAGE_SCAN_DIR"
 
       - name: Run each contract's test_command
-        run: python scripts/validate_test_commands.py ${{ inputs.contracts_dir || 'knowledge/contracts' }} .
+        shell: bash
+        run: python scripts/validate_test_commands.py "$KDD_CONTRACTS_DIR" .
 
       - name: Scan for leaked secrets (src only — see knowledge/contracts/secret-scan-gate.md)
-        run: python scripts/scan_secrets.py ${{ inputs.src_dir_secrets || 'src' }}
+        shell: bash
+        run: python scripts/scan_secrets.py "$KDD_SRC_DIR_SECRETS"
 
       # The suite runs twice on purpose (identical command): the second run
       # detects flaky tests / verifies determinism. See specs/CONTRACT-11-ci-windows-suite2x.md.
       - name: Run unit tests (1/2)
+        env:
+          KDD_SKIP_INIT_POST_APPLY_SUITE: '1'
         run: python -m unittest discover -s tests -p "test_*.py"
 
       - name: Run unit tests (2/2)
+        env:
+          KDD_SKIP_INIT_POST_APPLY_SUITE: '1'
         run: python -m unittest discover -s tests -p "test_*.py"
 
       - name: Approve project quality (when configured)

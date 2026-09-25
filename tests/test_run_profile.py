@@ -16,7 +16,9 @@ class RunProfileTests(unittest.TestCase):
 
         self.assertLess(len(minimal), len(standard))
         self.assertLess(len(standard), len(strict))
-        self.assertEqual(minimal, standard[:len(minimal)])
+        self.assertEqual([step for step, _ in minimal], ['contracts', 'suite'])
+        self.assertEqual([step for step, _ in standard[:3]],
+                         ['contracts', 'approved_baseline', 'suite'])
         self.assertEqual(standard, strict[:len(standard)])
 
     def test_unknown_profile_fails_clearly(self):
@@ -49,7 +51,7 @@ class RunProfileTests(unittest.TestCase):
 
         self.assertFalse(result["ok"])
         self.assertEqual(len(calls), 2)
-        self.assertEqual(result["failed_at"], "suite")
+        self.assertEqual(result["failed_at"], "approved_baseline")
 
     def test_standard_requires_explicit_full_approved_sha(self):
         for value in (None, '', 'HEAD', 'origin/main', 'abc123'):
@@ -60,9 +62,23 @@ class RunProfileTests(unittest.TestCase):
         profile = run_profile.build_profile('standard', approved_ref=self.APPROVED)
         names = [step for step, _ in profile]
         self.assertLess(names.index('approved_baseline'), names.index('contract_tests'))
+        self.assertLess(names.index('approved_baseline'), names.index('suite'))
         baseline = dict(profile)['approved_baseline']
         self.assertEqual(baseline[-1], self.APPROVED)
         self.assertIn('--all', baseline)
+
+    def test_failed_baseline_never_runs_suite_or_contract_tests(self):
+        calls = []
+
+        def runner(command, cwd):
+            calls.append(command)
+            return 1 if any(part.endswith('validate_baseline.py') for part in command) else 0
+
+        result = run_profile.run_profile('standard', 'repo', runner=runner,
+                                         approved_ref=self.APPROVED)
+        self.assertEqual(result['failed_at'], 'approved_baseline')
+        self.assertEqual([item['step'] for item in result['results']],
+                         ['contracts', 'approved_baseline'])
 
     def test_broken_contract_tests_fail_standard(self):
         def runner(command, cwd):

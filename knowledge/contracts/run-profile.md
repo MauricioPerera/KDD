@@ -14,7 +14,7 @@ budget:
   lines_max: 140
   params_max: 6
 tests: 'tests/test_run_profile.py'
-tests_sha256: '536ea56d215ce8dc01943f42b556f265c8fbf5eef44e16f600c722a977cdfabe'
+tests_sha256: 'b905c72031c536b2b0601b4b91244e08a3728bf46a4f8fe9e0579d10cc0cad88'
 touch_only: ['scripts/run_profile.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -35,11 +35,15 @@ def run_profile(name: str, repo_root: str, mutation_contract: str | None = None,
 
 ## Invariants
 
-- Los perfiles son inclusivos: `minimal` es prefijo de `standard`, y `standard` de `strict`.
+- Los perfiles son inclusivos en cobertura: `standard` contiene los gates de
+  `minimal` y `strict` contiene los de `standard`. `standard` intercala el
+  baseline aprobado antes de la suite, por lo que `minimal` no es prefijo
+  literal de `standard`.
 - El orden de comandos es estable y no usa shell.
 - Un fallo detiene el perfil y nombra el paso que falló.
 - `standard` y `strict` requieren `approved_ref` como SHA completo de un commit;
-  el gate compara todos los contratos y oráculos antes de ejecutar sus tests.
+  el gate compara todos los contratos y oráculos antes de ejecutar la suite
+  heredada o los `test_command`.
 - `contract_tests` ejecuta todos los `test_command` de los contratos, incluidos
   los del producto; un fallo del producto hace fallar el perfil.
 - El resultado distingue PASS, FAIL y SKIP; un gate opcional sin datos no cuenta

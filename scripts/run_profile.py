@@ -12,8 +12,10 @@ _MINIMAL = (
     ("contracts", ("python", "scripts/validate_contracts.py", "knowledge/contracts")),
     ("suite", ("python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py")),
 )
-_STANDARD = _MINIMAL + (
+_STANDARD = (
+    _MINIMAL[0],
     ("approved_baseline", ("python", "scripts/validate_baseline.py", "--all", "--approved-ref", "@approved_ref@")),
+    _MINIMAL[1],
     ("contract_tests", ("python", "scripts/validate_test_commands.py", "knowledge/contracts", ".")),
     ("specs", ("python", "scripts/validate_specs.py", "specs")),
     ("okf", ("python", "scripts/validate_okf.py", "knowledge")),
