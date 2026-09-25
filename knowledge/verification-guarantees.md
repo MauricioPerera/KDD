@@ -23,13 +23,26 @@ El archivo .env.local del proyecto guarda valores en texto. Se inyectan solo al 
 
 ## Referencia aprobada
 
-El hash tests_sha256 detecta diferencias respecto al contrato actual. Para detectar que se modificaron ambos, ejecutar desde un contexto confiable:
+El hash tests_sha256 detecta diferencias respecto al contrato actual. El perfil
+`standard` y el CI de pull requests comparan todos los contratos y sus oráculos
+con una referencia aprobada, incluidas altas y bajas. Para revisar una tarea:
 
 ```sh
 python scripts/validate_baseline.py knowledge/contracts/mi-tarea.md --approved-ref COMMIT_APROBADO
 ```
 
-La referencia es obligatoria, sin default HEAD. Se comparan contrato y archivo tests declarado en el contrato aprobado, normalizando LF. La herramienta no modifica ni re-sella archivos. El commit aprobado debe existir localmente; en CI usar checkout con historial suficiente. El selector de referencia, el script ejecutado y la configuracion de CI deben estar fuera del control del implementador. Protecciones de ramas y aprobaciones requieren configuracion del propietario del repositorio. El control es opt-in y no cambia el conteo de gates de nivel 1.
+La referencia es obligatoria, sin default HEAD en `standard`/`strict`. Se
+comparan contrato y archivo tests declarado en el contrato aprobado,
+normalizando LF. La herramienta no modifica ni re-sella archivos. El commit
+aprobado debe existir localmente; en CI se usa checkout con historial completo.
+El CI de pull requests usa por defecto el SHA de la rama base; para aprobar
+una versión nueva del oráculo, el mantenedor puede proporcionar
+`KDD_APPROVED_BASELINE_REF` como variable del repositorio o el input
+`approved_baseline_ref` del workflow reutilizable. Esos valores, la
+configuración del CI y la protección de ramas deben quedar fuera del control
+del implementador. En `push` a `main`, el commit ya integrado sirve como
+referencia. Este control no autentica por sí solo la aprobación humana ni
+protege un workflow que el autor del PR pueda alterar sin revisión.
 
 ## Evidencia de seguridad
 

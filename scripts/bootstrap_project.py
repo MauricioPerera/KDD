@@ -14,6 +14,7 @@ _PROFILES = {"minimal", "standard", "strict"}
 
 def _start_here(name, profile):
     project = name or "tu proyecto"
+    approved_ref = "" if profile == "minimal" else " --approved-ref <SHA_APROBADO>"
     return """# Primeros pasos con KDD
 
 Este proyecto ({project}) fue inicializado con el perfil `{profile}`.
@@ -23,10 +24,12 @@ Este proyecto ({project}) fue inicializado con el perfil `{profile}`.
 1. Lee `knowledge/index.md` para conocer las reglas del proyecto.
 2. Crea un test que describa el resultado esperado.
 3. Crea un contrato en `knowledge/contracts/` y sella su test.
-4. Ejecuta el perfil elegido:
+4. Si usas `standard` o `strict`, pide a una persona que apruebe el commit
+   con contrato y test y te entregue su SHA completo.
+5. Ejecuta el perfil elegido:
 
 ```text
-python scripts/run_profile.py --profile {profile}
+python scripts/run_profile.py --profile {profile}{approved_ref}
 ```
 
 Para una tarea concreta, valida también su budget:
@@ -38,7 +41,7 @@ python scripts/validate_budgets.py knowledge/contracts --repo-root . --contract 
 KDD comprueba las reglas declaradas; una persona sigue revisando si esas reglas
 representan la necesidad real del producto. Consulta `docs/KDD-PARA-PERSONAS.md`
 si quieres una explicación sin tecnicismos.
-""".format(project=project, profile=profile)
+""".format(project=project, profile=profile, approved_ref=approved_ref)
 
 
 def bootstrap_project(repo_dir, apply, name, profile="standard"):
