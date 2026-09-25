@@ -31,10 +31,15 @@ Como diagnóstico local, `python scripts/run_profile.py --profile standard
 --approved-ref 4444bcc8d1ec58b4bbb3a2ac80a66a47152b5699` salió 0:
 11 pasos PASS, 0 FAIL, 0 SKIP; el gate ejecutó 10 contratos de producto y
 37 de infraestructura, todos PASS. Esta prueba demuestra que el perfil puede
-operar con ese commit, **no que el commit ya esté aprobado**. La
+operar con ese commit; por sí sola, **no otorgó aprobación**. La
 [ejecución de CI 36180590169](https://github.com/MauricioPerera/KDD/actions/runs/36180590169)
 también completó los cuatro jobs, con el baseline como único fallo en ambos
-jobs `validate` mientras sigue sin aprobación externa.
+jobs `validate` antes de la aprobación externa.
+
+Tras configurar `KDD_APPROVED_BASELINE_REF`, el
+[segundo intento de CI 36181123794](https://github.com/MauricioPerera/KDD/actions/runs/36181123794)
+terminó con los cuatro jobs PASS: `validate` y `board` en Ubuntu y Windows.
+El gate de baseline dejó de fallar sin alterar los contratos ni sus oráculos.
 
 ## Comprobaciones de regresión
 
@@ -67,15 +72,18 @@ jobs `validate` mientras sigue sin aprobación externa.
 La CLI exige un SHA explícito, pero no puede demostrar quién lo aprobó. En
 pull requests, el workflow usa por defecto el SHA de la rama base; aprobar un
 oráculo nuevo requiere que un mantenedor configure una referencia de confianza
-fuera del control del implementador. `main` está protegido: exige pull request,
-los cuatro checks `validate` y `board` en Ubuntu y Windows (con rama actualizada),
+fuera del control del implementador. El propietario aprobó
+`4444bcc8d1ec58b4bbb3a2ac80a66a47152b5699` y se configuró la variable
+del repositorio `KDD_APPROVED_BASELINE_REF` con ese SHA. `main` está protegido:
+exige pull request y los cuatro checks `validate` y `board` en Ubuntu y Windows
+(con rama actualizada),
 aplica la regla a administradores y bloquea force push y eliminación de la rama.
-Se verificó con la API de GitHub después de crear la regla. El resultado de CI
-de esta rama seguirá rojo en el paso de baseline frente a `main` hasta la
-aprobación de la referencia nueva.
+Se verificó con la API de GitHub después de crear la regla. Antes de la
+aprobación, CI rechazaba los cambios frente al `main` anterior.
 
 La protección exige que los checks los publique GitHub Actions, pero no congela
-el contenido del workflow ni del validador dentro de un pull request. Un cambio
-en `.github/workflows/validate.yml` o `scripts/validate_baseline.py` requiere
-revisión humana antes del merge; la referencia aprobada por sí sola no prueba
-que un workflow modificado siga ejecutando la comparación.
+el contenido del workflow ni del validador dentro de un pull request. La
+referencia aprobada por sí sola no prueba que un workflow modificado siga
+ejecutando la comparación; los cambios posteriores a
+`.github/workflows/validate.yml` o `scripts/validate_baseline.py` necesitan
+revisión independiente.
