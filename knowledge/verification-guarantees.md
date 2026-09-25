@@ -35,15 +35,23 @@ La referencia es obligatoria, sin default HEAD en `standard`/`strict`. Se
 comparan contrato y archivo tests declarado en el contrato aprobado,
 normalizando LF. La herramienta no modifica ni re-sella archivos. El commit
 aprobado debe existir localmente; en CI se usa checkout con historial completo.
-El CI de pull requests usa por defecto el SHA de la rama base; para aprobar
-una versión nueva del oráculo, el mantenedor puede proporcionar
+El CI de pull requests y de `push` a `main` exige
 `KDD_APPROVED_BASELINE_REF` como variable del repositorio o el input
-`approved_baseline_ref` del workflow reutilizable. Esos valores, la
-configuración del CI y la protección de ramas deben quedar fuera del control
-del implementador. En `push` a `main`, el workflow exige una referencia
-configurada por el mantenedor y falla si falta; nunca usa el mismo commit
-que está validando como aprobación automática. Este control no autentica por sí solo la aprobación humana ni
-protege un workflow que el autor del PR pueda alterar sin revisión.
+`approved_baseline_ref` del workflow reutilizable; si faltan ambos, falla.
+No usa el SHA de la rama base ni el commit que está validando como aprobación
+automática. El workflow comprueba esa referencia antes de ejecutar los
+`test_command` y la suite del PR. Usa `contents: read` y el checkout no
+persiste credenciales.
+
+En este repositorio, la protección de `main` exige además `trusted-pr-gate`.
+Su workflow `pull_request_target` usa código de `main` y lee el merge propuesto
+como objetos Git, sin ejecutar archivos del PR. Compara contratos y oráculos
+con la referencia aprobada y rechaza cambios a workflows o validadores
+protegidos, incluso si el PR intenta aprobarse con su propio SHA. Al clonar
+la plantilla, la configuración de protección de GitHub no se hereda: hay que
+exigir este check explícitamente para obtener esa garantía. La herramienta
+no autentica por sí sola la aprobación humana; quien administra la variable
+y la protección de rama sigue siendo parte de la raíz de confianza.
 
 ## Evidencia de seguridad
 

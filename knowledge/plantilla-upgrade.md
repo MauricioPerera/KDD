@@ -11,13 +11,13 @@ tags: ['upgrade', 'versionado', 'template', 'infra', 'procedimiento']
 
 Estos artefactos forman parte del tooling y las convenciones del template. Al upgrade de una nueva versión de la plantilla, **se pueden y deben ser sobrescritos** para traer mejoras, correcciones de seguridad y nuevas características:
 
-- **Validadores y herramientas:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/export_gate_contract.py`, `scripts/assemble_context.py`, `scripts/init_project.py`, `scripts/lint_ascii.py`, `scripts/rule_engine.py`, `scripts/validate_rules.py`, `scripts/validate_skills.py`, `scripts/validate_changelog.py`, `scripts/validate_perimeter.py`, `scripts/validate_ux_page.py`
+- **Validadores y herramientas:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/validate_baseline.py`, `scripts/validate_test_commands.py`, `scripts/guard_pr_baseline.py`, `scripts/export_gate_contract.py`, `scripts/assemble_context.py`, `scripts/init_project.py`, `scripts/lint_ascii.py`, `scripts/rule_engine.py`, `scripts/validate_rules.py`, `scripts/validate_skills.py`, `scripts/validate_changelog.py`, `scripts/validate_perimeter.py`, `scripts/validate_ux_page.py`
 - **Configuración de contexto:** `ccdd/context.json`
 - **Reglas de agentes:** `.agents/AGENTS.md`
 - **Documentación de metodología:** `knowledge/OKF-SPEC.md`, `knowledge/metodologia-ejecucion.md`, `knowledge/validacion.md`, `knowledge/rule-contract-spec.md`
 - **Contratos de infraestructura:** `knowledge/contracts/` (excepto los propios del proyecto — ver abajo)
 - **Tests de infraestructura:** Tests que validan la plantilla misma (p. ej. `tests/test_agents_rules.py`, tests que validan `validate_contracts.py`, `init_project.py`, `validate_rules.py`, etc.). Véase la constante `INTACTABLES` de `tests/test_init_project.py` para la lista autorizada.
-- **Configuración de CI:** `.github/workflows/validate.yml`
+- **Configuración de CI:** `.github/workflows/validate.yml` y `.github/workflows/trusted-pr-gate.yml`. Este último requiere configurar `trusted-pr-gate` como check obligatorio en la protección de la rama; las reglas de GitHub no se transfieren al clonar la plantilla.
 
 **Origen de la verdad:** La estructura y contenido se especifican en los `specs/CONTRACT-NN-*.md` y sus reportes correspondientes en `docs/reports/` (la lista crece con cada contrato cerrado; ver `CHANGELOG.md`).
 

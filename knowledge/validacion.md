@@ -28,13 +28,23 @@ tags: ['ccdd', 'validacion', 'gate', 'reference']
 - `python scripts/validate_test_commands.py <contracts_dir> <repo_root>` — corre el `test_command` de CADA contrato de `<contracts_dir>` y falla si algun exit code no es 0. Uno de dos gates de Nivel 1 cuyo `forbids` no incluye `subprocess` (el otro es `mcp-gate-dispatch`): correr un comando arbitrario es literalmente su intent (ver [test-command-gate](./contracts/test-command-gate.md), seccion "Por que este gate rompe la convencion forbids: subprocess"). Antes de este gate, la linea de arriba ("el `test_command` debe terminar en verde") era una regla escrita pero NO mecanicamente verificada por ningun gate de Nivel 1 — un contrato podia pasar los otros 9 gates con un `test_command` roto y nadie lo notaba salvo corrida manual. `TEMPLATE-*.md` se excluye (no es un contrato real). Timeout de 180s por defecto por comando, configurable con `--timeout`, para no confundir una suite lenta conocida con un fallo; un proceso colgado sigue fallando. NO esta incluido en el conteo de `benchmark_gates.py` (herramienta de diagnostico con oraculo propio ya sellado; extenderla es una tarea aparte).
 
 El perfil `standard` también corre ese gate: un producto roto ya no queda en
-verde porque sólo pasó la suite heredada. `standard` y `strict` exigen
-`--approved-ref <SHA>` y comparan todos los contratos/oráculos con ese commit
-antes de ejecutar tests. El CI de PR hace la misma comparación usando la rama
-base como referencia por defecto; la aprobación de una versión nueva requiere
-una referencia suministrada por el mantenedor. La clasificación de pruebas por
-producto o infraestructura aparece en el reporte del gate; `SKIP` significa
-ausencia de evidencia y nunca se suma a `PASS`.
+verde porque sólo pasó la suite heredada. Por diseño, `standard` y `strict`
+ejecutan primero los dos pasos de `minimal` (validación de contratos y suite
+heredada), después comparan todos los contratos/oráculos con
+`--approved-ref <SHA>` y sólo entonces ejecutan los `test_command` de cada
+contrato. La referencia se exige como SHA completo; no se deduce de `HEAD`.
+Esta secuencia del perfil local no impide que la suite heredada corra antes de
+la comparación. En el CI de este repositorio, `.github/workflows/validate.yml`
+comprueba la referencia antes de ejecutar los `test_command` y la suite del PR: toma el input
+`approved_baseline_ref` del workflow reutilizable o la variable
+`KDD_APPROVED_BASELINE_REF`, y falla si no se configuró ninguno. No usa el SHA
+de la rama base como aprobación implícita. El check independiente
+`trusted-pr-gate` lee el merge propuesto desde el código de `main` y bloquea
+cambios a los workflows o validadores protegidos; debe configurarse como
+obligatorio en la protección de rama de cada repositorio que adopte este
+control. La clasificación de pruebas por producto o infraestructura aparece
+en el reporte del gate; `SKIP` significa ausencia de evidencia y nunca se
+suma a `PASS`.
 - `python scripts/scan_secrets.py <dir1> [<dir2> ...]` (default `src`) — escaneo determinista (regex stdlib) de credenciales filtradas por prefijo de proveedor conocido (AWS `AKIA...`, GitHub `ghp_`/`gho_`/`ghu_`/`ghs_`/`ghr_`, Slack `xox[baprs]-`, Google `AIza...`, Stripe `sk_live_`/`pk_live_`) y bloques `-----BEGIN ... PRIVATE KEY-----`. Deliberadamente SIN deteccion de alta entropia generica (rompería contra los `tests_sha256` de 64 hex chars que ya viven en este repo). El default es solo `src` (no `src tests`) precisamente porque `tests/test_scan_secrets.py`, el oraculo del propio gate, se hereda en todo proyecto instanciado del template (no esta en el MANIFEST de `scripts/init_project.py`) y contiene fixtures con la FORMA exacta de los patrones — se auto-detectaria como leak si `tests` fuera parte del default. En el CI de ESTE repo corre como `python scripts/scan_secrets.py src`. **La cobertura es la lista `DEFAULT_EXTENSIONS`: lo que no esta ahi no se mira.** Cubre los lenguajes con backend en el gate (`.py`, `.rs`, `.go`, `.java`, `.cs`, `.php`, `.rb`, `.kt`, `.c`/`.cpp`, `.swift`, `.js`/`.ts`…) mas config/scripts (`.toml`, `.yaml`, `.env`, `.sh`, `.tf`…). Hasta la version anterior la lista era solo `('.py','.js','.ts','.md','.json')`, asi que **en un proyecto Rust/Go/Java el gate escaneaba CERO archivos y salia 0** — un gate de seguridad reportando verde sin haber leido nada; el mismo secreto se detectaba en un `.py` y se ignoraba en un `.rs`. Por eso ahora, si un directorio tiene archivos y ninguno matchea, emite `SECRETS_NO_FILES_SCANNED` (WARNING, no rompe el build): el modo de fallo peligroso de un escaner de secretos no es reportar de mas, es el verde silencioso. Ver [secret-scan-gate](./contracts/secret-scan-gate.md).
 
 Enforcement local opt-in de budgets Python: `python scripts/validate_budgets.py knowledge/contracts --repo-root . --contract <task>` mide el target de una tarea contra `cyclomatic_max`, `nesting_max`, `lines_max` y `params_max`. Exit 1 significa exceso. La ejecución global, sin `--contract`, es diagnóstica para revelar la deuda de budgets históricos sin convertirla silenciosamente en un gate de CI. Los targets no Python se omiten explícitamente hasta incorporar un medidor equivalente. Este paso no sustituye al gate CCDD multi-lenguaje; permite avanzar con una comprobación determinista aunque no esté disponible el servidor MCP.
