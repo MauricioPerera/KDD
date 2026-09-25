@@ -1,0 +1,65 @@
+name: deploy-pages
+
+on:
+  workflow_run:
+    workflows: [validate-contracts]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.repository.full_name == 'MauricioPerera/KDD'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install pinned publisher
+        run: npm ci --prefix site --ignore-scripts --no-audit --no-fund
+
+      - name: Verify Pages build contract
+        run: |
+          python -m unittest tests/test_pages_build.py
+          python scripts/validate_contracts.py knowledge/contracts
+
+      - name: Build and validate public bundle
+        env:
+          CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: python site/build.py --output "$RUNNER_TEMP/kdd-pages" --ci-run-url "$CI_RUN_URL"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/kdd-pages
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
