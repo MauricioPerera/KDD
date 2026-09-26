@@ -186,7 +186,13 @@ crecer `LEVEL1_GATES` y rompería el oráculo congelado del preflight). Ver
 
 ## Nivel 2 — Opcional (si el entorno del agente lo tiene)
 
-Si el agente dispone del servidor MCP `ccdd-complexity`, el gate CCDD real se invoca con sus tools `lint_task_contract` (lint del contrato) y `run_integration_gate` (gate de complejidad/integración). Si no está disponible, el nivel 1 es suficiente para considerar un contrato válido.
+El motor CCDD puede usarse por [integracion nativa](./native-level2.md), sin MCP,
+o mediante el servidor MCP `ccdd-complexity` con `lint_task_contract` y
+`run_integration_gate`. El perfil nativo inicial cubre funciones Python y dispone
+de setup reproducible por commit, timeout y evidencia JSON; consultar su alcance
+antes de elegirlo. Si el proyecto exige Nivel 2, su ausencia o error bloquea la
+verificacion: Nivel 1 no lo sustituye. Si no se exige Nivel 2, Nivel 1 sigue siendo
+suficiente para validez estructural, sin afirmar complejidad verificada.
 
 ### Gate multi-lenguaje
 
@@ -209,9 +215,18 @@ Si el agente dispone del servidor MCP `ccdd-complexity`, el gate CCDD real se in
 
 ### Export para el gate
 
+Esta seccion describe el exportador historico usado con MCP. El adaptador nativo
+crea su propio export temporal, conserva test_command y usa cwd de la raiz por
+defecto; consultar [las diferencias del perfil](./native-level2.md).
+
 El gate se corre sobre el **export** generado por `scripts/export_gate_contract.py` (normalización ASCII + `target`/`tests` reescritos relativos al export): `lint_task_contract` recibe el texto del export + tests, y `run_integration_gate` recibe la ruta del export en disco. Por defecto el export se escribe en la raíz del repo como `<task>.gate.md` (gitignorado vía `*.gate.md`) para que las rutas reescritas no contengan `..`, como exige el gate real (`tc-tests-frozen`).
 
 ## Precedencia del budget
+
+En el perfil nativo la politica se identifica mediante commit aprobado y topes
+explicitos; no se verifica una firma criptografica de umbrales. La mencion de
+config firmada abajo describe la politica gobernada esperada, no una garantia
+automatica de autenticacion del adaptador.
 
 - **Con gate CCDD disponible (nivel 2):** la config firmada por el gate manda. El `budget` del frontmatter solo puede ser **<=** los topes firmados; ante cualquier conflicto gana la config firmada del gate.
 - **Sin gate (solo nivel 1):** el `budget` del contrato es declarativo/informativo. El validador incluido solo verifica su **presencia** en el frontmatter; no aplica (enforce) los topes.

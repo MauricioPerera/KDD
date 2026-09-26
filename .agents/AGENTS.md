@@ -14,6 +14,12 @@ Este archivo es la fuente única de verdad para cualquier agente, sea cual sea l
 
 ## Herramientas de diagnóstico opt-in (NO son gates)
 
+Nivel 2 tambien dispone de [integracion nativa](../knowledge/native-level2.md)
+para funciones Python. Las menciones de MCP en el resumen anterior describen una
+via disponible, no un requisito. Si el proyecto exige Nivel 2, su ausencia/error
+bloquea: no sustituirlo silenciosamente por Nivel 1. El perfil nativo identifica
+su politica por commit; no autentica firmas de umbrales.
+
 Tres herramientas de diagnóstico local, opt-in, que **no son gates y no corren en CI**: Nivel 1 sigue siendo **18 gates** y el conteo no cambia. Documentación a fondo en [knowledge/validacion.md](../knowledge/validacion.md) (secciones "Preflight", "Auditor de seals débiles" y "Recetas de arreglo por rule-id").
 
 - `python scripts/preflight.py [--repo-root DIR] [--contract NAME]` — dry-run de los 19 gates (18 de Nivel 1 + `validate_attestation` local-only); una línea `PASS`/`FAIL`/`TIMEOUT` por gate + resumen `N/19`. Úsalo **antes de delegar o empezar trabajo**, para no entregarle a un agente un repo que ya rompe un gate. Modo `--contract`: 3 chequeos de un task contract (frontmatter, sello, `test_command`).
