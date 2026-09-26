@@ -57,6 +57,10 @@ inputs:
     description: 'Path to the rule-contracts dir. OPTIONAL — auto-skips (INFO) if absent.'
     required: false
     default: 'examples/rules'
+  behavior-dir:
+    description: 'Path to behavior/v1 contracts. OPTIONAL — validates declarative shape only and auto-skips when absent.'
+    required: false
+    default: 'behavior'
   skills-dirs:
     description: 'Space-separated skill dirs (validate_skills.py accepts multiple). OPTIONAL.'
     required: false
@@ -198,6 +202,12 @@ runs:
       env:
         KDD_RULES_DIR: ${{ inputs.rules-dir }}
       run: python _kdd/scripts/validate_rules.py "$KDD_RULES_DIR"
+
+    - name: Validate behavior contracts (OPTIONAL — auto-skip)
+      shell: bash
+      env:
+        KDD_BEHAVIOR_DIR: ${{ inputs.behavior-dir }}
+      run: python _kdd/scripts/validate_behavior.py "$KDD_BEHAVIOR_DIR"
 
     - name: Validate agent skills (OPTIONAL — auto-skip)
       shell: bash

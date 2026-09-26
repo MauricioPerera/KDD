@@ -68,7 +68,8 @@ def _parse_scalar(value):
             return []
         return [_parse_scalar(item) for item in _split_inline_list(inner)]
     if len(value) >= 2 and value[0] in ("'", '"') and value[-1] == value[0]:
-        return value[1:-1]
+        inner = value[1:-1]
+        return inner.replace("''", "'") if value[0] == "'" else inner.replace('\\"', '"')
     return value
 
 

@@ -40,6 +40,7 @@ test('the browser registers every HTTP-backed WebMCP tool and safely encodes han
     document: {
       getElementById: getNode,
       querySelectorAll: () => [],
+      addEventListener(){},
       modelContext: { registerTool: (tool: any) => registered.push(tool) },
     },
     location: { hash: '', pathname: '/', search: '' },

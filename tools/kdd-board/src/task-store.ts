@@ -2,10 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { evidenceCurrent } from './task-execution.ts';
+import { readVersion, writeVersion } from './persistence.ts';
 import type { Task, TaskStatus, TaskAssignee, TaskPriority, HumanInputRequirement, TaskComment, TaskTestReport } from './types.ts';
 
 export class TaskStore {
   private filePath: string;
+  private version: string | null = null;
   private tasks: Map<string, Task> = new Map();
 
   constructor(filePath: string) {
@@ -14,18 +16,25 @@ export class TaskStore {
   }
 
   private load(): void {
-    if (!fs.existsSync(this.filePath)) {
+    const version = readVersion(this.filePath);
+    if (version === null) {
+      this.version = null;
+      this.tasks.clear();
       return;
     }
     try {
-      const data = fs.readFileSync(this.filePath, 'utf-8');
+      const data = version;
       const list: Task[] = JSON.parse(data);
+      if (!Array.isArray(list)) throw new Error('Expected task array');
+      const loaded = new Map<string, Task>();
       for (const t of list) {
         if (t.status === 'done' && !evidenceCurrent(t)) t.status = 'ready';
-        this.tasks.set(t.id, t);
+        loaded.set(t.id, t);
       }
+      this.tasks = loaded;
+      this.version = version;
     } catch {
-      // Ignore initial parse errors on empty or corrupted file
+      throw new Error('Invalid task storage; refusing to overwrite it');
     }
   }
 
@@ -35,7 +44,9 @@ export class TaskStore {
       fs.mkdirSync(dir, { recursive: true });
     }
     const list = Array.from(this.tasks.values());
-    fs.writeFileSync(this.filePath, JSON.stringify(list, null, 2), 'utf-8');
+    const content = JSON.stringify(list, null, 2);
+    writeVersion(this.filePath, this.version, content);
+    this.version = content;
   }
 
   public getAllTasks(status?: TaskStatus): Task[] {
@@ -60,6 +71,7 @@ export class TaskStore {
     testCommand?: string;
     contractId?: string;
   }): Task {
+    this.validateContractId(params.contractId);
     if (!params.title || params.title.trim() === '') {
       throw new Error('TaskStore: title must be a non-empty string');
     }
@@ -271,6 +283,7 @@ export class TaskStore {
   }
 
   public linkContract(id: string, contractId?: string): Task {
+    this.validateContractId(contractId);
     const task = this.tasks.get(id);
     if (!task) {
       throw new Error(`TaskStore: task with id "${id}" not found`);
@@ -286,6 +299,12 @@ export class TaskStore {
     });
     this.save();
     return task;
+  }
+
+  private validateContractId(id?: string): void {
+    if (id !== undefined && (typeof id !== 'string' || !/^(app-|core-|spec-)[\w.-]+\.md$/.test(id))) {
+      throw new Error('Invalid contract ID');
+    }
   }
 
   public generateKddReport(id: string): { filePath: string; relativePath: string; content: string } {

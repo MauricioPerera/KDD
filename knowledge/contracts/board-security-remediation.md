@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 12
   nesting_max: 4
 tests: 'tools/kdd-board/tests/security-remediation.test.ts'
-tests_sha256: 'bbb6e667686a5e7a85185c5cbec5693bc4950a5e651490e4f6c32461a522f8fa'
+tests_sha256: 'f9e659be96e1b2f6400c8942f0572732445ad931b55351946f398ff5cf6e5b72'
 touch_only: ['tools/kdd-board/src/blind-vault.ts', 'tools/kdd-board/public/app.js', 'tools/kdd-board/public/index.html', 'tools/kdd-board/DEFINITION.md', 'README.md', 'scripts/run_board.sh', 'scripts/run_board.ps1', 'knowledge/contracts/board-security-remediation.md', 'knowledge/index.md']
 deps_allowed: ['node', 'fastwebmcp', 'zod']
 forbids: ['llm']

@@ -32,6 +32,9 @@ on:
       rules_dir:
         type: string
         default: 'examples/rules'
+      behavior_dir:
+        type: string
+        default: 'behavior'
       skills_dirs:
         type: string
         # validate_skills.py accepts multiple positional dirs; single input,
@@ -171,6 +174,12 @@ jobs:
       - name: Validate rule contracts
         shell: bash
         run: python scripts/validate_rules.py "$KDD_RULES_DIR"
+
+      - name: Validate behavior contracts (optional)
+        shell: bash
+        env:
+          KDD_BEHAVIOR_DIR: ${{ inputs.behavior_dir || 'behavior' }}
+        run: python scripts/validate_behavior.py "$KDD_BEHAVIOR_DIR"
 
       - name: Validate agent skills
         shell: bash

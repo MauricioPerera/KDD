@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 12
   nesting_max: 4
 tests: 'tools/kdd-board/tests/catalog-startup.test.ts'
-tests_sha256: '9d529c4076fe896c686d8c41b017276360f0c798771d90d9792765e6ea525e58'
+tests_sha256: 'cda00942c6b5a8c4e7a7ba252ad431a7744c3252e0a142014376540fac82eba1'
 touch_only: ['tools/kdd-board/public/app.js']
 deps_allowed: ['node', 'fastwebmcp', 'zod']
 forbids: ['llm']
@@ -39,6 +39,8 @@ Aplicar la [validacion](../validacion.md) a la evidencia local del tablero.
 
 ## Tests
 Regresion de arranque con DOM minimo y verificacion real en navegador.
+El DOM minimo incluye addEventListener para el manejo seguro de navegacion;
+la migracion del fixture conserva las aserciones de carga y cache del catalogo.
 
 ## Constraints
 - PARAR y reportar si la API no devuelve un catalogo valido.

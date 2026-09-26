@@ -11,6 +11,12 @@ tags: ['ccdd', 'validacion', 'gate', 'reference']
 
 ## Nivel 1 — Incluido y obligatorio (local + CI)
 
+La migracion de behavior agrega `validate_behavior` al catalogo compartido: 19
+gates de Nivel 1 y 20 en preflight contando la atestacion local. Se actualizaron
+los oraculos de MCP/preflight y sus sellos como cambio de contrato revisable.
+`python scripts/validate_behavior.py behavior` valida el esquema sin ejecutar
+candidatos; la ejecucion sigue siendo opt-in. Ver [behavior](behavior-contract-spec.md).
+
 - `python scripts/validate_contracts.py knowledge/contracts` — valida frontmatter, secciones obligatorias y examples de cada contrato. La clave `tests_sha256` es **obligatoria**: contiene el SHA256 normalizado (LF) del archivo de tests, congelando el oráculo (un cambio legítimo al archivo de tests exige re-sellar el hash; el diff del sello hace visible el cambio en review). Para sellar un contrato nuevo: `python scripts/validate_contracts.py --hash <tests_path>` imprime el hash a copiar al frontmatter. Trade-off aceptado: en proyectos ya instanciados desde la plantilla, los contratos sin sello pasan de WARNING a ERROR al actualizar el validador — el mensaje de error nombra el comando de sellado.
 - **Subclaves de `budget` verificadas por nombre (`FM_BUDGET_KEY` / `FM_BUDGET_VALUE`).** Las únicas válidas son las que el gate de Nivel 2 realmente LEE (`GLOBAL_MAX` de `tc_lint.py`): `cyclomatic_max`, `nesting_max`, `lines_max`, `params_max`, cada una con un entero positivo. El motivo es un fallo silencioso real: hasta esta versión la plantilla documentaba `max_cyclomatic_complexity`/`max_nesting_depth`, que el gate **nunca leyó** — el tope declarado en el contrato se descartaba y el gate caía a su config firmada, así que un `budget` estricto en el frontmatter no aplicaba nada y nadie lo notaba. Verificado: un contrato con `max_params: 1` y una firma de 5 parámetros pasaba el lint sin un solo error. Ahora ese caso es ERROR y el mensaje nombra el reemplazo canónico. Los **valores** siguen siendo informativos en Nivel 1 (los topes los enforce el Nivel 2, ver [precedencia](#precedencia-del-budget)); lo que Nivel 1 garantiza es que el nombre que escribiste es uno que el gate va a mirar. Trade-off aceptado, mismo patrón que `tests_sha256`: en proyectos ya instanciados, los contratos con los nombres viejos pasan a ERROR al actualizar el validador — el mensaje de error dice exactamente a qué renombrar.
 - `python scripts/validate_specs.py specs` — valida que los contratos de ejecución de nivel proyecto tengan criterios de aceptación verificables por máquina, perímetro y condiciones de aborto (abierto vs. cerrado según `docs/reports/CONTRACT-NN-REPORT.md`).
@@ -22,7 +28,7 @@ tags: ['ccdd', 'validacion', 'gate', 'reference']
   formato nuevo. El enlace al run no verifica por si solo su resultado remoto.
   En proyectos consumidores sin politica, la integracion reutilizable usa el
   repositorio de CI y cero excepciones historicas. Es un control de cierre de
-  proyecto adicional al conjunto fijo de 18 gates de Nivel 1 de preflight.
+  proyecto adicional al conjunto fijo de 19 gates de Nivel 1 de preflight.
 - `python scripts/lint_ascii.py scripts` — exige ASCII en los literales string de `scripts/*.py` (docstrings excluidas; excepciones legítimas vía pragma `# ascii: allow` de línea o `# ascii-lint: skip-file` de módulo, declarado en el resumen).
 - `python scripts/validate_rules.py <dir>` — gate de los [rule contracts](./rule-contract-spec.md) (reglas de negocio como datos): familias conocidas, golden sellado por hash y reproducción por el motor declarativo. Capa opcional: sin rule contracts, pasa con INFO.
 - `python scripts/validate_skills.py skills .agents/skills` — gate de las skills de agente (infraestructura, no ejemplo): `SKILL.md` presente por skill, frontmatter parseable (mismo dialecto mini-YAML, coherencia fijada a 3 vías), `name` kebab-case e igual al directorio y único, `description` con largo en [50, 1024], cuerpo no vacío y enlaces relativos que resuelven (ignorando code spans/fences). Capa opcional: directorio ausente pasa con INFO.
@@ -41,9 +47,9 @@ tags: ['ccdd', 'validacion', 'gate', 'reference']
   compuesta acepta `required-evidence` para los siete scans y quality;
   `quality-approved-ref` debe ser un SHA completo cuando exista la politica.
 - `python scripts/validate_compliance_findings.py <dir>` (default `compliance/scan`) — gate de la Capa 3 de compliance/licencias: valida un `findings.json` de compatibilidad de licencias de dependencias (nativo, sin vendoring) contra `examples/rules/compliance-findings.rules.json` via el mismo motor declarativo. Ver [compliance_findings.md](./data_models/compliance_findings.md). Capa opcional: sin `findings.json`, INFO.
-- **Diagnóstico opcional (no gate):** `python scripts/benchmark_gates.py` mide los 18 gates de nivel 1 + la suite (min/mediana/max por gate, 2 pasadas crudas de la suite) para saber si el CI se está volviendo lento a medida que crecen los contratos. No corre en `.github/workflows/validate.yml` — es herramienta de mantenimiento, no un check de corrección.
+- **Diagnóstico opcional (no gate):** `python scripts/benchmark_gates.py` mide los 19 gates de nivel 1 + la suite (min/mediana/max por gate, 2 pasadas crudas de la suite) para saber si el CI se está volviendo lento a medida que crecen los contratos. No corre en `.github/workflows/validate.yml` — es herramienta de mantenimiento, no un check de corrección.
 - La clave **`touch_only`** del frontmatter (obligatoria) declara el perímetro de la delegación como DATO — lista de rutas/patrones `fnmatch` repo-relativos. `validate_contracts` la exige y verifica que el `target` esté cubierto y que el oráculo (`tests`) quede FUERA (salvo `tests == target`). En verificación, el PM corre `git diff --name-only ... | python scripts/validate_perimeter.py <contrato>`: cualquier archivo del dev fuera del perímetro rompe con `OUT_OF_PERIMETER` (y tocar el oráculo, con `TESTS_TOUCHED`). El gate de perímetro NO es paso de CI del repo (un commit mergeado mezcla legítimamente archivos del PM); su oráculo corre en la suite y los checks estructurales corren vía `validate_contracts`.
-- `python scripts/validate_test_commands.py <contracts_dir> <repo_root>` — corre el `test_command` de CADA contrato de `<contracts_dir>` y falla si algun exit code no es 0. Uno de dos gates de Nivel 1 cuyo `forbids` no incluye `subprocess` (el otro es `mcp-gate-dispatch`): correr un comando arbitrario es literalmente su intent (ver [test-command-gate](./contracts/test-command-gate.md), seccion "Por que este gate rompe la convencion forbids: subprocess"). Antes de este gate, la linea de arriba ("el `test_command` debe terminar en verde") era una regla escrita pero NO mecanicamente verificada por ningun gate de Nivel 1 — un contrato podia pasar los otros 9 gates con un `test_command` roto y nadie lo notaba salvo corrida manual. `TEMPLATE-*.md` se excluye (no es un contrato real). Timeout de 180s por defecto por comando, configurable con `--timeout`, para no confundir una suite lenta conocida con un fallo; un proceso colgado sigue fallando. NO esta incluido en el conteo de `benchmark_gates.py` (herramienta de diagnostico con oraculo propio ya sellado; extenderla es una tarea aparte).
+- `python scripts/validate_test_commands.py <contracts_dir> <repo_root>` — corre el `test_command` de CADA contrato de `<contracts_dir>` y falla si algun exit code no es 0. Uno de dos gates de Nivel 1 cuyo `forbids` no incluye `subprocess` (el otro es `mcp-gate-dispatch`): correr un comando arbitrario es literalmente su intent (ver [test-command-gate](./contracts/test-command-gate.md), seccion "Por que este gate rompe la convencion forbids: subprocess"). Antes de este gate, la linea de arriba ("el `test_command` debe terminar en verde") era una regla escrita pero NO mecanicamente verificada por ningun gate de Nivel 1 — un contrato podia pasar los otros 9 gates con un `test_command` roto y nadie lo notaba salvo corrida manual. `TEMPLATE-*.md` se excluye (no es un contrato real). Timeout de 180s por defecto por comando, configurable con `--timeout`, para no confundir una suite lenta conocida con un fallo; un proceso colgado sigue fallando. Esta incluido en `benchmark_gates.py`, cuya lista de gates deriva de `LEVEL1_GATES`.
 
 El perfil `standard` también corre ese gate: un producto roto ya no queda en
 verde porque sólo pasó la suite heredada. Por diseño, `standard` y `strict`
@@ -69,20 +75,20 @@ Todos corren localmente y en CI (`.github/workflows/validate.yml`, matriz `ubunt
 
 ## Preflight — diagnóstico local opt-in (NO es un gate)
 
-`python scripts/preflight.py` corre los **18 gates de Nivel 1** más
+`python scripts/preflight.py` corre los **19 gates de Nivel 1** más
 `validate_attestation` (el local-only que CI nunca ve, porque
 `.agents/logs/` está gitignorado) en dry-run contra el repo actual, y
 reporta cuáles fallarían en una sola pasada — una línea por gate
-(`PASS`/`FAIL`/`TIMEOUT`) + resumen `N/19`. Con `--contract <nombre>`
+(`PASS`/`FAIL`/`TIMEOUT`) + resumen `N/20`. Con `--contract <nombre>`
 hace 3 chequeos acotados a un solo task contract: frontmatter, sello del
 oráculo y `test_command` (resumen `N/3`). Exit 0/1; cero dependencias
 (stdlib + módulos hermanos de `scripts/`, sin el SDK `mcp`).
 
-Esto **no es un gate nuevo**: Nivel 1 sigue siendo **18 gates** y el
+Esto **no es un gate nuevo**: Nivel 1 sigue siendo **19 gates** y el
 conteo no cambia. Es diagnóstico opt-in, mismo estatus que
 `benchmark_gates.py` — no corre en CI (CI ya ejecuta cada gate como paso
-propio). Es la boca CLI de `run_all_level1` (la tool MCP que corre 13;
-ver [mcp-server.md](./mcp-server.md)) y el único lugar donde los 18 gates
+propio). Es la boca CLI de `run_all_level1` (la tool MCP que corre 19;
+ver [mcp-server.md](./mcp-server.md)) y el único lugar donde los 20 gates
 corren juntos, porque `validate_attestation` solo tiene sentido sobre
 `.agents/logs/` local. Uso típico: correrlo **antes de delegar trabajo a
 un agente**, para no mandarle un repo que ya rompe un gate. Ver
@@ -137,7 +143,7 @@ mutation testing (fuera de alcance). Las 6 reglas: `WEAK_TESTS_MISSING`,
 `WEAK_NO_ASSERTS`, `WEAK_TARGET_UNREFERENCED`.
 
 Sin `--strict` SIEMPRE exit 0 (advisory, warnings); con `--strict`, exit 1
-si hay findings. Esto **no es un gate nuevo**: Nivel 1 sigue siendo **18
+si hay findings. Esto **no es un gate nuevo**: Nivel 1 sigue siendo **19
 gates** y el conteo no cambia. Mismo estatus opt-in que
 `benchmark_gates.py` y `preflight.py` — no corre en CI, no está en
 `GATE_SPECS`. Casos legítimos que NO marca: contratos auto-referenciales
@@ -178,7 +184,7 @@ verificado, esto todavía no". `FORBID_UNVERIFIED` nunca cambia el exit code,
 ni con `--strict` — es una limitación del auditor, no un incumplimiento.
 
 Sin `--strict` SIEMPRE exit 0 (advisory); con `--strict`, exit 1 solo si hay
-reglas duras. Esto **no es un gate nuevo**: Nivel 1 sigue siendo **18 gates**
+reglas duras. Esto **no es un gate nuevo**: Nivel 1 sigue siendo **19 gates**
 y el conteo no cambia. Mismo estatus opt-in que `audit_seals.py` y
 `preflight.py` — no corre en CI, no está en `GATE_SPECS` (agregarlo haría
 crecer `LEVEL1_GATES` y rompería el oráculo congelado del preflight). Ver
@@ -240,4 +246,4 @@ automatica de autenticacion del adaptador.
 
 ## Aprobacion de calidad del proyecto
 
-La validacion estructural de la plantilla no sustituye la aprobacion de comportamiento. Para nuevos proyectos, integrar los gates aplicables, oraculos funcionales, adversariales y UI en el [protocolo de aprobacion integrada](quality-approval.md), con politica y referencia aprobada explicitas. El protocolo compone controles existentes y no altera el conteo anterior de 18 gates.
+La validacion estructural de la plantilla no sustituye la aprobacion de comportamiento. Para nuevos proyectos, integrar los gates aplicables, oraculos funcionales, adversariales y UI en el [protocolo de aprobacion integrada](quality-approval.md), con politica y referencia aprobada explicitas. El protocolo compone controles existentes y no altera el conteo anterior de 19 gates.
