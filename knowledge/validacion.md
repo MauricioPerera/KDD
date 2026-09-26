@@ -82,9 +82,15 @@ el diff Git real con `touch_only`; para un target Python cambiado comprueba
 los imports externos **nuevos** contra `deps_allowed` y aplica su `budget` al
 codigo del commit candidato. Los imports externos existentes en el base no
 bloquean una migracion. Los nombres en `deps_allowed` se interpretan como
-raices de import; imports dinamicos, dependencias transitivas y targets no
-Python quedan fuera de esta comprobacion. Un target no Python modificado emite
-`CHECK_UNSUPPORTED` y falla el gate opt-in. Ver
+raices de import. Los adaptadores Tree-sitter fijados en
+`requirements-change-audit.txt` hacen el equivalente para
+JavaScript/JSX, TypeScript/TSX, Go y Rust: extraen imports estaticos, comparan
+`package.json`, `go.mod` o `Cargo.toml` y miden funciones contra los cuatro
+topes del contrato. Se necesita el manifiesto mas cercano al target. Las
+dependencias transitivas no se resuelven; imports dinamicos y macros Rust
+opacas producen hallazgos duros. La metrica de estos adaptadores es
+determinista sobre el AST y no pretende equivalencia exacta con CCDD. Otros
+lenguajes emiten `CHECK_UNSUPPORTED`. Ver
 [contrato del auditor](./contracts/change-contract-audit.md). En el workflow
 reutilizable se activa con `change_contract_path`; usa el mismo
 `approved_baseline_ref` independiente que valida contratos y oraculos. Debe
