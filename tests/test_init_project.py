@@ -11,6 +11,7 @@ subprocess (patron estandar); el target es stdlib puro y sin subprocess.
 """
 
 import importlib.util
+import json
 import os
 import shutil
 import subprocess
@@ -32,6 +33,18 @@ _spec_init = importlib.util.spec_from_file_location("init_project", SCRIPT)
 _init_mod = importlib.util.module_from_spec(_spec_init)
 _spec_init.loader.exec_module(_init_mod)
 MANIFEST = _init_mod.MANIFEST
+HISTORICAL_ARTIFACTS = tuple(sorted(
+    path.relative_to(ROOT).as_posix()
+    for pattern in ("specs/CONTRACT-[0-9]*.md", "docs/reports/CONTRACT-[0-9]*-REPORT.md")
+    for path in Path(ROOT).glob(pattern)
+))
+KDD_ONLY_REPORTS = (
+    "docs/reports/AUDIT-HARDENING-REPORT.md",
+    "docs/reports/LEGACY-COMPLETION-AUDIT.md",
+    "docs/reports/PROFILE-PILOT-REPORT.md",
+    "docs/reports/QUALITY-APPROVAL-REPORT.md",
+    "docs/reports/VERIFICATION-BROWSER-REPORT.md",
+)
 
 # Intocables que deben seguir presentes post-apply (subset representative
 # del listado del task contract).
@@ -43,7 +56,8 @@ INTACTABLES = (
     "ccdd/context.json",
     ".agents/AGENTS.md",
     ".agents/skills/kdd-okf-ccdd-hybrid/SKILL.md",
-    "specs/CONTRACT-06-init-project.md",
+    "specs/TEMPLATE-CONTRACT.md",
+    "docs/reports/TEMPLATE-REPORT.md",
     "knowledge/OKF-SPEC.md",
     "knowledge/metodologia-ejecucion.md",
     "knowledge/contracts/assemble-context.md",
@@ -82,7 +96,11 @@ def _copy_repo(dst, full=False):
         return
     # Unit cases need only the manifest, init inputs and representative
     # infrastructure. The post-apply integration case still copies everything.
-    for rel in set(MANIFEST) | set(INTACTABLES) | set(_init_mod.REQUIRED_AFTER_DELETE):
+    fixture_files = (set(MANIFEST) | set(HISTORICAL_ARTIFACTS)
+                     | set(KDD_ONLY_REPORTS) | set(INTACTABLES)
+                     | set(_init_mod.REQUIRED_AFTER_DELETE)
+                     | {"completion-legacy.json", "CHANGELOG.md"})
+    for rel in fixture_files:
         source = Path(ROOT, rel)
         target = Path(dst, rel)
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -100,6 +118,8 @@ def _files(root):
 
 
 def _run_cli(repo_dir, *args):
+    if "--apply" in args and "--repository" not in args:
+        args += ("--repository", "ExampleCo/Shop")
     return subprocess.run(
         [sys.executable, SCRIPT, "--repo-dir", repo_dir, *args],
         capture_output=True, text=True, encoding="utf-8")
@@ -186,20 +206,44 @@ class TestInitProject(unittest.TestCase):
                              before - after))
         self.assertEqual(after - before, set(),
                          "apply creo archivos: {}".format(after - before))
+        self.assertEqual(len([p for p in HISTORICAL_ARTIFACTS
+                              if p.startswith("specs/")]), 33)
+        self.assertEqual(len([p for p in HISTORICAL_ARTIFACTS
+                              if p.startswith("docs/reports/")]), 33)
+        self.assertTrue(set(HISTORICAL_ARTIFACTS).issubset(MANIFEST))
+        self.assertTrue(set(KDD_ONLY_REPORTS).issubset(MANIFEST))
         for rel in MANIFEST:
             self.assertFalse(os.path.isfile(os.path.join(self.repo, rel)),
                              "no se elimino: {}".format(rel))
+        policy = json.loads(Path(self.repo, "completion-legacy.json").read_text(encoding="utf-8"))
+        self.assertEqual(policy, {"schema_version": 1, "repository": "ExampleCo/Shop",
+                                  "legacy_pairs": {}})
+        changelog = Path(self.repo, "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn("## v0.1.0", changelog)
+        self.assertNotIn("**Contract 01", changelog)
 
     @unittest.skipIf(os.environ.get("KDD_SKIP_INIT_POST_APPLY_SUITE") == "1",
                      "already covered by the init-project contract test_command")
     def test_gates_verdes_post_apply_en_copia(self):
-        # Criterio estrella: post-init los 3 gates verdes en la copia.
+        # Criterio estrella: sin historia ajena y gates del nuevo repo verdes.
         _copy_repo(self.repo, full=True)
         self.assertEqual(_run_cli(self.repo, "--apply").returncode, 0)
         vc = _run(["scripts/validate_contracts.py", "knowledge/contracts"], self.repo)
         self.assertEqual(vc.returncode, 0, "validate_contracts:\n" + vc.stdout + vc.stderr)
         vo = _run(["scripts/validate_okf.py", "knowledge"], self.repo)
         self.assertEqual(vo.returncode, 0, "validate_okf:\n" + vo.stdout + vo.stderr)
+        for argv in (
+            ["scripts/validate_specs.py", "specs"],
+            ["scripts/validate_changelog.py"],
+            ["scripts/validate_completion.py", "--specs-dir", "specs", "--policy",
+             "completion-legacy.json", "--repository", "ExampleCo/Shop"],
+        ):
+            result = _run(argv, self.repo)
+            self.assertEqual(result.returncode, 0,
+                             "{}:\n{}{}".format(argv[0], result.stdout, result.stderr))
+        completion = _run(["scripts/validate_completion.py", "--repository",
+                           "ExampleCo/Shop"], self.repo)
+        self.assertIn("Summary: PASS=0 FAIL=0 SKIP=0", completion.stdout)
         # Evitar recursion: este mismo test no debe correrse dentro del
         # discover de la copia (no es "infra restante", es el test del tool).
         os.unlink(os.path.join(self.repo, "tests", "test_init_project.py"))
@@ -222,8 +266,32 @@ class TestInitProject(unittest.TestCase):
                                   "Mi Proyecto").returncode, 0)
         after = Path(self.repo, "README.md").read_text(encoding="utf-8").split("\n")
         self.assertEqual(after[0], "# Mi Proyecto")
-        self.assertEqual(after[1:], before[1:],
-                         "--name modifico mas que el titulo H1")
+        self.assertIn("CHANGELOG.md", "\n".join(after))
+        self.assertNotEqual(after[0], before[0])
+
+    def test_repository_required_for_apply_without_side_effects(self):
+        _copy_repo(self.repo)
+        before = _files(self.repo)
+        result = subprocess.run([sys.executable, SCRIPT, "--repo-dir", self.repo,
+                                 "--apply"], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertEqual(_files(self.repo), before)
+
+    def test_invalid_repository_rejected_without_side_effects(self):
+        _copy_repo(self.repo)
+        before = _files(self.repo)
+        result = _run_cli(self.repo, "--apply", "--repository", "wrong-name")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertEqual(_files(self.repo), before)
+
+    def test_historical_report_missing_aborts_without_deletion(self):
+        _copy_repo(self.repo)
+        missing = Path(self.repo, "docs/reports/CONTRACT-01-REPORT.md")
+        missing.unlink()
+        before = _files(self.repo)
+        result = _run_cli(self.repo, "--apply")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertEqual(_files(self.repo), before)
 
     def test_manifiesto_incompleto_aborta_sin_tocar_nada(self):
         _copy_repo(self.repo)

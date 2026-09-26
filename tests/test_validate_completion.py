@@ -59,7 +59,15 @@ class CompletionTests(unittest.TestCase):
     def test_real_historical_pairs_are_explicit_skips(self):
         findings, counts = vc._audit(str(ROOT), 'completion-legacy.json')
         self.assertEqual(findings, [])
-        self.assertEqual(counts, {'PASS': 0, 'FAIL': 0, 'SKIP': 33})
+        policy = json.loads((ROOT / 'completion-legacy.json').read_text(encoding='utf-8'))
+        if policy['repository'] == 'MauricioPerera/KDD':
+            self.assertEqual(len(policy['legacy_pairs']), 33)
+            self.assertEqual(counts, {'PASS': 0, 'FAIL': 0, 'SKIP': 33})
+        else:
+            self.assertEqual(policy['legacy_pairs'], {})
+            self.assertEqual(list((ROOT / 'specs').glob('CONTRACT-[0-9]*.md')), [])
+            self.assertEqual(list((ROOT / 'docs/reports').glob('CONTRACT-[0-9]*-REPORT.md')), [])
+            self.assertEqual(counts, {'PASS': 0, 'FAIL': 0, 'SKIP': 0})
 
     def test_new_complete_pair_passes(self):
         with tempfile.TemporaryDirectory() as temp:
