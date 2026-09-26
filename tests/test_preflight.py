@@ -63,7 +63,7 @@ class TestFullMode(unittest.TestCase):
         calls = []
 
         def runner(name, params, repo_root='.', timeout=120):
-            calls.append((name, params, repo_root))
+            calls.append((name, params, repo_root, timeout))
             return {'exit_code': 0, 'stdout': '', 'stderr': ''}
 
         res = preflight.run_preflight(repo_root='algun-root', runner=runner)
@@ -71,9 +71,10 @@ class TestFullMode(unittest.TestCase):
         self.assertTrue(res['overall_ok'])
         self.assertEqual(list(res['results'].keys()), EXPECTED_GATES)
         self.assertEqual([c[0] for c in calls], EXPECTED_GATES)
-        for _name, params, root in calls:
+        for name, params, root, timeout in calls:
             self.assertEqual(params, {})
             self.assertEqual(root, 'algun-root')
+            self.assertEqual(timeout, 300 if name == 'validate_test_commands' else 120)
 
     def test_lineas_y_resumen_todos_pasan(self):
         res = preflight.run_preflight(runner=_ok_runner)

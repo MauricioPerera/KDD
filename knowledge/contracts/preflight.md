@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: "tests/test_preflight.py"
-tests_sha256: "9024d704197015f2a6235796f6db6f167e45839ed2bd7fa21146128bd95dec37"
+tests_sha256: "c1ba08dfef7bb0c1b7fc300e7159ab732b63a5e24c58d8e3d73a38d6638006d5"
 touch_only: ['scripts/preflight.py']
 deps_allowed: []
 forbids: ['network', 'llm']
@@ -48,7 +48,10 @@ gates de Nivel 1.
   no la captura en el default).
 - `run_preflight(repo_root='.', contract=None, runner=None) -> dict`:
   - Modo full (`contract is None`): corre los 20 gates de `ALL_GATES` en
-    orden via `runner(name, {}, repo_root=repo_root)`. Devuelve
+    orden via `runner(name, {}, repo_root=repo_root, timeout=...)`.
+    Cada gate conserva 120s salvo `validate_test_commands`, cuyo
+    timeout agregado es 300s porque ejecuta todos los contratos.
+    Devuelve
     `{'mode': 'full', 'overall_ok': bool, 'results': {gate: dict},
     'lines': [str]}` donde cada dict de gate es el retorno de `run_gate`
     (`{'exit_code','stdout','stderr'}`; timeout => `exit_code None`).
@@ -94,8 +97,9 @@ gates de Nivel 1.
   exit 0 (repo verde).
 - `python scripts/preflight.py --contract preflight` -> 3 lineas
   (`frontmatter`, `seal`, `test_command`) + resumen `3/3`.
-- Un gate que excede 120s aparece como `TIMEOUT` y el resumen baja a
-  `19/20`, exit 1.
+- Un gate que excede su timeout (120s por gate simple; 300s para
+  `validate_test_commands`) aparece como `TIMEOUT` y el resumen baja
+  a `19/20`, exit 1.
 
 ## Do / Don't
 - DO derivar los 20 nombres del dispatch (`LEVEL1_GATES` +
