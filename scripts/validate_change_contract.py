@@ -12,6 +12,7 @@ import tempfile
 from validate_budgets import _budget_findings
 from validate_contracts import parse_frontmatter
 from validate_perimeter import validate_perimeter
+from change_contract_multilang import audit_source
 
 
 _SHA = re.compile(r'[0-9a-fA-F]{40}(?:[0-9a-fA-F]{24})?')
@@ -97,6 +98,38 @@ def _dependency_findings(root, head_ref, target, sources, allowed):
     return findings
 
 
+def _multilang_findings(root, target, data, base_ref, head_ref):
+    suffix = PurePosixPath(target).suffix
+    manifest_name = ('package.json' if suffix in ('.js', '.jsx', '.ts', '.tsx')
+                     else 'go.mod' if suffix == '.go'
+                     else 'Cargo.toml' if suffix == '.rs' else None)
+    if manifest_name is None:
+        return [_finding('CHECK_UNSUPPORTED', target,
+                         'dependency and budget checks have no adapter')]
+    parent = PurePosixPath(target).parent
+    candidates = []
+    while True:
+        candidates.append(str(parent / manifest_name)
+                          if parent != PurePosixPath('.') else manifest_name)
+        if parent == PurePosixPath('.'):
+            break
+        parent = parent.parent
+    manifest = next((name for name in candidates
+                     if _blob(root, head_ref, name) is not None), None)
+    if manifest is None:
+        return [_finding('MANIFEST_PARSE', target,
+                         'required dependency manifest is missing')]
+    try:
+        manifests = {
+            'before': (_blob(root, base_ref, manifest) or b'').decode('utf-8'),
+            'after': _blob(root, head_ref, manifest).decode('utf-8'),
+        }
+    except UnicodeError as exc:
+        return [_finding('MANIFEST_PARSE', target, str(exc))]
+    return audit_source(target, _blob(root, base_ref, target) or b'',
+                        _blob(root, head_ref, target), data, manifests)
+
+
 def _target_findings(root, data, base_ref, head_ref, changed):
     target = data.get('target')
     if not _safe_path(target):
@@ -108,8 +141,7 @@ def _target_findings(root, data, base_ref, head_ref, changed):
     if after_bytes is None:
         return [_finding('TARGET_MISSING', target, 'target missing at candidate SHA')]
     if not target.endswith('.py'):
-        return [_finding('CHECK_UNSUPPORTED', target,
-                         'dependency and budget checks support Python targets only')]
+        return _multilang_findings(root, target, data, base_ref, head_ref)
     try:
         after = after_bytes.decode('utf-8')
         before = (_blob(root, base_ref, target) or b'').decode('utf-8')

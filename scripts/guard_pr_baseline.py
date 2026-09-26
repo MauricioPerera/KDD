@@ -21,6 +21,7 @@ PROTECTED_FILES = {
     'scripts/validate_completion.py',
     'scripts/verify_completion_runs.py',
     'scripts/validate_change_contract.py',
+    'scripts/change_contract_multilang.py',
     'scripts/validate_baseline.py',
     'scripts/validate_contracts.py',
     'scripts/validate_test_commands.py',

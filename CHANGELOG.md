@@ -4,6 +4,8 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- El auditor opt-in del diff incorpora JavaScript/JSX, TypeScript/TSX, Go y Rust con parsers fijados, comprobacion de manifiestos e imports nuevos y presupuestos por funcion. Los casos sin cobertura medible fallan explicitamente.
+
 - Auditoria opt-in del diff de implementacion contra el contrato aprobado: perimetro real, imports externos Python nuevos y budget del target medido sobre el commit candidato. El workflow reutilizable informa SKIP si no se configura.
 
 - Cierres de contratos de ejecucion: IDs de criterios y evidencia JSON coherentes con la tabla del reporte; CI verifica el run previo exitoso, su SHA y el diff de cierre para impedir autocertificacion. El chequeo remoto se aplica a cierres nuevos o modificados.
