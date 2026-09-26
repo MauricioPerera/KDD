@@ -6,7 +6,7 @@ tags: ['kdd', 'specs', 'reports', 'evidence']
 task: completion-evidence
 intent: 'Un reporte no puede declarar verificacion en CI si el spec mantiene criterios pendientes o carece de evidencia coincidente.'
 target: scripts/validate_completion.py
-signature: 'def validate_completion(repo_root: str, policy_path: str = "completion-legacy.json", specs_dir: str = "specs") -> list:'
+signature: 'def validate_completion(repo_root: str, policy_path: str = "completion-legacy.json", specs_dir: str = "specs", repository: str | None = None) -> list:'
 test_command: 'python -m unittest tests/test_validate_completion.py'
 budget:
   cyclomatic_max: 12
@@ -14,7 +14,7 @@ budget:
   lines_max: 300
   params_max: 4
 tests: 'tests/test_validate_completion.py'
-tests_sha256: '76d2df9967b9cf74f022cf03e77626f8ea7037b5f9f916ae795d09440e46db6a'
+tests_sha256: '2948a1c730b5e44eea179b823c5ebb2ec9fcd161b8399a2fa79ad2a433d9a177'
 touch_only: ['scripts/validate_completion.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'subprocess', 'llm']
@@ -31,12 +31,15 @@ esta capa local; el enlace al run es una referencia auditable, no un certificado
 ## Interface
 
 ```python
-def validate_completion(repo_root: str, policy_path: str = "completion-legacy.json", specs_dir: str = "specs") -> list:
+def validate_completion(repo_root: str, policy_path: str = "completion-legacy.json", specs_dir: str = "specs", repository: str | None = None) -> list:
     """Devuelve findings ordenados para los cierres de proyecto."""
 ```
 
-CLI: `python scripts/validate_completion.py [--repo-root DIR] [--policy RUTA] [--specs-dir DIR]`.
+CLI: `python scripts/validate_completion.py [--repo-root DIR] [--policy RUTA] [--specs-dir DIR] [--repository OWNER/REPO]`.
 Exit 0 sin errores; 1 si hay errores. El resumen separa PASS, FAIL y SKIP.
+Los workflows pasan `github.repository` como `--repository`. Sin politica
+historica, el gate valida cierres nuevos con ese repositorio y cero excepciones;
+sin politica ni repositorio explicito, falla cerrado.
 
 ## Invariants
 
@@ -52,7 +55,8 @@ Exit 0 sin errores; 1 si hay errores. El resumen separa PASS, FAIL y SKIP.
 - Los criterios `CI-*` exigen `status: verified_in_ci` y evidencia igual al URL
   del run. El reporte debe contener ese mismo URL y la ruta del spec.
 - Un URL de CI debe apuntar a un run de GitHub Actions del mismo repositorio
-  declarado en la politica, con ID numerico. El SHA debe ser completo.
+  declarado en la politica o en `--repository`, con ID numerico. Si ambos se
+  proporcionan, deben coincidir. El SHA debe ser completo.
 - La ausencia de un reporte deja el spec abierto; este gate no lo cierra.
 
 ## Examples

@@ -170,17 +170,18 @@ runs:
           echo "SKIP: no specs dir at $KDD_SPECS_DIR"
         fi
 
-    - name: Validate project completion evidence (OPTIONAL — guarded)
+    - name: Validate project completion evidence
       shell: bash
       env:
         KDD_COMPLETION_POLICY: ${{ inputs.completion-policy-path }}
         KDD_SPECS_DIR: ${{ inputs.specs-dir }}
-      run: |
-        if [ -f "$KDD_COMPLETION_POLICY" ]; then
-          python _kdd/scripts/validate_completion.py --repo-root . --specs-dir "$KDD_SPECS_DIR" --policy "$KDD_COMPLETION_POLICY"
-        else
-          echo "SKIP: no completion policy at $KDD_COMPLETION_POLICY"
-        fi
+        KDD_REPOSITORY: ${{ github.repository }}
+      run: >-
+        python _kdd/scripts/validate_completion.py
+        --repo-root .
+        --specs-dir "$KDD_SPECS_DIR"
+        --policy "$KDD_COMPLETION_POLICY"
+        --repository "$KDD_REPOSITORY"
 
     - name: Validate rule contracts (OPTIONAL — auto-skip)
       shell: bash

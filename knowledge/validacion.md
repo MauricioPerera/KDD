@@ -20,8 +20,8 @@ tags: ['ccdd', 'validacion', 'gate', 'reference']
   historicos de `completion-legacy.json` se reconocen por digest exacto y se
   reportan como **SKIP**, nunca PASS; al modificarlos hay que migrarlos al
   formato nuevo. El enlace al run no verifica por si solo su resultado remoto.
-  En proyectos consumidores sin politica, la integracion reutilizable omite
-  esta capa explicitamente hasta que la adopten. Es un control de cierre de
+  En proyectos consumidores sin politica, la integracion reutilizable usa el
+  repositorio de CI y cero excepciones historicas. Es un control de cierre de
   proyecto adicional al conjunto fijo de 18 gates de Nivel 1 de preflight.
 - `python scripts/lint_ascii.py scripts` — exige ASCII en los literales string de `scripts/*.py` (docstrings excluidas; excepciones legítimas vía pragma `# ascii: allow` de línea o `# ascii-lint: skip-file` de módulo, declarado en el resumen).
 - `python scripts/validate_rules.py <dir>` — gate de los [rule contracts](./rule-contract-spec.md) (reglas de negocio como datos): familias conocidas, golden sellado por hash y reproducción por el motor declarativo. Capa opcional: sin rule contracts, pasa con INFO.

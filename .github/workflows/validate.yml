@@ -153,12 +153,13 @@ jobs:
 
       - name: Validate project completion evidence
         shell: bash
-        run: |
-          if [ -f "$KDD_COMPLETION_POLICY" ]; then
-            python scripts/validate_completion.py --specs-dir "$KDD_SPECS_DIR" --policy "$KDD_COMPLETION_POLICY"
-          else
-            echo "SKIP: no completion policy at $KDD_COMPLETION_POLICY"
-          fi
+        env:
+          KDD_REPOSITORY: ${{ github.repository }}
+        run: >-
+          python scripts/validate_completion.py
+          --specs-dir "$KDD_SPECS_DIR"
+          --policy "$KDD_COMPLETION_POLICY"
+          --repository "$KDD_REPOSITORY"
 
       - name: Validate OKF nodes
         shell: bash

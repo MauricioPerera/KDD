@@ -153,7 +153,12 @@ def _valid_legacy(legacy):
     return True
 
 
-def _load_policy(policy_file):
+def _load_policy(policy_file, repository_hint=None):
+    if not policy_file.exists():
+        if isinstance(repository_hint, str) and _REPO.fullmatch(repository_hint):
+            return (repository_hint, {}), None
+        return None, _finding(str(policy_file), 'POLICY',
+                              'sin politica ni repositorio explicito para validar cierres')
     try:
         policy = json.loads(_read(policy_file))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
@@ -164,6 +169,9 @@ def _load_policy(policy_file):
             or not isinstance(repository, str)
             or not _REPO.fullmatch(repository) or not _valid_legacy(legacy)):
         return None, _finding(str(policy_file), 'POLICY', 'politica invalida')
+    if repository_hint is not None and repository != repository_hint:
+        return None, _finding(str(policy_file), 'POLICY_REPOSITORY',
+                              'repositorio de la politica no coincide con CI')
     return (repository, legacy), None
 
 
@@ -194,23 +202,25 @@ def _audit_pair(context, pair, prefix):
     return ('FAIL' if findings else 'PASS'), findings
 
 
-def _audit(repo_root, policy_path, specs_dir='specs'):
+def _audit(repo_root, policy_path, specs_dir='specs', repository=None):
     root = Path(repo_root).resolve()
     policy_file = Path(policy_path)
     if not policy_file.is_absolute():
         policy_file = root / policy_file
-    policy, policy_error = _load_policy(policy_file)
+    policy, policy_error = _load_policy(policy_file, repository)
     counts = {'PASS': 0, 'FAIL': 0, 'SKIP': 0}
     if policy_error:
         counts['FAIL'] = 1
         return [policy_error], counts
     repository, legacy = policy
     specs_root = (root / specs_dir).resolve()
-    reports_root = root / 'docs' / 'reports'
-    if not specs_root.is_dir() or not reports_root.is_dir() or not specs_root.is_relative_to(root):
+    reports_root = (root / 'docs' / 'reports').resolve()
+    if (not specs_root.is_relative_to(root) or not reports_root.is_relative_to(root)
+            or specs_root.exists() and not specs_root.is_dir()
+            or reports_root.exists() and not reports_root.is_dir()):
         counts['FAIL'] = 1
         return [_finding(specs_dir, 'DIRECTORY',
-                         'specs o docs/reports ausentes o fuera del repositorio')], counts
+                         'specs o docs/reports no son directorios seguros')], counts
     specs, spec_findings = _path_map(root, specs_root, 'CONTRACT-*.md', 'SPEC_DUPLICATE')
     reports, report_findings = _path_map(root, reports_root, 'CONTRACT-*-REPORT.md',
                                          'REPORT_DUPLICATE')
@@ -224,8 +234,8 @@ def _audit(repo_root, policy_path, specs_dir='specs'):
     return sorted(findings, key=lambda item: (item['file'], item['rule'])), counts
 
 
-def validate_completion(repo_root, policy_path='completion-legacy.json', specs_dir='specs'):
-    return _audit(repo_root, policy_path, specs_dir)[0]
+def validate_completion(repo_root, policy_path='completion-legacy.json', specs_dir='specs', repository=None):
+    return _audit(repo_root, policy_path, specs_dir, repository)[0]
 
 
 def main(argv=None):
@@ -233,8 +243,9 @@ def main(argv=None):
     parser.add_argument('--repo-root', default='.')
     parser.add_argument('--policy', default='completion-legacy.json')
     parser.add_argument('--specs-dir', default='specs')
+    parser.add_argument('--repository', help='owner/repo from the CI context')
     args = parser.parse_args(argv)
-    findings, counts = _audit(args.repo_root, args.policy, args.specs_dir)
+    findings, counts = _audit(args.repo_root, args.policy, args.specs_dir, args.repository)
     for finding in findings:
         print('ERROR [{}] {}: {}'.format(finding['rule'], finding['file'], finding['msg']))
     print('Summary: PASS={PASS} FAIL={FAIL} SKIP={SKIP}'.format(**counts))
