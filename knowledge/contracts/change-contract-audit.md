@@ -15,7 +15,7 @@ budget:
   params_max: 5
 tests: 'tests/test_validate_change_contract.py'
 tests_sha256: '06b70e0bc1b5d6020baa3a9b137171255e2e59fe8c625d691faeeae9eec2110d'
-touch_only: ['scripts/validate_change_contract.py', '.github/workflows/validate.yml', 'knowledge/validacion.md', 'CHANGELOG.md']
+touch_only: ['scripts/validate_change_contract.py', 'scripts/guard_pr_baseline.py', '.github/workflows/validate.yml', 'knowledge/validacion.md', 'CHANGELOG.md']
 deps_allowed: ['stdlib']
 forbids: ['llm', 'network']
 ---
@@ -48,6 +48,8 @@ ser ancestro del candidato. El CLI acepta `--contract`, `--base-ref`,
   Targets no Python producen `CHECK_UNSUPPORTED`: no se presentan como
   validados en dependencias o presupuesto por este gate.
 - No se ejecuta codigo del candidato ni se consulta la red.
+- El guard confiable en `main` protege este script para impedir que un PR
+  sustituya el gate mientras intenta aprobar su propio diff.
 
 ## Examples
 
