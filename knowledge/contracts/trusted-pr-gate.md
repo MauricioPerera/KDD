@@ -12,7 +12,7 @@ budget:
   cyclomatic_max: 20
   nesting_max: 4
 tests: 'tests/test_guard_pr_baseline.py'
-tests_sha256: '4d54fe2ffd8dd338e7760901490007004ea1ffd0659345d8faa25b88a21aa77b'
+tests_sha256: 'f7c87b62b2313d026df109ec6001b877108a2aa9daccc8af909040c2fd13091f'
 touch_only: ['scripts/guard_pr_baseline.py', '.github/workflows/trusted-pr-gate.yml']
 deps_allowed: ['stdlib']
 forbids: ['llm']
@@ -42,6 +42,8 @@ cambios al workflow y a los validadores que forman la raiz de confianza.
   autoaprobar un reporte incompleto.
 - El clasificador de evidencia opcional tambien esta protegido: no se puede
   convertir un SKIP en PASS editando el helper dentro del mismo PR.
+- El archivo `requirements-change-audit.txt` pertenece a la raiz protegida:
+  un PR no puede sustituir los parsers fijados que instala CI.
 - El PR solo se lee mediante `git show`, `git diff` y `git ls-tree`.
 - El gate no ejecuta scripts, pruebas ni comandos declarados por el PR.
 

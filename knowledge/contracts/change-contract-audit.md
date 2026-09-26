@@ -14,7 +14,7 @@ budget:
   lines_max: 300
   params_max: 5
 tests: 'tests/test_validate_change_contract.py'
-tests_sha256: '82d35665d6b8200717298608de149f03c689377a57eedd608a5b77378c627cde'
+tests_sha256: '632043378fd6e51585f2be9ecd7b8854d1597b82269c2715b03804283fd75a0f'
 touch_only: ['scripts/validate_change_contract.py', 'scripts/change_contract_multilang.py', 'scripts/guard_pr_baseline.py', '.github/workflows/validate.yml', 'knowledge/validacion.md', 'CHANGELOG.md']
 deps_allowed: ['stdlib']
 forbids: ['llm', 'network']
@@ -49,6 +49,9 @@ ser ancestro del candidato. El CLI acepta `--contract`, `--base-ref`,
   [adaptador multilenguaje](./change-contract-languages.md) para analizar el
   codigo del commit candidato y los manifiestos de dependencias. Un lenguaje
   sin adaptador produce `CHECK_UNSUPPORTED`.
+- Un cambio al manifiesto asociado se audita aun si el archivo target no
+  cambia. La ausencia o sintaxis invalida del manifiesto produce un finding
+  duro; una dependencia nueva debe estar aprobada en el baseline.
 - Un parseo fallido, un manifiesto requerido ausente o una metrica opaca
   produce un finding duro en lugar de un PASS parcial.
 - No se ejecuta codigo del candidato ni se consulta la red.
