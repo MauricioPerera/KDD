@@ -4,6 +4,8 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- Cierres de contratos de ejecucion: IDs de criterios y evidencia JSON coherentes con la tabla del reporte; CI verifica el run previo exitoso, su SHA y el diff de cierre para impedir autocertificacion. El chequeo remoto se aplica a cierres nuevos o modificados.
+
 - Calidad: punto de aprobación de proyectos con política/oráculos contra commit explícito, perímetro real (incluido índice y archivos nuevos), checks funcionales/adversariales/UI y dos vueltas. CI exige referencia cuando hay política. [Evidencia y límites](docs/reports/QUALITY-APPROVAL-REPORT.md).
 
 - Tablero: el catálogo de contratos se carga al iniciar y alimenta el formulario de nueva tarea sin visitar Documentación; regresión de arranque y flujo real en navegador verificados.

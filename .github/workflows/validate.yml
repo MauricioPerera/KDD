@@ -2,6 +2,7 @@ name: validate-contracts
 
 permissions:
   contents: read
+  actions: read
 
 on:
   push:
@@ -26,6 +27,12 @@ on:
       completion_policy_path:
         type: string
         default: 'completion-legacy.json'
+      completion_workflow_path:
+        type: string
+        default: '.github/workflows/validate.yml'
+      completion_workflow_name:
+        type: string
+        default: 'validate-contracts'
       okf_dir:
         type: string
         default: 'knowledge'
@@ -94,6 +101,8 @@ jobs:
       KDD_CONTRACTS_DIR: ${{ inputs.contracts_dir || 'knowledge/contracts' }}
       KDD_SPECS_DIR: ${{ inputs.specs_dir || 'specs' }}
       KDD_COMPLETION_POLICY: ${{ inputs.completion_policy_path || 'completion-legacy.json' }}
+      KDD_COMPLETION_WORKFLOW_PATH: ${{ inputs.completion_workflow_path || '.github/workflows/validate.yml' }}
+      KDD_COMPLETION_WORKFLOW_NAME: ${{ inputs.completion_workflow_name || 'validate-contracts' }}
       KDD_OKF_DIR: ${{ inputs.okf_dir || 'knowledge' }}
       KDD_RULES_DIR: ${{ inputs.rules_dir || 'examples/rules' }}
       KDD_SKILLS_DIRS: ${{ inputs.skills_dirs || 'skills .agents/skills' }}
@@ -163,6 +172,25 @@ jobs:
           --specs-dir "$KDD_SPECS_DIR"
           --policy "$KDD_COMPLETION_POLICY"
           --repository "$KDD_REPOSITORY"
+
+      - name: Verify prior completed CI run for project closure
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          KDD_REPOSITORY: ${{ github.repository }}
+          KDD_CURRENT_RUN_ID: ${{ github.run_id }}
+          KDD_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          KDD_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+        run: >-
+          python scripts/verify_completion_runs.py
+          --repository "$KDD_REPOSITORY"
+          --current-run-id "$KDD_CURRENT_RUN_ID"
+          --candidate-sha "$KDD_CANDIDATE_SHA"
+          --base-sha "$KDD_BASE_SHA"
+          --workflow-path "$KDD_COMPLETION_WORKFLOW_PATH"
+          --workflow-name "$KDD_COMPLETION_WORKFLOW_NAME"
+          --policy "$KDD_COMPLETION_POLICY"
+          --specs-dir "$KDD_SPECS_DIR"
 
       - name: Validate OKF nodes
         shell: bash

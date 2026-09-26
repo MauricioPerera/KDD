@@ -25,7 +25,11 @@ candidatos; la ejecucion sigue siendo opt-in. Ver [behavior](behavior-contract-s
   evidencia para cada ID y un run de CI enlazado por el reporte. Los 33 pares
   historicos de `completion-legacy.json` se reconocen por digest exacto y se
   reportan como **SKIP**, nunca PASS; al modificarlos hay que migrarlos al
-  formato nuevo. El enlace al run no verifica por si solo su resultado remoto.
+  formato nuevo. El reporte incluye una tabla por ID que debe coincidir con
+  el manifiesto. El enlace al run no verifica por si solo su resultado remoto:
+  `verify_completion_runs.py` consulta la API de GitHub en CI, exige un run
+  anterior exitoso para el SHA declarado y rechaza cambios de codigo despues
+  de ese run. Ver [garantias](./verification-guarantees.md#cierre-de-contratos-de-proyecto).
   En proyectos consumidores sin politica, la integracion reutilizable usa el
   repositorio de CI y cero excepciones historicas. Es un control de cierre de
   proyecto adicional al conjunto fijo de 19 gates de Nivel 1 de preflight.

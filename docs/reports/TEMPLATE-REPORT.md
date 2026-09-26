@@ -4,6 +4,10 @@ Fecha: <YYYY-MM-DD>
 Spec: `specs/CONTRACT-NN-<slug>.md`
 CI: https://github.com/OWNER/REPO/actions/runs/12345
 
+Los IDs, estados y textos de evidencia deben coincidir exactamente con
+`CONTRACT-NN-EVIDENCE.json`. El enlace CI corresponde a un run ya terminado
+y exitoso del commit de implementacion, anterior a este cierre.
+
 ## Resultado por criterio
 
 | ID | Estado | Evidencia |
@@ -12,10 +16,6 @@ CI: https://github.com/OWNER/REPO/actions/runs/12345
 | AC-2 | locally_verified | <registro de prueba> |
 | AC-3 | locally_verified | <registro de prueba> |
 | CI-1 | verified_in_ci | https://github.com/OWNER/REPO/actions/runs/12345 |
-
-Los IDs, estados y textos de evidencia deben coincidir exactamente con
-`CONTRACT-NN-EVIDENCE.json`. El enlace CI corresponde a un run ya terminado
-y exitoso del commit de implementacion, anterior a este cierre.
 
 ## Resumen ejecutivo
 
