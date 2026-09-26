@@ -75,6 +75,23 @@ suma a `PASS`.
 
 Enforcement local opt-in de budgets Python: `python scripts/validate_budgets.py knowledge/contracts --repo-root . --contract <task>` mide el target de una tarea contra `cyclomatic_max`, `nesting_max`, `lines_max` y `params_max`. Exit 1 significa exceso. La ejecución global, sin `--contract`, es diagnóstica para revelar la deuda de budgets históricos sin convertirla silenciosamente en un gate de CI. Los targets no Python se omiten explícitamente hasta incorporar un medidor equivalente. Este paso no sustituye al gate CCDD multi-lenguaje; permite avanzar con una comprobación determinista aunque no esté disponible el servidor MCP.
 
+Auditoria opt-in del diff de implementacion: `python scripts/validate_change_contract.py
+--contract knowledge/contracts/<task>.md --base-ref <SHA-aprobado>
+--head-ref <SHA-candidato>` lee el contrato desde el commit base y compara
+el diff Git real con `touch_only`; para un target Python cambiado comprueba
+los imports externos **nuevos** contra `deps_allowed` y aplica su `budget` al
+codigo del commit candidato. Los imports externos existentes en el base no
+bloquean una migracion. Los nombres en `deps_allowed` se interpretan como
+raices de import; imports dinamicos, dependencias transitivas y targets no
+Python quedan fuera de esta comprobacion. Un target no Python modificado emite
+`CHECK_UNSUPPORTED` y falla el gate opt-in. Ver
+[contrato del auditor](./contracts/change-contract-audit.md). En el workflow
+reutilizable se activa con `change_contract_path`; usa el mismo
+`approved_baseline_ref` independiente que valida contratos y oraculos. Debe
+activarse para PRs de implementacion cuya diferencia desde ese baseline sea
+la tarea declarada; un PR que agregue otros archivos necesita otro contrato o
+un alcance revisado. Sin esa entrada el paso informa SKIP.
+
 Todos corren localmente y en CI (`.github/workflows/validate.yml`, matriz `ubuntu-latest` + `windows-latest`, que además valida los nodos OKF y corre la suite dos veces — dos corridas idénticas ≈ sin flaky). El caso costoso de post-init se ejecuta una vez dentro del `test_command` de su contrato y se omite en las dos pasadas generales mediante `KDD_SKIP_INIT_POST_APPLY_SUITE=1`; los demás tests siguen corriendo dos veces. **Ningún contrato se considera terminado hasta que pase el nivel 1.**
 
 ## Preflight — diagnóstico local opt-in (NO es un gate)
