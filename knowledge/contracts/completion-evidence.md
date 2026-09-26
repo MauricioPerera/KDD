@@ -14,7 +14,7 @@ budget:
   lines_max: 300
   params_max: 4
 tests: 'tests/test_validate_completion.py'
-tests_sha256: 'dce96dbbe5a2ee26ff3d2def8df1e9d781d0d8652cda275a3ff75aa42c7fb620'
+tests_sha256: '7f8ef28967a6c3e4e323f1500b673754b241a1187ea74d817e6dca8885e0e996'
 touch_only: ['scripts/validate_completion.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'subprocess', 'llm']
@@ -54,6 +54,10 @@ sin politica ni repositorio explicito, falla cerrado.
   `status` (`locally_verified` o `verified_in_ci`) y `evidence` no vacia.
 - Los criterios `CI-*` exigen `status: verified_in_ci` y evidencia igual al URL
   del run. El reporte debe contener ese mismo URL y la ruta del spec.
+- Un reporte nuevo debe incluir `## Resultado por criterio` con una tabla
+  `ID | Estado | Evidencia`. Cada ID del spec aparece exactamente una vez;
+  estado y evidencia coinciden con `CONTRACT-NN-EVIDENCE.json`. Una fila
+  ausente, duplicada o contradictoria impide el cierre.
 - Un URL de CI debe apuntar a un run de GitHub Actions del mismo repositorio
   declarado en la politica o en `--repository`, con ID numerico. Si ambos se
   proporcionan, deben coincidir. El SHA debe ser completo.
@@ -64,6 +68,8 @@ sin politica ni repositorio explicito, falla cerrado.
 - Spec con `- [ ]` y reporte que dice "Ninguno pendiente" -> FAIL.
 - Evidencia con un ID no presente en el spec -> FAIL.
 - Reporte nuevo con checklist completo y evidencia coincidente -> PASS.
+- Reporte que atribuye a un criterio un estado o evidencia diferente del JSON
+  canonico -> FAIL.
 - Par historico de digest exacto -> SKIP, nunca PASS.
 
 ## Do / Don't
@@ -77,7 +83,7 @@ sin politica ni repositorio explicito, falla cerrado.
 
 `tests/test_validate_completion.py` cubre cierres coherentes, criterios
 pendientes, IDs faltantes o sobrantes, URL y SHA invalidos, reporte huerfano,
-legado intacto y legado editado.
+filas de reporte ausentes o contradictorias, legado intacto y legado editado.
 
 ## Constraints
 
