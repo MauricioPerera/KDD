@@ -23,6 +23,13 @@ Estos artefactos forman parte del tooling y las convenciones del template. Al up
 
 ## Propiedad del proyecto
 
+`init_project.py --apply --repository OWNER/REPO` elimina los specs y reportes
+de ejecución de KDD upstream, conserva los templates e inicia
+`completion-legacy.json` con `legacy_pairs: {}` y la identidad del proyecto.
+También reinicia `CHANGELOG.md` en v0.1.0. Estos archivos resultantes son
+propiedad del proyecto: una actualización del tooling no debe restaurar la
+historia de KDD ni sobrescribir la identidad de CI.
+
 Estos artefactos **pertenecen al proyecto** instanciado y **no deben ser sobrescritos** salvo con plena consciencia:
 
 - **Código de la aplicación:** `src/` (excepto ejemplos que `init_project --apply` borra al inicial)
