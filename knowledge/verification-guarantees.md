@@ -19,6 +19,10 @@ La evidencia cubre esos tres archivos. No cubre automaticamente dependencias tra
 
 ## Vault
 
+El piloto de [autoridad local](./data_models/local-authority.md) aplica permisos antes
+de operaciones cerradas y limita ambitos delegados. Es independiente del runner del
+tablero: no convierte sus comandos arbitrarios en operaciones aisladas.
+
 El archivo .env.local del proyecto guarda valores en texto. Se inyectan solo al subproceso; no se exportan globalmente desde el flujo HTTP/MCP. Se redactan coincidencias exactas de valores conocidos en stdout/stderr antes de devolver o almacenar la salida. Esto no protege valores codificados, fragmentados o enviados por red. El codigo ejecutado y quien pueda leer el archivo pueden obtener los secretos. Para acceso ciego real se necesita un proxy de operaciones delimitadas con credenciales fuera del proceso controlado por el agente.
 
 ## Referencia aprobada

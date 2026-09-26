@@ -9,6 +9,7 @@ se aplica en un solo sitio, sin drift.
 """
 
 import re
+import math
 
 
 # --- Helpers internos compartidos (modulo-level, puros, sin estado) -------------
@@ -63,7 +64,7 @@ def _check_type(rules, record):
 
         if kind == "number":
             # number excluye bool
-            if isinstance(value, bool) or not isinstance(value, (int, float)):
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or (isinstance(value, float) and not math.isfinite(value)):
                 out.append(_format_violation(field, "type must be number"))
         elif kind == "string":
             if not isinstance(value, str):
@@ -82,6 +83,10 @@ def _check_bounds(rules, record):
 
         # bounds solo aplica a numbers
         if value is None or not isinstance(value, (int, float)) or isinstance(value, bool):
+            continue
+
+        if isinstance(value, float) and not math.isfinite(value):
+            out.append(_format_violation(field, "bounds require a finite number"))
             continue
 
         if "gt" in rule and value <= rule["gt"]:
@@ -184,6 +189,10 @@ def evaluate(ruleset: dict, record: dict, refs: dict) -> list:
             if value is None or not isinstance(value, (int, float)) or isinstance(value, bool):
                 continue
 
+            if isinstance(value, float) and not math.isfinite(value):
+                violations.append(_format_violation(field, "keyed bounds require a finite number"))
+                continue
+
             # Resolver la clave
             key_value = _get_value(record, key)
 
@@ -203,7 +212,7 @@ def evaluate(ruleset: dict, record: dict, refs: dict) -> list:
             # se reporta como violacion clara del campo. No puede ocurrir en los
             # goldens reales (todos declaran max_* numerico), pero el motor debe ser
             # agnostico y no estallar ante un rule-set mal formado.
-            if isinstance(max_limit, bool) or not isinstance(max_limit, (int, float)):
+            if isinstance(max_limit, bool) or not isinstance(max_limit, (int, float)) or (isinstance(max_limit, float) and not math.isfinite(max_limit)):
                 violations.append(_format_violation(field, "keyed bounds limit is not a number"))
                 continue
 

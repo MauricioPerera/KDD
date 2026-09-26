@@ -1,0 +1,1 @@
+{"schema":"kdd-behavior-adapters/v1","adapters":[{"name":"python","tool":"python","source":"src/behavior_double.py","command":["{tool}","{source}"]},{"name":"javascript","tool":"node","source":"src/behavior_double.mjs","command":["{tool}","{source}"]}]}

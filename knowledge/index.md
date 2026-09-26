@@ -16,6 +16,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Casos reales de la metodología](./casos-reales.md) — incidentes verificados que motivaron las reglas; evidencia separada del proceso normativo.
 - [Upgrade de la plantilla](./plantilla-upgrade.md) — qué es infraestructura sobreescribible desde upstream vs. propiedad del proyecto; procedimiento manual de upgrade.
 - [Rule contract](./rule-contract-spec.md) — vertiente que valida reglas de negocio como datos declarativos (no solo código); familias, golden set y frontera dato/lógica.
+- [Behavior contracts v1](./behavior-contract-spec.md) — propiedades ejecutables opcionales, evidencia estructurada y frontera explícita de garantía.
 - [Puente GAME Protocol](./game-data-bridge.md) — receta canónica para poner datos de juego (gameplay as data) bajo contratos KDD: toolchain vendoreado, perfil propio, oráculo sellado con lint/export/no-drift.
 - [Patrón de estructura para paneles admin](./patron-panel-admin.md) — convención de sidebar por entidad, listados sin ID crudo y rutas separadas para auth/recuperación/verificación, contra la tendencia del LLM a apilar todo en una vista. Sin gate propio (no es un dominio de Capa 3): es referencia a aplicar y verificar a mano.
 - [Diagram contract](./diagram-contract-spec.md) — convención para referenciar diagramas Mermaid verificables desde un concept doc OKF; formato del `.diagram-contract.json`; alcance (solo flowchart) y relación con el proyecto hermano `mermaid-gate`.
@@ -23,6 +24,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 ## Estructura
 - [Contratos de Desarrollo](./contracts/)
+  - [Ejecutor de autoridad local](./contracts/local-authority.md) — permisos aplicados antes del IO.
   - [Planificador del sprint](./contracts/sprint-planner.md) — relaciones, ciclos, bloqueos y prioridades.
   - [Admision de tareas al sprint](./contracts/sprint-admission.md) — piloto ejecutable sobre snapshots JSON.
   - [Ejemplo de Tarea (Hello World)](./contracts/sample_task.md)
@@ -69,6 +71,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Exportador de contratos para el gate CCDD Nivel 2](./contracts/export-gate-contract.md)
   - [Regla de contexto presupuestado en las reglas de agentes](./contracts/agents-context-rule.md)
 - [Modelos de Datos](./data_models/)
+  - [Autoridad local v1](./data_models/local-authority.md) — operaciones soportadas y frontera de confianza.
   - [Backlog relacionado](./data_models/sprint-backlog.md) — formato y reglas del planificador.
   - [Tabla users](./data_models/users_table.md)
   - [Limites de pago por pais](./data_models/payment_limits.md)
@@ -98,3 +101,5 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 - [Aprobacion integrada de calidad](quality-approval.md)
 - [Contrato verify-quality](contracts/verify-quality.md)
+- [Nivel 2 nativo](native-level2.md)
+- [Contrato de integracion nativa](contracts/native-level2.md)

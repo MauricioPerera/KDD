@@ -32,7 +32,7 @@ except ImportError:
 
 EXPECTED_TOOLS = {
     'validate_contracts', 'validate_specs', 'validate_okf', 'lint_ascii',
-    'validate_rules', 'validate_skills', 'validate_changelog',
+    'validate_rules', 'validate_skills', 'validate_changelog', 'validate_behavior',
     'validate_ux_page', 'validate_diagrams', 'validate_test_commands',
     'scan_secrets', 'validate_attestation', 'run_all_level1', 'seal_tests',
     # No es un gate: no pasa por mcp_gate_dispatch ni por subprocess. Es la
