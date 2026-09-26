@@ -64,7 +64,7 @@ class AuditRegressions(unittest.TestCase):
 
     def test_behavior_is_dispatched_and_preflight_propagates_failure(self):
         self.assertIn('validate_behavior', gd.LEVEL1_GATES)
-        def fake(name, params, repo_root):
+        def fake(name, params, repo_root, timeout=120):
             return {'exit_code': int(name == 'validate_behavior'), 'stdout': '', 'stderr': ''}
         self.assertFalse(preflight.run_preflight(runner=fake)['overall_ok'])
         self.assertEqual(gd.build_argv('validate_behavior', {})[2:], ['behavior'])
