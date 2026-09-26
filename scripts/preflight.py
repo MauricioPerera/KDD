@@ -279,7 +279,8 @@ def run_preflight(repo_root='.', contract=None, runner=None, agent=False):
         runner = run_gate
     results = {}
     for name in ALL_GATES:
-        results[name] = runner(name, {}, repo_root=repo_root)
+        timeout = 300 if name == 'validate_test_commands' else 120
+        results[name] = runner(name, {}, repo_root=repo_root, timeout=timeout)
     overall_ok = all(r['exit_code'] == 0 for r in results.values())
     lines = _format_lines(results, len(ALL_GATES), agent=agent)
     return {'mode': 'full', 'overall_ok': overall_ok,
@@ -299,18 +300,21 @@ def _parse_cli_flags(argv):
     i = 1
     while i < len(argv):
         name, eq, val = argv[i].partition('=')
+        if name not in ('--repo-root', '--contract'):
+            i += 1
+            continue
+        if eq:
+            value = val
+        elif i + 1 < len(argv):
+            value = argv[i + 1]
+            i += 1
+        else:
+            i += 1
+            continue
         if name == '--repo-root':
-            if eq:
-                repo_root = val
-            elif i + 1 < len(argv):
-                repo_root = argv[i + 1]
-                i += 1
-        elif name == '--contract':
-            if eq:
-                contract = val
-            elif i + 1 < len(argv):
-                contract = argv[i + 1]
-                i += 1
+            repo_root = value
+        else:
+            contract = value
         i += 1
     return repo_root, contract, agent
 

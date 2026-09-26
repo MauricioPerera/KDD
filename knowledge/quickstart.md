@@ -54,28 +54,34 @@ plantilla nace verde. La lista completa de gates de Nivel 1 esta en
 ## 3. Limpiar los ejemplos de la plantilla
 
 ```
-python scripts/init_project.py --name "Mi Proyecto"
+python scripts/init_project.py --name "Mi Proyecto" --repository TU_USUARIO/mi-proyecto
 ```
 
 (dry-run: solo imprime el plan). Cuando estes conforme:
 
 ```
-python scripts/init_project.py --apply --name "Mi Proyecto"
+python scripts/init_project.py --apply --name "Mi Proyecto" --repository TU_USUARIO/mi-proyecto
 ```
 
-Esperado: borra `src/hello.py`, `src/users.py` y el resto de los
-artefactos de EJEMPLO listados en el `MANIFEST` de
-`scripts/init_project.py`, reescribe `knowledge/index.md` sin los enlaces
-muertos, y cambia el H1 del README. `knowledge/contracts/TEMPLATE-task-contract.md`
-NO se borra (no esta en el `MANIFEST`) — es tu punto de partida para el
-paso siguiente.
+Esperado: borra los ejemplos y los specs/reportes historicos de KDD listados
+en el `MANIFEST` de `scripts/init_project.py`, reescribe `knowledge/index.md`,
+reinicia `CHANGELOG.md` en v0.1.0 y establece en `completion-legacy.json` el
+repositorio indicado con `legacy_pairs: {}`. Conserva los validadores,
+contratos de infraestructura y templates. `knowledge/contracts/TEMPLATE-task-contract.md`
+es tu punto de partida para el paso siguiente.
 
 Verificar que el repo sigue verde despues de limpiar:
 
 ```
 python scripts/validate_contracts.py knowledge/contracts
+python scripts/validate_completion.py --repository TU_USUARIO/mi-proyecto
 python -m unittest discover -s tests -p "test_*.py"
 ```
+
+Esperado en completion: `PASS=0 FAIL=0 SKIP=0` antes del primer cierre del
+proyecto. Al crear el repositorio en GitHub, usa exactamente el mismo
+`OWNER/REPO` que declaraste en `--repository`; CI lo compara con
+`github.repository` y rechaza una identidad distinta.
 
 ## 4. Tu primer contrato propio
 
