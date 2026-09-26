@@ -25,7 +25,9 @@ forbids: ['network', 'subprocess', 'llm']
 La [validacion](../validacion.md) distingue la ausencia de evidencia de un
 resultado comprobado. Este helper sirve a los workflows reutilizables y a la
 accion compuesta: comprueba las capas que el consumidor declara obligatorias
-y escribe un resumen de las capas opcionales en cada run.
+y escribe un resumen de las capas opcionales en cada run. Ambas integraciones
+incluyen quality; cuando la politica existe, verifican el proyecto contra un
+SHA completo previamente aprobado.
 
 ## Interface
 

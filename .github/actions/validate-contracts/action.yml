@@ -6,11 +6,12 @@ description: |
   against the caller's own paths.
 
   IMPORTANT — caller responsibility: this composite action does NOT checkout
-  the caller's repo. The caller is expected to `actions/checkout@v4` its OWN
+  the caller's repo. The caller is expected to check out its OWN
   repo (so its working tree is at `github.workspace`) BEFORE invoking this
   action. All path inputs below are interpreted relative to that caller
   checkout (`github.workspace`). This action only adds the KDD tooling repo on
-  top, at `_kdd/`, without overwriting the caller's files.
+  top, at `_kdd/`, without overwriting the caller's files. A quality-approved-ref
+  must exist in the caller checkout; use fetch-depth: 0 for an older commit.
 
   Optional gates (rules / skills / ux-page / diagrams / security findings /
   compliance findings / privacy findings / accessibility findings /
@@ -92,6 +93,14 @@ inputs:
     description: 'Path to a sealed test-coverage-gap scan dir (findings.json). OPTIONAL — auto-skips (INFO) if absent.'
     required: false
     default: 'test-coverage/scan'
+  quality-policy-path:
+    description: 'Optional project quality policy path. When present, quality-approved-ref must be a full approved commit SHA.'
+    required: false
+    default: 'quality.json'
+  quality-approved-ref:
+    description: 'Full 40-character approved project commit SHA for the quality gate.'
+    required: false
+    default: ''
   src-dir:
     description: 'Path to scan for leaked secrets. OPTIONAL — scan_secrets returns [] on a missing dir.'
     required: false
@@ -101,7 +110,7 @@ inputs:
     required: false
     default: 'true'
   required-evidence:
-    description: 'Comma-separated required scan layers: security, compliance, privacy, accessibility, dependency-eol, observability, test-coverage.'
+    description: 'Comma-separated required layers: security, compliance, privacy, accessibility, dependency-eol, observability, test-coverage, quality.'
     required: false
     default: ''
 
@@ -119,14 +128,14 @@ runs:
         fi
 
     - name: Check out KDD tooling repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       with:
         repository: MauricioPerera/KDD
         ref: ${{ inputs.kdd-ref }}
         path: _kdd
 
     - name: Set up Python 3.11
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
       with:
         python-version: '3.11'
 
@@ -141,7 +150,8 @@ runs:
         KDD_DEPENDENCY_EOL_SCAN_DIR: ${{ inputs.dependency-eol-scan-dir }}
         KDD_OBSERVABILITY_SCAN_DIR: ${{ inputs.observability-scan-dir }}
         KDD_TEST_COVERAGE_SCAN_DIR: ${{ inputs.test-coverage-scan-dir }}
-      run: python _kdd/scripts/optional_evidence.py check --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage
+        KDD_QUALITY_POLICY: ${{ inputs.quality-policy-path }}
+      run: python _kdd/scripts/optional_evidence.py check --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage,quality
 
     - name: Validate contracts (REQUIRED)
       shell: bash
@@ -241,6 +251,23 @@ runs:
         KDD_TEST_COVERAGE_SCAN_DIR: ${{ inputs.test-coverage-scan-dir }}
       run: python _kdd/scripts/validate_test_coverage_findings.py "$KDD_TEST_COVERAGE_SCAN_DIR"
 
+    - name: Approve project quality (when configured)
+      id: quality
+      shell: bash
+      env:
+        KDD_QUALITY_POLICY: ${{ inputs.quality-policy-path }}
+        KDD_QUALITY_APPROVED_REF: ${{ inputs.quality-approved-ref }}
+      run: |
+        if [ -f "$KDD_QUALITY_POLICY" ] || [ -n "$KDD_QUALITY_APPROVED_REF" ]; then
+          if [[ ! "$KDD_QUALITY_APPROVED_REF" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo 'quality-approved-ref must be a full approved commit SHA' >&2
+            exit 1
+          fi
+          python _kdd/scripts/verify_quality.py --policy "$KDD_QUALITY_POLICY" --approved-ref "$KDD_QUALITY_APPROVED_REF"
+        else
+          echo 'SKIP: no project quality policy configured'
+        fi
+
     - name: Scan for leaked secrets (OPTIONAL — auto-skip)
       shell: bash
       env:
@@ -266,6 +293,7 @@ runs:
         KDD_DEPENDENCY_EOL_SCAN_DIR: ${{ inputs.dependency-eol-scan-dir }}
         KDD_OBSERVABILITY_SCAN_DIR: ${{ inputs.observability-scan-dir }}
         KDD_TEST_COVERAGE_SCAN_DIR: ${{ inputs.test-coverage-scan-dir }}
+        KDD_QUALITY_POLICY: ${{ inputs.quality-policy-path }}
         KDD_SECURITY_OUTCOME: ${{ steps.security_scan.outcome }}
         KDD_COMPLIANCE_OUTCOME: ${{ steps.compliance_scan.outcome }}
         KDD_PRIVACY_OUTCOME: ${{ steps.privacy_scan.outcome }}
@@ -273,4 +301,5 @@ runs:
         KDD_DEPENDENCY_EOL_OUTCOME: ${{ steps.dependency_eol_scan.outcome }}
         KDD_OBSERVABILITY_OUTCOME: ${{ steps.observability_scan.outcome }}
         KDD_TEST_COVERAGE_OUTCOME: ${{ steps.test_coverage_scan.outcome }}
-      run: python _kdd/scripts/optional_evidence.py summary --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage
+        KDD_QUALITY_OUTCOME: ${{ steps.quality.outcome }}
+      run: python _kdd/scripts/optional_evidence.py summary --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage,quality
