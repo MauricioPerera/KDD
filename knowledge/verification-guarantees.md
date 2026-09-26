@@ -64,7 +64,9 @@ checkboxes pendientes o sin evidencia para todos sus criterios. El manifiesto
 `CONTRACT-NN-EVIDENCE.json` registra el estado y enlaza un run de CI; el
 reporte debe enlazar al mismo run. Es una comprobacion determinista de
 coherencia entre artefactos. No consulta GitHub para autenticar el resultado
-del run: el enlace requiere revision o una comprobacion remota separada.
+del run. El workflow ejecuta despues `verify_completion_runs.py`, que consulta
+GitHub con permiso `actions: read` y confirma que ese run anterior termino en
+exito para el SHA, repositorio y workflow declarados.
 
 En un cierre nuevo, cada checkbox del spec lleva un ID como `[AC-1]` o
 `[CI-1]` y se marca `[x]`. El manifiesto vecino al reporte usa este formato:
@@ -85,12 +87,34 @@ En un cierre nuevo, cada checkbox del spec lleva un ID como `[AC-1]` o
 }
 ```
 
-Haz que el reporte enlace al spec y al mismo URL del run. Los workflows
-validan los cierres aun sin `completion-legacy.json`, usando el repositorio
+Haz que el reporte enlace al spec y al mismo URL del run. Agrega la tabla
+`## Resultado por criterio` con columnas `ID | Estado | Evidencia`: cada fila
+debe coincidir exactamente con el manifiesto JSON. Copia
+`docs/reports/TEMPLATE-EVIDENCE.json` y `TEMPLATE-REPORT.md` como punto de
+partida. Los workflows validan los cierres aun sin `completion-legacy.json`, usando el repositorio
 del contexto de CI y cero excepciones. Para importar cierres historicos,
 configura `repository` en esa politica como `OWNER/REPO` y protege el archivo
 con revision de rama: quien pueda editarlo puede declarar un nuevo par como
 legado y evitar el control de cierre.
+
+El cierre usa **dos commits** para evitar que un workflow certifique su propio
+resultado:
+
+1. Publica el commit de implementacion con el spec abierto y sin reporte de
+   cierre. Espera a que `validate-contracts` termine exitosamente.
+2. En un commit posterior, marca los criterios cumplidos y agrega el reporte,
+   manifiesto de evidencia y entrada de CHANGELOG. En `ci.head_sha` y
+   `ci.run_url` apunta al run del commit anterior. No cambies codigo ni
+   oraculos en este segundo commit.
+3. El CI del commit de cierre comprueba el run anterior mediante la API de
+   GitHub y rechaza cualquier cambio fuera de esos artefactos de cierre desde
+   el SHA validado. Un run fallido, en curso, ajeno o del propio commit no
+   puede cerrar el contrato. El verificador remoto inspecciona los manifiestos
+   agregados o modificados desde el commit base de este PR o push; los cierres
+   previos siguen sujetos al validador estructural local. El workflow
+   reutilizable acepta `completion_workflow_path` y
+   `completion_workflow_name` para identificar el workflow del proyecto. El
+   workflow llamador debe conceder `actions: read` al token de GitHub.
 
 Los 33 cierres anteriores a este gate conservan sus archivos originales.
 `completion-legacy.json` registra sus digests y el gate los cuenta como SKIP.

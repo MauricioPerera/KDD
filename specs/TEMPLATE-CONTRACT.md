@@ -19,11 +19,16 @@ FIX/OBJETIVO: <estado final deseado, no pasos. Invariantes que NO pueden cambiar
 
 ## Criterios de aceptación
 
-- [ ] Por tarea: `python scripts/validate_contracts.py knowledge/contracts` exit 0 y
+- [ ] [AC-1] Por tarea: `python scripts/validate_contracts.py knowledge/contracts` exit 0 y
   `python -m unittest discover -s tests -p "test_*.py"` verde (UNA corrida).
-- [ ] <criterio observable por máquina 1 — comando + resultado esperado>
-- [ ] <criterio observable por máquina 2>
-- [ ] Final: suite completa 2× verde (dos corridas idénticas ≈ sin flaky); CI verde.
+- [ ] [AC-2] <criterio observable por máquina 1 — comando + resultado esperado>
+- [ ] [AC-3] <criterio observable por máquina 2>
+- [ ] [CI-1] Final: suite completa 2× verde (dos corridas idénticas ≈ sin flaky); CI verde.
+
+Los IDs `[AC-*]` y `[CI-*]` se reflejan exactamente en el reporte y en
+`docs/reports/CONTRACT-NN-EVIDENCE.json`. Deja este spec abierto hasta tener
+un run exitoso del commit de implementacion. El commit posterior de cierre
+solo cambia spec, reporte, evidencia y CHANGELOG; CI verifica el run anterior.
 
 ## Restricciones
 

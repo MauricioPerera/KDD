@@ -111,6 +111,67 @@ def _item_findings(items, ids, run_url, evidence_rel):
     return findings
 
 
+def _report_rows(report_text, report_rel):
+    """Read the canonical criterion table without interpreting report prose."""
+    lines = report_text.splitlines()
+    try:
+        start = next(i for i, line in enumerate(lines)
+                     if line.strip() == '## Resultado por criterio')
+    except StopIteration:
+        return {}, [_finding(report_rel, 'REPORT_CRITERIA',
+                             'falta la tabla Resultado por criterio')]
+    section = []
+    for line in lines[start + 1:]:
+        if line.startswith('## '):
+            break
+        if line.strip():
+            section.append(line.strip())
+    if not _valid_report_header(section):
+        return {}, [_finding(report_rel, 'REPORT_CRITERIA',
+                             'cabecera de tabla invalida')]
+    rows = {}
+    findings = []
+    for line in section[2:]:
+        cells = [cell.strip() for cell in line.strip('|').split('|')]
+        if not line.startswith('|') or not line.endswith('|') or len(cells) != 3:
+            findings.append(_finding(report_rel, 'REPORT_CRITERIA',
+                                     'fila de tabla invalida'))
+            continue
+        criterion_id = cells[0]
+        if criterion_id in rows:
+            findings.append(_finding(report_rel, 'REPORT_CRITERIA',
+                                     'ID duplicado en reporte: ' + criterion_id))
+        rows[criterion_id] = (cells[1], cells[2])
+    return rows, findings
+
+
+def _valid_report_header(section):
+    return (len(section) >= 2
+            and section[0] == '| ID | Estado | Evidencia |'
+            and bool(re.fullmatch(r'\|\s*-+\s*\|\s*-+\s*\|\s*-+\s*\|',
+                                  section[1])))
+
+
+def _report_findings(report_text, report_rel, ids, items):
+    rows, findings = _report_rows(report_text, report_rel)
+    if set(rows) != set(ids):
+        findings.append(_finding(report_rel, 'REPORT_CRITERIA',
+                                 'IDs de reporte y spec no coinciden'))
+    items = items if isinstance(items, dict) else {}
+    for criterion_id in sorted(set(rows) & set(items)):
+        item = items[criterion_id]
+        if not isinstance(item, dict):
+            continue
+        status, evidence = rows[criterion_id]
+        if status != item.get('status'):
+            findings.append(_finding(report_rel, 'REPORT_STATUS',
+                                     'estado contradictorio para ' + criterion_id))
+        if evidence != item.get('evidence'):
+            findings.append(_finding(report_rel, 'REPORT_ITEM_EVIDENCE',
+                                     'evidencia contradictoria para ' + criterion_id))
+    return findings
+
+
 def _validate_evidence(root, pair, repository):
     spec, report = pair
     prefix = _prefix(report)
@@ -136,6 +197,8 @@ def _validate_evidence(root, pair, repository):
     findings.extend(ci_findings)
     findings.extend(_item_findings(data.get('criteria'), ids, run_url, evidence_rel))
     report_text = _read(report)
+    findings.extend(_report_findings(report_text, report_rel, ids,
+                                     data.get('criteria')))
     if spec_rel not in report_text or not run_url or run_url not in report_text:
         findings.append(_finding(report_rel, 'REPORT_EVIDENCE',
                                  'el reporte debe enlazar al spec y al mismo run de CI'))
@@ -153,6 +216,16 @@ def _valid_legacy(legacy):
     return True
 
 
+def _valid_policy(policy):
+    if not isinstance(policy, dict):
+        return False
+    repository = policy.get('repository')
+    return (policy.get('schema_version') == 1
+            and isinstance(repository, str)
+            and bool(_REPO.fullmatch(repository))
+            and _valid_legacy(policy.get('legacy_pairs')))
+
+
 def _load_policy(policy_file, repository_hint=None):
     if not policy_file.exists():
         if isinstance(repository_hint, str) and _REPO.fullmatch(repository_hint):
@@ -165,9 +238,7 @@ def _load_policy(policy_file, repository_hint=None):
         return None, _finding(str(policy_file), 'POLICY', str(exc))
     repository = policy.get('repository') if isinstance(policy, dict) else None
     legacy = policy.get('legacy_pairs') if isinstance(policy, dict) else None
-    if (not isinstance(policy, dict) or policy.get('schema_version') != 1
-            or not isinstance(repository, str)
-            or not _REPO.fullmatch(repository) or not _valid_legacy(legacy)):
+    if not _valid_policy(policy):
         return None, _finding(str(policy_file), 'POLICY', 'politica invalida')
     if repository_hint is not None and repository != repository_hint:
         return None, _finding(str(policy_file), 'POLICY_REPOSITORY',

@@ -33,7 +33,11 @@ def _fixture(root, pending=False, evidence=True):
     ).format(' ' if pending else 'x')
     _write(root, SPEC, spec)
     _write(root, REPORT, '# Report\n\nSpec: `{}`\n\nCI: {}\n\n'
-           '## Pendientes\n\nNinguno.\n'.format(SPEC, RUN))
+           '## Resultado por criterio\n\n'
+           '| ID | Estado | Evidencia |\n| --- | --- | --- |\n'
+           '| AC-1 | locally_verified | test log 1 |\n'
+           '| CI-1 | verified_in_ci | {} |\n\n'
+           '## Pendientes\n\nNinguno.\n'.format(SPEC, RUN, RUN))
     data = {
         'schema_version': 1, 'spec': SPEC, 'state': 'verified_in_ci',
         'ci': {'run_url': RUN, 'head_sha': 'a' * 40},
@@ -140,6 +144,45 @@ class CompletionTests(unittest.TestCase):
             _fixture(root)
             _write(root, REPORT, '# Report\n\nSpec: `{}`\n\nNinguno.\n'.format(SPEC))
             self.assertIn('REPORT_EVIDENCE', _rules(root))
+
+    def test_report_must_list_every_criterion_once(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            _fixture(root)
+            report = root / REPORT
+            report.write_text(report.read_text().replace(
+                '| AC-1 | locally_verified | test log 1 |\n', ''), encoding='utf-8')
+            self.assertIn('REPORT_CRITERIA', _rules(root))
+
+    def test_report_duplicate_criterion_fails(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            _fixture(root)
+            report = root / REPORT
+            row = '| AC-1 | locally_verified | test log 1 |\n'
+            report.write_text(report.read_text().replace(row, row + row),
+                              encoding='utf-8')
+            self.assertIn('REPORT_CRITERIA', _rules(root))
+
+    def test_report_status_must_match_structured_evidence(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            _fixture(root)
+            report = root / REPORT
+            report.write_text(report.read_text().replace(
+                '| AC-1 | locally_verified | test log 1 |',
+                '| AC-1 | verified_in_ci | test log 1 |'), encoding='utf-8')
+            self.assertIn('REPORT_STATUS', _rules(root))
+
+    def test_report_evidence_must_match_structured_evidence(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            _fixture(root)
+            report = root / REPORT
+            report.write_text(report.read_text().replace(
+                '| CI-1 | verified_in_ci | {} |'.format(RUN),
+                '| CI-1 | verified_in_ci | local log only |'), encoding='utf-8')
+            self.assertIn('REPORT_ITEM_EVIDENCE', _rules(root))
 
     def test_orphan_report_fails(self):
         with tempfile.TemporaryDirectory() as temp:

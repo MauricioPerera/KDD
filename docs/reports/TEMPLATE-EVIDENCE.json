@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "spec": "specs/CONTRACT-NN-<slug>.md",
+  "state": "verified_in_ci",
+  "ci": {
+    "run_url": "https://github.com/OWNER/REPO/actions/runs/12345",
+    "head_sha": "0000000000000000000000000000000000000000"
+  },
+  "criteria": {
+    "AC-1": {"status": "locally_verified", "evidence": "<registro de prueba>"},
+    "AC-2": {"status": "locally_verified", "evidence": "<registro de prueba>"},
+    "AC-3": {"status": "locally_verified", "evidence": "<registro de prueba>"},
+    "CI-1": {"status": "verified_in_ci", "evidence": "https://github.com/OWNER/REPO/actions/runs/12345"}
+  }
+}

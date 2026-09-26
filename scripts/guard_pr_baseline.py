@@ -19,6 +19,7 @@ PROTECTED_FILES = {
     'scripts/optional_evidence.py',
     'scripts/guard_pr_baseline.py',
     'scripts/validate_completion.py',
+    'scripts/verify_completion_runs.py',
     'scripts/validate_baseline.py',
     'scripts/validate_contracts.py',
     'scripts/validate_test_commands.py',
