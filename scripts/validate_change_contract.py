@@ -98,14 +98,13 @@ def _dependency_findings(root, head_ref, target, sources, allowed):
     return findings
 
 
-def _multilang_findings(root, target, data, base_ref, head_ref):
+def _manifest_candidates(target):
     suffix = PurePosixPath(target).suffix
     manifest_name = ('package.json' if suffix in ('.js', '.jsx', '.ts', '.tsx')
                      else 'go.mod' if suffix == '.go'
                      else 'Cargo.toml' if suffix == '.rs' else None)
     if manifest_name is None:
-        return [_finding('CHECK_UNSUPPORTED', target,
-                         'dependency and budget checks have no adapter')]
+        return []
     parent = PurePosixPath(target).parent
     candidates = []
     while True:
@@ -114,15 +113,29 @@ def _multilang_findings(root, target, data, base_ref, head_ref):
         if parent == PurePosixPath('.'):
             break
         parent = parent.parent
-    manifest = next((name for name in candidates
-                     if _blob(root, head_ref, name) is not None), None)
-    if manifest is None:
+    return candidates
+
+
+def _nearest_manifest(root, ref, candidates):
+    return next((name for name in candidates
+                 if _blob(root, ref, name) is not None), None)
+
+
+def _multilang_findings(root, target, data, base_ref, head_ref):
+    candidates = _manifest_candidates(target)
+    if not candidates:
+        return [_finding('CHECK_UNSUPPORTED', target,
+                         'dependency and budget checks have no adapter')]
+    before_manifest = _nearest_manifest(root, base_ref, candidates)
+    after_manifest = _nearest_manifest(root, head_ref, candidates)
+    if after_manifest is None:
         return [_finding('MANIFEST_PARSE', target,
                          'required dependency manifest is missing')]
     try:
         manifests = {
-            'before': (_blob(root, base_ref, manifest) or b'').decode('utf-8'),
-            'after': _blob(root, head_ref, manifest).decode('utf-8'),
+            'before': (_blob(root, base_ref, before_manifest) or b'').decode('utf-8')
+            if before_manifest else '',
+            'after': _blob(root, head_ref, after_manifest).decode('utf-8'),
         }
     except UnicodeError as exc:
         return [_finding('MANIFEST_PARSE', target, str(exc))]
@@ -135,7 +148,12 @@ def _target_findings(root, data, base_ref, head_ref, changed):
     if not _safe_path(target):
         return [_finding('CONTRACT_TARGET', str(target), 'invalid target path')]
     target = target.replace('\\', '/')
-    if target not in changed:
+    candidates = _manifest_candidates(target)
+    before_manifest = _nearest_manifest(root, base_ref, candidates)
+    after_manifest = _nearest_manifest(root, head_ref, candidates)
+    manifest_changed = (before_manifest != after_manifest or
+                        after_manifest in changed)
+    if target not in changed and not manifest_changed:
         return []
     after_bytes = _blob(root, head_ref, target)
     if after_bytes is None:

@@ -16,6 +16,7 @@ from validate_contracts import parse_frontmatter
 
 PROTECTED_FILES = {
     'completion-legacy.json',
+    'requirements-change-audit.txt',
     'scripts/optional_evidence.py',
     'scripts/guard_pr_baseline.py',
     'scripts/validate_completion.py',

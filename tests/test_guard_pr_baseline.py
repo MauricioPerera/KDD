@@ -89,6 +89,13 @@ class TestTrustedPrBaseline(unittest.TestCase):
         self.assertTrue(any('scripts/optional_evidence.py' in item
                             for item in guard.check(self.base, candidate, candidate)))
 
+    def test_parser_requirements_change_fails_even_when_approved(self):
+        self.write('requirements-change-audit.txt',
+                   'tree-sitter-javascript @ https://example.invalid/parser.whl\n')
+        candidate = self.commit()
+        self.assertTrue(any('requirements-change-audit.txt' in item
+                            for item in guard.check(self.base, candidate, candidate)))
+
 
 if __name__ == '__main__':
     unittest.main()

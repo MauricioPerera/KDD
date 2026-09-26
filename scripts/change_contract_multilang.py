@@ -25,7 +25,13 @@ FUNCTIONS = {'function_declaration', 'function_expression',
              'method_definition', 'function_item', 'method_declaration'}
 BRANCHES = {'if_statement', 'if_expression', 'for_statement', 'for_in_statement',
             'while_statement', 'do_statement', 'switch_case', 'case_clause',
-            'catch_clause', 'ternary_expression', 'match_arm'}
+            'catch_clause', 'ternary_expression', 'match_arm',
+            'while_expression', 'for_expression', 'loop_expression',
+            'expression_case', 'type_case', 'communication_case'}
+NESTING_BRANCHES = (BRANCHES - {'expression_case', 'type_case',
+                                'communication_case'}) | {
+                                    'expression_switch_statement',
+                                    'type_switch_statement', 'select_statement'}
 RUST_LOCAL = {'std', 'core', 'alloc', 'crate', 'self', 'super'}
 
 
@@ -244,7 +250,7 @@ def _metrics(function, source):
                 expression = _text(child, source)
                 complexity += int('&&' in expression or '||' in expression)
             opaque |= child.type == 'macro_invocation'
-            next_depth = depth + int(child.type in BRANCHES and
+            next_depth = depth + int(child.type in NESTING_BRANCHES and
                                      child.type != 'ternary_expression')
             nesting = max(nesting, next_depth)
             visit(child, next_depth)

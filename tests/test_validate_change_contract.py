@@ -158,6 +158,58 @@ class ChangeContractTests(unittest.TestCase):
         self._write('src/app.js', 'export function value() { return 2; }\n')
         self.assertIn('DEP_UNDECLARED', self._rules(self._commit('new package')))
 
+    def test_manifest_only_javascript_dependency_fails(self):
+        self._language_base('src/app.js', 'export function value() { return 1; }\n',
+                            'package.json', '{"dependencies":{}}')
+        self._write('package.json', '{"dependencies":{"lodash":"1"}}')
+        self.assertIn('DEP_UNDECLARED', self._rules(self._commit('manifest only')))
+
+    def test_manifest_only_approved_dependency_passes(self):
+        self._language_base('src/app.js', 'export function value() { return 1; }\n',
+                            'package.json', '{"dependencies":{}}',
+                            allowed="['lodash']")
+        self._write('package.json', '{"dependencies":{"lodash":"1"}}')
+        self.assertEqual(self._rules(self._commit('approved manifest only')), set())
+
+    def test_manifest_only_invalid_json_fails(self):
+        self._language_base('src/app.js', 'export function value() { return 1; }\n',
+                            'package.json', '{"dependencies":{}}')
+        self._write('package.json', '{broken')
+        self.assertIn('MANIFEST_PARSE', self._rules(self._commit('invalid manifest')))
+
+    def test_unrelated_parent_manifest_does_not_audit_nested_target(self):
+        self._language_base('src/app.js',
+                            'function value(x) { if (x) return 1; return 0; }\n',
+                            'package.json', '{"dependencies":{}}', budget=1)
+        self._write('src/package.json', '{"dependencies":{}}')
+        self.base = self._commit('nearest manifest baseline')
+        self._write('package.json', '{"dependencies":{"lodash":"1"}}')
+        self.assertEqual(self._rules(self._commit('parent manifest only')), set())
+
+    def test_nested_manifest_only_new_dependency_fails(self):
+        self._language_base('src/app.js', 'function value() { return 1; }\n',
+                            'package.json', '{"dependencies":{}}')
+        self._write(self.contract, self._contract(
+            target='src/app.js',
+            perimeter="['src/app.js', 'package.json', 'src/package.json']"))
+        self._write('src/package.json', '{"dependencies":{}}')
+        self.base = self._commit('nested manifest baseline')
+        self._write('src/package.json', '{"dependencies":{"lodash":"1"}}')
+        self.assertIn('DEP_UNDECLARED',
+                      self._rules(self._commit('nested manifest only')))
+
+    def test_removing_nested_manifest_cannot_expose_unapproved_parent_dependency(self):
+        self._language_base('src/app.js', 'function value() { return 1; }\n',
+                            'package.json', '{"dependencies":{"lodash":"1"}}')
+        self._write(self.contract, self._contract(
+            target='src/app.js',
+            perimeter="['src/app.js', 'package.json', 'src/package.json']"))
+        self._write('src/package.json', '{"dependencies":{}}')
+        self.base = self._commit('nested manifest baseline')
+        (self.root / 'src' / 'package.json').unlink()
+        self.assertIn('DEP_UNDECLARED',
+                      self._rules(self._commit('remove nested manifest')))
+
     def test_javascript_complexity_budget_fails(self):
         self._language_base('src/app.js', 'function value(x) { return x; }\n',
                             'package.json', '{}', budget=1)
@@ -212,6 +264,45 @@ class ChangeContractTests(unittest.TestCase):
                     'if x>0 { for x>1 { return x } }; return 0 }\n')
         self.assertIn('BUDGET_NESTING', self._rules(self._commit('nested Go')))
 
+    def test_manifest_only_go_dependency_fails(self):
+        self._language_base('src/app.go', 'package src\nfunc value() int { return 1 }\n',
+                            'go.mod', 'module example.com/demo\ngo 1.23\n')
+        self._write('go.mod', 'module example.com/demo\ngo 1.23\n'
+                    'require github.com/acme/lib v1.0.0\n')
+        self.assertIn('DEP_UNDECLARED', self._rules(self._commit('manifest only')))
+
+    def test_go_switch_and_select_cases_count_toward_budget(self):
+        for source in (
+                'package src\nfunc value(x int) int { switch x { '
+                'case 1: return 1; default: return 0 } }\n',
+                'package src\nfunc value(v interface{}) int { switch v.(type) { '
+                'case int: return 1; default: return 0 } }\n',
+                'package src\nfunc value(ch chan int) int { select { '
+                'case x := <-ch: return x; default: return 0 } }\n'):
+            with self.subTest(source=source):
+                self._language_base('src/app.go',
+                                    'package src\nfunc value() int { return 1 }\n',
+                                    'go.mod', 'module example.com/demo\ngo 1.23\n',
+                                    budget=1)
+                self._write('src/app.go', source)
+                self.assertIn('BUDGET_CYCLOMATIC',
+                              self._rules(self._commit('Go branch')))
+
+    def test_go_top_level_switch_and_select_have_one_nesting_level(self):
+        for source in (
+                'package src\nfunc value(x int) int { switch x { '
+                'case 1: return 1; default: return 0 } }\n',
+                'package src\nfunc value(ch chan int) int { select { '
+                'case x := <-ch: return x; default: return 0 } }\n'):
+            with self.subTest(source=source):
+                self._language_base('src/app.go',
+                                    'package src\nfunc value() int { return 1 }\n',
+                                    'go.mod', 'module example.com/demo\ngo 1.23\n',
+                                    budget=1, metric='nesting_max')
+                self._write('src/app.go', source)
+                self.assertEqual(self._rules(self._commit('one-level Go branch')),
+                                 set())
+
     def test_rust_declared_crate_passes(self):
         self._language_base('src/lib.rs', 'pub fn value() -> i32 { 1 }\n',
                             'Cargo.toml', '[package]\nname="demo"\nversion="0.1.0"\n'
@@ -241,6 +332,26 @@ class ChangeContractTests(unittest.TestCase):
         self._write('src/lib.rs', 'pub fn value(x:i32) -> i32 { '
                     'if x>0 { 1 } else { 0 } }\n')
         self.assertIn('BUDGET_CYCLOMATIC', self._rules(self._commit('branch')))
+
+    def test_manifest_only_rust_dependency_fails(self):
+        self._language_base('src/lib.rs', 'pub fn value() -> i32 { 1 }\n',
+                            'Cargo.toml', '[package]\nname="demo"\nversion="0.1.0"\n')
+        self._write('Cargo.toml', '[package]\nname="demo"\nversion="0.1.0"\n'
+                    '[dependencies]\nserde="1"\n')
+        self.assertIn('DEP_UNDECLARED', self._rules(self._commit('manifest only')))
+
+    def test_rust_while_and_for_count_toward_budget(self):
+        for source in (
+                'pub fn value(mut x:i32)->i32 { while x>0 { x-=1; } x }\n',
+                'pub fn value()->i32 { let mut x=0; for y in 0..2 { x+=y; } x }\n'):
+            with self.subTest(source=source):
+                self._language_base('src/lib.rs', 'pub fn value() -> i32 { 1 }\n',
+                                    'Cargo.toml',
+                                    '[package]\nname="demo"\nversion="0.1.0"\n',
+                                    budget=1)
+                self._write('src/lib.rs', source)
+                self.assertIn('BUDGET_CYCLOMATIC',
+                              self._rules(self._commit('Rust branch')))
 
     def test_unsupported_language_still_fails(self):
         self._language_base('src/App.java', 'class App {}\n',
