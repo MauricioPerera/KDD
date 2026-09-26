@@ -67,6 +67,28 @@ class CompletionTests(unittest.TestCase):
             _fixture(root)
             self.assertEqual(vc.validate_completion(str(root)), [])
 
+    def test_consumer_without_legacy_policy_is_still_checked(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            _fixture(root, pending=True)
+            (root / 'completion-legacy.json').unlink()
+            findings = vc.validate_completion(str(root), repository='MauricioPerera/KDD')
+            self.assertIn('CRITERION_PENDING', {item['rule'] for item in findings})
+            self.assertIn('POLICY', {item['rule'] for item in vc.validate_completion(str(root))})
+
+    def test_policy_repository_must_match_ci_repository(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            _fixture(root)
+            findings = vc.validate_completion(str(root), repository='another/repo')
+            self.assertIn('POLICY_REPOSITORY', {item['rule'] for item in findings})
+
+    def test_open_specs_without_reports_do_not_claim_completion(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            _write(root, SPEC, '# Still open\n')
+            self.assertEqual(vc.validate_completion(str(root), repository='owner/repo'), [])
+
     def test_report_cannot_close_unchecked_criterion(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

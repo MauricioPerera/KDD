@@ -81,11 +81,12 @@ En un cierre nuevo, cada checkbox del spec lleva un ID como `[AC-1]` o
 }
 ```
 
-Configura `repository` en `completion-legacy.json` como `OWNER/REPO`, y
-haz que el reporte enlace al spec y al mismo URL del run. La politica debe
-tener `legacy_pairs: {}` si no importas cierres historicos. En una adopcion
-externa, protege esa politica con revision de rama: quien pueda editarla
-puede declarar un nuevo par como legado y evitar el control de cierre.
+Haz que el reporte enlace al spec y al mismo URL del run. Los workflows
+validan los cierres aun sin `completion-legacy.json`, usando el repositorio
+del contexto de CI y cero excepciones. Para importar cierres historicos,
+configura `repository` en esa politica como `OWNER/REPO` y protege el archivo
+con revision de rama: quien pueda editarlo puede declarar un nuevo par como
+legado y evitar el control de cierre.
 
 Los 33 cierres anteriores a este gate conservan sus archivos originales.
 `completion-legacy.json` registra sus digests y el gate los cuenta como SKIP.
