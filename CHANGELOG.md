@@ -4,6 +4,8 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- Correccion de tres hallazgos del review multilenguaje: el auditor revisa manifiestos aunque no cambie el target, el gate confiable protege las versiones de parsers y los presupuestos cuentan ramas switch/select de Go y bucles de Rust.
+
 - El auditor opt-in del diff incorpora JavaScript/JSX, TypeScript/TSX, Go y Rust con parsers fijados, comprobacion de manifiestos e imports nuevos y presupuestos por funcion. Los casos sin cobertura medible fallan explicitamente.
 
 - Auditoria opt-in del diff de implementacion contra el contrato aprobado: perimetro real, imports externos Python nuevos y budget del target medido sobre el commit candidato. El workflow reutilizable informa SKIP si no se configura.

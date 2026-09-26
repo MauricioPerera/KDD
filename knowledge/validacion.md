@@ -86,7 +86,12 @@ raices de import. Los adaptadores Tree-sitter fijados en
 `requirements-change-audit.txt` hacen el equivalente para
 JavaScript/JSX, TypeScript/TSX, Go y Rust: extraen imports estaticos, comparan
 `package.json`, `go.mod` o `Cargo.toml` y miden funciones contra los cuatro
-topes del contrato. Se necesita el manifiesto mas cercano al target. Las
+topes del contrato. Tambien revisan dependencias si cambia solo el manifiesto
+asociado, aunque el target permanezca intacto. Se necesita el manifiesto mas
+cercano al target. El guard confiable protege
+`requirements-change-audit.txt` para que un PR no cambie los parsers que CI
+instala antes de validar. Las decisiones de switch/select en Go y while/for en
+Rust cuentan en los presupuestos. Las
 dependencias transitivas no se resuelven; imports dinamicos y macros Rust
 opacas producen hallazgos duros. La metrica de estos adaptadores es
 determinista sobre el AST y no pretende equivalencia exacta con CCDD. Otros

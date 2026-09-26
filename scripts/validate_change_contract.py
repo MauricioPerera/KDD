@@ -98,14 +98,13 @@ def _dependency_findings(root, head_ref, target, sources, allowed):
     return findings
 
 
-def _multilang_findings(root, target, data, base_ref, head_ref):
+def _manifest_candidates(target):
     suffix = PurePosixPath(target).suffix
     manifest_name = ('package.json' if suffix in ('.js', '.jsx', '.ts', '.tsx')
                      else 'go.mod' if suffix == '.go'
                      else 'Cargo.toml' if suffix == '.rs' else None)
     if manifest_name is None:
-        return [_finding('CHECK_UNSUPPORTED', target,
-                         'dependency and budget checks have no adapter')]
+        return []
     parent = PurePosixPath(target).parent
     candidates = []
     while True:
@@ -114,6 +113,14 @@ def _multilang_findings(root, target, data, base_ref, head_ref):
         if parent == PurePosixPath('.'):
             break
         parent = parent.parent
+    return candidates
+
+
+def _multilang_findings(root, target, data, base_ref, head_ref):
+    candidates = _manifest_candidates(target)
+    if not candidates:
+        return [_finding('CHECK_UNSUPPORTED', target,
+                         'dependency and budget checks have no adapter')]
     manifest = next((name for name in candidates
                      if _blob(root, head_ref, name) is not None), None)
     if manifest is None:
@@ -135,7 +142,9 @@ def _target_findings(root, data, base_ref, head_ref, changed):
     if not _safe_path(target):
         return [_finding('CONTRACT_TARGET', str(target), 'invalid target path')]
     target = target.replace('\\', '/')
-    if target not in changed:
+    manifest_changed = (not target.endswith('.py') and
+                        any(path in changed for path in _manifest_candidates(target)))
+    if target not in changed and not manifest_changed:
         return []
     after_bytes = _blob(root, head_ref, target)
     if after_bytes is None:
