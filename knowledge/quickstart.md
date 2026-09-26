@@ -83,6 +83,32 @@ proyecto. Al crear el repositorio en GitHub, usa exactamente el mismo
 `OWNER/REPO` que declaraste en `--repository`; CI lo compara con
 `github.repository` y rechaza una identidad distinta.
 
+**Antes de publicar `main`**, registra el estado inicializado en un commit y
+obtiene su SHA completo:
+
+```
+git add -A
+git commit -m "chore: initialize project baseline"
+git rev-parse HEAD
+```
+
+Una persona distinta de quien preparo el cambio debe revisar y aprobar ese
+commit como baseline. La inicializacion retira contratos y oraculos de ejemplo,
+por lo que la referencia aprobada para el repositorio plantilla ya no coincide.
+Una vez aprobado el SHA, configura la variable del repositorio de GitHub y
+verifica localmente los contratos y oraculos restantes:
+
+```
+gh variable set KDD_APPROVED_BASELINE_REF --repo TU_USUARIO/mi-proyecto --body SHA_APROBADO
+python scripts/validate_baseline.py --all --approved-ref SHA_APROBADO
+```
+
+El repositorio de GitHub debe existir antes de configurar la variable. CI exige
+esta referencia incluso en el primer push; no toma `HEAD` como aprobacion
+implicita. Si no usas `gh`, configura la misma variable de Actions en GitHub.
+El procedimiento normativo esta en [validacion.md](./validacion.md). La
+inicializacion limpia se verifico en el [PR #110 de KDD](https://github.com/MauricioPerera/KDD/pull/110).
+
 ## 4. Tu primer contrato propio
 
 Toma la plantilla que sobrevivio al paso 3:
@@ -187,11 +213,12 @@ nada (cero dependencias, no es un gate de CI):
 python scripts/preflight.py
 ```
 
-Esperado: una linea por gate con su estado `PASS`/`FAIL`/`TIMEOUT` y un
-resumen `N/19`. Si algo falla, arreglalo antes de delegar — no tiene
+Esperado: una linea por gate con su estado `PASS`/`FAIL`/`TIMEOUT`/`SKIP` y
+un resumen `N/20`. Si algo falla, arreglalo antes de delegar — no tiene
 sentido mandarle a un agente un repo que ya rompe un gate. Diagnostico
-opt-in, mismo estatus que `benchmark_gates.py` (Nivel 1 sigue siendo 18
-gates; el preflight suma `validate_attestation`, el local-only).
+opt-in, mismo estatus que `benchmark_gates.py` (Nivel 1 tiene 19 gates;
+el preflight suma `validate_attestation`, el local-only). Los `SKIP` por
+evidencia opcional ausente no se cuentan como `PASS`.
 
 Si un gate falla y su mensaje no te dice COMO arreglarlo, agrega `--agent`:
 
