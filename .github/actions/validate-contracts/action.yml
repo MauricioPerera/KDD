@@ -260,7 +260,7 @@ runs:
       run: |
         if [ -f "$KDD_QUALITY_POLICY" ] || [ -n "$KDD_QUALITY_APPROVED_REF" ]; then
           if [[ ! "$KDD_QUALITY_APPROVED_REF" =~ ^[0-9a-fA-F]{40}$ ]]; then
-            echo 'quality-approved-ref must be a full approved commit SHA' >&2
+            echo 'quality-approved-ref requires an explicitly approved reference (full commit SHA)' >&2
             exit 1
           fi
           python _kdd/scripts/verify_quality.py --policy "$KDD_QUALITY_POLICY" --approved-ref "$KDD_QUALITY_APPROVED_REF"
