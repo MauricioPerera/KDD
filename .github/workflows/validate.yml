@@ -86,6 +86,9 @@ on:
       approved_baseline_ref:
         type: string
         default: ''
+      change_contract_path:
+        type: string
+        default: ''
       required_evidence:
         type: string
         default: ''
@@ -158,6 +161,22 @@ jobs:
       - name: Validate contracts
         shell: bash
         run: python scripts/validate_contracts.py "$KDD_CONTRACTS_DIR"
+
+      - name: Audit implementation diff against approved contract (when configured)
+        shell: bash
+        env:
+          KDD_CHANGE_CONTRACT: ${{ inputs.change_contract_path || '' }}
+          KDD_CHANGE_BASE_REF: ${{ inputs.approved_baseline_ref || vars.KDD_APPROVED_BASELINE_REF || '' }}
+          KDD_CHANGE_HEAD_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -z "$KDD_CHANGE_CONTRACT" ]; then
+            echo "SKIP: no change contract configured"
+            exit 0
+          fi
+          python scripts/validate_change_contract.py \
+            --contract "$KDD_CHANGE_CONTRACT" \
+            --base-ref "$KDD_CHANGE_BASE_REF" \
+            --head-ref "$KDD_CHANGE_HEAD_REF"
 
       - name: "Validate specs contracts"
         shell: bash
