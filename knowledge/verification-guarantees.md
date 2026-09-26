@@ -53,6 +53,46 @@ exigir este check explícitamente para obtener esa garantía. La herramienta
 no autentica por sí sola la aprobación humana; quien administra la variable
 y la protección de rama sigue siendo parte de la raíz de confianza.
 
+## Cierre de contratos de proyecto
+
+`validate_completion.py` impide que un reporte nuevo cierre un spec con
+checkboxes pendientes o sin evidencia para todos sus criterios. El manifiesto
+`CONTRACT-NN-EVIDENCE.json` registra el estado y enlaza un run de CI; el
+reporte debe enlazar al mismo run. Es una comprobacion determinista de
+coherencia entre artefactos. No consulta GitHub para autenticar el resultado
+del run: el enlace requiere revision o una comprobacion remota separada.
+
+En un cierre nuevo, cada checkbox del spec lleva un ID como `[AC-1]` o
+`[CI-1]` y se marca `[x]`. El manifiesto vecino al reporte usa este formato:
+
+```json
+{
+  "schema_version": 1,
+  "spec": "specs/CONTRACT-34-ejemplo.md",
+  "state": "verified_in_ci",
+  "ci": {
+    "run_url": "https://github.com/OWNER/REPO/actions/runs/12345",
+    "head_sha": "0123456789abcdef0123456789abcdef01234567"
+  },
+  "criteria": {
+    "AC-1": {"status": "locally_verified", "evidence": "registro de la prueba"},
+    "CI-1": {"status": "verified_in_ci", "evidence": "https://github.com/OWNER/REPO/actions/runs/12345"}
+  }
+}
+```
+
+Haz que el reporte enlace al spec y al mismo URL del run. Los workflows
+validan los cierres aun sin `completion-legacy.json`, usando el repositorio
+del contexto de CI y cero excepciones. Para importar cierres historicos,
+configura `repository` en esa politica como `OWNER/REPO` y protege el archivo
+con revision de rama: quien pueda editarlo puede declarar un nuevo par como
+legado y evitar el control de cierre.
+
+Los 33 cierres anteriores a este gate conservan sus archivos originales.
+`completion-legacy.json` registra sus digests y el gate los cuenta como SKIP.
+Un proyecto nuevo puede dejar `legacy_pairs` vacio; si adopta documentos
+historicos, debe listar solo los pares exactos que acepta como legado.
+
 ## Evidencia de seguridad
 
 El validador exige un manifest previamente sellado y reutiliza el verificador vendorizado en modo solo lectura para comprobar schemas, coverage, referencias y hashes antes de evaluar reglas. Nunca llama al paso que escribe o repara el sello.
@@ -62,6 +102,15 @@ python scripts/validate_security_findings.py security/scan --required
 ```
 
 Sin --required, ausencia conserva exit 0 por compatibilidad y preflight muestra SKIP, fuera del numerador PASS. Con --required, ausencia bloquea. La comprobacion de integridad no autentica al productor ni prueba que el escaneo corresponda al HEAD actual; esa vinculacion debe imponerla el pipeline que produce y aprueba la evidencia. Otros dominios de Capa 3 conservan sus politicas existentes.
+
+El workflow reutilizable y la accion compuesta publican una tabla PASS/FAIL/SKIP
+para las siete capas de scan; el workflow incluye tambien quality. Un paso
+verde con archivo ausente se cuenta SKIP. `required_evidence` (o
+`required-evidence` en la accion) exige los archivos de las capas declaradas
+antes de los validadores y falla si faltan. En el repositorio KDD la capa
+security sigue ausente y debe verse SKIP; quality tambien, hasta que se
+configure una politica de proyecto. La tabla usa el outcome real de cada
+validador para no confundir archivo presente con evidencia validada.
 
 ## Migracion
 

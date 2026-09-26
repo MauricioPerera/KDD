@@ -23,6 +23,9 @@ on:
       specs_dir:
         type: string
         default: 'specs'
+      completion_policy_path:
+        type: string
+        default: 'completion-legacy.json'
       okf_dir:
         type: string
         default: 'knowledge'
@@ -73,6 +76,9 @@ on:
       approved_baseline_ref:
         type: string
         default: ''
+      required_evidence:
+        type: string
+        default: ''
 
 jobs:
   validate:
@@ -84,6 +90,7 @@ jobs:
     env:
       KDD_CONTRACTS_DIR: ${{ inputs.contracts_dir || 'knowledge/contracts' }}
       KDD_SPECS_DIR: ${{ inputs.specs_dir || 'specs' }}
+      KDD_COMPLETION_POLICY: ${{ inputs.completion_policy_path || 'completion-legacy.json' }}
       KDD_OKF_DIR: ${{ inputs.okf_dir || 'knowledge' }}
       KDD_RULES_DIR: ${{ inputs.rules_dir || 'examples/rules' }}
       KDD_SKILLS_DIRS: ${{ inputs.skills_dirs || 'skills .agents/skills' }}
@@ -97,14 +104,16 @@ jobs:
       KDD_OBSERVABILITY_SCAN_DIR: ${{ inputs.observability_scan_dir || 'observability/scan' }}
       KDD_TEST_COVERAGE_SCAN_DIR: ${{ inputs.test_coverage_scan_dir || 'test-coverage/scan' }}
       KDD_SRC_DIR_SECRETS: ${{ inputs.src_dir_secrets || 'src' }}
+      KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
+      KDD_REQUIRED_EVIDENCE: ${{ inputs.required_evidence || '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.11'
 
@@ -126,8 +135,11 @@ jobs:
               '--contracts-dir', os.environ['KDD_CONTRACTS_DIR'],
           ]))
 
+      - name: Check required optional evidence
+        run: python scripts/optional_evidence.py check --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage,quality
+
       - name: Set up Node.js (for the multi-language example contract)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
 
@@ -138,6 +150,16 @@ jobs:
       - name: "Validate specs contracts"
         shell: bash
         run: python scripts/validate_specs.py "$KDD_SPECS_DIR"
+
+      - name: Validate project completion evidence
+        shell: bash
+        env:
+          KDD_REPOSITORY: ${{ github.repository }}
+        run: >-
+          python scripts/validate_completion.py
+          --specs-dir "$KDD_SPECS_DIR"
+          --policy "$KDD_COMPLETION_POLICY"
+          --repository "$KDD_REPOSITORY"
 
       - name: Validate OKF nodes
         shell: bash
@@ -168,30 +190,37 @@ jobs:
         run: python scripts/validate_diagrams.py "$KDD_DIAGRAMS_DIR"
 
       - name: Validate security findings (Capa 3, vendored codex-security)
+        id: security_scan
         shell: bash
         run: python scripts/validate_security_findings.py "$KDD_SECURITY_SCAN_DIR"
 
       - name: Validate compliance/license findings (Capa 3)
+        id: compliance_scan
         shell: bash
         run: python scripts/validate_compliance_findings.py "$KDD_COMPLIANCE_SCAN_DIR"
 
       - name: Validate privacy/PII findings (Capa 3)
+        id: privacy_scan
         shell: bash
         run: python scripts/validate_privacy_findings.py "$KDD_PRIVACY_SCAN_DIR"
 
       - name: Validate accessibility findings (Capa 3)
+        id: accessibility_scan
         shell: bash
         run: python scripts/validate_accessibility_findings.py "$KDD_ACCESSIBILITY_SCAN_DIR"
 
       - name: Validate dependency EOL findings (Capa 3)
+        id: dependency_eol_scan
         shell: bash
         run: python scripts/validate_dependency_eol_findings.py "$KDD_DEPENDENCY_EOL_SCAN_DIR"
 
       - name: Validate observability findings (Capa 3)
+        id: observability_scan
         shell: bash
         run: python scripts/validate_observability_findings.py "$KDD_OBSERVABILITY_SCAN_DIR"
 
       - name: Validate test-coverage findings (Capa 3)
+        id: test_coverage_scan
         shell: bash
         run: python scripts/validate_test_coverage_findings.py "$KDD_TEST_COVERAGE_SCAN_DIR"
 
@@ -216,6 +245,7 @@ jobs:
         run: python -m unittest discover -s tests -p "test_*.py"
 
       - name: Approve project quality (when configured)
+        id: quality
         shell: python
         env:
           KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
@@ -223,18 +253,32 @@ jobs:
         run: |
           import os
           from pathlib import Path
+          import re
           import subprocess
           import sys
           policy = os.environ['KDD_QUALITY_POLICY']
           approved = os.environ['KDD_QUALITY_APPROVED_REF']
           if Path(policy).exists() or approved:
-              if not approved:
-                  raise SystemExit('FAIL: project policy requires an explicitly approved reference')
+              if not re.fullmatch(r'[0-9a-fA-F]{40}', approved):
+                  raise SystemExit('FAIL: project policy requires an explicitly approved reference (full commit SHA)')
               raise SystemExit(subprocess.call([sys.executable, 'scripts/verify_quality.py', '--policy', policy, '--approved-ref', approved]))
           print('SKIP: no project quality policy configured; template validation does not approve a project')
 
       - name: Assemble context (smoke)
         run: python scripts/assemble_context.py ccdd/context.json "smoke"
+
+      - name: Summarize optional evidence
+        if: always()
+        env:
+          KDD_SECURITY_OUTCOME: ${{ steps.security_scan.outcome }}
+          KDD_COMPLIANCE_OUTCOME: ${{ steps.compliance_scan.outcome }}
+          KDD_PRIVACY_OUTCOME: ${{ steps.privacy_scan.outcome }}
+          KDD_ACCESSIBILITY_OUTCOME: ${{ steps.accessibility_scan.outcome }}
+          KDD_DEPENDENCY_EOL_OUTCOME: ${{ steps.dependency_eol_scan.outcome }}
+          KDD_OBSERVABILITY_OUTCOME: ${{ steps.observability_scan.outcome }}
+          KDD_TEST_COVERAGE_OUTCOME: ${{ steps.test_coverage_scan.outcome }}
+          KDD_QUALITY_OUTCOME: ${{ steps.quality.outcome }}
+        run: python scripts/optional_evidence.py summary --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage,quality
 
   board:
     strategy:
@@ -242,13 +286,13 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.11'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
       - run: npm ci --ignore-scripts

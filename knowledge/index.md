@@ -49,6 +49,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Auditor determinista de mutación](./contracts/mutation-audit.md)
   - [Arranque guiado de un proyecto KDD](./contracts/bootstrap-project.md)
   - [Gate de secretos filtrados en codigo generado (Nivel 1)](./contracts/secret-scan-gate.md)
+  - [Estados de evidencia opcional en CI](./contracts/optional-evidence.md)
   - [Remediacion de seguridad y WebMCP del tablero](./contracts/board-security-remediation.md)
   - [Plugin seguro de Codex para KDD](./contracts/kdd-codex-plugin.md)
   - [Ejemplo multi-lenguaje: greet en Node.js](./contracts/example-node-greet.md)
@@ -60,6 +61,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Recetas de arreglo por rule-id (no es un gate)](./contracts/rule-hints.md) — `scripts/rule_hints.py`
   - [Validador OKF de la base de conocimiento](./contracts/validate-okf.md)
   - [Validador de contratos de ejecución (specs)](./contracts/validate-specs.md)
+  - [Coherencia de cierre entre spec, reporte y evidencia](./contracts/completion-evidence.md)
   - [Lint ASCII de literales en scripts](./contracts/lint-ascii.md)
   - [Inicializador de proyecto desde la plantilla](./contracts/init-project.md)
   - [Versionado de la plantilla (coherencia CHANGELOG/README/upgrade)](./contracts/versioning-plantilla.md)

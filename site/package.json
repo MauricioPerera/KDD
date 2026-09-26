@@ -1,0 +1,8 @@
+{
+  "name": "kdd-pages-build",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "@rckflr/llms-skills": "0.4.1"
+  }
+}
