@@ -1,7 +1,7 @@
 ---
 type: 'Task Contract'
 title: 'Auditoria del diff contra contrato aprobado'
-description: 'Comprueba perimetro, nuevas dependencias Python y presupuesto del target contra el diff real desde un baseline aprobado.'
+description: 'Comprueba perimetro, dependencias nuevas y presupuesto del target Python, JavaScript, TypeScript, Go o Rust contra un baseline aprobado.'
 tags: ['ccdd', 'diff', 'quality']
 task: change-contract-audit
 intent: 'Impedir que una implementacion se aparte del contrato aprobado sin dejar evidencia.'
@@ -14,8 +14,8 @@ budget:
   lines_max: 300
   params_max: 5
 tests: 'tests/test_validate_change_contract.py'
-tests_sha256: '06b70e0bc1b5d6020baa3a9b137171255e2e59fe8c625d691faeeae9eec2110d'
-touch_only: ['scripts/validate_change_contract.py', 'scripts/guard_pr_baseline.py', '.github/workflows/validate.yml', 'knowledge/validacion.md', 'CHANGELOG.md']
+tests_sha256: '82d35665d6b8200717298608de149f03c689377a57eedd608a5b77378c627cde'
+touch_only: ['scripts/validate_change_contract.py', 'scripts/change_contract_multilang.py', 'scripts/guard_pr_baseline.py', '.github/workflows/validate.yml', 'knowledge/validacion.md', 'CHANGELOG.md']
 deps_allowed: ['stdlib']
 forbids: ['llm', 'network']
 ---
@@ -45,8 +45,12 @@ ser ancestro del candidato. El CLI acepta `--contract`, `--base-ref`,
   `deps_allowed` por nombre raiz de import. Stdlib e imports locales se aceptan.
   Imports externos ya presentes en base se conservan durante la migracion.
 - El target Python cambiado se mide con los topes de `budget` del base.
-  Targets no Python producen `CHECK_UNSUPPORTED`: no se presentan como
-  validados en dependencias o presupuesto por este gate.
+  JavaScript, TypeScript/TSX, Go y Rust usan el
+  [adaptador multilenguaje](./change-contract-languages.md) para analizar el
+  codigo del commit candidato y los manifiestos de dependencias. Un lenguaje
+  sin adaptador produce `CHECK_UNSUPPORTED`.
+- Un parseo fallido, un manifiesto requerido ausente o una metrica opaca
+  produce un finding duro en lugar de un PASS parcial.
 - No se ejecuta codigo del candidato ni se consulta la red.
 - El guard confiable en `main` protege este script para impedir que un PR
   sustituya el gate mientras intenta aprobar su propio diff.
@@ -73,6 +77,7 @@ incompatibilidad de lenguaje.
 
 ## Constraints
 
-- Python stdlib y Git local; no red.
+- Git local y los parsers fijados en `requirements-change-audit.txt`; no red
+  durante la verificacion.
 - PARAR y reportar si el SHA base no existe o no es ancestro del candidato.
 - La integracion en CI es opt-in y exige contrato y baseline explicitos.

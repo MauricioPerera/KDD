@@ -47,6 +47,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Gate confiable para PR y referencia aprobada](./contracts/trusted-pr-gate.md)
   - [Enforcement determinista de budgets](./contracts/budget-enforcement.md)
   - [Auditoria del diff contra contrato aprobado](./contracts/change-contract-audit.md)
+  - [Adaptadores multilenguaje del auditor de cambios](./contracts/change-contract-languages.md)
   - [Perfiles de validación KDD](./contracts/run-profile.md)
   - [Manifiesto determinista de baseline de calidad](./contracts/quality-baseline.md)
   - [Auditor determinista de mutación](./contracts/mutation-audit.md)

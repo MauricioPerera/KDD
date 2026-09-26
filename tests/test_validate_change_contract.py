@@ -10,6 +10,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 import validate_change_contract as gate  # noqa: E402
+import change_contract_multilang as languages  # noqa: E402
 
 
 class ChangeContractTests(unittest.TestCase):
@@ -42,15 +43,15 @@ class ChangeContractTests(unittest.TestCase):
         return self._git('rev-parse', 'HEAD')
 
     def _contract(self, allowed='[]', perimeter="['src/app.py']",
-                  budget=12):
+                  budget=12, target='src/app.py', metric='cyclomatic_max'):
         return ("---\n"
                 "task: demo\n"
-                "target: src/app.py\n"
+                "target: {}\n"
                 "tests: tests/test_app.py\n"
                 "touch_only: {}\n"
                 "deps_allowed: {}\n"
-                "budget:\n  cyclomatic_max: {}\n"
-                "---\n").format(perimeter, allowed, budget)
+                "budget:\n  {}: {}\n"
+                "---\n").format(target, perimeter, allowed, metric, budget)
 
     def _rules(self, head):
         findings = gate.audit_change(self.root, self.contract,
@@ -117,15 +118,135 @@ class ChangeContractTests(unittest.TestCase):
         (self.root / 'src' / 'app.py').unlink()
         self.assertIn('TARGET_MISSING', self._rules(self._commit('remove target')))
 
-    def test_non_python_target_has_explicit_coverage_limit(self):
-        self._write(self.contract, self._contract().replace('src/app.py',
-                                                           'src/app.ts'))
-        self._write('src/app.ts', 'export const value = 1;\n')
-        self.base = self._commit('TypeScript baseline')
-        self._write('src/app.ts', 'export const value = 2;\n')
-        findings = gate.audit_change(self.root, self.contract, self.base,
-                                     self._commit('TypeScript implementation'))
-        self.assertEqual([f['rule'] for f in findings], ['CHECK_UNSUPPORTED'])
+    def _language_base(self, target, source, manifest, manifest_text,
+                       allowed='[]', budget=12, metric='cyclomatic_max'):
+        self._write(self.contract, self._contract(
+            target=target, perimeter="['{}', '{}']".format(target, manifest),
+            allowed=allowed, budget=budget, metric=metric))
+        self._write(target, source)
+        self._write(manifest, manifest_text)
+        self.base = self._commit('approved language baseline')
+
+    def test_javascript_declared_package_and_scoped_import_pass(self):
+        self._language_base('src/app.js', 'export function value() { return 1; }\n',
+                            'package.json', '{"dependencies":{"@acme/tool":"1"}}',
+                            allowed="['@acme/tool']")
+        self._write('src/app.js',
+                    "import tool from '@acme/tool/sub';\n"
+                    'export function value() { return tool; }\n')
+        self.assertEqual(self._rules(self._commit('use JS package')), set())
+
+    def test_adapter_directly_checks_a_simple_javascript_function(self):
+        findings = languages.audit_source(
+            'src/app.js', b'function value() { return 1; }\n',
+            b'function value() { return 2; }\n',
+            {'budget': {'cyclomatic_max': 2}, 'deps_allowed': []},
+            {'before': '{}', 'after': '{}'})
+        self.assertEqual(findings, [])
+
+    def test_javascript_undeclared_import_fails(self):
+        self._language_base('src/app.js', 'export function value() { return 1; }\n',
+                            'package.json', '{"dependencies":{"lodash":"1"}}')
+        self._write('src/app.js',
+                    "import _ from 'lodash';\nexport function value() { return _; }\n")
+        self.assertIn('DEP_UNDECLARED', self._rules(self._commit('new JS import')))
+
+    def test_javascript_new_manifest_dependency_is_checked(self):
+        self._language_base('src/app.js', 'export function value() { return 1; }\n',
+                            'package.json', '{"dependencies":{}}')
+        self._write('package.json', '{"dependencies":{"lodash":"1"}}')
+        self._write('src/app.js', 'export function value() { return 2; }\n')
+        self.assertIn('DEP_UNDECLARED', self._rules(self._commit('new package')))
+
+    def test_javascript_complexity_budget_fails(self):
+        self._language_base('src/app.js', 'function value(x) { return x; }\n',
+                            'package.json', '{}', budget=1)
+        self._write('src/app.js',
+                    'function value(x) { if (x) return 1; return 0; }\n')
+        self.assertIn('BUDGET_CYCLOMATIC', self._rules(self._commit('branch')))
+
+    def test_typescript_parameters_budget_fails(self):
+        self._language_base('src/app.ts', 'export function value(a:number) { return a; }\n',
+                            'package.json', '{}', budget=1, metric='params_max')
+        self._write('src/app.ts',
+                    'export function value(a:number,b:number) { return a+b; }\n')
+        self.assertIn('BUDGET_PARAMS', self._rules(self._commit('extra argument')))
+
+    def test_tsx_local_import_and_jsx_pass(self):
+        self._language_base('src/app.tsx', 'export const View = () => <div/>;\n',
+                            'package.json', '{}')
+        self._write('src/local.ts', 'export const x = 1;\n')
+        self.base = self._commit('local module baseline')
+        self._write('src/app.tsx',
+                    "import {x} from './local';\nexport const View = () => <div>{x}</div>;\n")
+        self.assertEqual(self._rules(self._commit('TSX view')), set())
+
+    def test_javascript_syntax_error_fails_closed(self):
+        self._language_base('src/app.js', 'function value() { return 1; }\n',
+                            'package.json', '{}')
+        self._write('src/app.js', 'function value( {\n')
+        self.assertIn('CHECK_PARSE', self._rules(self._commit('broken JS')))
+
+    def test_go_declared_module_and_stdlib_pass(self):
+        self._language_base('src/app.go', 'package src\nfunc value() int { return 1 }\n',
+                            'go.mod', 'module example.com/demo\ngo 1.23\n'
+                            'require github.com/acme/lib v1.0.0\n',
+                            allowed="['github.com/acme/lib']")
+        self._write('src/app.go', 'package src\nimport (\n"fmt"\n"github.com/acme/lib"\n)\n'
+                    'func value() int { fmt.Println("ok"); return 1 }\n')
+        self.assertEqual(self._rules(self._commit('Go imports')), set())
+
+    def test_go_undeclared_module_fails(self):
+        self._language_base('src/app.go', 'package src\nfunc value() int { return 1 }\n',
+                            'go.mod', 'module example.com/demo\ngo 1.23\n'
+                            'require github.com/acme/lib v1.0.0\n')
+        self._write('src/app.go', 'package src\nimport "github.com/acme/lib"\n'
+                    'func value() int { return 1 }\n')
+        self.assertIn('DEP_UNDECLARED', self._rules(self._commit('Go import')))
+
+    def test_go_nesting_budget_fails(self):
+        self._language_base('src/app.go', 'package src\nfunc value(x int) int { return x }\n',
+                            'go.mod', 'module example.com/demo\ngo 1.23\n',
+                            budget=1, metric='nesting_max')
+        self._write('src/app.go', 'package src\nfunc value(x int) int { '
+                    'if x>0 { for x>1 { return x } }; return 0 }\n')
+        self.assertIn('BUDGET_NESTING', self._rules(self._commit('nested Go')))
+
+    def test_rust_declared_crate_passes(self):
+        self._language_base('src/lib.rs', 'pub fn value() -> i32 { 1 }\n',
+                            'Cargo.toml', '[package]\nname="demo"\nversion="0.1.0"\n'
+                            '[dependencies]\nserde="1"\n', allowed="['serde']")
+        self._write('src/lib.rs', 'use serde::Serialize;\n'
+                    'pub fn value() -> i32 { 1 }\n')
+        self.assertEqual(self._rules(self._commit('Rust import')), set())
+
+    def test_rust_undeclared_crate_fails(self):
+        self._language_base('src/lib.rs', 'pub fn value() -> i32 { 1 }\n',
+                            'Cargo.toml', '[package]\nname="demo"\nversion="0.1.0"\n'
+                            '[dependencies]\nserde="1"\n')
+        self._write('src/lib.rs', 'use serde::Serialize;\n'
+                    'pub fn value() -> i32 { 1 }\n')
+        self.assertIn('DEP_UNDECLARED', self._rules(self._commit('Rust import')))
+
+    def test_rust_macro_budget_is_explicitly_unsupported(self):
+        self._language_base('src/lib.rs', 'pub fn value() -> i32 { 1 }\n',
+                            'Cargo.toml', '[package]\nname="demo"\nversion="0.1.0"\n')
+        self._write('src/lib.rs', 'pub fn value() -> i32 { println!("hi"); 1 }\n')
+        self.assertIn('BUDGET_UNSUPPORTED', self._rules(self._commit('macro')))
+
+    def test_rust_complexity_budget_fails(self):
+        self._language_base('src/lib.rs', 'pub fn value(x:i32) -> i32 { x }\n',
+                            'Cargo.toml', '[package]\nname="demo"\nversion="0.1.0"\n',
+                            budget=1)
+        self._write('src/lib.rs', 'pub fn value(x:i32) -> i32 { '
+                    'if x>0 { 1 } else { 0 } }\n')
+        self.assertIn('BUDGET_CYCLOMATIC', self._rules(self._commit('branch')))
+
+    def test_unsupported_language_still_fails(self):
+        self._language_base('src/App.java', 'class App {}\n',
+                            'pom.xml', '<project/>')
+        self._write('src/App.java', 'class App { int x; }\n')
+        self.assertIn('CHECK_UNSUPPORTED', self._rules(self._commit('Java change')))
 
 
 if __name__ == '__main__':
