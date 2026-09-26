@@ -14,7 +14,7 @@ budget:
   lines_max: 300
   params_max: 5
 tests: 'tests/test_validate_change_contract.py'
-tests_sha256: '632043378fd6e51585f2be9ecd7b8854d1597b82269c2715b03804283fd75a0f'
+tests_sha256: 'b8e589c431a9f1e835fb51a32b2ad6b20c086ce25538e854ec2f3c7f41be93ab'
 touch_only: ['scripts/validate_change_contract.py', 'scripts/change_contract_multilang.py', 'scripts/guard_pr_baseline.py', '.github/workflows/validate.yml', 'knowledge/validacion.md', 'CHANGELOG.md']
 deps_allowed: ['stdlib']
 forbids: ['llm', 'network']
@@ -52,6 +52,9 @@ ser ancestro del candidato. El CLI acepta `--contract`, `--base-ref`,
 - Un cambio al manifiesto asociado se audita aun si el archivo target no
   cambia. La ausencia o sintaxis invalida del manifiesto produce un finding
   duro; una dependencia nueva debe estar aprobada en el baseline.
+- Solo el manifiesto efectivo mas cercano al target activa la auditoria por
+  cambios de manifiesto. Si cambia esa seleccion por agregar o quitar un
+  manifiesto anidado, se comparan las dependencias efectivas de ambos commits.
 - Un parseo fallido, un manifiesto requerido ausente o una metrica opaca
   produce un finding duro en lugar de un PASS parcial.
 - No se ejecuta codigo del candidato ni se consulta la red.

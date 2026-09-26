@@ -14,7 +14,7 @@ budget:
   lines_max: 400
   params_max: 5
 tests: 'tests/test_validate_change_contract.py'
-tests_sha256: '632043378fd6e51585f2be9ecd7b8854d1597b82269c2715b03804283fd75a0f'
+tests_sha256: 'b8e589c431a9f1e835fb51a32b2ad6b20c086ce25538e854ec2f3c7f41be93ab'
 touch_only: ['scripts/change_contract_multilang.py']
 deps_allowed: ['stdlib', 'tree_sitter', 'tree_sitter_javascript', 'tree_sitter_typescript', 'tree_sitter_go', 'tree_sitter_rust']
 forbids: ['network', 'llm']
@@ -49,7 +49,9 @@ target. `policy` contiene el `budget` y `deps_allowed` del contrato aprobado.
   `lines_max` y `params_max` declarados. Una macro Rust dentro de una funcion
   produce `BUDGET_UNSUPPORTED`, porque el AST deja opaco su cuerpo.
 - El conteo de decisiones incluye switch/select y sus casos en Go, y
-  while/for en Rust; esas ramas no pueden quedar fuera del presupuesto.
+  while/for en Rust; esas ramas no pueden quedar fuera del presupuesto. Los
+  casos de un switch/select Go no suman un segundo nivel de nesting al
+  contenedor.
 - Los formatos o construcciones no reconocidos fallan cerrado con un rule-id
   especifico. La salida es estable y no usa red.
 

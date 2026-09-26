@@ -177,6 +177,39 @@ class ChangeContractTests(unittest.TestCase):
         self._write('package.json', '{broken')
         self.assertIn('MANIFEST_PARSE', self._rules(self._commit('invalid manifest')))
 
+    def test_unrelated_parent_manifest_does_not_audit_nested_target(self):
+        self._language_base('src/app.js',
+                            'function value(x) { if (x) return 1; return 0; }\n',
+                            'package.json', '{"dependencies":{}}', budget=1)
+        self._write('src/package.json', '{"dependencies":{}}')
+        self.base = self._commit('nearest manifest baseline')
+        self._write('package.json', '{"dependencies":{"lodash":"1"}}')
+        self.assertEqual(self._rules(self._commit('parent manifest only')), set())
+
+    def test_nested_manifest_only_new_dependency_fails(self):
+        self._language_base('src/app.js', 'function value() { return 1; }\n',
+                            'package.json', '{"dependencies":{}}')
+        self._write(self.contract, self._contract(
+            target='src/app.js',
+            perimeter="['src/app.js', 'package.json', 'src/package.json']"))
+        self._write('src/package.json', '{"dependencies":{}}')
+        self.base = self._commit('nested manifest baseline')
+        self._write('src/package.json', '{"dependencies":{"lodash":"1"}}')
+        self.assertIn('DEP_UNDECLARED',
+                      self._rules(self._commit('nested manifest only')))
+
+    def test_removing_nested_manifest_cannot_expose_unapproved_parent_dependency(self):
+        self._language_base('src/app.js', 'function value() { return 1; }\n',
+                            'package.json', '{"dependencies":{"lodash":"1"}}')
+        self._write(self.contract, self._contract(
+            target='src/app.js',
+            perimeter="['src/app.js', 'package.json', 'src/package.json']"))
+        self._write('src/package.json', '{"dependencies":{}}')
+        self.base = self._commit('nested manifest baseline')
+        (self.root / 'src' / 'package.json').unlink()
+        self.assertIn('DEP_UNDECLARED',
+                      self._rules(self._commit('remove nested manifest')))
+
     def test_javascript_complexity_budget_fails(self):
         self._language_base('src/app.js', 'function value(x) { return x; }\n',
                             'package.json', '{}', budget=1)
@@ -254,6 +287,21 @@ class ChangeContractTests(unittest.TestCase):
                 self._write('src/app.go', source)
                 self.assertIn('BUDGET_CYCLOMATIC',
                               self._rules(self._commit('Go branch')))
+
+    def test_go_top_level_switch_and_select_have_one_nesting_level(self):
+        for source in (
+                'package src\nfunc value(x int) int { switch x { '
+                'case 1: return 1; default: return 0 } }\n',
+                'package src\nfunc value(ch chan int) int { select { '
+                'case x := <-ch: return x; default: return 0 } }\n'):
+            with self.subTest(source=source):
+                self._language_base('src/app.go',
+                                    'package src\nfunc value() int { return 1 }\n',
+                                    'go.mod', 'module example.com/demo\ngo 1.23\n',
+                                    budget=1, metric='nesting_max')
+                self._write('src/app.go', source)
+                self.assertEqual(self._rules(self._commit('one-level Go branch')),
+                                 set())
 
     def test_rust_declared_crate_passes(self):
         self._language_base('src/lib.rs', 'pub fn value() -> i32 { 1 }\n',
