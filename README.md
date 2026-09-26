@@ -95,20 +95,24 @@ There are two complementary ways to run the KDD gates against your repo without 
 
   ```yaml
   steps:
-    - uses: actions/checkout@v4          # YOUR repo (the action assumes this is done first)
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4; YOUR repo first
+      with:
+        fetch-depth: 0                   # required when quality-approved-ref names an older commit
     - uses: MauricioPerera/KDD/.github/actions/validate-contracts@<FULL_KDD_COMMIT_SHA>
       with:
         kdd-ref: <FULL_KDD_COMMIT_SHA>   # use the same reviewed 40-character SHA
         contracts-dir: knowledge/contracts
         okf-dir: knowledge
-        # required-evidence: security,privacy  # require these scans
+        # required-evidence: security,privacy,quality
+        # quality-policy-path: quality.json
+        # quality-approved-ref: <FULL_APPROVED_PROJECT_COMMIT_SHA>
         # specs-dir is optional and auto-skipped if your repo has no specs/.
         # completion-policy-path / rules-dir / skills-dirs / ux-page-dir / diagrams-dir / src-dir
         # auto-skip (INFO, exit 0) when absent.
         # run-test-commands: 'true' also runs each contract's test_command.
   ```
 
-  The action checks out `MauricioPerera/KDD` into `_kdd/` (not the root, so it does not overwrite your files) and runs the validators against your paths. `validate_contracts` and `validate_okf` are logically required (a missing dir is a real ERROR — it means there are no KDD contracts to validate); `validate_specs` is guarded so a repo without `specs/` stays green; the rest auto-skip. It deliberately does not run `lint_ascii`, the KDD unit-test suite, or `assemble_context` (those are specific to this repo's own tooling).
+  The action checks out `MauricioPerera/KDD` into `_kdd/` (not the root, so it does not overwrite your files) and runs the validators against your paths. `validate_contracts` and `validate_okf` are logically required (a missing dir is a real ERROR — it means there are no KDD contracts to validate); `validate_specs` is guarded so a repo without `specs/` stays green; the rest auto-skip. If a quality policy exists, the action requires a full approved project commit SHA and runs its checks. It deliberately does not run `lint_ascii`, the KDD unit-test suite, or `assemble_context` (those are specific to this repo's own tooling).
 
 #### Instantiating for a non-Python project
 

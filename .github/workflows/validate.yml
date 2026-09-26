@@ -107,13 +107,13 @@ jobs:
       KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
       KDD_REQUIRED_EVIDENCE: ${{ inputs.required_evidence || '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.11'
 
@@ -139,7 +139,7 @@ jobs:
         run: python scripts/optional_evidence.py check --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage,quality
 
       - name: Set up Node.js (for the multi-language example contract)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
 
@@ -253,13 +253,14 @@ jobs:
         run: |
           import os
           from pathlib import Path
+          import re
           import subprocess
           import sys
           policy = os.environ['KDD_QUALITY_POLICY']
           approved = os.environ['KDD_QUALITY_APPROVED_REF']
           if Path(policy).exists() or approved:
-              if not approved:
-                  raise SystemExit('FAIL: project policy requires an explicitly approved reference')
+              if not re.fullmatch(r'[0-9a-fA-F]{40}', approved):
+                  raise SystemExit('FAIL: project quality requires a full approved commit SHA')
               raise SystemExit(subprocess.call([sys.executable, 'scripts/verify_quality.py', '--policy', policy, '--approved-ref', approved]))
           print('SKIP: no project quality policy configured; template validation does not approve a project')
 
@@ -285,13 +286,13 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.11'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
       - run: npm ci --ignore-scripts
