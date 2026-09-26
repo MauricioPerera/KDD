@@ -84,6 +84,10 @@ hace 3 chequeos acotados a un solo task contract: frontmatter, sello del
 oráculo y `test_command` (resumen `N/3`). Exit 0/1; cero dependencias
 (stdlib + módulos hermanos de `scripts/`, sin el SDK `mcp`).
 
+En modo full, `validate_test_commands` tiene un timeout agregado de 300s
+porque ejecuta todos los contratos; cada otro gate mantiene 120s. El
+`test_command` individual de `--contract` mantiene 120s.
+
 Esto **no es un gate nuevo**: Nivel 1 sigue siendo **19 gates** y el
 conteo no cambia. Es diagnóstico opt-in, mismo estatus que
 `benchmark_gates.py` — no corre en CI (CI ya ejecuta cada gate como paso
