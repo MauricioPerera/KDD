@@ -28,8 +28,10 @@ BRANCHES = {'if_statement', 'if_expression', 'for_statement', 'for_in_statement'
             'catch_clause', 'ternary_expression', 'match_arm',
             'while_expression', 'for_expression', 'loop_expression',
             'expression_case', 'type_case', 'communication_case'}
-NESTING_BRANCHES = BRANCHES | {'expression_switch_statement',
-                              'type_switch_statement', 'select_statement'}
+NESTING_BRANCHES = (BRANCHES - {'expression_case', 'type_case',
+                                'communication_case'}) | {
+                                    'expression_switch_statement',
+                                    'type_switch_statement', 'select_statement'}
 RUST_LOCAL = {'std', 'core', 'alloc', 'crate', 'self', 'super'}
 
 
