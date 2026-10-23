@@ -39,6 +39,8 @@ MANIFEST = (
     "knowledge/data_models/users_table.md",
     "knowledge/architecture/overview.md",
     "knowledge/contracts/sample_task.md",
+    "knowledge/tasks/TASK-001.md",
+    "docs/task-evidence/TASK-001-b9654fbcb1f759c9196edfd64819f8dd1cde435f.json",
     "knowledge/contracts/validate-user-record.md",
     "src/payment_limit.py",
     "tests/test_payment_limit.py",

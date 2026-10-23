@@ -42,6 +42,18 @@ This is a template repository for projects that implement the **Knowledge-Driven
   `examples/rules/`).
 - `scripts/run_board.sh` / `scripts/run_board.ps1`: launcher for **KDD-Board** (interactive Kanban UI, WebMCP bridge, Blind Secrets Vault, and live contract/test runner).
 
+### Git-backed tasks (MVP)
+
+`python scripts/tasks.py --help` manages OKF Task nodes committed on `main`,
+with one implementation branch per task. The CLI supports creation, explicit
+contract approval, start/block/resume, verified completion, listing and history.
+Completion requires an integrated branch and a real passing sealed oracle;
+the evidence is stored in Git. See the [workflow and commands](knowledge/git-tasks.md).
+`python scripts/validate_tasks.py --base-ref <BASE_SHA> --head-ref <HEAD_SHA>`
+audits every mainline transition. KDD-Board uses this same CLI in Git projects:
+it reads committed OKF tasks from `main` and records every state change as a
+commit. See [the integration contract](knowledge/board-git.md).
+
 ### Visual Companion: KDD-Board (WebMCP & Blind Vault)
 
 For teams and developers who prefer a visual, real-time workflow, the repository includes **KDD-Board**:
@@ -180,6 +192,11 @@ Este repositorio plantilla es para proyectos que implementan la metodología **K
 - `scripts/run_board.sh` / `scripts/run_board.ps1`: lanzador de **KDD-Board** (tablero Kanban interactivo, puente WebMCP, Blind Secrets Vault y ejecutor de contratos/tests).
 
 ### Entorno Visual: KDD-Board (WebMCP & Blind Vault)
+
+En proyectos Git, el tablero lee tareas OKF confirmadas en `main` y registra
+las transiciones con la misma CLI del MVP. Preparar requiere un SHA aprobado
+explicito; cerrar exige integrar la rama y superar el oraculo. El detalle muestra
+historial y evidencia. Ver [contratos de integracion](knowledge/board-git.md).
 
 Para desarrolladores y equipos que buscan una experiencia visual en tiempo real, la plantilla incluye **KDD-Board**:
 - **Tablero Kanban Interactivo**: Gestiona el flujo colaborativo en 5 estados (`backlog` -> `ready` -> `in_progress` -> `needs_human_input` -> `done`).

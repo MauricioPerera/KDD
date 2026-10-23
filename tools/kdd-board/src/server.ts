@@ -8,6 +8,9 @@ import { TaskStore } from './task-store.ts';
 import { BlindVault } from './blind-vault.ts';
 import { createWebMcpBridge } from './webmcp-bridge.ts';
 import { executeTaskTest } from './test-runner.ts';
+import { GitTaskStore, isGitProject } from './git-task-store.ts';
+import { createGitBridge } from './git-bridge.ts';
+import { createGitApi } from './git-api.ts';
 import type { TaskStatus, TaskAssignee, TaskPriority } from './types.ts';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -32,12 +35,14 @@ const tasksFile = path.join(dataDir, 'tasks.json');
 const vaultFile = path.join(projectDir, '.env.local');
 const publicDir = path.join(rootDir, 'public');
 
-const taskStore = new TaskStore(tasksFile);
+const gitStore = isGitProject(projectDir) ? new GitTaskStore(projectDir) : undefined;
+const taskStore = gitStore ? undefined : new TaskStore(tasksFile);
 const vault = new BlindVault(vaultFile);
-const bridge = createWebMcpBridge(taskStore, vault, projectDir);
+const bridge = gitStore ? createGitBridge(gitStore) : createWebMcpBridge(taskStore!, vault, projectDir);
+const gitApi = gitStore ? createGitApi(gitStore, parseJsonBody, sendJson) : undefined;
 
 // Populate default sample tasks if store is empty
-if (taskStore.getAllTasks().length === 0) {
+if (taskStore && taskStore.getAllTasks().length === 0) {
   const t1 = taskStore.createTask({
     title: 'Definir especificación KDD del pipeline de datos',
     description: 'Crear contrato con invariantes y budgets para el ingestor.',
@@ -244,10 +249,14 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
     }
 
     try {
+      if (gitApi && await gitApi(req, res, url)) return;
+      if (req.method === 'GET' && pathname === '/api/board') {
+        return sendJson(res, 200, {mode:'legacy', sourceRef:null});
+      }
       // 1. GET /api/tasks
       if (req.method === 'GET' && pathname === '/api/tasks') {
         const status = url.searchParams.get('status') as TaskStatus | null;
-        return sendJson(res, 200, taskStore.getAllTasks(status || undefined));
+        return sendJson(res, 200, taskStore!.getAllTasks(status || undefined));
       }
 
       // 2. POST /api/tasks
@@ -263,7 +272,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
         if (body.priority !== undefined && !['low', 'medium', 'high', 'urgent'].includes(body.priority)) {
           return sendJson(res, 400, {error: 'Invalid priority'});
         }
-        const task = taskStore.createTask({
+        const task = taskStore!.createTask({
           title: body.title,
           description: body.description || '',
           assignee: body.assignee,
@@ -282,7 +291,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
           status: TaskStatus;
           comment?: { author: 'human' | 'agent' | 'system'; text: string };
         }>(req);
-        const task = taskStore.updateTaskStatus(taskId, body.status, body.comment);
+        const task = taskStore!.updateTaskStatus(taskId, body.status, body.comment);
         return sendJson(res, 200, task);
       }
 
@@ -291,7 +300,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
       if (req.method === 'PATCH' && assignMatch) {
         const taskId = assignMatch[1];
         const body = await parseJsonBody<{ assignee: TaskAssignee }>(req);
-        const task = taskStore.assignTask(taskId, body.assignee);
+        const task = taskStore!.assignTask(taskId, body.assignee);
         return sendJson(res, 200, task);
       }
 
@@ -300,7 +309,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
       if (req.method === 'PATCH' && contractMatch) {
         const taskId = contractMatch[1];
         const body = await parseJsonBody<{ contractId?: string }>(req);
-        const task = taskStore.linkContract(taskId, body.contractId);
+        const task = taskStore!.linkContract(taskId, body.contractId);
         return sendJson(res, 200, task);
       }
 
@@ -314,7 +323,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
           description: string;
           isSecret?: boolean;
         }>(req);
-        const task = taskStore.requestHumanInput(taskId, body);
+        const task = taskStore!.requestHumanInput(taskId, body);
         return sendJson(res, 200, task);
       }
 
@@ -331,7 +340,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
         if (body.secretValue) {
           vault.setSecret(body.fieldKey, body.secretValue);
         }
-        const task = taskStore.satisfyHumanInput(taskId, body.fieldKey, body.value);
+        const task = taskStore!.satisfyHumanInput(taskId, body.fieldKey, body.value);
         return sendJson(res, 200, {
           task,
           vault: vault.listSecrets(),
@@ -342,11 +351,11 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
       const testMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/run-tests$/);
       if (req.method === 'POST' && testMatch) {
         const taskId = testMatch[1];
-        const task = taskStore.getTask(taskId);
+        const task = taskStore!.getTask(taskId);
         if (!task) {
           return sendJson(res, 404, { error: `Tarea "${taskId}" no encontrada` });
         }
-        return sendJson(res, 200, await runTaskTests(taskStore, vault, projectDir, taskId));
+        return sendJson(res, 200, await runTaskTests(taskStore!, vault, projectDir, taskId));
       }
 
       // 7.1 POST /api/tasks/:id/report (Generate .agents/logs/<TASK>-REPORT.md)
@@ -354,11 +363,11 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
       if (req.method === 'POST' && reportMatch) {
         const taskId = reportMatch[1];
         try {
-          const generated = taskStore.generateKddReport(taskId);
+          const generated = taskStore!.generateKddReport(taskId);
           return sendJson(res, 200, {
             success: true,
             ...generated,
-            task: taskStore.getTask(taskId),
+            task: taskStore!.getTask(taskId),
           });
         } catch (err: any) {
           return sendJson(res, 404, { error: err.message });
@@ -380,11 +389,11 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
         const sanitized = body.key.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
         
         // Auto-satisfy any task waiting for this credential
-        const allTasks = taskStore.getAllTasks();
+        const allTasks = taskStore?.getAllTasks() || [];
         for (const t of allTasks) {
           const req = t.requirements?.find((r) => !r.isSatisfied && r.fieldKey.toUpperCase() === sanitized);
           if (req) {
-            taskStore.satisfyHumanInput(t.id, req.fieldKey);
+            taskStore!.satisfyHumanInput(t.id, req.fieldKey);
           }
         }
 
@@ -453,6 +462,9 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
       }
       if (pathname === '/app.js') {
         return serveStatic(res, path.join(publicDir, 'app.js'), 'application/javascript; charset=utf-8');
+      }
+      if (pathname === '/git-board.js') {
+        return serveStatic(res, path.join(publicDir, 'git-board.js'), 'application/javascript; charset=utf-8');
       }
       if (pathname === '/style.css') {
         return serveStatic(res, path.join(publicDir, 'style.css'), 'text/css; charset=utf-8');

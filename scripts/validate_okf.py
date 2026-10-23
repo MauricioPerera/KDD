@@ -8,7 +8,7 @@ KB (default: knowledge) y valida cada *.md (recursivo) segun OKF-SPEC:
        scripts/validate_contracts.py), claves type/title/description/tags
        presentes; tags lista no vacia y en minusculas.
   §3 Tipos: type exactamente uno de 'Task Contract' | 'Data Model' |
-       'Architecture' | 'Concept'.
+       'Architecture' | 'Concept' | 'Task'.
   §4 Enlaces: todo enlace markdown relativo que apunte dentro de knowledge/
        debe resolver a un archivo .md existente o a una carpeta existente;
        enlace roto = ERROR, y archivo existente con otra extension (p. ej. .txt)
@@ -159,7 +159,7 @@ def parse_frontmatter(text):
 # ---------------------------------------------------------------------------
 
 REQUIRED_KEYS = ['type', 'title', 'description', 'tags']
-VALID_TYPES = {'Task Contract', 'Data Model', 'Architecture', 'Concept'}
+VALID_TYPES = {'Task Contract', 'Data Model', 'Architecture', 'Concept', 'Task'}
 
 INDEX_NAME = 'index.md'
 

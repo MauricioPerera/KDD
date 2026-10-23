@@ -39,6 +39,7 @@ Claves adicionales (p. ej. `task`, `target`, `signature` en los contratos) son *
 - `'Data Model'` — modelo de datos (tablas, esquemas, entidades). Vive bajo `knowledge/data_models/`.
 - `'Architecture'` — componente o vista de arquitectura del sistema. Vive bajo `knowledge/architecture/`.
 - `'Concept'` — definición conceptual o especificación de referencia (esta spec lo es).
+- `'Task'` — seguimiento operativo versionado en Git, separado del contrato aprobado; formato en [Tarea Git](data_models/git-task.md).
 
 Cualquier otro valor de `type` se considera **inválido** para la plantilla.
 

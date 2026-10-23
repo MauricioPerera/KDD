@@ -162,6 +162,11 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Install board dependencies for contract oracles (when present)
+        if: ${{ hashFiles('tools/kdd-board/package-lock.json') != '' }}
+        run: npm ci --ignore-scripts
+        working-directory: tools/kdd-board
+
       - name: Validate contracts
         shell: bash
         run: python scripts/validate_contracts.py "$KDD_CONTRACTS_DIR"
@@ -221,6 +226,20 @@ jobs:
 
       - name: Lint ASCII scripts
         run: python scripts/lint_ascii.py scripts
+
+      - name: Validate Git task snapshots and transitions
+        shell: python
+        env:
+          KDD_TASK_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+        run: |
+          import os
+          import subprocess
+          import sys
+          base = os.environ['KDD_TASK_BASE_REF']
+          command = [sys.executable, 'scripts/validate_tasks.py', '--head-ref', 'HEAD']
+          if base and set(base) != {'0'}:
+              command += ['--base-ref', base]
+          raise SystemExit(subprocess.call(command))
 
       - name: Validate rule contracts
         shell: bash
@@ -286,7 +305,8 @@ jobs:
 
       - name: Run each contract's test_command
         shell: bash
-        run: python scripts/validate_test_commands.py "$KDD_CONTRACTS_DIR" .
+        # init-project also runs the post-initialization suite; allow slow Windows runners.
+        run: python scripts/validate_test_commands.py "$KDD_CONTRACTS_DIR" . --timeout 600
 
       - name: Scan for leaked secrets (src only — see knowledge/contracts/secret-scan-gate.md)
         shell: bash
