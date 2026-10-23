@@ -6,15 +6,15 @@ tags: ['kdd', 'init', 'adopcion']
 task: bootstrap-project
 intent: 'Prepara un proyecto KDD con una guía inicial.'
 target: scripts/bootstrap_project.py
-signature: 'def bootstrap_project(repo_dir: str, apply: bool, name: str, profile: str = "standard") -> dict:'
+signature: 'def bootstrap_project(repo_dir: str, apply: bool, name: str, profile: str = "standard", repository: str = None) -> dict:'
 test_command: 'python -m unittest tests/test_bootstrap_project.py'
 budget:
   cyclomatic_max: 8
   nesting_max: 3
   lines_max: 150
-  params_max: 4
+  params_max: 5
 tests: 'tests/test_bootstrap_project.py'
-tests_sha256: '90e10c2b49edc4a698a0515a807de69fef116216aa467af69533b341e08f7b2b'
+tests_sha256: '4d8b41fbea20593519acc1a74460abfa1c1d9d0e7226c489190ae72015728bfb'
 touch_only: ['scripts/bootstrap_project.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'subprocess', 'llm']
@@ -30,14 +30,23 @@ una guía `KDD-START-HERE.md` con el perfil y los comandos de continuación.
 
 ```python
 def bootstrap_project(repo_dir: str, apply: bool, name: str,
-                      profile: str = "standard") -> dict:
+                      profile: str = "standard", repository: str = None) -> dict:
     """Initialize and optionally write the human-friendly start guide."""
 ```
+
+CLI: `python scripts/bootstrap_project.py [--apply --repository OWNER/REPO]
+[--name <proyecto>] [--profile minimal|standard|strict] [--repo-dir .]`.
+`repository` se agrega al final para conservar los argumentos posicionales
+existentes. Dry-run sin identidad sigue permitido; apply exige OWNER/REPO.
 
 ## Invariants
 
 - Sin `--apply` no se escribe `KDD-START-HERE.md`.
 - El wrapper delega la limpieza a `init_project`; no duplica su manifiesto.
+- La identidad explicita se transmite sin reemplazarla ni inferirla del entorno.
+  La politica de completion generada pertenece al OWNER/REPO recibido.
+- Apply sin identidad, con identidad invalida o con manifiesto incompleto
+  termina con exit 2, conserva la copia y no genera la guia.
 - El perfil solo puede ser `minimal`, `standard` o `strict`.
 - La guía declara que los gates no sustituyen el juicio de producto humano.
 
@@ -48,6 +57,7 @@ def bootstrap_project(repo_dir: str, apply: bool, name: str,
   incluyendo la referencia aprobada obligatoria.
 - El perfil minimal no exige `--approved-ref`.
 - Un perfil desconocido produce `ValueError` sin escribir la guía.
+- Apply con `--repository ExampleCo/Shop` crea una politica para ExampleCo/Shop.
 
 ## Do / Don't
 
@@ -59,6 +69,8 @@ def bootstrap_project(repo_dir: str, apply: bool, name: str,
 
 El oráculo congelado está en `tests/test_bootstrap_project.py` y verifica dry-run,
 composición con el inicializador, guía generada y perfiles inválidos.
+La [integracion de proyecto nuevo](./project-initialization.md) ejercita la
+API y CLI contra el inicializador real, sin sustituirlo por mocks.
 
 ## Constraints
 

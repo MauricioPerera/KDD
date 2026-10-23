@@ -70,6 +70,16 @@ repositorio indicado con `legacy_pairs: {}`. Conserva los validadores,
 contratos de infraestructura y templates. `knowledge/contracts/TEMPLATE-task-contract.md`
 es tu punto de partida para el paso siguiente.
 
+El arranque guiado aplica esa misma limpieza a una copia intacta y genera
+ademas `KDD-START-HERE.md` con los pasos del perfil elegido:
+
+```
+python scripts/bootstrap_project.py --apply --name "Mi Proyecto" --repository TU_USUARIO/mi-proyecto --profile standard
+```
+
+Ambas entradas retiran las tareas de demostracion TASK-001 y TASK-002 y sus
+evidencias; las tareas del proyecto nuevo empiezan con su propio historial Git.
+
 Verificar que el repo sigue verde despues de limpiar:
 
 ```
