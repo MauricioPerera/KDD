@@ -80,7 +80,7 @@ def history(root, task_id):
     path = task_path(task_id)
     if task_id not in read_tasks(root):
         raise TaskError('TASK_MISSING: ' + task_id)
-    commits = git(root, 'log', '--first-parent', '--reverse', '--format=%H', 'main', '--', path)
+    commits = git(root, 'log', '--topo-order', '--reverse', '--format=%H', 'main', '--', path)
     result = []
     for revision in commits.splitlines():
         data, _ = parse_task(blob(root, revision, path), path)
