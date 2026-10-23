@@ -68,6 +68,9 @@ gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
 - `run_all(contracts_dir, repo_root, timeout=180) -> [{'path',
   'test_command','exit_code','ok','error','stdout','stderr'}]` — corre `run_test_command`
   para cada item de `collect_contracts(contracts_dir)`, mismo orden.
+  La extension opt-in `deduplicate=False` y el flag `--deduplicate` se
+  especifican en [ci-execution-deduplication](ci-execution-deduplication.md).
+  Sin el flag se conserva una ejecucion por contrato.
 - `main(argv) -> int` — `argv[1]`=contracts_dir (default
   `knowledge/contracts`), `argv[2]`=repo_root (default `.`). Imprime
   `PASS [scope] <path>` o `FAIL [scope] <path>: <detalle>` por linea, y
