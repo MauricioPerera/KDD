@@ -4,6 +4,14 @@
 Una interfaz colaborativa de gestión de tareas y ejecución KDD (Knowledge-Driven Development) en tiempo real, diseñada para orquestar flujos de trabajo simbióticos entre desarrolladores humanos y agentes de IA autónomos a través del protocolo WebMCP (fastwebmcp), con un vault local para operadores de confianza; no proporciona aislamiento frente al código ejecutado.
 
 ## Arquitectura
+
+En proyectos Git rige la [integracion canonica](../../knowledge/board-git.md):
+`GitTaskStore` lee nodos OKF de `main` e invoca el coordinador Python para cada
+commit de estado. Publica cinco tools WebMCP: list_tasks, get_task, create_task,
+update_task_status y task_history. El cierre genera evidencia al ejecutar el
+oraculo tras integrar la rama. El vault es independiente y no mueve tareas.
+Las operaciones JSON y las ocho tools descritas abajo solo corresponden al
+modo legacy, para directorios que no pertenecen a un repositorio Git.
 El sistema se compone de un backend modular en Node.js/TypeScript y un frontend reactivo sin dependencias pesadas:
 - **Core State Engine (`TaskStore`)**: Máquina de estados determinista y persistente en JSON (`.kdd-board/tasks.json` del proyecto) que rige el ciclo de vida colaborativo (`backlog` -> `ready` -> `in_progress` -> `needs_human_input` -> `done`).
 - **Blind Vault (`BlindVault`)**: Almacén local en `.env.local` que inyecta variables al subproceso de tests. Los listados se enmascaran visualmente; no hay cifrado ni protección frente al código ejecutado. La salida redacta valores conocidos, pero no sus transformaciones.

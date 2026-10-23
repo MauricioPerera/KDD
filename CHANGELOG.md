@@ -4,6 +4,17 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- KDD-Board now reads canonical OKF tasks from main in Git projects. HTTP,
+  browser WebMCP and the task workspace delegate transitions to the same CLI,
+  preserving explicit approval, task branches, real test evidence and commit
+  history. Git errors never fall back to JSON; non-Git projects retain legacy mode.
+
+- Git task MVP: OKF Task nodes on main, one implementation branch per task,
+  state changes recorded as scoped commits, a read-only transition validator
+  and a local CLI. Completion runs the approved sealed oracle after integration
+  and stores evidence bound to the tested commit. Existing contract/oracle
+  baselines and KDD-Board persistence remain independent.
+
 - Correccion de tres hallazgos del review multilenguaje: el auditor revisa manifiestos aunque no cambie el target, el gate confiable protege las versiones de parsers y los presupuestos cuentan ramas switch/select de Go y bucles de Rust.
 - El manifiesto efectivo se resuelve por commit para evitar bloquear cambios de un manifiesto padre no usado; los casos de un switch/select Go cuentan una vez para nesting.
 

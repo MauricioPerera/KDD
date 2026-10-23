@@ -3,6 +3,7 @@
 Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está especificado en [OKF-SPEC](./OKF-SPEC.md).
 
 ## Referencia
+- [Tareas con Git](./git-tasks.md) — CLI local, nodos Task y estados registrados por commits en main.
 - [Perfiles de adopción KDD](./adoption-profiles.md) — niveles minimal, standard y strict para incorporar gates progresivamente.
 - [Sprints orientados a resultados](./sprints.md) — protocolo piloto opt-in para seleccionar backlog, admitir tareas y medir consumo por resultado aceptado.
 - [Por que KDD](./por-que-kdd.md) — posicionamiento honesto frente a Spec Kit, BMAD-METHOD y un AGENTS.md solo: que verifica distinto KDD, y en que casos no conviene.
@@ -23,6 +24,15 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Mermaid como DSL: tradeoffs](./mermaid-dsl-tradeoffs.md) — por qué Mermaid generado por IA es mal fit como DSL de una plataforma de automatización (sintaxis frágil, sin semántica nativa, sin round-trip), y por qué esas mismas propiedades invertidas son justo las tres que KDD exige a todo artefacto (diffable, escribible por agente sin GUI, verificable por máquina).
 
 ## Estructura
+- [Tareas versionadas](./tasks/)
+- [Modelo Task](./data_models/git-task.md)
+- [Modelo de tareas Git](./contracts/task-model.md)
+- [Diario Git de tareas](./contracts/task-journal.md)
+- [Validador de transiciones](./contracts/task-validation.md)
+- [CLI de tareas](./contracts/task-cli.md)
+- [Integracion Git de KDD Board](./board-git.md)
+- [Diario Git del tablero](./contracts/board-git-journal.md)
+- [Interfaz Git del tablero](./contracts/board-git-ui.md)
 - [Contratos de Desarrollo](./contracts/)
   - [Ejecutor de autoridad local](./contracts/local-authority.md) — permisos aplicados antes del IO.
   - [Planificador del sprint](./contracts/sprint-planner.md) — relaciones, ciclos, bloqueos y prioridades.
