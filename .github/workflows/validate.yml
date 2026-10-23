@@ -18,6 +18,9 @@ on:
   # own CI would change behavior on push.
   workflow_call:
     inputs:
+      reusable_execution:
+        type: boolean
+        default: true
       contracts_dir:
         type: string
         default: 'knowledge/contracts'
@@ -92,6 +95,12 @@ on:
       required_evidence:
         type: string
         default: ''
+
+# Supersede native PR runs only. A caller owns its concurrency policy.
+# A distinct namespace prevents a reusable call from cancelling its caller.
+concurrency:
+  group: kdd-validate-${{ github.workflow }}-${{ github.event_name == 'pull_request' && !inputs.reusable_execution && format('pr-{0}', github.event.pull_request.number) || format('run-{0}-{1}', github.run_id, github.run_attempt) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && !inputs.reusable_execution }}
 
 jobs:
   validate:
@@ -306,7 +315,7 @@ jobs:
       - name: Run each contract's test_command
         shell: bash
         # init-project also runs the post-initialization suite; allow slow Windows runners.
-        run: python scripts/validate_test_commands.py "$KDD_CONTRACTS_DIR" . --timeout 600
+        run: python scripts/validate_test_commands.py "$KDD_CONTRACTS_DIR" . --timeout 600 --deduplicate
 
       - name: Scan for leaked secrets (src only — see knowledge/contracts/secret-scan-gate.md)
         shell: bash
