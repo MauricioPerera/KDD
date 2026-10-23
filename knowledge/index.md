@@ -29,6 +29,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Modelo de tareas Git](./contracts/task-model.md)
 - [Diario Git de tareas](./contracts/task-journal.md)
 - [Validador de transiciones](./contracts/task-validation.md)
+- [Publicacion del diario mediante merge](./contracts/task-publication.md)
 - [CLI de tareas](./contracts/task-cli.md)
 - [Integracion Git de KDD Board](./board-git.md)
 - [Diario Git del tablero](./contracts/board-git-journal.md)
