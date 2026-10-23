@@ -155,6 +155,7 @@ def parse_task(source, filename=None):
 
 
 def validate_transition(before, after, completed=()):
+    """Return violations without mutation; creation starts in backlog, done is terminal."""
     if after is None:
         return ['TASK_DELETE: task history cannot be deleted']
     errors = validate_task(after)
