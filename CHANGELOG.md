@@ -4,6 +4,10 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- Git task publication preserves original state commits and closure evidence
+  through PR merge commits. Imported journals are audited from their fork;
+  conflicting task edits and fabricated or squashed histories are rejected.
+
 - KDD-Board now reads canonical OKF tasks from main in Git projects. HTTP,
   browser WebMCP and the task workspace delegate transitions to the same CLI,
   preserving explicit approval, task branches, real test evidence and commit

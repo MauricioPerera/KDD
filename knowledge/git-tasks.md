@@ -40,6 +40,14 @@ proyecto. La CLI no realiza merge, push ni cambia protecciones de ramas.
 Para preservar el recorrido original, integrar conservando los commits;
 un squash no mantiene la relacion de ancestros exigida por finish.
 
+Al publicar un diario completo mediante un PR, usar un merge que preserve los
+commits originales. El validador audita tambien las transiciones importadas
+desde su bifurcacion; el historial del tablero conserva sus SHA originales.
+El merge debe copiar cada nodo importado sin modificarlo, y main no debe haber
+cambiado ese mismo nodo desde la bifurcacion. Resolver ese conflicto requiere
+reconciliar el diario con nuevas transiciones validas antes de volver a publicar.
+No usar squash ni rebase para transportar cierres con evidencia ligada a SHA.
+
 ```text
 python scripts/tasks.py finish TASK-001
 python scripts/validate_tasks.py
@@ -79,4 +87,5 @@ una copia y puede superar el timeout predeterminado de 180 segundos en Windows.
 - [Modelo puro](contracts/task-model.md).
 - [Diario y evidencia](contracts/task-journal.md).
 - [Validador de historial](contracts/task-validation.md).
+- [Publicacion mediante merge](contracts/task-publication.md).
 - [CLI](contracts/task-cli.md).
