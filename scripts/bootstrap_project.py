@@ -44,10 +44,10 @@ si quieres una explicación sin tecnicismos.
 """.format(project=project, profile=profile, approved_ref=approved_ref)
 
 
-def bootstrap_project(repo_dir, apply, name, profile="standard"):
+def bootstrap_project(repo_dir, apply, name, profile="standard", repository=None):
     if profile not in _PROFILES:
         raise ValueError("perfil desconocido: {} (use minimal, standard o strict)".format(profile))
-    result = init_project(repo_dir, apply, name)
+    result = init_project(repo_dir, apply, name, repository)
     start_here = _start_here(name, profile)
     if apply:
         path = Path(repo_dir).resolve() / "KDD-START-HERE.md"
@@ -62,9 +62,11 @@ def main(argv=None):
     parser.add_argument("--name")
     parser.add_argument("--profile", choices=sorted(_PROFILES), default="standard")
     parser.add_argument("--repo-dir", default=".")
+    parser.add_argument("--repository", help="GitHub OWNER/REPO for the new project")
     args = parser.parse_args(argv)
     try:
-        result = bootstrap_project(args.repo_dir, args.apply, args.name, args.profile)
+        result = bootstrap_project(args.repo_dir, args.apply, args.name,
+                                   args.profile, args.repository)
     except (ValueError, OSError) as error:
         print("ERROR: {}".format(error))
         return 2

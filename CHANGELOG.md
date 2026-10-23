@@ -4,6 +4,10 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- Project bootstrap forwards an explicit `--repository OWNER/REPO` to the
+  initializer. Initialization removes both demo task journals and their evidence;
+  real integration tests exercise a fresh Git history and a complete first task.
+
 - Git task publication preserves original state commits and closure evidence
   through PR merge commits. Imported journals are audited from their fork;
   conflicting task edits and fabricated or squashed histories are rejected.
