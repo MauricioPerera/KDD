@@ -26,8 +26,9 @@ class BootstrapProjectTests(unittest.TestCase):
             init_result = {"removed": ["src/example.py"], "index_rewritten": True,
                            "readme_renamed": True, "applied": True}
             with mock.patch.object(bootstrap_project, "init_project", return_value=init_result) as init:
-                result = bootstrap_project.bootstrap_project(root, True, "Demo", "standard")
-            init.assert_called_once_with(root, True, "Demo")
+                result = bootstrap_project.bootstrap_project(
+                    root, True, "Demo", "standard", "ExampleCo/Shop")
+            init.assert_called_once_with(root, True, "Demo", "ExampleCo/Shop")
             self.assertTrue(result["applied"])
             content = (Path(root) / "KDD-START-HERE.md").read_text(encoding="utf-8")
             self.assertIn("python scripts/run_profile.py --profile standard --approved-ref <SHA_APROBADO>", content)

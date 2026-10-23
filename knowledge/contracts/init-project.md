@@ -47,6 +47,12 @@ dry-run por default; exit 0 ok · 1 I/O · 2 manifiesto/identidad incompletos.
   `docs/reports/CONTRACT-NN-REPORT.md`, y reportes exclusivos de KDD.
   Los templates y validadores no se eliminan; nada fuera del manifiesto
   se borra.
+- El manifiesto incluye las tareas de demostracion TASK-001 y TASK-002 y
+  sus dos evidencias historicas, por rutas exactas. No descubre tareas con
+  glob ni elimina tareas o evidencias propias fuera de ese inventario.
+- Una copia inicializada puede estrenar su propio historial Git sin
+  referencias a aprobaciones o commits de tareas de KDD. El snapshot vacio
+  de tareas pasa `validate_tasks.py` y admite el primer ciclo propio.
 - `completion-legacy.json` se reescribe con el OWNER/REPO declarado y
   `legacy_pairs: {}`. CI ya no hereda los 33 SKIP ni la identidad upstream.
 - `CHANGELOG.md` inicia la historia propia del proyecto en v0.1.0.
@@ -84,6 +90,10 @@ dry-run por default; exit 0 ok · 1 I/O · 2 manifiesto/identidad incompletos.
 (Los tests están en `tests/test_init_project.py`: dry-run inocuo, apply exacto al
 manifiesto, gates verdes post-apply en la copia, intocables presentes, --name solo título,
 manifiesto incompleto aborta, exit codes CLI.)
+
+La [integracion de proyecto nuevo](./project-initialization.md) comprueba
+ademas la ausencia de ambas tareas y evidencias de demostracion, preservacion
+de archivos propios, validadores sobre un Git nuevo y un ciclo de tarea real.
 
 Migracion aprobada del fixture: la copia excluye solamente las dependencias locales
 en `tools/kdd-board/node_modules`, conservando fuente y lockfile. El oraculo verifica
