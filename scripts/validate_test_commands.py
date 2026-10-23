@@ -10,7 +10,7 @@ API publica (fijada por ``tests/test_validate_test_commands.py``):
     extract_test_command(text) -> str|None
     collect_contracts(directory) -> list[dict]
     run_test_command(cmd, cwd, timeout, capture=False) -> dict
-    run_all(contracts_dir, repo_root, timeout=120) -> list[dict]
+    run_all(contracts_dir, repo_root, timeout=180, deduplicate=False) -> list[dict]
     main(argv) -> int
 """
 
@@ -18,6 +18,7 @@ import os
 import shlex
 import subprocess
 import sys
+import time
 from validate_contracts import parse_frontmatter
 
 
@@ -122,12 +123,17 @@ def run_test_command(cmd, cwd, timeout, capture=False):
     return result
 
 
-def run_all(contracts_dir, repo_root, timeout=180):
-    """Corre ``run_test_command`` para cada contrato, desde ``repo_root``."""
+def run_all(contracts_dir, repo_root, timeout=180, deduplicate=False):
+    """Run commands; optionally group identical strings within this call only."""
     results = []
+    executions = {}
     for item in collect_contracts(contracts_dir):
-        ran = run_test_command(item['test_command'], cwd=repo_root, timeout=timeout,
-                               capture=True)
+        command = item['test_command']
+        shared = executions.get(command) if deduplicate else None
+        started = time.perf_counter()
+        ran = shared or run_test_command(command, cwd=repo_root, timeout=timeout,
+                                         capture=True)
+        elapsed = 0 if shared else time.perf_counter() - started
         results.append({
             'path': item['path'],
             'scope': item['scope'],
@@ -137,7 +143,11 @@ def run_all(contracts_dir, repo_root, timeout=180):
             'error': ran['error'],
             'stdout': ran.get('stdout', ''),
             'stderr': ran.get('stderr', ''),
+            'shared_from': shared['path'] if shared else None,
+            'duration_seconds': elapsed,
         })
+        if shared is None:
+            executions[command] = results[-1]
     return results
 
 
@@ -156,7 +166,9 @@ def _print_results(results):
                 detail = 'exit_code={}'.format(item['exit_code'])
             print('FAIL [{}] {}: {}'.format(item['scope'], item['path'], detail))
         output = (item.get('stdout', '') + item.get('stderr', '')).strip()
-        if output:
+        if item.get('shared_from'):
+            print('  SHARED {}'.format(item['shared_from']))
+        elif output:
             print('  TEST_OUTPUT (informativo; el exit code es el veredicto):')
             for line in output.splitlines():
                 print('    ' + line)
@@ -166,6 +178,10 @@ def _print_results(results):
             print('SKIP [{}] no contracts with test_command'.format(scope))
         print('Summary: {} PASS={} FAIL={} SKIP={}'.format(
             scope, group['PASS'], group['FAIL'], int(not any(group.values()))))
+    shared_count = sum(item.get('shared_from') is not None for item in results)
+    print('Executions: contracts={} commands={} shared={} seconds={:.3f}'.format(
+        len(results), len(results) - shared_count, shared_count,
+        sum(item.get('duration_seconds', 0) for item in results)))
     return 1 if any(not item['ok'] for item in results) else 0
 
 
@@ -187,7 +203,8 @@ def main(argv):
         if timeout <= 0:
             print('FAIL: --timeout debe ser positivo')
             return 1
-    results = run_all(contracts_dir, repo_root, timeout=timeout)
+    results = run_all(contracts_dir, repo_root, timeout=timeout,
+                      deduplicate='--deduplicate' in argv)
     if not results:
         print('FAIL: no contracts with test_command found in {}'.format(contracts_dir))
         return 1

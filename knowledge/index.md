@@ -3,6 +3,7 @@
 Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está especificado en [OKF-SPEC](./OKF-SPEC.md).
 
 ## Referencia
+- [Optimizacion de CI](./contracts/ci-execution-deduplication.md) — agrupacion local de comandos identicos, concurrencia de PR y medicion antes/despues.
 - [Tareas con Git](./git-tasks.md) — CLI local, nodos Task y estados registrados por commits en main.
 - [Perfiles de adopción KDD](./adoption-profiles.md) — niveles minimal, standard y strict para incorporar gates progresivamente.
 - [Sprints orientados a resultados](./sprints.md) — protocolo piloto opt-in para seleccionar backlog, admitir tareas y medir consumo por resultado aceptado.
