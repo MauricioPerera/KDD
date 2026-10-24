@@ -131,6 +131,11 @@ hook local. No reescribir SHAs, forzar pushes ni deshabilitar controles.
 
 ## Orden y aprobacion
 
+La regresion completa detecto un falso positivo del patron sk- al cargar el
+nombre del contrato de worktrees. El [contrato de prefijos](contracts/context-secret-prefixes.md)
+delimita esa correccion de configuracion, conserva los demas controles y
+agrega evidencia positiva y negativa; no modifica el oraculo del ensamblador.
+
 1. Contratos, oraculos nuevos y fase roja/controles existentes.
 2. Revision humana del SHA candidato antes de implementar.
 3. Seguridad y procedencia de scans.

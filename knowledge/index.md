@@ -126,6 +126,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Actions oficiales con runtime Node24](./contracts/ci-node24-actions.md)
 - [Piloto de cuatro tareas como regresion real](./contracts/dependency-workflow-e2e.md)
 - [Concurrencia y recuperacion con worktrees](./contracts/task-worktree-integration.md)
+- [Prefijos de credenciales en contexto](./contracts/context-secret-prefixes.md)
 
 - [Aprobacion integrada de calidad](quality-approval.md)
 - [Contrato verify-quality](contracts/verify-quality.md)
