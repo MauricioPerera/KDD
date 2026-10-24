@@ -132,6 +132,8 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Correccion de confianza y fiabilidad del CI](./ci-audit-remediation.md)
 - [Arranque de CI desde runtime confiable](./contracts/ci-trusted-execution.md)
 - [Timeout del arbol de procesos](./contracts/process-tree-timeout.md)
+- [Readiness de fixtures de procesos](./process-fixture-readiness.md)
+- [Contrato de regresion del fixture de procesos](./contracts/process-fixture-readiness.md)
 - [Fixtures y load_tests de unittest](./contracts/ci-unittest-fixtures.md)
 - [Perfil compartido de ejecucion](./contracts/gate-execution-profile.md)
 - [Pages en PR antes de fusionar](./pages-pr-validation.md)

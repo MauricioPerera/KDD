@@ -13,6 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ProcessTreeTimeout(unittest.TestCase):
+    FIXTURE_TIMEOUT = 5.0
+
     def setUp(self):
         case = tempfile.TemporaryDirectory(prefix='kdd process \u00f1 ')
         self.addCleanup(case.cleanup)
@@ -31,31 +33,43 @@ class ProcessTreeTimeout(unittest.TestCase):
             sys.path[:] = previous
         return module
 
-    def tree(self, detached=False, delay=3):
+    def tree(self, detached=False):
+        # Absolute schedule bounds even an uncontained negative-control fixture.
+        # Real descendants stay alive until the parent observes both of them.
+        wait = ('late_at=json.loads(Path("schedule.json").read_text())["late_at"]\n'
+                'while not Path("release").exists() and time.monotonic()<late_at: time.sleep(.01)\n'
+                'if not Path("release").exists(): sys.exit(2)\n'
+                'while time.monotonic()<late_at: time.sleep(.01)\n')
         grand = self.root / 'grandchild.py'
-        grand.write_text('import os,time\nfrom pathlib import Path\n'
+        grand.write_text('import json,os,sys,time\nfrom pathlib import Path\n'
                          'Path("grand.ready").write_text(str(os.getpid()))\n'
-                         'time.sleep(' + str(delay) + ')\n'
+                         + wait +
                          'Path("grand.late").write_text("must not happen")\n', encoding='utf-8')
         child = self.root / 'child.py'
-        child.write_text('import os,subprocess,sys,time\nfrom pathlib import Path\n'
+        child.write_text('import json,os,subprocess,sys,time\nfrom pathlib import Path\n'
                          'Path("child.ready").write_text(str(os.getpid()))\n'
                          'subprocess.Popen([sys.executable,' + repr(str(grand)) + '])\n'
-                         'time.sleep(' + str(delay) + ')\n'
+                         + wait +
                          'Path("child.late").write_text("must not happen")\n', encoding='utf-8')
         redirection = ',stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL' if detached else ''
-        body = ('import subprocess,sys,time\n'
+        body = ('import subprocess,sys,time\nfrom pathlib import Path\n'
                 'subprocess.Popen([sys.executable,' + repr(str(child)) + ']' + redirection + ')\n'
+                'while not all(Path(p).exists() for p in ("child.ready","grand.ready")): time.sleep(.01)\n'
+                'Path("tree.ready").write_text("observed")\n'
+                'Path("release").touch()\n'
                 'time.sleep(25)\n')
         parent = self.root / 'parent.py'
         parent.write_text(body, encoding='utf-8')
         return parent, body
 
-    def assert_cancelled(self, operation, delay=3):
+    def assert_cancelled(self, operation, delay=None):
+        if delay is None:
+            delay = self.FIXTURE_TIMEOUT + 2.0
         start = time.monotonic()
+        (self.root / 'schedule.json').write_text(json.dumps({'late_at': start + delay}), encoding='utf-8')
         result = operation()
         elapsed = time.monotonic() - start
-        ready = [(self.root / name).exists() for name in ('child.ready', 'grand.ready')]
+        ready = [(self.root / name).exists() for name in ('child.ready', 'grand.ready', 'tree.ready')]
         # On the old implementation descendants self-terminate; keep fixtures alive
         # until then even when an assertion will fail, avoiding orphaned writes.
         until = start + delay + 1.0
@@ -64,7 +78,7 @@ class ProcessTreeTimeout(unittest.TestCase):
         self.assertTrue(all(ready), 'The test must observe real child and grandchild startup')
         self.assertFalse((self.root / 'child.late').exists(), 'child survived the timeout')
         self.assertFalse((self.root / 'grand.late').exists(), 'grandchild survived the timeout')
-        self.assertLess(elapsed, 7.5, 'deadline plus five-second cleanup grace exceeded')
+        self.assertLess(elapsed, self.FIXTURE_TIMEOUT + 6.0, 'deadline plus five-second cleanup grace exceeded')
         return result
 
     def test_completed_process_keeps_unicode_output_cwd_env_and_exit_code(self):
@@ -92,25 +106,25 @@ class ProcessTreeTimeout(unittest.TestCase):
         parent, _ = self.tree(detached=True)
         def operation():
             with self.assertRaises(subprocess.TimeoutExpired):
-                runner.run([sys.executable, str(parent)], cwd=self.root, timeout=1.5,
+                runner.run([sys.executable, str(parent)], cwd=self.root, timeout=self.FIXTURE_TIMEOUT,
                            capture_output=True, text=True)
         self.assert_cancelled(operation)
 
     def test_direct_timeout_bounds_inherited_pipe_drain(self):
         runner = self.module('process_tree')
-        parent, _ = self.tree(delay=9)
+        parent, _ = self.tree()
         def operation():
             with self.assertRaises(subprocess.TimeoutExpired):
-                runner.run([sys.executable, str(parent)], cwd=self.root, timeout=1.5,
+                runner.run([sys.executable, str(parent)], cwd=self.root, timeout=self.FIXTURE_TIMEOUT,
                            capture_output=True, text=True)
-        self.assert_cancelled(operation, delay=9)
+        self.assert_cancelled(operation, delay=self.FIXTURE_TIMEOUT + 7.0)
 
     def test_contract_executor_timeout_cleans_descendants(self):
         gate = self.module('validate_test_commands')
         parent, _ = self.tree(detached=True)
         cmd = '"' + sys.executable + '" "' + str(parent) + '"'
         result = self.assert_cancelled(lambda: gate.run_test_command(
-            cmd, str(self.root), timeout=1.5, capture=True))
+            cmd, str(self.root), timeout=self.FIXTURE_TIMEOUT, capture=True))
         self.assertEqual(result['error'], 'timeout')
         self.assertFalse(result['ok'])
 
@@ -130,7 +144,7 @@ class ProcessTreeTimeout(unittest.TestCase):
             hashlib.sha256(oracle.read_text(encoding='utf-8').encode('utf-8')).hexdigest() + "'\ntest_command: '" + cmd + "'\n---\n",
             encoding='utf-8')
         result = self.assert_cancelled(lambda: preflight.run_preflight(
-            repo_root=str(self.root), contract='fixture', command_timeout=1.5, gate_timeout=10))
+            repo_root=str(self.root), contract='fixture', command_timeout=self.FIXTURE_TIMEOUT, gate_timeout=10))
         self.assertFalse(result['overall_ok'])
         self.assertIsNone(result['results']['test_command']['exit_code'])
 
@@ -143,7 +157,7 @@ class ProcessTreeTimeout(unittest.TestCase):
         # running the repository's recursive collection of contract commands.
         (scripts / 'validate_changelog.py').write_bytes(parent.read_bytes())
         result = self.assert_cancelled(lambda: dispatch.run_gate(
-            'validate_changelog', {}, repo_root=str(self.root), timeout=1.5))
+            'validate_changelog', {}, repo_root=str(self.root), timeout=self.FIXTURE_TIMEOUT))
         self.assertIsNone(result['exit_code'])
         self.assertIn('timeout', result['stderr'])
 
@@ -161,7 +175,7 @@ class ProcessTreeTimeout(unittest.TestCase):
                     'tests': 'tests/test_oracle.py'}
         def operation():
             with self.assertRaises(Exception) as raised:
-                evidence.execute(metadata, str(self.root), timeout=1.5)
+                evidence.execute(metadata, str(self.root), timeout=self.FIXTURE_TIMEOUT)
             self.assertIn('TASK_TESTS', str(raised.exception))
         self.assert_cancelled(operation)
 
