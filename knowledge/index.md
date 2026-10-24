@@ -138,6 +138,9 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Perfil compartido de ejecucion](./contracts/gate-execution-profile.md)
 - [Pages en PR antes de fusionar](./pages-pr-validation.md)
 - [Contrato de build real de Pages en PR](./contracts/pages-pr-build.md)
+- [Inventario verificable del CI en Pages](./pages-ci-inventory.md)
+- [Contador de Pages y discovery estricto](./contracts/pages-inventory.md)
+- [Transporte del inventario entre CI y Pages](./contracts/pages-inventory-ci.md)
 - [Comandos de contratos con concurrencia optativa](./contracts/ci-command-workers.md)
 - [Ciclo de vida sincronico de fixtures Git](./contracts/ci-git-fixture-lifecycle.md)
 

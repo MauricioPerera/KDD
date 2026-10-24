@@ -6,7 +6,7 @@ tags: ['kdd', 'pages', 'publishing']
 task: pages-build
 intent: 'Eliminar la sincronizacion manual de gh-pages y desplegar solo contenido generado desde main tras CI exitoso.'
 target: site/build.py
-signature: 'def build_pages(repo_root: str, output_dir: str, ci_run_url: str) -> dict:'
+signature: 'def build_pages(repo_root: str, output_dir: str, ci_run_url: str, *, ci_inventory=None) -> dict:'
 test_command: 'python -m unittest tests/test_pages_build.py'
 budget:
   cyclomatic_max: 12
@@ -30,13 +30,15 @@ rastreados y fuentes estaticas explicitas; nunca publica `.agents/logs/`.
 ## Interface
 
 ```python
-def build_pages(repo_root: str, output_dir: str, ci_run_url: str) -> dict:
+def build_pages(repo_root: str, output_dir: str, ci_run_url: str, *, ci_inventory=None) -> dict:
     """Compila un directorio nuevo y devuelve conteos, rutas y URL de evidencia."""
 ```
 
 CLI: `python site/build.py --output DIR --ci-run-url URL` desde el checkout.
 Requiere Node.js y las dependencias de `site/package-lock.json` instaladas.
 El destino debe estar ausente; el script nunca borra un arbol existente.
+El [inventario de CI](../pages-ci-inventory.md) extiende la CLI y el resultado
+con procedencia e IDs; el grupo opcional ci_inventory se exige al desplegar.
 
 ## Invariants
 
@@ -47,8 +49,9 @@ El destino debe estar ausente; el script nunca borra un arbol existente.
   de manifest y snapshot empiezan por `/KDD/`; `publish --check` y strict
   validate del bundle deben terminar en 0 antes de subir el artifact.
 - El numero de reportes viene de los archivos publicados, el de gates de
-  `LEVEL1_GATES` y el de tests del descubrimiento de la suite. La URL de
-  evidencia apunta al run exitoso que disparo el workflow de Pages.
+  `LEVEL1_GATES` y el de tests del [inventario verificado](pages-inventory.md).
+  Discovery incompleto aborta antes de crear output; la URL de evidencia
+  apunta al run exitoso exacto que disparo el workflow de Pages.
 - La pagina llama a los reportes historicos por su nombre; no afirma que
   el nuevo gate de cierre los haya verificado retroactivamente.
 
