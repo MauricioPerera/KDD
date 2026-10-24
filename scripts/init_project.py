@@ -165,6 +165,7 @@ REQUIRED_AFTER_DELETE = (
     "README.md",
     "CHANGELOG.md",
     "completion-legacy.json",
+    ".github/workflows/validate.yml",
 )
 
 _REPOSITORY_RE = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
@@ -269,6 +270,107 @@ def _reset_completion(repo, repository):
     }, indent=2) + "\n", encoding="utf-8")
 
 
+# Reviewed quality-only adaptations; all other workflow regions are preserved.
+_PRODUCT_CI_REPLACEMENTS = (
+    (
+        """      quality_policy_path:
+        type: string
+        default: 'quality.json'
+""",
+        """      quality_policy_path:
+        type: string
+        default: 'quality/product.json'
+""",
+    ),
+    (
+        """      required_evidence:
+        type: string
+        default: ''
+""",
+        """      required_evidence:
+        type: string
+        default: 'quality'
+""",
+    ),
+    (
+        """      KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
+      KDD_REQUIRED_EVIDENCE: ${{ inputs.required_evidence || '' }}
+""",
+        """      KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality/product.json' }}
+      KDD_QUALITY_APPROVED_REF: ${{ inputs.quality_approved_ref || vars.KDD_QUALITY_APPROVED_REF || '' }}
+      KDD_REQUIRED_EVIDENCE: ${{ inputs.required_evidence || 'quality' }}
+""",
+    ),
+    (
+        """      - name: Check required optional evidence
+""",
+        """      - name: Check product quality approval configuration
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          policy = os.environ['KDD_QUALITY_POLICY']
+          approved = os.environ['KDD_QUALITY_APPROVED_REF']
+          if not Path(policy).is_file():
+              raise SystemExit('FAIL: the product quality policy is required: ' + policy)
+          if not re.fullmatch(r'[0-9a-fA-F]{40}', approved):
+              raise SystemExit('FAIL: product quality requires an explicitly approved reference (full commit SHA)')
+          if subprocess.call(['git', 'merge-base', '--is-ancestor', approved, 'HEAD']):
+              raise SystemExit('FAIL: the approved product reference must exist and be an ancestor of this checkout')
+
+      - name: Check required optional evidence
+""",
+    ),
+    (
+        """          KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
+""",
+        """          KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality/product.json' }}
+""",
+    ),
+    (
+        """          import sys
+          policy = os.environ['KDD_QUALITY_POLICY']
+""",
+        """          import sys
+          import tempfile
+          policy = os.environ['KDD_QUALITY_POLICY']
+""",
+    ),
+    (
+        """              raise SystemExit(subprocess.call([sys.executable, 'scripts/verify_quality.py', '--policy', policy, '--approved-ref', approved]))
+""",
+        """              # The approved runner is stdlib-only; apply it to the current checkout.
+              with tempfile.TemporaryDirectory(prefix='kdd-approved-quality-') as directory:
+                  runner = Path(directory) / 'verify_quality.py'
+                  if runner.resolve().is_relative_to(Path.cwd().resolve()):
+                      raise SystemExit('FAIL: the trusted runner must be outside the checkout')
+                  runner.write_bytes(subprocess.check_output([
+                      'git', 'show', approved + ':scripts/verify_quality.py']))
+                  raise SystemExit(subprocess.call([
+                      sys.executable, str(runner), '--repo-root', '.',
+                      '--policy', policy, '--approved-ref', approved]))
+""",
+    ),
+)
+
+
+def _product_quality_ci(repo):
+    """Prepare the new project's workflow without writing before preflight."""
+    raw = (repo / ".github/workflows/validate.yml").read_bytes()
+    text = raw.decode("utf-8").replace("\r\n", "\n")
+    marker = "      - name: Approve project quality (when configured)\n"
+    if text.count(marker) != 1 or "- name: Check product quality approval configuration" in text:
+        raise ValueError("workflow de calidad incompatible o ambiguo")
+    for before, after in _PRODUCT_CI_REPLACEMENTS:
+        if text.count(before) != 1:
+            raise ValueError("workflow de calidad incompatible o ambiguo")
+        text = text.replace(before, after, 1)
+    newline = "\r\n" if b"\r\n" in raw else "\n"
+    return text.replace("\n", newline).encode("utf-8")
+
+
 def init_project(repo_dir, apply, name, repository=None) -> dict:
     """Plan/aplicacion de la instanciacion. Ver task contract para el dict."""
     repo = Path(repo_dir).resolve()
@@ -284,6 +386,7 @@ def init_project(repo_dir, apply, name, repository=None) -> dict:
         raise ValueError(
             "manifiesto incompleto, faltan: {}".format(", ".join(missing)))
 
+    quality_ci = _product_quality_ci(repo)
     removed = list(MANIFEST)
     index_rewritten = False
     readme_renamed = False
@@ -295,6 +398,7 @@ def init_project(repo_dir, apply, name, repository=None) -> dict:
         index_rewritten = True
         _reset_changelog(repo)
         _reset_completion(repo, repository)
+        (repo / ".github/workflows/validate.yml").write_bytes(quality_ci)
         if name:
             readme_renamed = _rename_readme(repo, name)
 
@@ -303,6 +407,7 @@ def init_project(repo_dir, apply, name, repository=None) -> dict:
         "index_rewritten": index_rewritten,
         "readme_renamed": readme_renamed,
         "applied": bool(apply),
+        "quality_ci_configured": bool(apply),
     }
 
 
@@ -313,6 +418,7 @@ def _print_plan(result, name):
         print("    - {}".format(rel))
     print("  Reescribir knowledge/index.md (quitar enlaces a nodos eliminados).")
     print("  Reiniciar CHANGELOG.md y completion-legacy.json para el repositorio nuevo.")
+    print("  Configurar CI obligatorio: quality/product.json y SHA aprobado explicito.")
     if name:
         print("  Reemplazar el titulo H1 del README por: {}".format(name))
     if result["applied"]:
