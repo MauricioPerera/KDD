@@ -130,6 +130,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Tiempo total del CI y protocolo de medicion](./ci-runtime.md)
 - [Suite completa mediante procesos](./contracts/ci-suite-processes.md)
 - [Comandos de contratos con concurrencia optativa](./contracts/ci-command-workers.md)
+- [Ciclo de vida sincronico de fixtures Git](./contracts/ci-git-fixture-lifecycle.md)
 
 - [Aprobacion integrada de calidad](quality-approval.md)
 - [Contrato verify-quality](contracts/verify-quality.md)

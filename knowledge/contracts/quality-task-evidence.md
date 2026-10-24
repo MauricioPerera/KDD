@@ -15,7 +15,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_generated_task_evidence.py
-tests_sha256: '2b11ae5bcdf921fce6d4425a8d0f471a2d7a3bfd0de96f291630c95bab05327d'
+tests_sha256: 'ea776abdaffdcd3a3f7bee4aa6ce12e1faa808cf419c390fa0f06a29f33dc861'
 touch_only: ['scripts/verify_quality.py']
 deps_allowed: ['stdlib']
 forbids: ['llm']
@@ -26,6 +26,11 @@ Aplicar el [objetivo y protocolo de cierre](../pending-improvements.md) y
 conservar la [aprobacion independiente](../quality-approval.md).
 
 ## Interface
+
+El [ciclo de vida de fixtures Git](ci-git-fixture-lifecycle.md) permite una
+revision del helper de pruebas TaskProject para completar mantenimiento
+local antes de limpiar. No cambia casos, asserts, producto ni politica de
+este oraculo; su nuevo sello exige aprobacion de baseline explicita.
 Politica opcional generated_task_evidence [{task_id, contract}]; runner y helpers congelados desde SHA aprobado. Comprobar diario, integridad e indice antes y despues de todos los checks.
 
 ## Invariants

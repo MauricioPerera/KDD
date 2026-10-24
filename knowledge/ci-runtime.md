@@ -67,8 +67,9 @@ No deciden concurrencia por un umbral de segundos de una maquina compartida.
 Para demostrar conservacion se compara el inventario anterior con el nuevo:
 los1102 IDs previos permanecen, mas los casos nuevos aprobados. Los cambios
 de cuatro oraculos de integracion son reemplazos del comando que comprueban
-o ejecutan; se conservan sus casos y todas sus aserciones. El resto de los
-archivos de pruebas permanece byte a byte (normalizando LF).
+o ejecutan; se conservan sus casos y todas sus aserciones. Salvo la revision
+del fixture Git descrita abajo, el resto de los archivos de pruebas permanece
+byte a byte (normalizando LF).
 
 ## Medicion antes y despues
 
@@ -96,6 +97,13 @@ checkout y conjunto de pruebas, en serie; se reportan aparte. El inventario
 y los hashes deciden equivalencia, no una cifra de conteo sin IDs.
 
 ## Revision y alcance
+
+La segunda muestra del PR123 detecto una carrera de limpieza de un fixture:
+Git puede dejar mantenimiento automatico desacoplado escribiendo en objects.
+El [ciclo de vida Git](contracts/ci-git-fixture-lifecycle.md) limita su arreglo
+a dos opciones locales del helper TaskProject: mantenimiento en primer plano,
+sin apagarlo ni ignorar errores. El rechazo original se conserva; despues
+del nuevo baseline revisado se requieren dos muestras verdes del mismo head.
 
 Contratos/oraculos primero, fase roja y baseline de commit revisable antes
 de implementar. Actualizar los sellos de ci-execution-deduplication,

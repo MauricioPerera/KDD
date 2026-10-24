@@ -64,6 +64,8 @@ tags: ['fixture']
             self.git('init', '-q', '-b', 'main')
             for name, value in [('user.name', 'Simulated fixture reviewer'),
                                 ('user.email', 'fixture@example.invalid'),
+                                ('maintenance.autoDetach', 'false'),
+                                ('gc.autoDetach', 'false'),
                                 ('core.autocrlf', 'false'), ('commit.gpgsign', 'false')]:
                 self.git('config', name, value)
             self.ref = self.commit('Simulated reviewer baseline; temporary fixture only')
