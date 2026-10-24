@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: "tests/test_mcp_gate_dispatch.py"
-tests_sha256: "e51703148e36b10d222f9d94fb702f755e55ba6383f0bd2dc76b5998e1824fa2"
+tests_sha256: '9eaca7ba15cb1aff07119c5f7edf34f34e3090255efc58cb11f9b57877591b26'
 touch_only: ['scripts/mcp_gate_dispatch.py']
 deps_allowed: []
 forbids: ['network', 'llm']
@@ -40,6 +40,9 @@ reusar `scripts/*.py` sin invocarlos como proceso. `forbids` es
 `['network', 'llm']` unicamente, mismo patron que `test-command-gate`.
 
 ## Interface
+- El [perfil compartido](gate-execution-profile.md) extiende argv y limites
+  para validate_test_commands; [cancelacion](process-tree-timeout.md) sustituye
+  subprocess.run directo. El resto de rutas/gates conserva sus defaults.
 - `GATE_SPECS` — dict `{tool_name: {'script','params','defaults'}}` para
   los 20 gates: `validate_contracts`, `validate_specs`, `validate_okf`,
   `lint_ascii`, `validate_rules`, `validate_skills`, `validate_behavior`, `validate_changelog`,

@@ -15,7 +15,7 @@ budget:
   lines_max: 180
   params_max: 5
 tests: tests/test_ci_suite_processes.py
-tests_sha256: '49a501dac3d4a3deb928f88d881a10cb90f0df0e4fe379a65f3067ce67ae9362'
+tests_sha256: '46626ffc5b45ad353ee7f8976246363bfd77fd87471633803716071aaf594d4c'
 touch_only: ['scripts/run_test_suite.py', 'scripts/guard_pr_baseline.py', '.github/workflows/validate.yml']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -26,6 +26,10 @@ Aplicar el [protocolo y medicion de tiempo total](../ci-runtime.md),
 conservando [validacion](../validacion.md) y [aprobacion](../quality-approval.md).
 
 ## Interface
+- La [extension de fixtures](ci-unittest-fixtures.md) agrega contabilidad
+  explicita de omisiones y suites load_tests; la [ejecucion confiable](ci-trusted-execution.md)
+  extiende el arranque y el comando de CI. Sus reglas sustituyen igualdad de
+  executed_ids con expected_ids solo cuando existe omision de fixture verificada.
 - run_suite(start_dir, pattern='test_*.py', workers=1) devuelve dict version1.
 - CLI --start-directory (default tests), --pattern (default test_*.py),
   --workers (entero1..8, default1) y --report-json PATH opcional.

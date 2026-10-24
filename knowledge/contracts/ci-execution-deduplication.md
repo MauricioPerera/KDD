@@ -12,7 +12,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: 'tests/test_ci_optimization.py'
-tests_sha256: 'a2e80c4d5236dc2502c437459db9cac29065074cdffd09f247aaa58043964cee'
+tests_sha256: '08cef80a0cb3e99a211e71047c2f83c0f8e56ff1a0bc9b5ac4fb5f9959ac3138'
 touch_only: ['scripts/validate_test_commands.py', '.github/workflows/validate.yml']
 deps_allowed: []
 forbids: ['network', 'llm']

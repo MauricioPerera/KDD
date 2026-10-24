@@ -104,7 +104,8 @@ class TestBuildArgv(unittest.TestCase):
 
     def test_two_param_gate_order_preserved(self):
         argv = gd.build_argv('validate_test_commands', {})
-        self.assertEqual(argv[2:], ['knowledge/contracts', '.'])
+        self.assertEqual(argv[2:], ['knowledge/contracts', '.', '--timeout', '600',
+                                   '--workers', '1', '--deduplicate'])
 
     def test_unknown_tool_raises_keyerror(self):
         with self.assertRaises(KeyError):
