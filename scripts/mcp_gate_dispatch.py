@@ -48,8 +48,12 @@ import os
 import re
 import subprocess
 import sys
-from execution_profile import resolve_profile
-from process_tree import run as run_process
+if __package__:
+    from .execution_profile import resolve_profile
+    from .process_tree import run as run_process
+else:
+    from execution_profile import resolve_profile
+    from process_tree import run as run_process
 
 # {tool_name: {'script', 'params', 'defaults'}}
 # ``script``: ruta relativa al repo_root (la usa como argv[1]; run_gate la
