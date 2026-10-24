@@ -10,7 +10,7 @@ API publica (fijada por ``tests/test_validate_test_commands.py``):
     extract_test_command(text) -> str|None
     collect_contracts(directory) -> list[dict]
     run_test_command(cmd, cwd, timeout, capture=False) -> dict
-    run_all(contracts_dir, repo_root, timeout=180, deduplicate=False) -> list[dict]
+    run_all(contracts_dir, repo_root, timeout=180, deduplicate=False, workers=1) -> list[dict]
     main(argv) -> int
 """
 
@@ -19,6 +19,7 @@ import shlex
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from validate_contracts import parse_frontmatter
 
 
@@ -123,17 +124,37 @@ def run_test_command(cmd, cwd, timeout, capture=False):
     return result
 
 
-def run_all(contracts_dir, repo_root, timeout=180, deduplicate=False):
-    """Run commands; optionally group identical strings within this call only."""
-    results = []
-    executions = {}
-    for item in collect_contracts(contracts_dir):
-        command = item['test_command']
-        shared = executions.get(command) if deduplicate else None
+def run_all(contracts_dir, repo_root, timeout=180, deduplicate=False, workers=1):
+    """Run every command with opt-in concurrency and per-call exact grouping."""
+    if type(workers) is not int or not 1 <= workers <= 8:
+        raise ValueError('workers must be an integer between 1 and 8')
+    items = collect_contracts(contracts_dir)
+    representatives = {}
+    scheduled = []
+    for index, item in enumerate(items):
+        key = item['test_command'] if deduplicate else index
+        if key not in representatives:
+            representatives[key] = index
+            scheduled.append(index)
+
+    def execute(index):
         started = time.perf_counter()
-        ran = shared or run_test_command(command, cwd=repo_root, timeout=timeout,
-                                         capture=True)
-        elapsed = 0 if shared else time.perf_counter() - started
+        outcome = run_test_command(items[index]['test_command'], cwd=repo_root,
+                                   timeout=timeout, capture=True)
+        return outcome, time.perf_counter() - started
+
+    if workers == 1:
+        outcomes = {index: execute(index) for index in scheduled}
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {index: pool.submit(execute, index) for index in scheduled}
+            outcomes = {index: future.result() for index, future in futures.items()}
+    results = []
+    for index, item in enumerate(items):
+        key = item['test_command'] if deduplicate else index
+        first = representatives[key]
+        ran, elapsed = outcomes[first]
+        shared = items[first]['path'] if first != index else None
         results.append({
             'path': item['path'],
             'scope': item['scope'],
@@ -143,11 +164,9 @@ def run_all(contracts_dir, repo_root, timeout=180, deduplicate=False):
             'error': ran['error'],
             'stdout': ran.get('stdout', ''),
             'stderr': ran.get('stderr', ''),
-            'shared_from': shared['path'] if shared else None,
-            'duration_seconds': elapsed,
+            'shared_from': shared,
+            'duration_seconds': 0 if shared else elapsed,
         })
-        if shared is None:
-            executions[command] = results[-1]
     return results
 
 
@@ -190,6 +209,16 @@ def main(argv):
     contracts_dir = argv[1] if len(argv) > 1 else 'knowledge/contracts'
     repo_root = argv[2] if len(argv) > 2 else '.'
     timeout = 180
+    workers = 1
+    if '--workers' in argv:
+        index = argv.index('--workers')
+        try:
+            workers = int(argv[index + 1])
+            if not 1 <= workers <= 8:
+                raise ValueError('workers out of range')
+        except (IndexError, ValueError):
+            print('FAIL: --workers requires an integer between 1 and 8')
+            return 1
     if '--timeout' in argv:
         index = argv.index('--timeout')
         if index + 1 >= len(argv):
@@ -203,12 +232,16 @@ def main(argv):
         if timeout <= 0:
             print('FAIL: --timeout debe ser positivo')
             return 1
+    started = time.perf_counter()
     results = run_all(contracts_dir, repo_root, timeout=timeout,
-                      deduplicate='--deduplicate' in argv)
+                      deduplicate='--deduplicate' in argv, workers=workers)
     if not results:
         print('FAIL: no contracts with test_command found in {}'.format(contracts_dir))
         return 1
-    return _print_results(results)
+    status = _print_results(results)
+    print('Scheduling: workers={} wall_seconds={:.3f}'.format(
+        workers, time.perf_counter() - started))
+    return status
 
 
 if __name__ == '__main__':
