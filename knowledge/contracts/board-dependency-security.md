@@ -15,7 +15,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_board_dependencies.py
-tests_sha256: 'b0876283e2dfc20d61f966510a3c600a5c8d1f1c21fa1061d5a2f0d9648e7833'
+tests_sha256: 'a462bfd4525b89736252f2897f8df5af8949e65f88ea8b53ee8a418cf3089024'
 touch_only: ['tools/kdd-board/package.json', 'tools/kdd-board/package-lock.json']
 deps_allowed: ['node', 'fastwebmcp', 'zod']
 forbids: ['llm']
@@ -29,6 +29,12 @@ conservar la [aprobacion independiente](../quality-approval.md).
 Manifest y lock seleccionan Zod >=4.6.6 <5; instalacion reproducible sin scripts de lifecycle. Version instalada coincide con el lock y fastwebmcp sigue operable.
 
 ## Invariants
+El manifiesto y lock se verifican siempre. Las dos pruebas de runtime son
+obligatorias en la plantilla y en proyectos con dependencias instaladas.
+Solo la copia inicializada que ejecuta la suite Python sin node_modules
+declara SKIP en esos dos casos; no instala paquetes desde los tests.
+La falta de dependencias en la plantilla sigue siendo un fallo y no una
+deteccion correcta de la vulnerabilidad. Mantener todos los asserts.
 Cumplir los criterios normativos de [pendientes](../pending-improvements.md)
 para este componente. Oraculos, politica, SHA aprobado y controles remotos
 solo cambian mediante revision explicita; ningun PASS sustituye esa revision.

@@ -29,6 +29,9 @@ class BoardDependencies(unittest.TestCase):
         self.assertTrue(versions, 'the lock must resolve Zod')
 
     def node(self, source, *flags):
+        if (not (ROOT / 'src/hello.py').is_file()
+                and not (BOARD / 'node_modules/zod/package.json').is_file()):
+            self.skipTest('initialized Python-only copy; Board runtime dependencies are not installed')
         return subprocess.run(['node', *flags, '--input-type=module', '-e', source],
                               cwd=BOARD, capture_output=True, text=True,
                               encoding='utf-8', timeout=30)
