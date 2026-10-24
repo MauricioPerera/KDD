@@ -24,7 +24,11 @@ async function apiFetch(url, options = {}) {
   const response = await fetch(url, {...options, headers});
   if (!response.ok) {
     const detail = await response.json().catch(() => ({}));
-    throw new Error(detail.error || `HTTP ${response.status}`);
+    const error = new Error(detail.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    error.code = detail.code;
+    error.details = detail.details || {};
+    throw error;
   }
   return response;
 }
@@ -69,7 +73,16 @@ function registerWebMcpTools() {
     };
 
     tools.forEach((tool) => {
-      if (execute[tool.name]) document.modelContext.registerTool({ ...tool, execute: execute[tool.name] });
+      if (execute[tool.name]) document.modelContext.registerTool({ ...tool, execute: async (input) => {
+        try { return await execute[tool.name](input); }
+        catch (error) {
+          const known = typeof error.code === 'string' && /^TASK_[A-Z_]+$/.test(error.code);
+          const status = Number.isInteger(error.status) ? error.status : 503;
+          return {isError:true,error:{code:known?error.code:(error.status?'TASK_HTTP':'TASK_UNAVAILABLE'),
+            message:known?error.message:`Coordinator request failed (${status})`,status,
+            details:known?error.details || {}:{}}};
+        }
+      }});
     });
     return true;
   }).catch((error) => {

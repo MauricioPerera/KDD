@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import {defineTool,registerTool,type RegisterToolOptions} from 'fastwebmcp';
-import {GitTaskStore} from './git-task-store.ts';
+import {GitTaskStore,taskError} from './git-task-store.ts';
 
 export const taskId = z.string().regex(/^TASK-\d{3,}$/);
 export const statusSchema = z.enum(['backlog','ready','in_progress','needs_human_input','done']);
@@ -14,7 +14,7 @@ export const transitionSchema = z.object({
 }).strict();
 
 export function createGitBridge(store: GitTaskStore) {
-  const specs = [
+  const definitions = [
     {name:'list_tasks',description:'Lee tareas OKF confirmadas en main.',inputSchema:z.object({status:statusSchema.optional()}).strict(),
       execute:async (input: {status?:string})=>store.list(input.status),annotations:{readOnlyHint:true}},
     {name:'get_task',description:'Lee una tarea de main y su historial de commits.',inputSchema:z.object({task_id:taskId}).strict(),
@@ -27,6 +27,10 @@ export function createGitBridge(store: GitTaskStore) {
     {name:'task_history',description:'Lista el diario de commits de una tarea en main.',inputSchema:z.object({task_id:taskId}).strict(),
       execute:async (input:{task_id:string})=>store.history(input.task_id),annotations:{readOnlyHint:true}},
   ];
+  const specs=definitions.map(spec=>({...spec,execute:async(input:any)=>{
+    try {return await (spec.execute as (input:any)=>Promise<unknown>)(input);}
+    catch(error) {return {isError:true,error:taskError(error)};}
+  }}));
   return {specs,getDefinedTools:()=>specs.map(spec=>defineTool(spec as any)),
     registerAll:(options?:RegisterToolOptions)=>specs.map(spec=>registerTool(spec as any,options))};
 }

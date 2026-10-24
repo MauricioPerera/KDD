@@ -69,6 +69,15 @@ de reintentar. Un reintento de estado ya confirmado se rechaza y no duplica
 commits. Las lecturas agrupan nodos e historial contra un SHA de main estable;
 si main cambia durante la consulta se reintenta una vez y despues falla.
 
+HTTP conserva `error` como texto y agrega `code`, `status` y `details`.
+Las tools WebMCP resuelven los errores como
+`{isError:true, error:{code,message,status,details}}`. Un rechazo por dependencias
+usa `TASK_DEPENDENCIES`, HTTP 409 y los campos `task_id` y
+`pending_dependencies`; permite identificar los prerrequisitos pendientes.
+Los errores internos devuelven un mensaje generico sin stack, tokens ni salida
+de pruebas. El [contrato de errores](contracts/board-webmcp-errors.md) conserva
+las salidas exitosas y exige que un rechazo no cambie el diario.
+
 La UI ofrece solo las aristas permitidas, recoge los campos obligatorios,
 muestra rama, contrato, SHA aprobado, evidencia e historial de commits. No
 muestra exito antes de recibir el commit; al fallar conserva el estado real

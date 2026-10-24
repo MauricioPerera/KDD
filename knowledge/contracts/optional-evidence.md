@@ -45,8 +45,11 @@ shell. `summary` escribe tambien en `GITHUB_STEP_SUMMARY` cuando existe.
 
 - Capas admitidas: security, compliance, privacy, accessibility,
   dependency-eol, observability, test-coverage y quality.
-- Para las siete capas de scan, evidencia significa `findings.json` en la
-  ruta declarada. Para quality, significa el archivo de politica declarado.
+- Para las siete capas de scan, evidencia significa `findings.json` JSON valido
+  en la ruta declarada y scanId distinto de las muestras example_. Una muestra
+  opcional es SKIP y requerida es FAIL, incluso con outcome success; JSON
+  invalido es FAIL. Ver [procedencia](bootstrap-scan-provenance.md).
+  Para quality, significa el archivo de politica declarado.
 - `check`: capa requerida sin archivo -> FAIL; opcional ausente -> SKIP;
   presente -> PRESENT (todavia no significa que el validador paso).
 - `summary`: archivo presente y validador success -> PASS; ausente y no

@@ -2,6 +2,7 @@
 """Report optional evidence as PASS, FAIL or SKIP in GitHub Actions."""
 
 import argparse
+import json
 import os
 from pathlib import Path
 import sys
@@ -65,6 +66,17 @@ def evaluate_layers(layers, required, environ, summary=False):
         exists = source is not None and source.is_file()
         outcome = _outcome(layer, environ) if summary else ''
         status, reason = _status(layer, required, (exists, outcome, summary))
+        if exists and layer != 'quality':
+            try:
+                data = json.loads(source.read_text(encoding='utf-8-sig'))
+                if not isinstance(data, dict):
+                    raise ValueError('expected a JSON object')
+                identifier = data.get('scanId', '')
+                if isinstance(identifier, str) and identifier.startswith('example_') and status != 'FAIL':
+                    status = 'FAIL' if layer in required else 'SKIP'
+                    reason = 'example scan is not project evidence'
+            except (ValueError, OSError, UnicodeError):
+                status, reason = 'FAIL', 'invalid evidence JSON'
         rows.append({'layer': layer, 'status': status, 'source': str(source or ''),
                      'reason': reason})
     return rows

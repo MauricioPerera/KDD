@@ -18,6 +18,7 @@ Spec: ``specs/CONTRACT-06-init-project.md``.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -169,6 +170,27 @@ REQUIRED_AFTER_DELETE = (
 )
 
 _REPOSITORY_RE = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
+
+# Canonical template samples only; a project report at these paths is preserved.
+EXAMPLE_SCAN_DIGESTS = {
+    "compliance/scan/findings.json": "76d1a52ab6354e8645cfa8c774d689a1d52d9ae9603c564fcd025485e643f35a",
+    "privacy/scan/findings.json": "0f05d13c960b29dc69b0e7ab29764e63ce85bdb4317efd8a5513a5d9fe0d6f8c",
+    "accessibility/scan/findings.json": "52e9c16225dbfdeb3768e9ec299399da952262909897a5bf4073ea0d86b7640a",
+    "dependency-eol/scan/findings.json": "37920be138c07c4c1da4e894b282d46c5a0a0faaa6dd0af1767976507439db09",
+    "observability/scan/findings.json": "3d8bc62079568631e052696642b0452befd9480e1b125bc82238bf5fc5108d89",
+    "test-coverage/scan/findings.json": "734fc909febb50f6359db5377b34adff7c41782b250bedd7bd06a895a99a07da",
+}
+
+
+def _example_scan_paths(repo):
+    result = []
+    for relative, expected in EXAMPLE_SCAN_DIGESTS.items():
+        path = repo / relative
+        if path.is_file() and not path.is_symlink():
+            raw = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+            if hashlib.sha256(raw).hexdigest() == expected:
+                result.append(relative)
+    return result
 
 
 def _rel_posix(path, base):
@@ -387,12 +409,13 @@ def init_project(repo_dir, apply, name, repository=None) -> dict:
             "manifiesto incompleto, faltan: {}".format(", ".join(missing)))
 
     quality_ci = _product_quality_ci(repo)
+    example_evidence = _example_scan_paths(repo)
     removed = list(MANIFEST)
     index_rewritten = False
     readme_renamed = False
 
     if apply:
-        for rel in MANIFEST:
+        for rel in (*MANIFEST, *example_evidence):
             (repo / rel).unlink()
         _rewrite_index(repo)
         index_rewritten = True
@@ -404,6 +427,7 @@ def init_project(repo_dir, apply, name, repository=None) -> dict:
 
     return {
         "removed": removed,
+        "removed_example_evidence": example_evidence,
         "index_rewritten": index_rewritten,
         "readme_renamed": readme_renamed,
         "applied": bool(apply),
@@ -416,6 +440,9 @@ def _print_plan(result, name):
     print("  Artefactos de ejemplo e historia KDD a eliminar ({}):".format(len(result["removed"])))
     for rel in result["removed"]:
         print("    - {}".format(rel))
+    print("  Informes de ejemplo conocidos a retirar ({}):".format(len(result["removed_example_evidence"])))
+    for relative in result["removed_example_evidence"]:
+        print("    - {}".format(relative))
     print("  Reescribir knowledge/index.md (quitar enlaces a nodos eliminados).")
     print("  Reiniciar CHANGELOG.md y completion-legacy.json para el repositorio nuevo.")
     print("  Configurar CI obligatorio: quality/product.json y SHA aprobado explicito.")
