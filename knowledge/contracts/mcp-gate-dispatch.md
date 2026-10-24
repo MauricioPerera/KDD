@@ -40,6 +40,10 @@ reusar `scripts/*.py` sin invocarlos como proceso. `forbids` es
 `['network', 'llm']` unicamente, mismo patron que `test-command-gate`.
 
 ## Interface
+
+La [regresion de Pages](../pages-pr-validation.md) conserva los modos de import
+de paquete scripts.mcp_gate_dispatch y de modulo desde scripts/, con los helpers
+del mismo paquete. Su integracion adicional no sustituye este oraculo congelado.
 - El [perfil compartido](gate-execution-profile.md) extiende argv y limites
   para validate_test_commands; [cancelacion](process-tree-timeout.md) sustituye
   subprocess.run directo. El resto de rutas/gates conserva sus defaults.
