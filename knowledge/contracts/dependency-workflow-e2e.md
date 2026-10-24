@@ -15,7 +15,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_dependency_workflow_e2e.py
-tests_sha256: '2ea06ad814f051020db2c4a85060936107a1fa16a56c9ccf1ab405abc910748a'
+tests_sha256: 'b64e9fc60bfc1892f25554c35a44bc4e016018050d546b3ba01208d207a7e5ad'
 touch_only: ['scripts/tasks.py', 'scripts/task_git.py', 'scripts/validate_tasks.py', 'tools/kdd-board/src/git-task-store.ts']
 deps_allowed: ['stdlib']
 forbids: ['llm']

@@ -51,6 +51,9 @@ class DependencyWorkflowE2E(unittest.TestCase):
         # Add the generated workflow to the synthetic reviewed boundary.
         policy = json.loads((root / 'quality/product.json').read_text())
         policy['protected'].append('.github/workflows/validate.yml')
+        # Product checks cover this fixture's oracles; infrastructure runs separately.
+        for check in policy['checks']:
+            check['argv'] += ['-p', 'test_feature*.py']
         p.write('quality/product.json', json.dumps(policy, indent=2))
         p.ref = p.commit('Simulated fixture reviewer: own product and generated CI')
         # Stubs are real failures before any implementation.
