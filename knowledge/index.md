@@ -3,6 +3,7 @@
 Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está especificado en [OKF-SPEC](./OKF-SPEC.md).
 
 ## Referencia
+- [Calidad de producto desde el arranque](./bootstrap-product-quality-ci.md) — CI obligatorio sobre politica propia y referencia revisada.
 - [Optimizacion de CI](./contracts/ci-execution-deduplication.md) — agrupacion local de comandos identicos, concurrencia de PR y medicion antes/despues.
 - [Tareas con Git](./git-tasks.md) — CLI local, nodos Task y estados registrados por commits en main.
 - [Perfiles de adopción KDD](./adoption-profiles.md) — niveles minimal, standard y strict para incorporar gates progresivamente.
@@ -65,6 +66,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Auditor determinista de mutación](./contracts/mutation-audit.md)
   - [Arranque guiado de un proyecto KDD](./contracts/bootstrap-project.md)
   - [Integracion real de proyecto nuevo](./contracts/project-initialization.md)
+  - [Calidad de producto en proyectos nuevos](./contracts/bootstrap-product-quality-ci.md)
   - [Gate de secretos filtrados en codigo generado (Nivel 1)](./contracts/secret-scan-gate.md)
   - [Estados de evidencia opcional en CI](./contracts/optional-evidence.md)
   - [Remediacion de seguridad y WebMCP del tablero](./contracts/board-security-remediation.md)

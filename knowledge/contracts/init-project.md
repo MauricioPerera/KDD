@@ -42,6 +42,11 @@ CLI: `python scripts/init_project.py [--apply --repository OWNER/REPO] [--name <
 dry-run por default; exit 0 ok · 1 I/O · 2 manifiesto/identidad incompletos.
 
 ## Invariants
+- Al aplicar, adaptar las regiones de calidad del workflow segun
+  [calidad desde el arranque](./bootstrap-product-quality-ci.md). Comprobar
+  previamente archivo y estructura; un error aborta antes de la limpieza.
+  El resultado agrega quality_ci_configured, false en dry-run y true en apply.
+  La politica propia se conserva y su aprobacion sigue siendo externa.
 - MANIFIESTO explicito (constante en el script): ejemplos de producto,
   los 33 pares historicos `specs/CONTRACT-NN-*` y
   `docs/reports/CONTRACT-NN-REPORT.md`, y reportes exclusivos de KDD.

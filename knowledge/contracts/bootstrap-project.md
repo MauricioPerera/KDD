@@ -49,6 +49,10 @@ existentes. Dry-run sin identidad sigue permitido; apply exige OWNER/REPO.
   termina con exit 2, conserva la copia y no genera la guia.
 - El perfil solo puede ser `minimal`, `standard` o `strict`.
 - La guía declara que los gates no sustituyen el juicio de producto humano.
+- La guia explica la politica quality/product.json y ambas variables de
+  aprobacion del [CI nuevo](./bootstrap-product-quality-ci.md), tambien en
+  minimal. El comando local minimal conserva su interfaz sin --approved-ref.
+  La adaptacion del workflow la realiza init_project, no el wrapper.
 
 ## Examples
 
