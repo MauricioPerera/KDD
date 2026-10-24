@@ -16,11 +16,19 @@ on:
   # MUST match the value that was hardcoded here before this trigger existed
   # (see ITEM4-REPORT.md for the equivalence check) — otherwise the KDD repo's
   # own CI would change behavior on push.
+  # Worker inputs are opt-in: callers default to serial execution; only native
+  # runs of this repository use the reviewed parallel defaults below.
   workflow_call:
     inputs:
       reusable_execution:
         type: boolean
         default: true
+      suite_workers:
+        type: string
+        default: '1'
+      contract_workers:
+        type: string
+        default: '1'
       contracts_dir:
         type: string
         default: 'knowledge/contracts'
@@ -110,6 +118,8 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     env:
+      KDD_SUITE_WORKERS: ${{ inputs.suite_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1') }}
+      KDD_CONTRACT_WORKERS: ${{ inputs.contract_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1') }}
       KDD_CONTRACTS_DIR: ${{ inputs.contracts_dir || 'knowledge/contracts' }}
       KDD_SPECS_DIR: ${{ inputs.specs_dir || 'specs' }}
       KDD_COMPLETION_POLICY: ${{ inputs.completion_policy_path || 'completion-legacy.json' }}
@@ -315,7 +325,7 @@ jobs:
       - name: Run each contract's test_command
         shell: bash
         # init-project also runs the post-initialization suite; allow slow Windows runners.
-        run: python scripts/validate_test_commands.py "$KDD_CONTRACTS_DIR" . --timeout 600 --deduplicate
+        run: python scripts/validate_test_commands.py "$KDD_CONTRACTS_DIR" . --timeout 600 --deduplicate --workers "$KDD_CONTRACT_WORKERS"
 
       - name: Scan for leaked secrets (src only — see knowledge/contracts/secret-scan-gate.md)
         shell: bash
@@ -324,14 +334,16 @@ jobs:
       # The suite runs twice on purpose (identical command): the second run
       # detects flaky tests / verifies determinism. See specs/CONTRACT-11-ci-windows-suite2x.md.
       - name: Run unit tests (1/2)
+        shell: bash
         env:
           KDD_SKIP_INIT_POST_APPLY_SUITE: '1'
-        run: python -m unittest discover -s tests -p "test_*.py"
+        run: python scripts/run_test_suite.py --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS"
 
       - name: Run unit tests (2/2)
+        shell: bash
         env:
           KDD_SKIP_INIT_POST_APPLY_SUITE: '1'
-        run: python -m unittest discover -s tests -p "test_*.py"
+        run: python scripts/run_test_suite.py --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS"
 
       - name: Approve project quality (when configured)
         id: quality

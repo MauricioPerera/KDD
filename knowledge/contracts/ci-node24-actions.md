@@ -15,7 +15,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_ci_action_runtime.py
-tests_sha256: '8e6e9af9bc3175e9bcb61759359c6e58a28dedaea0fc858c005c8003ae51039a'
+tests_sha256: '7ba52d3b892de07efeb7a476b0084f6e913f02068eb3624369f92818c387c990'
 touch_only: ['.github/workflows/validate.yml', '.github/workflows/trusted-pr-gate.yml', '.github/workflows/deploy-pages.yml', '.github/actions/validate-contracts/action.yml']
 deps_allowed: ['node', 'fastwebmcp', 'zod']
 forbids: ['llm']
@@ -26,6 +26,11 @@ Aplicar el [objetivo y protocolo de cierre](../pending-improvements.md) y
 conservar la [aprobacion independiente](../quality-approval.md).
 
 ## Interface
+La [extension de tiempo total](../ci-runtime.md) conserva pins, permisos,
+dual-OS y suites2x, mediante el runner [por procesos](ci-suite-processes.md).
+Se actualiza unicamente el comando esperado del oraculo, con revision externa;
+las aserciones y la evidencia de runtime Node24 se conservan.
+
 Pins oficiales revisados de checkout/setup-python/setup-node y las tres Actions de Pages; runtime Node24, incluido upload-artifact anidado y build de Pages. Matriz, comandos, permisos y controles conservados. Registrar fuente y manifests oficiales en informe.
 
 ## Invariants

@@ -11,6 +11,12 @@ tags: ['ccdd', 'validacion', 'gate', 'reference']
 
 ## Nivel 1 — Incluido y obligatorio (local + CI)
 
+La [extension de tiempo total del CI](ci-runtime.md) conserva los19 gates,
+Ubuntu/Windows y las dos pasadas completas. Sustituye el mecanismo serial
+de suite por un runner auditable por IDs, con procesos acotados solo bajo
+opt-in y default serial para consumidores. Sus contratos y oraculos deben
+tener baseline revisado antes de activar ese mecanismo.
+
 La migracion de behavior agrega `validate_behavior` al catalogo compartido: 19
 gates de Nivel 1 y 20 en preflight contando la atestacion local. Se actualizaron
 los oraculos de MCP/preflight y sus sellos como cambio de contrato revisable.

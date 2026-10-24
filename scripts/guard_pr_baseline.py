@@ -26,6 +26,7 @@ PROTECTED_FILES = {
     'scripts/validate_baseline.py',
     'scripts/validate_contracts.py',
     'scripts/validate_test_commands.py',
+    'scripts/run_test_suite.py',
 }
 PROTECTED_PREFIXES = ('.github/workflows/',)
 CONTRACTS_DIR = 'knowledge/contracts/'

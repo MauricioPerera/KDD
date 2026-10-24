@@ -156,7 +156,7 @@ class BootstrapProductQualityCiTests(unittest.TestCase):
         self.assertIn("required_evidence:\n        type: string\n        default: 'quality'", text)
         self.assertEqual(text.count("inputs.quality_policy_path || 'quality/product.json'"), 2)
         self.assertEqual(text.count('os: [ubuntu-latest, windows-latest]'), 2)
-        self.assertEqual(text.count('run: python -m unittest discover -s tests -p "test_*.py"'), 2)
+        self.assertEqual(text.count('run: python scripts/run_test_suite.py --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS"'), 2)
         self.assertIn('KDD_QUALITY_OUTCOME: ', text)
         self.assertIn('vars.KDD_QUALITY_APPROVED_REF', text.split('    steps:', 1)[0])
         self.assertLess(text.index('- name: ' + CONFIG_STEP),
