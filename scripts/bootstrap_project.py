@@ -32,6 +32,22 @@ Este proyecto ({project}) fue inicializado con el perfil `{profile}`.
 python scripts/run_profile.py --profile {profile}{approved_ref}
 ```
 
+## Calidad del producto en CI
+
+El CI exige `quality/product.json` y una referencia revisada, tambien con
+el perfil local minimal. Define contratos, oraculos y checks funcionales,
+adversariales y de interfaz propios antes de implementar. Protege el
+workflow generado, el runner y las dependencias de esas pruebas.
+
+La persona revisora aprueba el commit que contiene esa politica y registra
+su SHA completo en las variables de Actions `KDD_APPROVED_BASELINE_REF` y
+`KDD_QUALITY_APPROVED_REF` del repositorio nuevo. El CI verifica el checkout
+actual con el runner de ese commit y ejecuta los checks dos veces.
+Si falta configuracion, el CI falla antes de los oraculos.
+
+Consulta `knowledge/bootstrap-product-quality-ci.md` para preparar la
+politica, el inventario protegido y las referencias de aprobacion.
+
 Para una tarea concreta, valida también su budget:
 
 ```text

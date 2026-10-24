@@ -79,6 +79,9 @@ python scripts/bootstrap_project.py --apply --name "Mi Proyecto" --repository TU
 
 Ambas entradas retiran las tareas de demostracion TASK-001 y TASK-002 y sus
 evidencias; las tareas del proyecto nuevo empiezan con su propio historial Git.
+Tambien preparan el workflow para exigir quality/product.json y su SHA
+revisado. El bootstrap conserva una politica existente; el equipo define
+los checks de su producto. Ver [calidad desde el arranque](./bootstrap-product-quality-ci.md).
 
 Verificar que el repo sigue verde despues de limpiar:
 
@@ -93,8 +96,11 @@ proyecto. Al crear el repositorio en GitHub, usa exactamente el mismo
 `OWNER/REPO` que declaraste en `--repository`; CI lo compara con
 `github.repository` y rechaza una identidad distinta.
 
-**Antes de publicar `main`**, registra el estado inicializado en un commit y
-obtiene su SHA completo:
+**Antes de publicar `main`**, completa los contratos y oraculos propios
+del paso 4 y redacta quality/product.json segun
+[quality-approval](./quality-approval.md). Incluye el workflow generado y
+el runner entre los archivos protegidos. El CI falla si falta esta
+preparacion. Registra el estado revisable en un commit y obtiene su SHA completo:
 
 ```
 git add -A
@@ -110,12 +116,16 @@ verifica localmente los contratos y oraculos restantes:
 
 ```
 gh variable set KDD_APPROVED_BASELINE_REF --repo TU_USUARIO/mi-proyecto --body SHA_APROBADO
+gh variable set KDD_QUALITY_APPROVED_REF --repo TU_USUARIO/mi-proyecto --body SHA_APROBADO
 python scripts/validate_baseline.py --all --approved-ref SHA_APROBADO
+python scripts/verify_quality.py --policy quality/product.json --approved-ref SHA_APROBADO
 ```
 
-El repositorio de GitHub debe existir antes de configurar la variable. CI exige
-esta referencia incluso en el primer push; no toma `HEAD` como aprobacion
-implicita. Si no usas `gh`, configura la misma variable de Actions en GitHub.
+El repositorio de GitHub debe existir antes de configurar las variables. El
+revisor registra cada referencia, que puede coincidir cuando el commit
+aprobado contiene politica, workflow, contratos y oraculos. CI exige ambas
+incluso en el primer push; no toma `HEAD` como aprobacion implicita.
+Si no usas `gh`, configura las mismas variables de Actions en GitHub.
 El procedimiento normativo esta en [validacion.md](./validacion.md). La
 inicializacion limpia se verifico en el [PR #110 de KDD](https://github.com/MauricioPerera/KDD/pull/110).
 
