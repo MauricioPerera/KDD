@@ -16,8 +16,40 @@ type Mutation = {commit:string; task:GitTask};
 
 export class BoardGitError extends Error {
   status: number;
-  constructor(message: string, status=400) {super(message);this.status=status;}
+  code: string;
+  details: Record<string,unknown>;
+  constructor(message: string, status=400, code?:string, details:Record<string,unknown>={}) {
+    super(message);this.status=status;this.details=details;
+    this.code=code || message.match(/\bTASK_[A-Z_]+(?=:)/)?.[0] ||
+      (message.startsWith('Invalid transition') ? 'TASK_TRANSITION' : 'TASK_REQUEST');
+  }
 }
+
+export function taskError(error:unknown) {
+  if (!(error instanceof BoardGitError)) {
+    const invalid=error instanceof SyntaxError || (error as any)?.name === 'ZodError';
+    return {code:invalid?'TASK_INPUT':'TASK_UNAVAILABLE',message:invalid?'Invalid task request':'Git coordinator unavailable',
+      status:invalid?400:503,details:{} as Record<string,unknown>};
+  }
+  const details:Record<string,unknown>={};
+  if (typeof error.details.task_id === 'string' && /^TASK-\d{3,}$/.test(error.details.task_id)) details.task_id=error.details.task_id;
+  if (Array.isArray(error.details.pending_dependencies)) {
+    details.pending_dependencies=error.details.pending_dependencies.filter(id=>typeof id==='string' && /^TASK-\d{3,}$/.test(id));
+  }
+  return {code:error.code,message:error.message,status:error.status,details};
+}
+
+const coordinatorReasons:Record<string,string>={
+  TASK_DEPENDENCIES:'prerequisites are not done',TASK_MISSING:'task not found',
+  TASK_MAIN:'run mutations on main',TASK_DIRTY:'commit or preserve local changes before retrying',
+  TASK_LOCK:'another coordinator owns the task lock',TASK_RACE:'main changed; refresh before retrying',
+  TASK_BRANCH:'task branch is missing, rewritten or already exists',TASK_EVIDENCE:'task evidence is invalid',
+  TASK_APPROVAL:'an explicit approved ancestor and unchanged oracle are required',TASK_CONTRACT:'contract is invalid',
+  TASK_GIT:'Git operation failed',TASK_TESTS:'contract tests failed or could not complete',
+  TASK_INTEGRATION:'integrate the preserved implementation first',TASK_TRANSITION:'transition is not permitted',
+  TASK_ID:'expected TASK-NNN',TASK_EXISTS:'task already exists',TASK_RUNNER:'unsupported oracle runner',
+  TASK_ORACLE:'oracle seal is invalid',TASK_PATH:'invalid task path',TASK_OPERATION:'unknown task operation',
+};
 
 // A broken/missing git executable must never select JSON for a Git checkout.
 export function isGitProject(root: string): boolean {
@@ -68,8 +100,12 @@ export class GitTaskStore {
       return stdout;
     } catch (error: any) {
       const message = String(error.stderr || error.message || 'Coordinator failed').trim();
-      const status = /TASK_MISSING/.test(message) ? 404 : binary === 'git' || /TASK_(MAIN|DIRTY|LOCK|RACE|BRANCH|EVIDENCE|APPROVAL|CONTRACT|DEPENDENCIES|GIT|TESTS|INTEGRATION)/.test(message) ? 409 : 400;
-      throw new BoardGitError(message, error.killed || typeof error.code !== 'number' ? 503 : status);
+      const code = message.match(/\bTASK_[A-Z_]+(?=:)/)?.[0] || (binary === 'git' ? 'TASK_GIT' : 'TASK_UNAVAILABLE');
+      const status = code === 'TASK_MISSING' ? 404 : binary === 'git' || /TASK_(MAIN|DIRTY|LOCK|RACE|BRANCH|EVIDENCE|APPROVAL|CONTRACT|DEPENDENCIES|GIT|TESTS|INTEGRATION)/.test(code) ? 409 : 400;
+      if (error.killed || typeof error.code !== 'number' || !coordinatorReasons[code]) {
+        throw new BoardGitError('Git coordinator unavailable',503,'TASK_UNAVAILABLE');
+      }
+      throw new BoardGitError(code+': '+coordinatorReasons[code],status,code);
     }
   }
 
@@ -134,7 +170,19 @@ export class GitTaskStore {
     }
     if (operation === 'start') args.push('--assignee',text(input.assignee,'assignee'));
     if (operation === 'block' || operation === 'resume') args.push('--reason',text(input.reason,'reason'));
-    const result = await this.query(args);
-    return {commit:result.commit,task:project(result.task)};
+    try {
+      const result = await this.query(args);
+      return {commit:result.commit,task:project(result.task)};
+    } catch (error) {
+      if (error instanceof BoardGitError) {
+        error.details.task_id=id;
+        if (error.code === 'TASK_DEPENDENCIES') {
+          const current=await this.list();
+          const done=new Set(current.filter(item=>item.status==='done').map(item=>item.task_id));
+          error.details.pending_dependencies=(task.depends_on || []).filter((dependency:string)=>!done.has(dependency));
+        }
+      }
+      throw error;
+    }
   }
 }

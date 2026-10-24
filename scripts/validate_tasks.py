@@ -76,7 +76,7 @@ def _evidence(root, ref, task, metadata):
             + _proof_output(report, metadata))
 
 
-def validate_snapshot(repo_root, ref='main'):
+def _snapshot(repo_root, ref='main'):
     root = Path(repo_root).resolve()
     try:
         revision = journal.commit_sha(root, ref)
@@ -95,6 +95,11 @@ def validate_snapshot(repo_root, ref='main'):
         return errors
     except (TaskError, ValueError, OSError, KeyError) as exc:
         return ['TASK_SNAPSHOT: ' + str(exc)]
+
+
+def validate_snapshot(repo_root, ref='main'):
+    with journal.object_cache():
+        return _snapshot(repo_root, ref)
 
 
 def _transition_scope(old, new, identifier, parent):
@@ -170,8 +175,9 @@ def _audit_range(root, base, head, cache):
 def validate_range(repo_root, base_ref, head_ref):
     root = Path(repo_root).resolve()
     try:
-        base, head = journal.commit_sha(root, base_ref), journal.commit_sha(root, head_ref)
-        return _audit_range(root, base, head, {})
+        with journal.object_cache():
+            base, head = journal.commit_sha(root, base_ref), journal.commit_sha(root, head_ref)
+            return _audit_range(root, base, head, {})
     except (TaskError, ValueError, OSError, KeyError, RecursionError) as exc:
         return ['TASK_HISTORY: ' + str(exc)]
 

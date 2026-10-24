@@ -1,5 +1,5 @@
 import type {IncomingMessage,ServerResponse} from 'node:http';
-import {BoardGitError,GitTaskStore,transitions} from './git-task-store.ts';
+import {BoardGitError,GitTaskStore,transitions,taskError} from './git-task-store.ts';
 import {creationSchema,transitionSchema,createGitBridge} from './git-bridge.ts';
 
 type Send = (res:ServerResponse,status:number,data:unknown)=>void;
@@ -39,8 +39,8 @@ export function createGitApi(store:GitTaskStore,readBody:Body,send:Send) {
       const result=await dispatch(req,url);
       send(res,req.method === 'POST' && route === '/api/tasks' ? 201 : 200,result);
     } catch (error:any) {
-      const status=error instanceof BoardGitError ? error.status : error.name === 'ZodError' || error instanceof SyntaxError ? 400 : 503;
-      send(res,status,{error:error.message || 'Git coordinator unavailable'});
+      const detail=taskError(error);
+      send(res,detail.status,{error:detail.message,code:detail.code,status:detail.status,details:detail.details});
     }
     return true;
   };

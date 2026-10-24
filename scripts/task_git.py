@@ -1,5 +1,6 @@
 """Official task state is committed on main; task branches contain the work."""
 from contextlib import contextmanager
+from contextvars import ContextVar
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -8,6 +9,25 @@ import subprocess
 import task_evidence as proof
 from task_model import TaskError, new_task, parse_task, render_task, task_path, valid_sha, validate_transition
 from validate_contracts import parse_frontmatter, validate_file
+
+
+_OBJECT_CACHE = ContextVar('kdd_git_objects', default=None)
+
+
+@contextmanager
+def object_cache():
+    if _OBJECT_CACHE.get() is not None:
+        yield
+        return
+    token = _OBJECT_CACHE.set({})
+    try:
+        yield
+    finally:
+        _OBJECT_CACHE.reset(token)
+
+
+def _key(root, kind, revision, *parts):
+    return (str(Path(root).resolve()), kind, revision, *parts)
 
 
 def _output(root, args):
@@ -26,16 +46,75 @@ def git(root, *args):
 
 
 def commit_sha(root, ref):
-    return git(root, 'rev-parse', '--verify', '--end-of-options', ref + '^{commit}')
+    cache = _OBJECT_CACHE.get()
+    key = _key(root, 'commit', ref)
+    if cache is not None and valid_sha(ref) and key in cache:
+        return cache[key]
+    revision = git(root, 'rev-parse', '--verify', '--end-of-options', ref + '^{commit}')
+    if cache is not None and valid_sha(ref):
+        cache[key] = revision
+    return revision
 
 
 def blob(root, ref, path):
-    return _output(root, ['show', ref + ':' + path])
+    return blobs(root, ref, [path])[path]
+
+
+def _batch_blobs(root, revision, names):
+    specifications = [revision + ':' + name for name in names]
+    if any(any(c in spec for c in '\r\n\0') for spec in specifications):
+        raise TaskError('TASK_PATH: invalid batch object path')
+    try:
+        result = subprocess.run(['git', '-C', str(root), 'cat-file', '--batch'],
+                                input=('\n'.join(specifications) + '\n').encode('utf-8'),
+                                capture_output=True, timeout=30, check=False)
+        if result.returncode:
+            raise TaskError('TASK_GIT: batch read failed')
+        offset, values = 0, {}
+        for name in names:
+            end = result.stdout.find(b'\n', offset)
+            header = result.stdout[offset:end].split() if end >= 0 else []
+            if (len(header) != 3 or header[1] != b'blob' or not header[2].isdigit()
+                    or not valid_sha(header[0].decode('ascii'))):
+                raise TaskError('TASK_GIT: missing or invalid blob: ' + name)
+            size, offset = int(header[2]), end + 1
+            if result.stdout[offset + size:offset + size + 1] != b'\n':
+                raise TaskError('TASK_GIT: truncated batch blob')
+            value = result.stdout[offset:offset + size].decode('utf-8')
+            values[name] = value.replace('\r\n', '\n').replace('\r', '\n')
+            offset += size + 1
+        if offset != len(result.stdout):
+            raise TaskError('TASK_GIT: unexpected batch output')
+        return values
+    except (OSError, UnicodeError, subprocess.SubprocessError) as exc:
+        raise TaskError('TASK_GIT: ' + str(exc)) from exc
+
+
+def blobs(root, ref, names):
+    if not names:
+        return {}
+    revision = ref if valid_sha(ref) else commit_sha(root, ref)
+    cache = _OBJECT_CACHE.get()
+    names = list(dict.fromkeys(names))
+    missing = [name for name in names if cache is None or _key(root, 'blob', revision, name) not in cache]
+    values = _batch_blobs(root, revision, missing) if missing else {}
+    if cache is not None:
+        for name, value in values.items():
+            cache[_key(root, 'blob', revision, name)] = value
+        return {name: cache[_key(root, 'blob', revision, name)] for name in names}
+    return values
 
 
 def paths(root, ref, directory):
+    cache = _OBJECT_CACHE.get()
+    key = _key(root, 'paths', ref, directory)
+    if cache is not None and valid_sha(ref) and key in cache:
+        return list(cache[key])
     output = git(root, 'ls-tree', '-r', '--name-only', '-z', ref, '--', directory)
-    return sorted(filter(None, output.split('\0')))
+    result = sorted(filter(None, output.split('\0')))
+    if cache is not None and valid_sha(ref):
+        cache[key] = tuple(result)
+    return result
 
 
 def ancestor(root, before, after):
@@ -63,12 +142,14 @@ def safe_path(root, relative):
 def read_nodes(root, ref='main'):
     revision = commit_sha(root, ref)
     records = {}
-    for name in paths(root, revision, 'knowledge/tasks'):
-        if name.endswith('.md') and PurePosixPath(name).name != 'index.md':
-            data, body = parse_task(blob(root, revision, name), name)
-            if name != task_path(data['task_id']):
-                raise TaskError('TASK_PATH: nested task records are unsupported')
-            records[data['task_id']] = (data, body)
+    names = [name for name in paths(root, revision, 'knowledge/tasks')
+             if name.endswith('.md') and PurePosixPath(name).name != 'index.md']
+    contents = blobs(root, revision, names)
+    for name in names:
+        data, body = parse_task(contents[name], name)
+        if name != task_path(data['task_id']):
+            raise TaskError('TASK_PATH: nested task records are unsupported')
+        records[data['task_id']] = (data, body)
     return records
 
 
@@ -257,7 +338,7 @@ def mutate(repo_root, operation, task_id, options):
     if operation not in ('create', 'ready', 'start', 'block', 'resume', 'finish'):
         raise TaskError('TASK_OPERATION: unknown operation')
     root = Path(repo_root).resolve()
-    with _lock(root):
+    with _lock(root), object_cache():
         head, nodes, before, task, body = _prepare(root, operation, task_id, options)
         expected = {'ready': 'backlog', 'start': 'ready', 'block': 'in_progress',
                     'resume': 'needs_human_input', 'finish': 'in_progress'}

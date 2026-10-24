@@ -9,7 +9,7 @@ tags: ['quality', 'ccdd', 'verification']
 
 El objetivo de KDD es aportar garantías verificables de calidad, no prometer velocidad ni ausencia universal de defectos. Un sello demuestra integridad del oráculo; no demuestra su fuerza. Un validador disponible que el comando de aprobación no ejecuta no protege la entrega.
 
-Este protocolo complementa la [validación de la plantilla](validacion.md) con un punto de aprobación específico de cada proyecto. Lo implementa [verify-quality](contracts/verify-quality.md). No reemplaza los validadores existentes ni cambia el conteo de sus 18 gates. El proyecto declara qué comandos los integran junto con sus pruebas.
+Este protocolo complementa la [validación de la plantilla](validacion.md) con un punto de aprobación específico de cada proyecto. Lo implementa [verify-quality](contracts/verify-quality.md). No reemplaza los validadores existentes ni cambia el conteo de sus 19 gates. El proyecto declara qué comandos los integran junto con sus pruebas.
 
 ## Flujo de aprobación
 
@@ -27,8 +27,17 @@ Este protocolo complementa la [validación de la plantilla](validacion.md) con u
 - `pm`: rutas exactas de documentación y reportes autorizadas. No usar un permiso genérico para todo el repositorio.
 - `required_kinds`: al menos `functional` y `adversarial`; añadir `ui` si hay interfaz. Añadir otras categorías según riesgos del proyecto.
 - `checks`: objetos con `name`, `kind`, `argv` (lista de argumentos sin shell) y `timeout` en segundos. Se requieren comandos para todas las categorías declaradas.
+- `generated_task_evidence` (opcional): lista de tareas y contratos exactos que pueden generar su artefacto canónico de cierre. Requiere proteger el contrato, su oráculo y los cinco módulos de validación de tareas. El [contrato de evidencia generada](contracts/quality-task-evidence.md) define los permisos y la auditoría histórica con módulos extraídos de la referencia aprobada.
 
 Los permisos son rutas exactas, no glob. La lista real incluye cambios staged, unstaged, commits posteriores al aprobado y archivos nuevos no ignorados. Los archivos ignorados como bases locales no se incorporan automáticamente al perímetro; un oráculo protegido se verifica aunque esté ignorado. No situar código ejecutable o helpers críticos fuera del inventario de confianza.
+
+La evidencia generada permite conservar la referencia aprobada cuando el nombre
+del JSON incluye el SHA probado. Solo admite el artefacto confirmado en HEAD
+de una tarea declarada y terminada, con historial e integración válidos; sus bytes
+en Git, índice y directorio de trabajo deben coincidir. No autoriza directorios
+enteros ni cambios de política, contratos u oráculos. La política que omite este
+campo conserva sus permisos anteriores. El índice y los archivos se vuelven a
+comprobar al terminar cada check.
 
 Para hacer visible la frontera antes de aprobar, genera un manifiesto de solo lectura
 con `python scripts/quality_baseline.py --policy quality.json --approved-ref <SHA>`.
