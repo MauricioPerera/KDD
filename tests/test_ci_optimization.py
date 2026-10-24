@@ -142,7 +142,7 @@ class WorkflowGuarantees(unittest.TestCase):
         for name in ['validate', 'board']:
             job = text.split('\n  ' + name + ':\n', 1)[1]
             self.assertIn('runs-on: ${{ matrix.os }}', job)
-        command = 'run: python -m unittest discover -s tests -p "test_*.py"'
+        command = 'run: python scripts/run_test_suite.py --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS"'
         self.assertEqual(text.count(command), 2)
         for pass_number in [1, 2]:
             step = text.split('- name: Run unit tests ({}/2)'.format(pass_number), 1)[1]

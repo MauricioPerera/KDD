@@ -12,7 +12,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: 'tests/test_ci_optimization.py'
-tests_sha256: '59b982c8561cef38af7c091e6ca9f986c932dadcde8ba5f2261ceaaade0ed7b7'
+tests_sha256: 'a2e80c4d5236dc2502c437459db9cac29065074cdffd09f247aaa58043964cee'
 touch_only: ['scripts/validate_test_commands.py', '.github/workflows/validate.yml']
 deps_allowed: []
 forbids: ['network', 'llm']
@@ -29,6 +29,12 @@ Este contrato autoriza agregar `--deduplicate` al paso de comandos de
 contratos y concurrencia al workflow; mantiene las dos pasadas dual-OS.
 
 ## Interface
+
+La [extension de tiempo total](../ci-runtime.md) conserva esta agrupacion y
+agrega workers optativo; las dos suites se ejecutan con el runner de
+[procesos](ci-suite-processes.md), con los mismos IDs y comando/entorno
+identicos en las dos pasadas. Sus oraculos anteriores conservan todas las
+aserciones; solo se actualiza el comando esperado mediante baseline revisado.
 
 - `run_all(..., deduplicate=False)` conserva por defecto una ejecucion por
   contrato. Con `True`, ejecuta una vez cada string `test_command` exactamente

@@ -15,7 +15,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_bootstrap_product_quality_ci.py
-tests_sha256: 'c1d4d1f3411bf0f2595a93eda7faf2d28fdb61cdc6994da70cfb82e05f3ee955'
+tests_sha256: '433dff600caabd8b1ef2ff97367b4284b5faec4d8a0faf4f9b0860afb1e390ca'
 touch_only: ['scripts/init_project.py', 'scripts/bootstrap_project.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'subprocess', 'llm']
@@ -28,6 +28,11 @@ mediante las dos entradas existentes, conservando el
 [bootstrap](bootstrap-project.md) y la [aprobacion independiente](../quality-approval.md).
 
 ## Interface
+La [extension de tiempo total](../ci-runtime.md) conserva los controles de
+producto y los defaults de concurrencia serial para nuevos proyectos.
+El oraculo espera dos invocaciones identicas del runner por procesos,
+sin cambiar ninguna comprobacion de calidad ni su referencia aprobada.
+
 - Firmas, argumentos posicionales, perfiles y exit codes existentes.
 - Resultado agrega quality_ci_configured: false en dry-run y true en apply.
 - init prepara el workflow antes de borrar y solo lo escribe en apply.

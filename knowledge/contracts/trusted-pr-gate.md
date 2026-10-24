@@ -33,6 +33,10 @@ cambios al workflow y a los validadores que forman la raiz de confianza.
 
 ## Invariants
 
+- La [extension de suite por procesos](ci-suite-processes.md) incorpora
+  scripts/run_test_suite.py a la raiz protegida. El guard tomado de main
+  rechaza sus cambios aun cuando contratos/oraculos esten aprobados.
+
 - La referencia aprobada es un SHA completo configurado fuera del PR.
 - Un contrato u oraculo agregado, eliminado o modificado sin aprobar falla.
 - Un cambio al workflow o a los scripts protegidos falla incluso si el PR

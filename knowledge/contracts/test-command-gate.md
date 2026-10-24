@@ -51,6 +51,11 @@ gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
 "despachar otro gate como subprocess" debe seguir sin `subprocess`.
 
 ## Interface
+
+La [extension de concurrencia](ci-command-workers.md) agrega workers=1 y
+--workers, conservando el default serial, el orden del reporte y los
+veredictos de este contrato; el opt-in se rige por [tiempo total](../ci-runtime.md).
+
 - `extract_test_command(text) -> str|None` — valor de `test_command` segun
   el mismo parser de frontmatter que usa `validate_contracts.py`, con o sin
   comillas. `None` si la clave no esta o esta vacia. Si la clave aparece

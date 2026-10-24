@@ -247,8 +247,8 @@ class TestInitProject(unittest.TestCase):
         # Evitar recursion: este mismo test no debe correrse dentro del
         # discover de la copia (no es "infra restante", es el test del tool).
         os.unlink(os.path.join(self.repo, "tests", "test_init_project.py"))
-        disc = _run(["-m", "unittest", "discover", "-s", "tests",
-                     "-p", "test_*.py"], self.repo)
+        disc = _run(["scripts/run_test_suite.py", "--start-directory", "tests",
+                     "--pattern", "test_*.py", "--workers", "4"], self.repo)
         self.assertEqual(disc.returncode, 0,
                          "unittest discover:\n" + disc.stdout + disc.stderr)
 

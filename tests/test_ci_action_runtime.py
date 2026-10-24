@@ -32,7 +32,7 @@ class ActionRuntime(unittest.TestCase):
     def test_dual_os_two_passes_baseline_and_permissions_are_preserved(self):
         text = (ROOT / '.github/workflows/validate.yml').read_text(encoding='utf-8')
         self.assertEqual(text.count('os: [ubuntu-latest, windows-latest]'), 2)
-        command = 'run: python -m unittest discover -s tests -p "test_*.py"'
+        command = 'run: python scripts/run_test_suite.py --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS"'
         self.assertEqual(text.count(command), 2)
         for n in (1, 2):
             block = text.split('- name: Run unit tests (%s/2)' % n)[1].split('\n      - ')[0]

@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tests/test_init_project.py"
-tests_sha256: "5125d126939696be8ab2add1fa5a97cc676aef53fd05cb062151e4f52530b9d3"
+tests_sha256: '4c9090d9dd508ccad3e02d181075284525da4188a21a01e7188b5c9a53065ef9'
 touch_only: ['scripts/init_project.py']
 deps_allowed: []
 forbids: ['network', 'subprocess']
@@ -78,6 +78,9 @@ dry-run por default; exit 0 ok · 1 I/O · 2 manifiesto/identidad incompletos.
 - En CI, el `test_command` de este contrato ejecuta la integración post-apply
   completa una vez. Las dos pasadas posteriores de la suite omiten solo ese
   caso mediante `KDD_SKIP_INIT_POST_APPLY_SUITE=1`; el resto corre dos veces.
+- La [extension de tiempo total](../ci-runtime.md) ejecuta esa misma suite
+  post-apply con scripts/run_test_suite.py y cuatro procesos explicitamente.
+  Conserva todos los casos y asserts; no reduce la integracion a un smoke.
 - Intocables presentes post-apply: validadores, assemble_context.py + ccdd/context.json,
   export_gate_contract.py, .agents/ (reglas+skill), templates de specs/reportes,
   OKF-SPEC.md, metodologia-ejecucion.md, contratos de infra, CI.

@@ -127,6 +127,9 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Piloto de cuatro tareas como regresion real](./contracts/dependency-workflow-e2e.md)
 - [Concurrencia y recuperacion con worktrees](./contracts/task-worktree-integration.md)
 - [Prefijos de credenciales en contexto](./contracts/context-secret-prefixes.md)
+- [Tiempo total del CI y protocolo de medicion](./ci-runtime.md)
+- [Suite completa mediante procesos](./contracts/ci-suite-processes.md)
+- [Comandos de contratos con concurrencia optativa](./contracts/ci-command-workers.md)
 
 - [Aprobacion integrada de calidad](quality-approval.md)
 - [Contrato verify-quality](contracts/verify-quality.md)
