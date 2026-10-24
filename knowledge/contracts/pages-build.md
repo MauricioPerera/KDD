@@ -66,6 +66,10 @@ El destino debe estar ausente; el script nunca borra un arbol existente.
 
 ## Tests
 
+La [extension de PR](pages-pr-build.md) ejecuta esta misma CLI antes de fusionar,
+sin desplegar. Su integracion adicional cubre la importacion de paquete en un
+interprete nuevo, conforme al [protocolo](../pages-pr-validation.md).
+
 `tests/test_pages_build.py` cubre seleccion de archivos, exclusiones,
 prefijo de URLs, cifras y entradas invalidas. El workflow ejecuta el build
 real y los validadores del publisher antes del despliegue.

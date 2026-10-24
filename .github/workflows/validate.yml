@@ -356,6 +356,18 @@ jobs:
         shell: bash
         run: python scripts/validate_test_coverage_findings.py "$KDD_TEST_COVERAGE_SCAN_DIR"
 
+      - name: Install pinned Pages publisher for PR
+        if: ${{ github.event_name == 'pull_request' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: bash
+        run: npm ci --prefix site --ignore-scripts --no-audit --no-fund
+
+      - name: Build and validate Pages for PR
+        if: ${{ github.event_name == 'pull_request' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: bash
+        env:
+          CI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python site/build.py --output "$RUNNER_TEMP/kdd-pages-pr-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$RUNNER_OS" --ci-run-url "$CI_RUN_URL"
+
       - name: Run each contract's test_command
         shell: bash
         # init-project also runs the post-initialization suite; allow slow Windows runners.

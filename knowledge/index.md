@@ -134,6 +134,8 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Timeout del arbol de procesos](./contracts/process-tree-timeout.md)
 - [Fixtures y load_tests de unittest](./contracts/ci-unittest-fixtures.md)
 - [Perfil compartido de ejecucion](./contracts/gate-execution-profile.md)
+- [Pages en PR antes de fusionar](./pages-pr-validation.md)
+- [Contrato de build real de Pages en PR](./contracts/pages-pr-build.md)
 - [Comandos de contratos con concurrencia optativa](./contracts/ci-command-workers.md)
 - [Ciclo de vida sincronico de fixtures Git](./contracts/ci-git-fixture-lifecycle.md)
 
