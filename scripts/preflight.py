@@ -40,6 +40,8 @@ import sys
 import mcp_gate_dispatch
 import rule_hints
 from validate_contracts import parse_frontmatter
+from execution_profile import resolve_profile
+from process_tree import run as run_process
 
 # Derivada del dispatch, nunca hardcodeada aparte: un gate nuevo en
 # GATE_SPECS aparece aqui solo con actualizar el dispatch.
@@ -51,7 +53,7 @@ ALL_GATES = list(mcp_gate_dispatch.LEVEL1_GATES) + ['validate_attestation']
 run_gate = mcp_gate_dispatch.run_gate
 
 _CONTRACT_CHECKS = ['frontmatter', 'seal', 'test_command']
-_TIMEOUT = 120
+_TIMEOUT = 600
 
 
 def _status(exit_code):
@@ -205,8 +207,8 @@ def _check_seal(repo_root, data):
     return _result(0)
 
 
-def _check_test_command(repo_root, data):
-    """Ejecuta ``test_command`` (cwd=repo_root, timeout 120) y propaga exit code.
+def _check_test_command(repo_root, data, timeout=_TIMEOUT):
+    """Execute the sealed command with the selected finite command deadline.
 
     shlex.split con posix=False en Windows (rutas con barras invertidas); se
     quita una capa de comillas envolventes por token, como
@@ -221,10 +223,10 @@ def _check_test_command(repo_root, data):
     if not posix:
         tokens = [_strip_quotes(t) for t in tokens]
     try:
-        proc = subprocess.run(tokens, cwd=repo_root, capture_output=True,
-                              text=True, timeout=_TIMEOUT)
+        proc = run_process(tokens, cwd=repo_root, capture_output=True,
+                           text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
-        return _result(None, stderr='timeout after {}s'.format(_TIMEOUT))
+        return _result(None, stderr='timeout after {}s'.format(timeout))
     except FileNotFoundError:
         return _result(1, stderr='command not found: {}'.format(tokens[0]))
     except OSError as exc:
@@ -239,7 +241,7 @@ def _strip_quotes(token):
     return token
 
 
-def _run_contract_mode(repo_root, contract, agent=False):
+def _run_contract_mode(repo_root, contract, agent=False, timeout=_TIMEOUT):
     """3 chequeos (frontmatter, seal, test_command) sobre el contrato dado."""
     contract_path = os.path.join(repo_root, 'knowledge', 'contracts',
                                  '{}.md'.format(contract))
@@ -254,7 +256,7 @@ def _run_contract_mode(repo_root, contract, agent=False):
     if results['seal']['exit_code'] != 0:
         results['test_command'] = _skipped('test_command')
     else:
-        results['test_command'] = _check_test_command(repo_root, data)
+        results['test_command'] = _check_test_command(repo_root, data, timeout=timeout)
     return _contract_payload(results, agent=agent)
 
 
@@ -265,7 +267,8 @@ def _contract_payload(results, agent=False):
             'results': results, 'lines': lines}
 
 
-def run_preflight(repo_root='.', contract=None, runner=None, agent=False):
+def run_preflight(repo_root='.', contract=None, runner=None, agent=False,
+                  command_timeout=600, gate_timeout=1800, workers=1, deduplicate=True):
     """Corre el preflight y devuelve ``{'mode','overall_ok','results','lines'}``.
 
     Modo full (``contract is None``): los 20 gates via ``runner`` (default:
@@ -273,14 +276,22 @@ def run_preflight(repo_root='.', contract=None, runner=None, agent=False):
     contract: 3 chequeos, jamas invoca ``runner``. Nunca lanza por un fallo.
     Con ``agent=True`` cada gate en rojo arrastra la receta de sus rule-ids.
     """
+    try:
+        profile = resolve_profile(command_timeout=command_timeout, gate_timeout=gate_timeout,
+                                  workers=workers, deduplicate=deduplicate)
+    except (ValueError, TypeError) as exc:
+        return {'mode': 'contract' if contract is not None else 'full', 'overall_ok': False,
+                'results': {'configuration': _result(1, stderr=str(exc))},
+                'lines': ['configuration: FAIL ' + str(exc), 'Summary: 0/1']}
     if contract is not None:
-        return _run_contract_mode(repo_root, contract, agent=agent)
+        return _run_contract_mode(repo_root, contract, agent=agent, timeout=profile['command_timeout'])
     if runner is None:
         runner = run_gate
     results = {}
     for name in ALL_GATES:
-        timeout = 300 if name == 'validate_test_commands' else 120
-        results[name] = runner(name, {}, repo_root=repo_root, timeout=timeout)
+        options = dict(profile) if name == 'validate_test_commands' else {}
+        timeout = profile['gate_timeout'] if options else 120
+        results[name] = runner(name, options, repo_root=repo_root, timeout=timeout)
     overall_ok = all(r['exit_code'] == 0 for r in results.values())
     lines = _format_lines(results, len(ALL_GATES), agent=agent)
     return {'mode': 'full', 'overall_ok': overall_ok,
@@ -322,7 +333,19 @@ def _parse_cli_flags(argv):
 def main(argv):
     """Entry point CLI. Devuelve 0 si overall_ok, 1 si no."""
     repo_root, contract, agent = _parse_cli_flags(argv)
-    res = run_preflight(repo_root=repo_root, contract=contract, agent=agent)
+    import argparse
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument('--command-timeout', type=float, default=600)
+    parser.add_argument('--gate-timeout', type=float, default=1800)
+    parser.add_argument('--workers', type=int, default=1)
+    parser.add_argument('--no-deduplicate', action='store_true')
+    try:
+        options, _ = parser.parse_known_args(argv[1:])
+    except SystemExit:
+        return 1
+    res = run_preflight(repo_root=repo_root, contract=contract, agent=agent,
+                         command_timeout=options.command_timeout, gate_timeout=options.gate_timeout,
+                         workers=options.workers, deduplicate=not options.no_deduplicate)
     for line in res['lines']:
         print(line)
     return 0 if res['overall_ok'] else 1

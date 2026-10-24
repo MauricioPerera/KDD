@@ -97,6 +97,9 @@ on:
       approved_baseline_ref:
         type: string
         default: ''
+      trusted_runtime_ref:
+        type: string
+        default: ''
       change_contract_path:
         type: string
         default: ''
@@ -120,6 +123,7 @@ jobs:
     env:
       KDD_SUITE_WORKERS: ${{ inputs.suite_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1') }}
       KDD_CONTRACT_WORKERS: ${{ inputs.contract_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1') }}
+      KDD_TRUSTED_RUNTIME_REF: ${{ inputs.trusted_runtime_ref || vars.KDD_TRUSTED_RUNTIME_REF || (github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha) }}
       KDD_CONTRACTS_DIR: ${{ inputs.contracts_dir || 'knowledge/contracts' }}
       KDD_SPECS_DIR: ${{ inputs.specs_dir || 'specs' }}
       KDD_COMPLETION_POLICY: ${{ inputs.completion_policy_path || 'completion-legacy.json' }}
@@ -150,6 +154,36 @@ jobs:
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
+
+      - name: Materialize reviewed isolated CI runtime
+        shell: python -I {0}
+        run: |
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          import sys
+          import tempfile
+          root = Path.cwd().resolve()
+          ref = os.environ['KDD_TRUSTED_RUNTIME_REF']
+          if not re.fullmatch(r'[0-9a-fA-F]{40}', ref):
+              raise SystemExit('FAIL: trusted runtime requires a reviewed full commit SHA')
+          ref = ref.lower()
+          if subprocess.check_output(['git', 'cat-file', '-t', ref]).strip() != b'commit':
+              raise SystemExit('FAIL: trusted runtime must be a commit')
+          temporary = Path(tempfile.mkdtemp(prefix='kdd-ci-runtime-', dir=os.environ['RUNNER_TEMP'])).resolve()
+          if temporary.is_relative_to(root):
+              raise SystemExit('FAIL: the trusted runtime must be outside the checkout')
+          entry = temporary / 'trusted_ci.py'
+          entry.write_bytes(subprocess.check_output(['git', 'show', ref + ':scripts/trusted_ci.py']))
+          bundle = temporary / 'bundle'
+          subprocess.run([
+              sys.executable, '-I', str(entry), 'prepare', '--repo-root', str(root),
+              '--trusted-ref', ref, '--bundle-dir', str(bundle),
+          ], check=True)
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              output.write('KDD_TRUSTED_BUNDLE=' + bundle.as_posix() + '\n')
+          print('Trusted CI runtime: ' + ref)
 
       - name: Install pinned change-audit parsers
         run: |
@@ -325,7 +359,7 @@ jobs:
       - name: Run each contract's test_command
         shell: bash
         # init-project also runs the post-initialization suite; allow slow Windows runners.
-        run: python scripts/validate_test_commands.py "$KDD_CONTRACTS_DIR" . --timeout 600 --deduplicate --workers "$KDD_CONTRACT_WORKERS"
+        run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" commands --repo-root . --contracts-dir "$KDD_CONTRACTS_DIR" --timeout 600 --deduplicate --workers "$KDD_CONTRACT_WORKERS" --report-dir "$RUNNER_TEMP/kdd-command-reports"
 
       - name: Scan for leaked secrets (src only — see knowledge/contracts/secret-scan-gate.md)
         shell: bash
@@ -337,13 +371,13 @@ jobs:
         shell: bash
         env:
           KDD_SKIP_INIT_POST_APPLY_SUITE: '1'
-        run: python scripts/run_test_suite.py --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS"
+        run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" --report-dir "$RUNNER_TEMP/kdd-suite-reports"
 
       - name: Run unit tests (2/2)
         shell: bash
         env:
           KDD_SKIP_INIT_POST_APPLY_SUITE: '1'
-        run: python scripts/run_test_suite.py --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS"
+        run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" --report-dir "$RUNNER_TEMP/kdd-suite-reports"
 
       - name: Approve project quality (when configured)
         id: quality

@@ -10,17 +10,22 @@ API publica (fijada por ``tests/test_validate_test_commands.py``):
     extract_test_command(text) -> str|None
     collect_contracts(directory) -> list[dict]
     run_test_command(cmd, cwd, timeout, capture=False) -> dict
-    run_all(contracts_dir, repo_root, timeout=180, deduplicate=False, workers=1) -> list[dict]
+    run_all(contracts_dir, repo_root, timeout=600, deduplicate=False, workers=1) -> list[dict]
     main(argv) -> int
 """
 
 import os
+import json
+from pathlib import Path
+import re
 import shlex
 import subprocess
 import sys
 import time
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from validate_contracts import parse_frontmatter
+from process_tree import run as run_process
 
 
 def extract_test_command(text):
@@ -89,7 +94,7 @@ def _strip_quotes(token):
     return token
 
 
-def run_test_command(cmd, cwd, timeout, capture=False):
+def run_test_command(cmd, cwd, timeout, capture=False, *, trusted_bundle=None):
     """Ejecuta ``cmd`` (string) partido con ``shlex.split`` via subprocess.run.
 
     Devuelve ``{'exit_code','ok','error'}``:
@@ -111,12 +116,30 @@ def run_test_command(cmd, cwd, timeout, capture=False):
     if not posix:
         tokens = [_strip_quotes(t) for t in tokens]
     try:
-        proc = subprocess.run(tokens, cwd=cwd, timeout=timeout,
-                              capture_output=capture, text=True)
+        with tempfile.TemporaryDirectory(prefix='kdd-command-evidence-') as temporary:
+            report_path = None
+            if (trusted_bundle is not None and len(tokens) >= 2
+                    and re.fullmatch(r'python(?:3(?:\.\d+)?)?(?:\.exe)?', Path(tokens[0]).name.lower())
+                    and (Path(cwd) / tokens[1]).resolve() == (Path(cwd) / 'scripts/run_test_suite.py').resolve()):
+                report_path = Path(temporary) / 'suite.json'
+                tokens = [sys.executable, '-I', '-X', 'utf8',
+                          str(Path(trusted_bundle) / 'run_test_suite.py'), *tokens[2:],
+                          '--report-json', str(report_path)]
+            proc = run_process(tokens, cwd=cwd, timeout=timeout,
+                               capture_output=capture, text=True, encoding='utf-8', errors='replace',
+                               env=dict(os.environ, PYTHONUTF8='1'))
+            if report_path is not None:
+                import run_test_suite as suite
+                report = json.loads(report_path.read_text(encoding='utf-8'))
+                if not report.get('expected_ids') or suite.validate_report(report['expected_ids'], report) or not report.get('ok'):
+                    return {'exit_code': proc.returncode or 1, 'ok': False, 'error': None,
+                            'stdout': proc.stdout or '', 'stderr': proc.stderr or ''}
     except FileNotFoundError:
         return {'exit_code': None, 'ok': False, 'error': 'not_found'}
     except subprocess.TimeoutExpired:
         return {'exit_code': None, 'ok': False, 'error': 'timeout'}
+    except (OSError, ValueError) as exc:
+        return {'exit_code': None, 'ok': False, 'error': 'not_found', 'stderr': str(exc)}
     result = {'exit_code': proc.returncode, 'ok': proc.returncode == 0, 'error': None}
     if capture:
         result['stdout'] = proc.stdout or ''
@@ -124,7 +147,7 @@ def run_test_command(cmd, cwd, timeout, capture=False):
     return result
 
 
-def run_all(contracts_dir, repo_root, timeout=180, deduplicate=False, workers=1):
+def run_all(contracts_dir, repo_root, timeout=600, deduplicate=False, workers=1, *, trusted_bundle=None):
     """Run every command with opt-in concurrency and per-call exact grouping."""
     if type(workers) is not int or not 1 <= workers <= 8:
         raise ValueError('workers must be an integer between 1 and 8')
@@ -139,8 +162,9 @@ def run_all(contracts_dir, repo_root, timeout=180, deduplicate=False, workers=1)
 
     def execute(index):
         started = time.perf_counter()
+        options = {'trusted_bundle': trusted_bundle} if trusted_bundle is not None else {}
         outcome = run_test_command(items[index]['test_command'], cwd=repo_root,
-                                   timeout=timeout, capture=True)
+                                   timeout=timeout, capture=True, **options)
         return outcome, time.perf_counter() - started
 
     if workers == 1:
@@ -208,7 +232,7 @@ def main(argv):
     """Entry point CLI. Devuelve 0 si todos PASS, 1 si alguno FAIL o no hay."""
     contracts_dir = argv[1] if len(argv) > 1 else 'knowledge/contracts'
     repo_root = argv[2] if len(argv) > 2 else '.'
-    timeout = 180
+    timeout = 600
     workers = 1
     if '--workers' in argv:
         index = argv.index('--workers')
@@ -225,7 +249,7 @@ def main(argv):
             print('FAIL: --timeout requiere segundos')
             return 1
         try:
-            timeout = int(argv[index + 1])
+            timeout = float(argv[index + 1])
         except ValueError:
             print('FAIL: --timeout debe ser un entero')
             return 1
