@@ -72,9 +72,11 @@ class TestFullMode(unittest.TestCase):
         self.assertEqual(list(res['results'].keys()), EXPECTED_GATES)
         self.assertEqual([c[0] for c in calls], EXPECTED_GATES)
         for name, params, root, timeout in calls:
-            self.assertEqual(params, {})
+            self.assertEqual(params, {'command_timeout': 600, 'gate_timeout': 1800,
+                                      'workers': 1, 'deduplicate': True}
+                             if name == 'validate_test_commands' else {})
             self.assertEqual(root, 'algun-root')
-            self.assertEqual(timeout, 300 if name == 'validate_test_commands' else 120)
+            self.assertEqual(timeout, 1800 if name == 'validate_test_commands' else 120)
 
     def test_lineas_y_resumen_todos_pasan(self):
         res = preflight.run_preflight(runner=_ok_runner)

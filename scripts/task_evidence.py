@@ -3,9 +3,25 @@ import hashlib
 import os
 import re
 import shlex
-import subprocess
+import subprocess as _process_api
 
 from task_model import TaskError
+
+
+class _ContainedProcessAPI:
+    """Keep the replaceable execution boundary and import-only audit support."""
+    DEVNULL = _process_api.DEVNULL
+    SubprocessError = _process_api.SubprocessError
+
+    @staticmethod
+    def run(argv, **options):
+        # Historical audits load a frozen five-file bundle without executing
+        # oracles. Only execution needs this additional runtime dependency.
+        from process_tree import run
+        return run(argv, **options)
+
+
+subprocess = _ContainedProcessAPI()
 
 
 def digest(content):

@@ -12,7 +12,7 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / 'scripts/run_test_suite.py'
-COMMAND = 'run: python scripts/run_test_suite.py --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS"'
+COMMAND = 'run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" --report-dir "$RUNNER_TEMP/kdd-suite-reports"'
 
 
 class SuiteProcesses(unittest.TestCase):

@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: "tests/test_preflight.py"
-tests_sha256: "c1ba08dfef7bb0c1b7fc300e7159ab732b63a5e24c58d8e3d73a38d6638006d5"
+tests_sha256: '7c6031c17ecb308c96b04e3d8253f1c5dd91c46421d3e2211a1130b0473ef61c'
 touch_only: ['scripts/preflight.py']
 deps_allowed: []
 forbids: ['network', 'llm']
@@ -39,6 +39,9 @@ duplicarlo -- ver `knowledge/validacion.md` para el conteo vigente de
 gates de Nivel 1.
 
 ## Interface
+- El [perfil compartido](gate-execution-profile.md) reemplaza los limites
+  historicos120/300 y agrega opciones tipadas; la [cancelacion](process-tree-timeout.md)
+  sustituye la ejecucion directa sin cambiar la shape de resultados.
 - `ALL_GATES`: lista = `mcp_gate_dispatch.LEVEL1_GATES` +
   `['validate_attestation']` (20 nombres, en ese orden). Derivada del
   dispatch, nunca hardcodeada aparte.

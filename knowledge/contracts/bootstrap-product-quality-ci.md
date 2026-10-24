@@ -15,7 +15,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_bootstrap_product_quality_ci.py
-tests_sha256: '433dff600caabd8b1ef2ff97367b4284b5faec4d8a0faf4f9b0860afb1e390ca'
+tests_sha256: '8907dd3ad7a86bf9473c059b5ad39667fbb79841dd63cbf1b5da52c2c05da8d9'
 touch_only: ['scripts/init_project.py', 'scripts/bootstrap_project.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'subprocess', 'llm']

@@ -142,14 +142,14 @@ class WorkflowGuarantees(unittest.TestCase):
         for name in ['validate', 'board']:
             job = text.split('\n  ' + name + ':\n', 1)[1]
             self.assertIn('runs-on: ${{ matrix.os }}', job)
-        command = 'run: python scripts/run_test_suite.py --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS"'
+        command = 'run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" --report-dir "$RUNNER_TEMP/kdd-suite-reports"'
         self.assertEqual(text.count(command), 2)
         for pass_number in [1, 2]:
             step = text.split('- name: Run unit tests ({}/2)'.format(pass_number), 1)[1]
             step = step.split('\n      - ', 1)[0]
             self.assertIn("KDD_SKIP_INIT_POST_APPLY_SUITE: '1'", step)
             self.assertIn(command, step)
-        self.assertIn('run: python scripts/validate_test_commands.py "$KDD_CONTRACTS_DIR" . --timeout 600 --deduplicate', text)
+        self.assertIn('run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" commands --repo-root . --contracts-dir "$KDD_CONTRACTS_DIR" --timeout 600 --deduplicate', text)
         self.assertIn('- name: Check approved contract and oracle baseline', text)
         self.assertEqual(text.count("python-version: '3.11'"), 2)
         self.assertIn('run: npm test', text)

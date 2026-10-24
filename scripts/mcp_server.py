@@ -29,6 +29,8 @@ import mcp_gate_dispatch as gd  # noqa: E402
 import rule_hints  # noqa: E402
 
 from mcp.server.fastmcp import FastMCP  # noqa: E402
+from typing import Annotated
+from pydantic import Field
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -86,6 +88,9 @@ def _dispatch(tool_name, params, repo_root):
     ademas confina de nuevo, defensa en profundidad).
     """
     for name, value in params.items():
+        if tool_name == 'validate_test_commands' and name in (
+                'command_timeout', 'gate_timeout', 'workers', 'deduplicate'):
+            continue  # Typed/validated by dispatch; never treated as paths.
         err = _confine(name, value, repo_root)
         if err is not None:
             return err
@@ -164,15 +169,21 @@ def validate_diagrams(dir: str | None = None) -> dict:
 
 
 @mcp.tool()
-def validate_test_commands(contracts_dir: str | None = None, root: str | None = None) -> dict:
+def validate_test_commands(contracts_dir: str | None = None, root: str | None = None,
+                           command_timeout: Annotated[float, Field(strict=True, gt=0)] | None = None,
+                           gate_timeout: Annotated[float, Field(strict=True, gt=0)] | None = None,
+                           workers: Annotated[int, Field(strict=True, ge=1, le=8)] | None = None,
+                           deduplicate: Annotated[bool, Field(strict=True)] | None = None) -> dict:
     """Corre el test_command real de cada contrato y falla si algun exit code no
     es 0. Unico gate del repo cuyo forbids permite subprocess. Defaults:
     contracts_dir=knowledge/contracts, root=. (el repo_root que
     validate_test_commands.py usa como cwd de cada test_command, NO el
-    repo_root de este server -- son dos cosas distintas)."""
+    repo_root de este server -- son dos cosas distintas). Perfil compartido:
+    command_timeout=600, gate_timeout=1800, workers=1, deduplicate=True."""
     return _dispatch(
         'validate_test_commands',
-        _params(contracts_dir=contracts_dir, root=root),
+        _params(contracts_dir=contracts_dir, root=root, command_timeout=command_timeout,
+                gate_timeout=gate_timeout, workers=workers, deduplicate=deduplicate),
         repo_root=REPO_ROOT,
     )
 

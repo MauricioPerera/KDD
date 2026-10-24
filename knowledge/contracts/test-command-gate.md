@@ -52,6 +52,11 @@ gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
 
 ## Interface
 
+La [cancelacion del arbol](process-tree-timeout.md) sustituye subprocess.run
+directo por contencion y espera completas. El [perfil compartido](gate-execution-profile.md)
+actualiza el default de timeout por comando a600 y amplia el perimetro con
+los helpers declarados, conservando los veredictos y el opt-in de scheduling.
+
 La [extension de concurrencia](ci-command-workers.md) agrega workers=1 y
 --workers, conservando el default serial, el orden del reporte y los
 veredictos de este contrato; el opt-in se rige por [tiempo total](../ci-runtime.md).

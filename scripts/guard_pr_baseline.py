@@ -27,9 +27,23 @@ PROTECTED_FILES = {
     'scripts/validate_contracts.py',
     'scripts/validate_test_commands.py',
     'scripts/run_test_suite.py',
+    'scripts/trusted_ci.py',
+    'scripts/process_tree.py',
+    'scripts/execution_profile.py',
 }
 PROTECTED_PREFIXES = ('.github/workflows/',)
 CONTRACTS_DIR = 'knowledge/contracts/'
+IMPORT_NAMES = set(sys.stdlib_module_names) | {
+    'trusted_ci', 'run_test_suite', 'validate_test_commands', 'validate_contracts',
+    'process_tree', 'execution_profile',
+}
+
+
+def _shadows_runtime(path):
+    parts = PurePosixPath(path).parts
+    if parts and parts[0] == 'scripts':
+        parts = parts[1:]
+    return bool(parts) and parts[0].split('.')[0] in IMPORT_NAMES
 
 
 def _git(*args):
@@ -80,6 +94,8 @@ def check(base_ref, candidate_ref, approved_ref):
     for path in sorted(filter(None, changed.split('\0'))):
         if path in PROTECTED_FILES or path.startswith(PROTECTED_PREFIXES):
             findings.append(path + ': trusted gate file changed in PR')
+        elif _shadows_runtime(path):
+            findings.append(path + ': trusted import name changed in PR')
 
     expected_contracts = _contracts(approved)
     candidate_contracts = _contracts(candidate)

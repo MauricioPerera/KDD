@@ -15,7 +15,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_ci_action_runtime.py
-tests_sha256: '7ba52d3b892de07efeb7a476b0084f6e913f02068eb3624369f92818c387c990'
+tests_sha256: 'e8108258de955006b1c7b4cba9c6e3a004707ad20cdd76fbf3e3bc23315fb1e5'
 touch_only: ['.github/workflows/validate.yml', '.github/workflows/trusted-pr-gate.yml', '.github/workflows/deploy-pages.yml', '.github/actions/validate-contracts/action.yml']
 deps_allowed: ['node', 'fastwebmcp', 'zod']
 forbids: ['llm']
