@@ -117,6 +117,15 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Garantias verificables](./verification-guarantees.md)
 
 - [Catalogo al iniciar](./contracts/catalog-startup.md)
+- [Cierre de pendientes de KDD](./pending-improvements.md)
+- [Dependencias seguras de KDD Board](./contracts/board-dependency-security.md)
+- [Procedencia de evidencia al inicializar](./contracts/bootstrap-scan-provenance.md)
+- [Evidencias generadas bajo politica aprobada](./contracts/quality-task-evidence.md)
+- [Errores de dominio por WebMCP](./contracts/board-webmcp-errors.md)
+- [Lecturas Git por lote sin evidencia cacheada](./contracts/git-read-batching.md)
+- [Actions oficiales con runtime Node24](./contracts/ci-node24-actions.md)
+- [Piloto de cuatro tareas como regresion real](./contracts/dependency-workflow-e2e.md)
+- [Concurrencia y recuperacion con worktrees](./contracts/task-worktree-integration.md)
 
 - [Aprobacion integrada de calidad](quality-approval.md)
 - [Contrato verify-quality](contracts/verify-quality.md)

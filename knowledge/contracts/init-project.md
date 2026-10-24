@@ -22,6 +22,12 @@ forbids: ['network', 'subprocess']
 # Contract: init-project
 
 ## Intent
+
+La extension revisada de [procedencia de scans](bootstrap-scan-provenance.md)
+agrega un manifiesto de muestras conocidas por ruta y digest. Se planifican en
+dry-run y se retiran de la copia solo si conservan exactamente ese contenido;
+un informe propio se preserva. Esta es la unica excepcion nueva al manifiesto
+de eliminacion historico y conserva el precheck antes de escribir o borrar.
 Última milla de la plantilla: estrenarla en un repositorio real sin ejemplos ni
 historia de cierre ajena. El caso de campo documentado en
 [validacion](../validacion.md) encontro que la politica heredada de KDD
