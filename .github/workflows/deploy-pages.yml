@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
       pages: write
       id-token: write
     environment:
@@ -45,6 +46,29 @@ jobs:
       - name: Install pinned publisher
         run: npm ci --prefix site --ignore-scripts --no-audit --no-fund
 
+      - name: Install pinned discovery parsers
+        run: python -m pip install --only-binary=:all: -r requirements-change-audit.txt
+
+      - name: Download Ubuntu CI inventory
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: kdd-ci-inventory-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}-ubuntu-latest
+          run-id: ${{ github.event.workflow_run.id }}
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+          digest-mismatch: error
+          path: ${{ runner.temp }}/kdd-ci-inventory/ubuntu-latest
+
+      - name: Download Windows CI inventory
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: kdd-ci-inventory-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}-windows-latest
+          run-id: ${{ github.event.workflow_run.id }}
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+          digest-mismatch: error
+          path: ${{ runner.temp }}/kdd-ci-inventory/windows-latest
+
       - name: Verify Pages build contract
         run: |
           python -m unittest tests/test_pages_build.py
@@ -53,7 +77,9 @@ jobs:
       - name: Build and validate public bundle
         env:
           CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
-        run: python site/build.py --output "$RUNNER_TEMP/kdd-pages" --ci-run-url "$CI_RUN_URL"
+          CI_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          KDD_TRUSTED_RUNTIME_REF: ${{ vars.KDD_TRUSTED_RUNTIME_REF }}
+        run: python site/build.py --output "$RUNNER_TEMP/kdd-pages" --ci-run-url "$CI_RUN_URL" --ci-inventory-dir "$RUNNER_TEMP/kdd-ci-inventory" --ci-run-attempt "$CI_RUN_ATTEMPT" --ci-trusted-runtime-ref "$KDD_TRUSTED_RUNTIME_REF"
 
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
