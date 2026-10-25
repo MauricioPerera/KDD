@@ -57,6 +57,23 @@ exigir este check explícitamente para obtener esa garantía. La herramienta
 no autentica por sí sola la aprobación humana; quien administra la variable
 y la protección de rama sigue siendo parte de la raíz de confianza.
 
+## Inventario publicado en Pages
+
+El [protocolo de inventario](./pages-ci-inventory.md) vincula el contador a
+los reportes reales de dos pasadas por SO. El despliegue exige igualdad de
+IDs entre Ubuntu/Windows y discovery local, con el mismo run, intento, SHA y
+runtime revisado. Un import fallido, inventario incompleto o manifest
+incompatible aborta antes de crear el bundle. Un preview de PR solo acredita
+discovery y build; las suites posteriores conservan su veredicto independiente.
+
+El conteo incluye IDs omitidos con motivo; no equivale a pruebas pasadas ni
+a cobertura de codigo. El JSON no autentica la aprobacion humana: su
+procedencia depende del workflow, evento y transporte de artifacts revisados.
+El bundle HTML del PR no se reutiliza para desplegar. La
+[guia operativa](../site/README.md) explica los modos y diagnosticos; el
+[estado fechado](./estado-actual-kdd.md) distingue implementacion local y
+publicacion comprobada.
+
 ## Cierre de contratos de proyecto
 
 `validate_completion.py` impide que un reporte nuevo cierre un spec con

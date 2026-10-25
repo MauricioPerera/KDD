@@ -14,8 +14,10 @@ llegar a tu primer contrato en verde.
 
 ## 0. Prerrequisitos
 
-- Python 3.9+ en PATH (`python --version`).
+- Python 3.11 en PATH (`python --version`), para reproducir el entorno del CI.
 - Git.
+- Node 24 y npm para KDD-Board y sus integraciones. Pages tiene su propia
+  instalacion y [guia de construccion](../site/README.md).
 - Vocabulario minimo (definiciones completas en
   [OKF-SPEC](./OKF-SPEC.md) y [validacion.md](./validacion.md)):
   - **Task contract**: un `.md` en `knowledge/contracts/` que define UNA
@@ -32,12 +34,18 @@ llegar a tu primer contrato en verde.
 ```
 git clone <tu-fork-o-el-template> mi-proyecto
 cd mi-proyecto
+python -m pip install --only-binary=:all: -r requirements-change-audit.txt
+npm ci --prefix tools/kdd-board --ignore-scripts --no-audit --no-fund
 python -m unittest discover -s tests -p "test_*.py"
 ```
 
 Esperado: la suite completa termina en `OK` (el template trae ejemplos
-funcionando). Si falla aca, es un problema de entorno (version de Python),
-no de KDD — resolvelo antes de seguir.
+funcionando). Este comando es un diagnostico local; un fallo requiere revisar
+su causa, que puede estar en el entorno, un import o el producto. Discovery
+debe terminar sin errores de carga; un conteo por si solo no lo demuestra.
+El [CI](./ci-audit-remediation.md) usa un runtime revisado fuera del checkout,
+reportes completos por ID y dos pasadas por SO. Conserva esos pasos heredados
+al adaptar el proyecto; este diagnostico no los sustituye.
 
 ## 2. Correr los gates de Nivel 1 tal cual vienen
 
@@ -125,6 +133,11 @@ El repositorio de GitHub debe existir antes de configurar las variables. El
 revisor registra cada referencia, que puede coincidir cuando el commit
 aprobado contiene politica, workflow, contratos y oraculos. CI exige ambas
 incluso en el primer push; no toma `HEAD` como aprobacion implicita.
+El runtime de CI tiene una referencia separada: el PR nativo usa por defecto
+su base SHA y el push su SHA. Si la primera migracion necesita un override,
+el revisor aprueba el bundle y registra `KDD_TRUSTED_RUNTIME_REF`; no lo
+deduzcas del candidato ni copies una referencia de KDD ausente en tu historial.
+Ver [frontera de confianza](./ci-audit-remediation.md).
 Si no usas `gh`, configura las mismas variables de Actions en GitHub.
 El procedimiento normativo esta en [validacion.md](./validacion.md). La
 inicializacion limpia se verifico en el [PR #110 de KDD](https://github.com/MauricioPerera/KDD/pull/110).

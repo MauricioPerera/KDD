@@ -1,8 +1,8 @@
 ---
 type: 'Concept'
-title: 'Estado verificable de KDD al 23 de octubre de 2026'
-description: 'Corte de alcance implementado, flujo operativo, evidencia real y limites de la metodologia y sus herramientas.'
-tags: ['kdd', 'reference', 'verification', 'tasks', 'bootstrap']
+title: 'Estado verificable de KDD al 24 de octubre de 2026'
+description: 'Corte de main y rama local: tareas, bootstrap, CI confiable, Pages, evidencia real y trabajo pendiente.'
+tags: ['kdd', 'reference', 'verification', 'tasks', 'bootstrap', 'ci', 'pages']
 ---
 
 # Estado verificable de KDD
@@ -13,11 +13,22 @@ Actualmente dispone de una plantilla inicializable, validadores, una CLI de
 tareas y KDD-Board integrados con Git. El flujo se ha comprobado desde un
 proyecto vacío hasta su calidad de producto en CI.
 
-Este corte, fechado el **23 de octubre de 2026, America/Mexico_City**, describe
-capacidades observadas. Las reglas normativas siguen en los nodos enlazados.
-La revisión de código fuente examinada es
-[`7886578b`](https://github.com/MauricioPerera/KDD/commit/7886578b8e4ce9f107851a4d7873ac9ab880dec8),
-que incorpora el PR #120. Este documento es posterior a esa revisión.
+Este corte, fechado el **24 de octubre de 2026, America/Mexico_City**, distingue
+la revision publicada de la propuesta local. Las reglas normativas siguen en
+los nodos enlazados; los conteos corresponden a las revisiones indicadas.
+
+| Revision observada | Estado y evidencia |
+| --- | --- |
+| `main`: [`db1717fa`](https://github.com/MauricioPerera/KDD/commit/db1717fa3e6d3497498afbd79a45b07718b1d3ce), PR127 | [CI satisfactorio](https://github.com/MauricioPerera/KDD/actions/runs/40141077949), Ubuntu/Windows, dos pasadas de 1182 casos por SO; [Pages desplegado](https://github.com/MauricioPerera/KDD/actions/runs/40142198858). |
+| Rama local `codex/pages-ci-inventory`: `34bdfb708ca044f1e2532f733863337a4d894799` | Baseline aprobado e implementacion comprobada localmente: 19 gates, 86 contratos, 143 nodos, dos pasadas de 1207 casos y 40 pruebas de Board por SO. Conserva los 1182 IDs anteriores y agrega 25 sin nuevas omisiones. |
+| Publicacion del contador nuevo | Pendiente de publicar la rama, verificar CI en GitHub y desplegar Pages. Los 1207 casos son evidencia local; no representan aun el sitio publico. |
+
+Las cuatro pasadas locales coinciden en el digest de IDs
+`5f302ea4517a7329e70dd8f6889c9d15540200b8fcb5fb083c40e7a28eb2ac8e`.
+Las omisiones previas se conservan: 9 en Windows y 10 en Ubuntu por pasada.
+El publisher real paso en modo preview y con los cuatro reportes locales.
+El contexto de transporte de esa integracion usa un run sintetico;
+no constituye una ejecucion autenticada de GitHub Actions.
 
 ## Componentes y responsabilidades
 
@@ -29,7 +40,8 @@ que incorpora el PR #120. Este documento es posterior a esa revisión.
 | CLI y KDD-Board | Operar el mismo coordinador; leer tareas confirmadas de `main` y devolver el commit real de cada cambio de estado. | [CLI](contracts/task-cli.md), [integración del tablero](board-git.md) |
 | Bootstrap | Adaptar la plantilla a la identidad del proyecto, retirar ejemplos e historial operativo heredado y preparar el CI de producto. | [Inicializador](contracts/init-project.md), [arranque guiado](contracts/bootstrap-project.md) |
 | Política de calidad | Delimitar archivos protegidos y cambios permitidos; ejecutar checks estructurales, funcionales, adversariales y de interfaz según el producto. | [Aprobación de calidad](quality-approval.md) |
-| CI | Ejecutar validación y tablero en Ubuntu/Windows, conservar dos pasadas de la suite y exigir calidad de producto en proyectos inicializados. | [Calidad desde el arranque](bootstrap-product-quality-ci.md), [optimización de CI](contracts/ci-execution-deduplication.md) |
+| CI | Ejecutar validación y tablero en Ubuntu/Windows, con runtime revisado fuera del checkout, dos pasadas completas y reportes por ID; exigir calidad de producto en proyectos inicializados. | [Calidad desde el arranque](bootstrap-product-quality-ci.md), [tiempo del CI](ci-runtime.md), [frontera de confianza](ci-audit-remediation.md) |
+| Pages | Compilar el sitio real en PR de ambas plataformas y reconstruir al desplegar el SHA de main cuyo CI paso. La rama local agrega cotejo de inventarios de las cuatro pasadas y discovery estricto. | [Build en PR](pages-pr-validation.md), [inventario](pages-ci-inventory.md), [operacion](../site/README.md) |
 
 El **ciclo del contrato** (`draft → validated → implemented → verified`) y el
 **estado de la tarea** son dimensiones distintas. Una tarea lista para comenzar
@@ -68,11 +80,13 @@ la ausencia de configuración no se acepta como SKIP satisfactorio.
 El repositorio plantilla conserva su configuración opcional de ejemplos;
 la obligatoriedad de `quality/product.json` corresponde a los proyectos inicializados.
 
-## Evidencia de un proyecto nuevo
+## Evidencia historica de un proyecto nuevo
 
 La demostración pública
 [kdd-bootstrap-e2e-20261023](https://github.com/MauricioPerera/kdd-bootstrap-e2e-20261023)
-se creó exportando la revisión indicada de KDD, sin copiar su historial Git.
+se creó exportando KDD
+[`7886578b`](https://github.com/MauricioPerera/KDD/commit/7886578b8e4ce9f107851a4d7873ac9ab880dec8),
+que incorpora el PR120, sin copiar su historial Git.
 Se inicializó con identidad propia, se abrió KDD-Board vacío y se implementó
 un normalizador de títulos con CLI. El stub fue rechazado antes de implementar.
 Los siete cambios de estado se realizaron desde el tablero.
@@ -103,7 +117,7 @@ explícita la decodificación, conservando las aserciones anteriores. La persona
 revisora aprobó después
 [`4636c9e9`](https://github.com/MauricioPerera/kdd-bootstrap-e2e-20261023/commit/4636c9e9ff7ec62069760d5c9b2af7838de706ae)
 para ambas variables de CI. Ese cambio pertenece a la demo; el bootstrap de
-KDD mantiene la revisión fuente indicada al inicio.
+KDD de esa demostracion corresponde a `7886578b`, no al main de este corte.
 
 | Verificación final de la demo | Resultado observado |
 | --- | --- |
@@ -116,36 +130,69 @@ KDD mantiene la revisión fuente indicada al inicio.
 Las **22 pruebas actuales** corresponden al oráculo corregido del CI; el cierre
 histórico mantiene sus **21 pruebas** originales. El PASS de producto no elimina
 los SKIP de otras capas opcionales, como seguridad sin hallazgos aportados.
-La revisión fuente de KDD también tiene
+La revisión fuente historica de KDD también tiene
 [CI satisfactorio](https://github.com/MauricioPerera/KDD/actions/runs/40052262735)
 con los cuatro jobs Ubuntu/Windows y 66 contratos. El conjunto de Nivel 1
 mantiene 19 gates; los controles del diario de tareas son adicionales. El
 preflight local incluye un control de atestación más y muestra 20 comprobaciones.
 
-## Optimización de CI comprobada
+## Varias tareas y dependencias comprobadas
 
-Se agrupan comandos de contratos exactamente iguales dentro de una invocación,
-se evita el doble disparo por push de rama y PR y se cancelan ejecuciones
-nativas superadas del mismo PR. Se conservan los cuatro jobs, Ubuntu/Windows
-y las dos pasadas de la suite. La ejecución post-inicialización costosa ya
-corría en su contrato y conserva esa ubicación.
+La demostracion publica
+[kdd-dependencies-e2e-20261023](https://github.com/MauricioPerera/kdd-dependencies-e2e-20261023)
+ejecuto cuatro tareas con grafo A -> B/C -> D desde KDD-Board. Verifico
+rechazos por dependencias pendientes, bloqueo/reanudacion, ramas y cierres
+con evidencia, conservando los 28 commits originales y cuatro ramas remotas.
+Su [CI de cierre](https://github.com/MauricioPerera/kdd-dependencies-e2e-20261023/actions/runs/40067038669),
+en `9101714f03c637b1ae821433461e58b64e93b917`, paso los cuatro jobs:
+1025 casos dos veces por SO y 54 pruebas de producto en dos rondas, sin SKIP
+de producto. Es evidencia historica de ese proyecto, no el inventario actual
+de KDD. El [piloto reproducible](contracts/dependency-workflow-e2e.md) agrega
+integracion HTTP real al bootstrap y al flujo de dependencias.
 
-La comparación alojada entre
-[PR #118](https://github.com/MauricioPerera/KDD/actions/runs/39994660939) y
-[PR #119](https://github.com/MauricioPerera/KDD/actions/runs/40008201182)
-registró estos tiempos de job, excluyendo espera en cola:
+## Mejoras integradas y rendimiento medido
 
-| Job | Antes | Después |
-| --- | ---: | ---: |
-| validate Ubuntu | 130 s | 120 s |
-| validate Windows | 1373 s | 1304 s |
-| board Ubuntu | 17 s | 14 s |
-| board Windows | 71 s | 109 s |
+La [deduplicacion](contracts/ci-execution-deduplication.md) agrupa comandos
+exactamente iguales dentro de una invocacion, evita el doble disparo push de
+rama/PR y cancela runs nativos superados del mismo PR. El
+[paralelismo acotado](ci-runtime.md), integrado mediante PR123, mantiene
+cuatro jobs, Ubuntu/Windows y dos pasadas completas consecutivas. Solo el
+KDD nativo opta por cuatro workers; los consumidores conservan uno por defecto.
+No se reutiliza evidencia entre commits, SO, pasadas ni invocaciones.
 
-Son muestras de máquinas distintas. La variación de Board Windows ilustra por
-qué estos tiempos no permiten atribuir un porcentaje global de ahorro a la
-optimización. El [contrato de CI](contracts/ci-execution-deduplication.md)
-delimita la agrupación y prohíbe reutilizar evidencia entre commits, SO o pasadas.
+La comparacion del PR123 uso dos muestras anteriores con arboles iguales
+([run 40073508632](https://github.com/MauricioPerera/KDD/actions/runs/40073508632),
+[run 40094563794](https://github.com/MauricioPerera/KDD/actions/runs/40094563794))
+y dos intentos satisfactorios del mismo head `5d73c163`
+([run 40112023129](https://github.com/MauricioPerera/KDD/actions/runs/40112023129)).
+
+| Mediana de dos muestras, sin cola ni Pages | Antes | Despues | Reduccion observada |
+| --- | ---: | ---: | ---: |
+| Primer job iniciado a ultimo terminado | 33 min 53 s | 14 min 45 s | 56,47 % |
+| Suma de los cuatro jobs | 39 min 6,5 s | 18 min 11,5 s | 53,48 % |
+
+Los 1102 IDs anteriores se conservaron y se agregaron 27, con 1129 casos
+por pasada y las mismas omisiones previas. Estas medianas describen esas
+muestras; las correcciones de seguridad, fixtures y Pages posteriores
+quedan fuera de la comparacion. No son una promesa de duracion del main actual.
+
+Los [siete pendientes del piloto](pending-improvements.md) se integraron en
+PR122: dependencias de Board, procedencia de scans, evidencia de tareas
+permitida por politica, errores WebMCP, lecturas Git por lote, Actions con
+Node24 y piloto reproducible. PR124 agrego el runtime confiable, cancelacion
+de arboles y contabilizacion de fixtures/hooks. PR125 corrigio el import como
+paquete; PR126 agrego el build real de PR y PR127 ajusto los fixtures de
+arranque. Los protocolos enlazados conservan el alcance de cada cambio.
+
+## Correccion local del contador de Pages
+
+En el despliegue de `db1717fa` se observaron 1145 casos frente a los 1182 del
+CI: faltaban parsers de discovery y un import fallido se contaba como un solo
+`_FailedTest`. El [arreglo local](pages-ci-inventory.md) rechaza discovery
+incompleto y compara IDs de las cuatro pasadas del run/intento/SHA exactos
+antes de crear el bundle. El control negativo real reprodujo el defecto del
+builder anterior y verifico el rechazo del nuevo en Windows/Ubuntu.
+Falta confirmar el transporte de artifacts y el resultado publico en GitHub.
 
 ## Alcance de las garantías y trabajo pendiente
 
@@ -163,11 +210,16 @@ delimita la agrupación y prohíbe reutilizar evidencia entre commits, SO o pasa
 - **Arranque remoto.** Variables, protecciones y disponibilidad de Actions son
   configuración externa. La demo requirió habilitar Actions desde GitHub; el
   bootstrap no automatiza esa administración.
-- **Próxima validación de uso.** El flujo demostrado cubre un producto CLI pequeño.
-  Un piloto con varias tareas, dependencias, colaboradores y requisitos de interfaz
-  permitiría medir esfuerzo, concurrencia y coste de revisión en un contexto mayor.
+- **Publicacion de la mejora local.** Publicar y revisar la rama del contador,
+  verificar CI en GitHub y comprobar despues el despliegue y la cifra publicada.
+  Los cambios de workflows siguen sujetos a la revision de confianza; este
+  documento no autoriza modificar protecciones.
+- **Proxima validacion de uso.** Ya hay pilotos CLI de una y cuatro tareas con
+  dependencias. Falta medir colaboracion concurrente real, requisitos de interfaz
+  y coste de revision en un producto mayor. El piloto HTTP automatizado no
+  equivale a comprobar un navegador renderizado ni un equipo distribuido.
 
 Los límites técnicos completos se mantienen en
-[garantías verificables](verification-guarantees.md). Las mejoras pendientes
-anteriores son una orientación de evolución; su implementación necesitará
-contratos y evidencia propios.
+[garantías verificables](verification-guarantees.md). Las ampliaciones de
+alcance necesitaran contratos y evidencia propios; la publicacion del
+contador conserva los contratos y el baseline ya aprobados.

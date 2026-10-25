@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_pages_pr_ci.py
-tests_sha256: 'de944361f7045b1ae70877d7b99d0ecdd5c54da281c7734828f5c82ad93d55e1'
+tests_sha256: '3dda9d6023f296cf7883d59e9f9793e938804dba8ad184e6cd825cee11872089'
 touch_only: ['.github/workflows/validate.yml']
 deps_allowed: ['stdlib', 'Git', 'Node.js', '@rckflr/llms-skills@0.4.1']
 forbids: ['llm']
@@ -42,7 +42,9 @@ Cumplir el [protocolo](../pages-pr-validation.md). Se mantienen dos matrices,
 cuatro jobs, Ubuntu/Windows y los dos comandos identicos de suite. Sin nuevos
 permisos, secrets, environments, despliegues, subidas ni continue-on-error.
 No usar hashFiles como condicion para omitir un build nativo incompleto.
-deploy-pages y el runtime confiable permanecen intactos.
+El runtime confiable permanece intacto. La [extension de inventario](../pages-ci-inventory.md)
+permite al despliegue descargar solo manifests del CI exitoso de main; no el
+bundle candidato ni artifacts de otro intento. El build de PR es preview estricto.
 
 ## Examples
 - PR nativo sano: dos builds reales, uno por SO; publisher y strict validate pasan.

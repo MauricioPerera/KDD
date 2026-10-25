@@ -12,6 +12,10 @@
 
 🌐 **[Landing page](https://mauricioperera.github.io/KDD/)** — a visual walkthrough of the methodology (EN/ES toggle).
 
+For the dated implementation status and evidence, see [verified KDD status](knowledge/estado-actual-kdd.md).
+The [Pages guide](site/README.md) explains PR builds, local previews and deployment
+from the exact CI inventory; the counter measures test IDs, including declared skips.
+
 This is a template repository for projects that implement the **Knowledge-Driven Development (KDD)** methodology, which unifies:
   * **Behavior contracts (optional):** Versioned `behavior/v1` properties, checked deterministically before any candidate code is run. The [behavior contract specification](knowledge/behavior-contract-spec.md) defines the schema, evidence boundary, and limits.
 - **OKF (Open Knowledge Format):** A minimalist format for structuring knowledge, design, and architecture as markdown files with YAML frontmatter. The normative spec for OKF nodes lives in [`knowledge/OKF-SPEC.md`](knowledge/OKF-SPEC.md).
@@ -134,7 +138,7 @@ There are two complementary ways to run the KDD gates against your repo without 
 This template's KDD tooling is Python and stays Python even if your project is not — these are two separate planes (template tooling vs. your project's code).
 
 - **Kept unchanged:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/lint_ascii.py`, `scripts/rule_engine.py`, `scripts/validate_rules.py`, `scripts/validate_skills.py`, `scripts/validate_changelog.py`, `scripts/validate_perimeter.py`, `scripts/benchmark_gates.py`, `scripts/validate_ux_page.py`, `scripts/validate_diagrams.py`, `scripts/validate_commit_message.py`, `scripts/rule_hints.py`, `scripts/export_gate_contract.py`, and `scripts/init_project.py` remain Python; they validate contracts and produce the gate export regardless of your project's language.
-- **Adapted:** each contract's `test_command` must use your language's runner (`node --test ...`, `cargo test ...`, etc. — see the multi-language gate in [`knowledge/validacion.md`](knowledge/validacion.md)). The CI workflow `.github/workflows/validate.yml` runs on an OS matrix (`ubuntu-latest` + `windows-latest`), installs Python and runs the template's validators, the ASCII lint and the Python suite twice (`python -m unittest discover -s tests -p "test_*.py"`, anti-flaky); the workflow already runs every contract's `test_command`, including non-Python runners. If your project also needs a project-wide suite, add a new step with its runner (`npm test`, `cargo test`, `go test ./...`, ...) after the matching `actions/setup-*` step. Keep the two inherited "Run unit tests" steps: they validate the KDD tooling itself.
+- **Adapted:** each contract's `test_command` must use your language's runner (`node --test ...`, `cargo test ...`, etc.; see [validation](knowledge/validacion.md)). CI retains Ubuntu/Windows and two consecutive full Python suite passes. A reviewed runtime extracted outside the checkout launches `run_test_suite.py` through `trusted_ci.py`, with JSON reports that account for every discovered ID and fixture omission. The workflow also runs each contract's command. Add any project-wide suite after its matching `actions/setup-*` step and keep both inherited "Run unit tests" steps. See [CI execution and trust](knowledge/ci-audit-remediation.md); direct `unittest discover` is useful locally but does not reproduce these CI controls.
 - **Project initialization:** `scripts/init_project.py --apply --repository OWNER/REPO` removes Python-written examples and KDD's own execution history, while keeping the language-independent validators and infrastructure tests. Add your own contracts and tests afterward.
 - **Where YOUR project's tests go (`tests/` belongs to the tooling):** the inherited Python suite lives in `tests/` and is **not practically relocatable** — its files resolve `scripts/` assuming they sit exactly one level below the repo root, so moving them means editing and re-sealing every frozen oracle. If your language also uses `tests/` by convention (Rust is the clear case: cargo auto-discovers `tests/*.rs`), both planes end up in one directory. Nothing breaks — `unittest` discovers `test_*.py` and cargo only looks at `.rs` — but it becomes unreadable. **Recommendation: move your project's tests, not the tooling's**, using your language's own mechanism. In Rust it's three lines in `Cargo.toml` and the target name is unchanged, so the contract's `test_command` stays the same:
   ```toml
@@ -158,6 +162,11 @@ KDD upstream uses **semantic versioning**; its releases are in [`CHANGELOG.md`](
 <a id="español"></a>
 
 ## Español
+
+El [estado verificable de KDD](knowledge/estado-actual-kdd.md) reúne el alcance y
+la evidencia por fecha. La [guía de Pages](site/README.md) explica los builds de
+PR, el preview local y el despliegue con el inventario exacto del CI; el contador
+representa IDs de pruebas, incluidas las omisiones declaradas.
 
 Para una explicación de KDD sin tecnicismos, consulta [`docs/KDD-PARA-PERSONAS.md`](docs/KDD-PARA-PERSONAS.md).
 
@@ -227,7 +236,7 @@ Ambas entradas configuran calidad de producto obligatoria con `quality/product.j
 El tooling KDD de esta plantilla es Python y sigue siéndolo aunque tu proyecto no lo sea — son dos planos distintos (tooling de la plantilla vs. código de tu proyecto).
 
 - **Se conserva sin cambios:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/lint_ascii.py`, `scripts/rule_engine.py`, `scripts/validate_rules.py`, `scripts/validate_skills.py`, `scripts/validate_changelog.py`, `scripts/validate_perimeter.py`, `scripts/benchmark_gates.py`, `scripts/validate_ux_page.py`, `scripts/validate_diagrams.py`, `scripts/rule_hints.py`, `scripts/export_gate_contract.py` y `scripts/init_project.py` siguen siendo Python; validan contratos y generan el export del gate sin importar el lenguaje de tu proyecto.
-- **Se adapta:** el `test_command` de cada contrato debe usar el runner de tu lenguaje (`node --test ...`, `cargo test ...`, etc. — ver el gate multi-lenguaje en [`knowledge/validacion.md`](knowledge/validacion.md)). El workflow de CI `.github/workflows/validate.yml` corre en una matriz de OS (`ubuntu-latest` + `windows-latest`), instala Python y corre los validadores de la plantilla, el lint ASCII y la suite Python dos veces (`python -m unittest discover -s tests -p "test_*.py"`, anti-flaky); el workflow ya ejecuta el `test_command` de cada contrato, incluso con runners no Python. Si tu proyecto necesita además una suite general, agrega un paso nuevo con su runner (`npm test`, `cargo test`, `go test ./...`, ...) después del `actions/setup-*` correspondiente. Conserva los dos pasos heredados "Run unit tests": validan el tooling KDD.
+- **Se adapta:** el `test_command` de cada contrato usa el runner de tu lenguaje (`node --test ...`, `cargo test ...`, etc.; ver [validación](knowledge/validacion.md)). CI conserva Ubuntu/Windows y dos pasadas completas consecutivas de la suite Python. Un runtime revisado, extraído fuera del checkout, lanza `run_test_suite.py` mediante `trusted_ci.py` y genera reportes JSON que explican cada ID descubierto y cada omisión por fixture. El workflow también ejecuta los comandos de cada contrato. Agrega cualquier suite general de producto tras su `actions/setup-*` y conserva los dos pasos heredados "Run unit tests". Ver [ejecución y confianza del CI](knowledge/ci-audit-remediation.md); `unittest discover` directo sirve como diagnóstico local, pero no reproduce esos controles del CI.
 - **Inicialización del proyecto:** `scripts/init_project.py --apply --repository OWNER/REPO` borra ejemplos escritos en Python y el historial de ejecución de KDD. Conserva validadores y pruebas de infraestructura para cualquier lenguaje; después agregas tus propios contratos y tests.
 - **Dónde poner los tests de TU proyecto (`tests/` es del tooling):** la suite Python heredada vive en `tests/` y **no es reubicable en la práctica** — sus archivos resuelven `scripts/` asumiendo estar exactamente un nivel debajo de la raíz, así que moverlos obliga a editar y re-sellar cada oráculo congelado. Si tu lenguaje también usa `tests/` por convención (Rust es el caso claro: cargo autodescubre `tests/*.rs`), los dos planos terminan mezclados en un mismo directorio. No se rompe nada — `unittest` descubre `test_*.py` y cargo solo mira `.rs` — pero se vuelve ilegible. **Recomendación: mové los tests de tu proyecto, no los del tooling**, usando el mecanismo de tu lenguaje. En Rust son tres líneas en `Cargo.toml` y el nombre del target no cambia, así que el `test_command` del contrato queda igual:
   ```toml
@@ -254,6 +263,11 @@ KDD upstream usa **versionado semántico**; sus releases están en [`CHANGELOG.m
 <a id="português"></a>
 
 ## Português
+
+O [estado verificável do KDD](knowledge/estado-actual-kdd.md) reúne o escopo e a
+evidência por data. O [guia de Pages](site/README.md) explica builds de PR,
+preview local e publicação com o inventário exato do CI; o contador representa
+IDs de testes, incluindo as omissões declaradas.
 
 🌐 **[Landing page](https://mauricioperera.github.io/KDD/)** — um passeio visual pela metodologia (alternância EN/ES/PT).
 
@@ -300,7 +314,7 @@ Ambas as entradas configuram qualidade de produto obrigatória com `quality/prod
 O tooling KDD deste modelo é Python e continua sendo Python mesmo que seu projeto não seja — são dois planos separados (tooling do modelo vs. código do seu projeto).
 
 - **Mantido sem alterações:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/lint_ascii.py`, `scripts/rule_engine.py`, `scripts/validate_rules.py`, `scripts/validate_skills.py`, `scripts/validate_changelog.py`, `scripts/validate_perimeter.py`, `scripts/benchmark_gates.py`, `scripts/validate_ux_page.py`, `scripts/validate_diagrams.py`, `scripts/validate_commit_message.py`, `scripts/rule_hints.py`, `scripts/export_gate_contract.py` e `scripts/init_project.py` continuam sendo Python; eles validam contratos e produzem o export do gate independentemente do idioma do seu projeto.
-- **Adaptado:** o `test_command` de cada contrato deve usar o executor do seu idioma (`node --test ...`, `cargo test ...`, etc. — veja o gate multilíngue em [`knowledge/validacion.md`](knowledge/validacion.md)). O workflow de CI `.github/workflows/validate.yml` roda em uma matriz de SO (`ubuntu-latest` + `windows-latest`), instala Python e executa os validadores do modelo, o lint ASCII e a suíte Python duas vezes (`python -m unittest discover -s tests -p "test_*.py"`, anti-flaky); o workflow já executa o `test_command` de cada contrato, inclusive com executores não Python. Se o seu projeto também precisar de uma suíte geral, adicione uma nova etapa com o executor (`npm test`, `cargo test`, `go test ./...`, ...) após o `actions/setup-*` correspondente. Mantenha as duas etapas herdadas "Run unit tests": elas validam o tooling KDD.
+- **Adaptado:** o `test_command` de cada contrato usa o executor do seu idioma (`node --test ...`, `cargo test ...`, etc.; veja [validação](knowledge/validacion.md)). O CI mantém Ubuntu/Windows e duas passagens completas consecutivas da suíte Python. Um runtime revisado, extraído fora do checkout, executa `run_test_suite.py` por meio de `trusted_ci.py`, com relatórios JSON que explicam cada ID descoberto e cada omissão por fixture. O workflow também executa os comandos de cada contrato. Adicione qualquer suíte geral do produto após seu `actions/setup-*` e mantenha as duas etapas herdadas "Run unit tests". Veja [execução e confiança do CI](knowledge/ci-audit-remediation.md); `unittest discover` direto serve como diagnóstico local, mas não reproduz esses controles do CI.
 - **Inicialização do projeto:** `scripts/init_project.py --apply --repository OWNER/REPO` remove exemplos em Python e o histórico de execução do KDD. Preserva validadores e testes de infraestrutura para qualquer linguagem; depois você adiciona seus próprios contratos e testes.
 
 ### Validação de Contratos, Precedência de Budget e Ciclo de Vida

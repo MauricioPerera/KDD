@@ -391,6 +391,21 @@ jobs:
           KDD_SKIP_INIT_POST_APPLY_SUITE: '1'
         run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" --report-dir "$RUNNER_TEMP/kdd-suite-reports"
 
+      - name: Export Pages CI inventory
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: bash
+        run: python site/ci_inventory.py export --repo-root . --reports-dir "$RUNNER_TEMP/kdd-suite-reports" --output "$RUNNER_TEMP/kdd-pages-ci-inventory/inventory.json" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --head-sha "$GITHUB_SHA" --platform "${{ matrix.os }}" --trusted-runtime-ref "$KDD_TRUSTED_RUNTIME_REF"
+
+      - name: Upload Pages CI inventory
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kdd-ci-inventory-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.os }}
+          path: ${{ runner.temp }}/kdd-pages-ci-inventory/inventory.json
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 7
+
       - name: Approve project quality (when configured)
         id: quality
         shell: python

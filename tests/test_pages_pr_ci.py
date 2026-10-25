@@ -78,7 +78,14 @@ class PagesPrWorkflow(unittest.TestCase):
                          'run: python site/build.py'):
             self.assertIn(required, deploy)
         self.assertNotIn('pull_request_target:', deploy)
-        self.assertNotIn('download-artifact', deploy)
+        # Main may read raw CI inventories, while rebuilding its own bundle.
+        # A candidate HTML artifact from a PR is still never deployed.
+        for title, platform in (('Ubuntu', 'ubuntu-latest'), ('Windows', 'windows-latest')):
+            download = step(deploy, 'Download ' + title + ' CI inventory')
+            self.assertIn('name: kdd-ci-inventory-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}-' + platform, download)
+            self.assertIn('run-id: ${{ github.event.workflow_run.id }}', download)
+            self.assertNotIn('kdd-pages-pr', download)
+            self.assertNotIn('merge-multiple:', download)
 
 
 PROBE = '''import json,sys

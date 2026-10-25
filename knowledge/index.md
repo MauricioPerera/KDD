@@ -3,7 +3,7 @@
 Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está especificado en [OKF-SPEC](./OKF-SPEC.md).
 
 ## Referencia
-- [Estado verificable de KDD](./estado-actual-kdd.md) — alcance consolidado al 23 de octubre de 2026, flujo operativo, evidencia publica y limites.
+- [Estado verificable de KDD](./estado-actual-kdd.md) — corte al 24 de octubre de 2026, diferencias entre main y la rama local, evidencia publica y pendientes.
 - [Calidad de producto desde el arranque](./bootstrap-product-quality-ci.md) — CI obligatorio sobre politica propia y referencia revisada.
 - [Optimizacion de CI](./contracts/ci-execution-deduplication.md) — agrupacion local de comandos identicos, concurrencia de PR y medicion antes/despues.
 - [Tareas con Git](./git-tasks.md) — CLI local, nodos Task y estados registrados por commits en main.
@@ -138,6 +138,9 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Perfil compartido de ejecucion](./contracts/gate-execution-profile.md)
 - [Pages en PR antes de fusionar](./pages-pr-validation.md)
 - [Contrato de build real de Pages en PR](./contracts/pages-pr-build.md)
+- [Inventario verificable del CI en Pages](./pages-ci-inventory.md)
+- [Contador de Pages y discovery estricto](./contracts/pages-inventory.md)
+- [Transporte del inventario entre CI y Pages](./contracts/pages-inventory-ci.md)
 - [Comandos de contratos con concurrencia optativa](./contracts/ci-command-workers.md)
 - [Ciclo de vida sincronico de fixtures Git](./contracts/ci-git-fixture-lifecycle.md)
 

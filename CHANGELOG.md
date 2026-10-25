@@ -4,6 +4,37 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- Pages inventory correction implemented and verified locally on
+  `codex/pages-ci-inventory`; GitHub CI and deployment remain pending.
+  Deployment now requires matching manifests from both Ubuntu/Windows passes
+  in the exact run, attempt, commit and reviewed runtime. Strict discovery
+  rejects import failures, empty inventories and duplicate IDs before creating
+  the bundle. The counter reports inventory IDs, including declared skips.
+  See [the protocol](knowledge/pages-ci-inventory.md) and [operating guide](site/README.md).
+
+- Native PRs build Pages with the real publisher on Ubuntu/Windows before the
+  long suites, including package-import integration coverage. Deployment
+  rebuilds the exact main commit whose CI passed. Process fixtures wait for observable
+  descendant startup while retaining cancellation and late-write assertions.
+  See [PR validation](knowledge/pages-pr-validation.md) and
+  [fixture readiness](knowledge/process-fixture-readiness.md).
+
+- CI uses an isolated, reviewed runtime, bounded process-tree cancellation
+  and complete ID reports, including fixture omissions and `load_tests` hooks.
+  Bounded concurrency preserves the 19 gates, both platforms and two full
+  passes. The PR #123 measurement reduced median critical time from 33m53s
+  to 14m45s; later security and Pages changes are outside that comparison.
+  See [CI guarantees](knowledge/ci-audit-remediation.md) and
+  [the dated evidence](knowledge/estado-actual-kdd.md).
+
+- New projects require `quality/product.json` in CI with explicitly reviewed
+  policy/oracle references. Bootstrap removes known sample scan evidence;
+  optional sample scans report SKIP and required sample scans fail. Task
+  evidence can be admitted by an exact reviewed policy. Board reports
+  dependency errors with structured details; Git reads are batched within
+  each operation. See [bootstrap quality](knowledge/bootstrap-product-quality-ci.md)
+  and [the seven improvements](knowledge/pending-improvements.md).
+
 - Project bootstrap forwards an explicit `--repository OWNER/REPO` to the
   initializer. Initialization removes both demo task journals and their evidence;
   real integration tests exercise a fresh Git history and a complete first task.

@@ -9,9 +9,13 @@ tags: ['upgrade', 'versionado', 'template', 'infra', 'procedimiento']
 
 ## Infraestructura sobreescribible desde upstream
 
-Estos artefactos forman parte del tooling y las convenciones del template. Al upgrade de una nueva versión de la plantilla, **se pueden y deben ser sobrescritos** para traer mejoras, correcciones de seguridad y nuevas características:
+Estos artefactos forman parte del tooling y las convenciones del template.
+Una actualizacion puede reemplazarlos mediante una propuesta revisada, para
+traer mejoras y correcciones. Los cambios de contratos, oraculos, politica
+y runtime conservan las aprobaciones de [calidad](./quality-approval.md).
 
 - **Validadores y herramientas:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/validate_baseline.py`, `scripts/validate_test_commands.py`, `scripts/guard_pr_baseline.py`, `scripts/export_gate_contract.py`, `scripts/assemble_context.py`, `scripts/init_project.py`, `scripts/lint_ascii.py`, `scripts/rule_engine.py`, `scripts/validate_rules.py`, `scripts/validate_skills.py`, `scripts/validate_changelog.py`, `scripts/validate_perimeter.py`, `scripts/validate_ux_page.py`
+- **Runtime confiable:** `scripts/trusted_ci.py`, `scripts/run_test_suite.py`, `scripts/validate_test_commands.py`, `scripts/validate_contracts.py`, `scripts/process_tree.py` y `scripts/execution_profile.py` forman un bundle revisado. Actualiza el conjunto compatible; el CI falla ante un runtime antiguo o incompleto. Ver [ejecucion confiable](./ci-audit-remediation.md).
 - **Configuración de contexto:** `ccdd/context.json`
 - **Reglas de agentes:** `.agents/AGENTS.md`
 - **Documentación de metodología:** `knowledge/OKF-SPEC.md`, `knowledge/metodologia-ejecucion.md`, `knowledge/validacion.md`, `knowledge/rule-contract-spec.md`
@@ -19,7 +23,11 @@ Estos artefactos forman parte del tooling y las convenciones del template. Al up
 - **Tests de infraestructura:** Tests que validan la plantilla misma (p. ej. `tests/test_agents_rules.py`, tests que validan `validate_contracts.py`, `init_project.py`, `validate_rules.py`, etc.). Véase la constante `INTACTABLES` de `tests/test_init_project.py` para la lista autorizada.
 - **Configuración de CI:** `.github/workflows/validate.yml` y `.github/workflows/trusted-pr-gate.yml`. Este último requiere configurar `trusted-pr-gate` como check obligatorio en la protección de la rama; las reglas de GitHub no se transfieren al clonar la plantilla.
 
-**Origen de la verdad:** La estructura y contenido se especifican en los `specs/CONTRACT-NN-*.md` y sus reportes correspondientes en `docs/reports/` (la lista crece con cada contrato cerrado; ver `CHANGELOG.md`).
+**Origen de la verdad:** los contratos aprobados en `knowledge/contracts/`
+y sus nodos OKF enlazados definen el tooling actual. Los
+`specs/CONTRACT-NN-*.md` y reportes de `docs/reports/` conservan los cierres
+de ejecucion historicos; el `CHANGELOG.md` y el
+[estado fechado](./estado-actual-kdd.md) distinguen las mejoras posteriores.
 
 ## Propiedad del proyecto
 
@@ -33,10 +41,14 @@ historia de KDD ni sobrescribir la identidad de CI.
 Estos artefactos **pertenecen al proyecto** instanciado y **no deben ser sobrescritos** salvo con plena consciencia:
 
 - **Código de la aplicación:** `src/` (excepto ejemplos que `init_project --apply` borra al inicial)
-- **Tests propios:** `tests/test_*.py` que tu proyecto agrega (salvo los nombrados en `INTACTABLES_KDD`)
+- **Tests propios:** `tests/test_*.py` que tu proyecto agrega. Conserva por separado las pruebas de infraestructura enumeradas en `INTACTABLES` de `tests/test_init_project.py`.
 - **Contratos propios:** Contratos CCDD redactados para tareas de tu proyecto (en `knowledge/contracts/`)
 - **Base de conocimiento OKF:** `knowledge/*.md` que tu proyecto crea (modelos de datos, arquitectura, conceptos, decisiones — excepto los nodos que `init_project` borra)
 - **Especificaciones propias:** `specs/` que tu proyecto añade (contratos de ejecución para tu contexto)
+- **Politica y operacion:** `quality/product.json`, nodos de tareas y evidencias,
+  variables de aprobacion, identidad `OWNER/REPO` y protecciones de GitHub.
+  No restaures valores ni tareas de ejemplo desde upstream. Revisa tambien
+  las adaptaciones de calidad obligatoria del workflow generado.
 
 ## Procedimiento manual de upgrade (4-5 pasos)
 
@@ -74,7 +86,10 @@ diff -u scripts/validate_contracts.py /tmp/validate_contracts_new.py
 
 ### 3. Sobreescribir infraestructura
 
-Reemplaza los archivos de infra con los de upstream. **No intentes mergear manualmente.**
+Aplica los reemplazos de infraestructura revisados en una rama de trabajo.
+Conserva las adaptaciones propias y revisa los diffs de contratos y oraculos
+antes de implementar cambios que dependan de ellos. Un sello nuevo no
+constituye aprobacion del cambio.
 
 ```bash
 # Ejemplo: reemplazar validadores
@@ -105,7 +120,7 @@ python scripts/validate_rules.py examples/rules
 python scripts/validate_skills.py skills .agents/skills
 python scripts/validate_changelog.py
 
-# Corre la suite de tests
+# Diagnostico local de la suite (el CI conserva su runtime y dos pasadas)
 python -m unittest discover -s tests -p "test_*.py"
 ```
 
@@ -113,9 +128,11 @@ python -m unittest discover -s tests -p "test_*.py"
 - **Error en validación:** el upgrade rompió algo en tu proyecto o en la infra. Revisa el mensaje; posible candidato a un issue en el upstream.
 - **Error en tests:** tu suite necesita actualización (p. ej. si la API de un validador cambió). Actualiza los tests propios.
 
-### 5. Resella los hashes si cambian tests de infraestructura
+### 5. Revisar sellos y referencias si cambian oraculos
 
-Si cualquier `tests/test_*.py` que fue modificado por el upgrade tiene un `tests_sha256` en su contrato, recalcula:
+Si una prueba de infraestructura cambia, compara sus aserciones e IDs y
+documenta el motivo antes de preparar su sello. El helper permite calcular
+el hash candidato:
 
 ```bash
 # Helper: imprime el nuevo hash
@@ -124,6 +141,14 @@ python scripts/validate_contracts.py --hash tests/test_agents_rules.py
 # Actualiza el frontmatter en knowledge/contracts/agents-context-rule.md
 # Reemplaza la clave tests_sha256 con el valor nuevo
 ```
+
+Presenta el commit de contratos y oraculos a la persona revisora antes de
+adoptarlo como baseline. El implementador no elige ni actualiza la referencia
+aprobada para obtener verde. Si cambia el bundle de CI, prepara tambien su
+referencia de runtime para revision. Conserva los dos pasos de suite y la
+matriz Ubuntu/Windows; registra las variables revisadas antes del CI remoto.
+El [estado de KDD](./estado-actual-kdd.md) informa las revisiones verificadas,
+sin convertir automaticamente el upstream mas reciente en una aprobacion.
 
 ## Advertencia: upgrade no es merge ciego
 

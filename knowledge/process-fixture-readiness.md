@@ -50,5 +50,16 @@ aun no esta listo y comprueba que expira, sin ampliar la gracia del producto.
 No se eliminan checks, se agregan skips o se sustituye el ciclo de vida con
 PIDs simulados. El coste mayor de espera del fixture se mide y declara. Cambiar
 este oraculo requiere un SHA revisado segun [calidad](quality-approval.md).
-Mientras no se apruebe, main 924885e y su historial permanecen intactos, con el
-CI fallido y Pages sin desplegar. La propuesta vive en una rama local separada.
+
+## Resultado observado
+
+El baseline `d6b9b86e8b11fc326c8f437baccc9a1049900ac2` fue aprobado y
+conservado al fusionar el [PR127](https://github.com/MauricioPerera/KDD/pull/127)
+en `db1717fa3e6d3497498afbd79a45b07718b1d3ce`.
+El [CI de main](https://github.com/MauricioPerera/KDD/actions/runs/40141077949)
+paso con Ubuntu/Windows y dos pasadas de 1182 casos por SO;
+[Pages](https://github.com/MauricioPerera/KDD/actions/runs/40142198858) tambien
+se desplego. Son resultados de esa revision, posteriores al fallo descrito.
+La discrepancia del contador de Pages se trata por separado en el
+[inventario verificable](pages-ci-inventory.md); desplegar no prueba por si
+solo que el conteo publicado represente todas las pruebas del CI.
