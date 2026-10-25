@@ -61,5 +61,7 @@ no se simulan con mocks. El fixture compartido esta sellado por traceability-mod
 ## Constraints
 
 La garantia tiene el alcance y limites del modelo; no acredita semantica de
-producto o dependencias transitivas. PARAR y reportar si se necesita cambiar los modulos
-canonicos existentes, un oraculo previo, workflow, runtime o proteccion remota.
+producto o dependencias transitivas. La [extension historica](task-committed-artifacts.md)
+autoriza task_git y validate_tasks para independizar la consulta del checkout.
+PARAR y reportar si se necesitan otros modulos canonicos, un oraculo no revisado,
+workflow, runtime o proteccion remota.
