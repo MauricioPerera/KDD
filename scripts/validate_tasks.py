@@ -89,7 +89,7 @@ def _snapshot(repo_root, ref='main'):
                     errors.append('TASK_CONTRACT: linked contract is not a Task Contract')
                 continue
             tested = task['verified_ref'] if task['status'] == 'done' else revision
-            metadata = journal.contract_metadata(root, task, tested)
+            metadata = journal.contract_metadata(root, task, tested, committed_only=True)
             if task['status'] == 'done':
                 errors.extend(_evidence(root, revision, task, metadata))
         return errors

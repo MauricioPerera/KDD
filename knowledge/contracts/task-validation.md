@@ -28,6 +28,8 @@ Auditar snapshots y transiciones de tareas en la linea principal de Git sin ejec
 
 ## Invariants
 - Lee blobs Git, no archivos del checkout; ausencia de tareas es opcional.
+- La [lectura versionada](task-committed-artifacts.md) exige modos regulares Git
+  y evita que aliases del checkout invaliden un snapshot historico.
 - Comprueba modelo, enlaces de contratos, dependencias y pruebas de cierre.
 - Un rango audita cada commit de primera linea, no solo diferencia neta, y rechaza bajas de tareas.
 - El cierre requiere un commit exclusivo de nodo y evidencia con tested_commit igual al padre.

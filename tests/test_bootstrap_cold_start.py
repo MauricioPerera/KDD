@@ -6,6 +6,7 @@ from pathlib import Path
 import platform
 import shutil
 import sys
+import tempfile
 import unittest
 from tests import test_bootstrap_boundary as support
 
@@ -49,9 +50,12 @@ class BootstrapColdStart(support.SandboxFixture):
         pins = json.loads((self.root / 'tools/workflow-syntax/actionlint.json').read_text(encoding='utf-8'))
         system = 'windows' if os.name == 'nt' else ('darwin' if sys.platform == 'darwin' else 'linux')
         machine = {'amd64': 'amd64', 'x86_64': 'amd64', 'arm64': 'arm64', 'aarch64': 'arm64'}[platform.machine().lower()]
-        pin = pins['platforms'][system + '_' + machine]
+        key = system + '_' + machine
+        pin = pins['platforms'][key]
         selected = self.env.get('KDD_ACTIONLINT_BINARY') or shutil.which(pin['executable'])
-        package = Path(self.env.get('KDD_ACTIONLINT_ARCHIVE', str(Path(selected).parent / pin['archive']) if selected else ''))
+        binary = (Path(selected) if selected else Path(tempfile.gettempdir()) / 'kdd-actionlint'
+                  / pins['version'] / key / pin['executable'])
+        package = Path(self.env.get('KDD_ACTIONLINT_ARCHIVE', str(binary.parent / pin['archive'])))
         self.assertTrue(package.is_file(), 'Provide the reviewed official archive as offline fixture data')
         raw = package.read_bytes()
         self.assertEqual(hashlib.sha256(raw).hexdigest(), pin['archive_sha256'])
