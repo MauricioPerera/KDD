@@ -151,6 +151,12 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Perimetro fisico del bootstrap](./contracts/bootstrap-filesystem-boundary.md)
 - [Recuperacion transaccional del bootstrap](./contracts/bootstrap-transaction.md)
 - [Preparacion del arranque sin cache](./contracts/bootstrap-cold-start.md)
+- [Trazabilidad de requisitos](./requirements-traceability.md)
+- [Especificacion breve de trazabilidad](./traceability-product-spec.md)
+- [Modelo de trazabilidad v1](./data_models/requirement-trace.md)
+- [Contrato del modelo de trazabilidad](./contracts/traceability-model.md)
+- [Contrato de proyeccion Git](./contracts/traceability-git.md)
+- [Contrato de CLI y calidad](./contracts/traceability-cli.md)
 
 - [Aprobacion integrada de calidad](quality-approval.md)
 - [Contrato verify-quality](contracts/verify-quality.md)
