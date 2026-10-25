@@ -30,6 +30,8 @@ PROTECTED_FILES = {
     'scripts/trusted_ci.py',
     'scripts/process_tree.py',
     'scripts/execution_profile.py',
+    'scripts/validate_workflows.py',
+    'tools/workflow-syntax/actionlint.json',
 }
 PROTECTED_PREFIXES = ('.github/workflows/',)
 CONTRACTS_DIR = 'knowledge/contracts/'
