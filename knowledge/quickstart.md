@@ -36,8 +36,16 @@ git clone <tu-fork-o-el-template> mi-proyecto
 cd mi-proyecto
 python -m pip install --only-binary=:all: -r requirements-change-audit.txt
 npm ci --prefix tools/kdd-board --ignore-scripts --no-audit --no-fund
+python scripts/validate_workflows.py install
 python -m unittest discover -s tests -p "test_*.py"
 ```
+
+El instalador prepara actionlint con la version y los hashes fijados en
+`tools/workflow-syntax/actionlint.json`; el cache queda fuera del proyecto.
+Si falla, corrige la causa antes de ejecutar la suite o un perfil. Sin red,
+usa `python scripts/validate_workflows.py install --archive <RUTA_ARCHIVO_OFICIAL>`
+con el archivo oficial de tu plataforma: se verifican los mismos hashes.
+El bootstrap solo genera instrucciones; no descarga ni instala herramientas.
 
 Esperado: la suite completa termina en `OK` (el template trae ejemplos
 funcionando). Este comando es un diagnostico local; un fallo requiere revisar
