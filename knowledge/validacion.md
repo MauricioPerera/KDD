@@ -17,6 +17,12 @@ de suite por un runner auditable por IDs, con procesos acotados solo bajo
 opt-in y default serial para consumidores. Sus contratos y oraculos deben
 tener baseline revisado antes de activar ese mecanismo.
 
+La [ejecucion confiable](ci-audit-remediation.md) extrae el runtime revisado
+fuera del checkout y conserva reportes nuevos por pasada. La publicacion de
+[Pages](pages-ci-inventory.md) consume sus inventarios y los compara con un
+discovery estricto del mismo SHA. Es una comprobacion de publicacion;
+el catalogo de Nivel 1 sigue teniendo 19 gates.
+
 La migracion de behavior agrega `validate_behavior` al catalogo compartido: 19
 gates de Nivel 1 y 20 en preflight contando la atestacion local. Se actualizaron
 los oraculos de MCP/preflight y sus sellos como cambio de contrato revisable.

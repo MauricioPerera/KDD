@@ -3,7 +3,7 @@
 Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está especificado en [OKF-SPEC](./OKF-SPEC.md).
 
 ## Referencia
-- [Estado verificable de KDD](./estado-actual-kdd.md) — alcance consolidado al 23 de octubre de 2026, flujo operativo, evidencia publica y limites.
+- [Estado verificable de KDD](./estado-actual-kdd.md) — corte al 24 de octubre de 2026, diferencias entre main y la rama local, evidencia publica y pendientes.
 - [Calidad de producto desde el arranque](./bootstrap-product-quality-ci.md) — CI obligatorio sobre politica propia y referencia revisada.
 - [Optimizacion de CI](./contracts/ci-execution-deduplication.md) — agrupacion local de comandos identicos, concurrencia de PR y medicion antes/despues.
 - [Tareas con Git](./git-tasks.md) — CLI local, nodos Task y estados registrados por commits en main.

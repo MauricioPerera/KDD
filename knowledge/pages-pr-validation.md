@@ -37,7 +37,11 @@ El job conserva contents:read y actions:read. No obtiene secretos de despliegue,
 permisos pages/id-token write ni environment github-pages. No configura,
 sube ni despliega el artefacto del PR. El workflow deploy-pages conserva su
 trigger workflow_run tras push exitoso de main y reconstruye el mismo SHA;
-no reutiliza un artefacto generado por codigo de un PR.
+no reutiliza el bundle HTML generado por codigo de un PR. El despliegue
+comprueba los manifests JSON del [inventario de CI](pages-ci-inventory.md),
+producidos por las cuatro pasadas del push de main, con run/intento/SHA exactos.
+El build previo del PR usa discovery estricto como preview; la URL de su run
+identifica procedencia y no acredita que las suites ya hayan terminado.
 
 Los comandos del PR son codigo candidato sin sandbox, como las pruebas ya
 existentes. Esta separacion no promete aislamiento frente a control del SO.
@@ -56,8 +60,10 @@ Una copia con el dispatcher anterior a PR125 debe hacer fallar la integracion
 de paquete, conservando el control CLI. Se distinguen fallos del oraculo de
 errores de entorno. El build real se ejecuta ademas localmente y en los pasos
 del PR, con las dependencias fijadas; un mock del publisher no lo acredita.
-Se conservan los 1170 IDs anteriores, sus aserciones y skips de aplicabilidad.
-No se modifican el runtime confiable ni los oraculos previos.
+El cambio original del PR126 conservo los 1170 IDs anteriores, sus aserciones
+y skips de aplicabilidad, sin modificar el runtime confiable. El
+[estado verificable](estado-actual-kdd.md) distingue ese inventario historico
+de las regresiones agregadas despues y de la evidencia publicada.
 
 Contratos y pruebas primero, sello y baseline revisado antes de modificar el
 workflow. La fase roja inicial corresponde a los pasos ausentes del PR; la
