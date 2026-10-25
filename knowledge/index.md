@@ -141,6 +141,9 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Inventario verificable del CI en Pages](./pages-ci-inventory.md)
 - [Contador de Pages y discovery estricto](./contracts/pages-inventory.md)
 - [Transporte del inventario entre CI y Pages](./contracts/pages-inventory-ci.md)
+- [Sintaxis de workflows antes de fusionar](./workflow-syntax-ci.md)
+- [Validador con actionlint fijado](./contracts/workflow-syntax.md)
+- [Control de workflows en CI](./contracts/workflow-syntax-ci.md)
 - [Comandos de contratos con concurrencia optativa](./contracts/ci-command-workers.md)
 - [Ciclo de vida sincronico de fixtures Git](./contracts/ci-git-fixture-lifecycle.md)
 
