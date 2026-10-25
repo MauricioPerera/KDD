@@ -15,8 +15,8 @@ budget:
   params_max: 5
 tests: 'tests/test_bootstrap_project.py'
 tests_sha256: '4d8b41fbea20593519acc1a74460abfa1c1d9d0e7226c489190ae72015728bfb'
-touch_only: ['scripts/bootstrap_project.py']
-deps_allowed: ['stdlib']
+touch_only: ['scripts/bootstrap_project.py', 'scripts/bootstrap_transaction.py']
+deps_allowed: ['stdlib', 'init_project', 'bootstrap_transaction']
 forbids: ['network', 'subprocess', 'llm']
 ---
 
@@ -40,6 +40,9 @@ CLI: `python scripts/bootstrap_project.py [--apply --repository OWNER/REPO]
 existentes. Dry-run sin identidad sigue permitido; apply exige OWNER/REPO.
 
 ## Invariants
+- El [protocolo de seguridad y arranque frio](../bootstrap-safety.md) agrega la
+  guia al preflight y transaccion compartida y prepara explicitamente actionlint
+  en las instrucciones. Conserva la delegacion unica y los perfiles anteriores.
 
 - Sin `--apply` no se escribe `KDD-START-HERE.md`.
 - El wrapper delega la limpieza a `init_project`; no duplica su manifiesto.
@@ -79,4 +82,5 @@ API y CLI contra el inicializador real, sin sustituirlo por mocks.
 ## Constraints
 
 - PARAR y reportar si `init_project` rechaza el manifiesto incompleto.
-- Este wrapper no ejecuta comandos de validación ni modifica archivos fuera de su guía.
+- Este wrapper no ejecuta comandos de validacion ni duplica la limpieza;
+  su guia y las operaciones delegadas comparten la misma unidad de rollback.

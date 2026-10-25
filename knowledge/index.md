@@ -147,6 +147,10 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Comandos de contratos con concurrencia optativa](./contracts/ci-command-workers.md)
 - [Ciclo de vida sincronico de fixtures Git](./contracts/ci-git-fixture-lifecycle.md)
 - [Limpieza de fixtures Git existentes](./contracts/existing-git-fixture-lifecycle.md)
+- [Bootstrap seguro y arranque frio](./bootstrap-safety.md)
+- [Perimetro fisico del bootstrap](./contracts/bootstrap-filesystem-boundary.md)
+- [Recuperacion transaccional del bootstrap](./contracts/bootstrap-transaction.md)
+- [Preparacion del arranque sin cache](./contracts/bootstrap-cold-start.md)
 
 - [Aprobacion integrada de calidad](quality-approval.md)
 - [Contrato verify-quality](contracts/verify-quality.md)

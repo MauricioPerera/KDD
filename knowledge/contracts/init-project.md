@@ -14,8 +14,8 @@ budget:
   nesting_max: 4
 tests: "tests/test_init_project.py"
 tests_sha256: '4c9090d9dd508ccad3e02d181075284525da4188a21a01e7188b5c9a53065ef9'
-touch_only: ['scripts/init_project.py']
-deps_allowed: []
+touch_only: ['scripts/init_project.py', 'scripts/bootstrap_transaction.py']
+deps_allowed: ['stdlib', 'bootstrap_transaction']
 forbids: ['network', 'subprocess']
 ---
 
@@ -48,6 +48,10 @@ CLI: `python scripts/init_project.py [--apply --repository OWNER/REPO] [--name <
 dry-run por default; exit 0 ok · 1 I/O · 2 manifiesto/identidad incompletos.
 
 ## Invariants
+- El [protocolo de seguridad y recuperacion](../bootstrap-safety.md) agrega
+  preflight fisico y transaccion compartida, sin cambiar firmas o manifiestos.
+  Un fallo recuperable conserva la copia; los aliases gestionados se rechazan
+  antes de borrar. El helper nuevo es stdlib, sin red ni subprocess.
 - Al aplicar, adaptar las regiones de calidad del workflow segun
   [calidad desde el arranque](./bootstrap-product-quality-ci.md). Comprobar
   previamente archivo y estructura; un error aborta antes de la limpieza.
