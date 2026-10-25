@@ -19,6 +19,8 @@ class ChangeContractTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self._git('init', '-q')
+        self._git('config', 'maintenance.autoDetach', 'false')
+        self._git('config', 'gc.autoDetach', 'false')
         self._git('config', 'user.name', 'KDD Test')
         self._git('config', 'user.email', 'kdd@example.test')
         self.contract = 'knowledge/contracts/demo.md'
