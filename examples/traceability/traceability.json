@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "spec": "knowledge/traceability-product-spec.md",
+  "bindings": [
+    {"requirement": "REQ-001", "contract": "knowledge/contracts/traceability-model.md", "tasks": []},
+    {"requirement": "REQ-002", "contract": "knowledge/contracts/traceability-git.md", "tasks": []},
+    {"requirement": "REQ-003", "contract": "knowledge/contracts/traceability-git.md", "tasks": []},
+    {"requirement": "REQ-004", "contract": "knowledge/contracts/traceability-git.md", "tasks": []},
+    {"requirement": "REQ-005", "contract": "knowledge/contracts/traceability-git.md", "tasks": []},
+    {"requirement": "REQ-006", "contract": "knowledge/contracts/traceability-cli.md", "tasks": []},
+    {"requirement": "REQ-007", "contract": "knowledge/contracts/traceability-cli.md", "tasks": []}
+  ]
+}
