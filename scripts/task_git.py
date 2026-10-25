@@ -144,32 +144,48 @@ def safe_path(root, relative):
     return path
 
 
-def _committed_path(root, revision, relative):
-    _relative_parts(relative)
+def _regular_paths(output):
+    records = {}
+    for record in filter(None, output.split('\0')):
+        header, separator, path = record.partition('\t')
+        fields = header.split()
+        if (not separator or path in records or len(fields) != 3
+                or fields[0] not in ('100644', '100755') or fields[1] != 'blob'
+                or not valid_sha(fields[2])):
+            raise TaskError('TASK_PATH: expected a regular Git blob: ' + path)
+        records[path] = True
+    return records
+
+
+def _committed_paths(root, revision, names):
+    for name in names:
+        _relative_parts(name)
     revision = revision if valid_sha(revision) else commit_sha(root, revision)
     cache = _OBJECT_CACHE.get()
-    key = _key(root, 'regular-path', revision, relative)
-    if cache is not None and key in cache:
+    missing = [name for name in names
+               if cache is None or _key(root, 'regular-path', revision, name) not in cache]
+    if not missing:
         return
-    output = git(root, 'ls-tree', '-z', revision, '--', relative)
-    records = list(filter(None, output.split('\0')))
-    if len(records) != 1 or '\t' not in records[0]:
-        raise TaskError('TASK_PATH: missing regular Git file: ' + relative)
-    header, path = records[0].split('\t', 1)
-    fields = header.split()
-    if (path != relative or len(fields) != 3 or fields[0] not in ('100644', '100755')
-            or fields[1] != 'blob' or not valid_sha(fields[2])):
-        raise TaskError('TASK_PATH: expected a regular Git blob: ' + relative)
+    records = _regular_paths(git(root, 'ls-tree', '-z', revision, '--', *missing))
+    if set(records) != set(missing):
+        raise TaskError('TASK_PATH: missing regular Git file')
     if cache is not None:
-        cache[key] = True
+        for name in missing:
+            cache[_key(root, 'regular-path', revision, name)] = True
 
 
-def _artifact_path(root, relative, revisions):
-    if revisions is None:
+def _metadata_paths(root, data, metadata, revision, committed_only):
+    if committed_only:
+        names = (data['contract'], metadata['tests'], metadata['target'])
+        for ref in (data['approved_ref'], revision):
+            _committed_paths(root, ref, names)
+            if _OBJECT_CACHE.get() is not None:
+                blobs(root, ref, names[:2])
+
+
+def _artifact_path(root, relative, committed_only):
+    if not committed_only:
         safe_path(root, relative)
-        return
-    for revision in revisions:
-        _committed_path(root, revision, relative)
 
 
 def read_nodes(root, ref='main'):
@@ -234,7 +250,6 @@ def contract_metadata(root, data, revision, *, committed_only=False):
     approved = data['approved_ref']
     if not valid_sha(approved) or not ancestor(root, approved, revision):
         raise TaskError('TASK_APPROVAL: supply an explicit approved ancestor SHA')
-    revisions = (approved, revision) if committed_only else None
     original = blob(root, approved, data['contract'])
     metadata, _ = parse_frontmatter(original)
     if not isinstance(metadata, dict) or metadata.get('type') != 'Task Contract':
@@ -242,13 +257,14 @@ def contract_metadata(root, data, revision, *, committed_only=False):
     required = ('target', 'tests', 'test_command', 'tests_sha256')
     if not all(isinstance(metadata.get(k), str) and metadata[k] for k in required):
         raise TaskError('TASK_CONTRACT: approved contract has invalid oracle metadata')
+    _metadata_paths(root, data, metadata, revision, committed_only)
     for path in (data['contract'], metadata['tests']):
-        _artifact_path(root, path, revisions)
+        _artifact_path(root, path, committed_only)
         if proof.normalized(blob(root, revision, path)) != proof.normalized(blob(root, approved, path)):
             raise TaskError('TASK_APPROVAL: contract or oracle differs from approved reference')
     if proof.digest(proof.normalized(blob(root, revision, metadata['tests']))) != metadata.get('tests_sha256'):
         raise TaskError('TASK_ORACLE: approved oracle seal is invalid')
-    _artifact_path(root, metadata['target'], revisions)
+    _artifact_path(root, metadata['target'], committed_only)
     return metadata
 
 
