@@ -6,7 +6,12 @@ import argparse
 from pathlib import Path
 import sys
 
-from init_project import init_project
+if __package__:
+    from .init_project import init_project
+    from .bootstrap_transaction import filesystem_transaction
+else:
+    from init_project import init_project
+    from bootstrap_transaction import filesystem_transaction
 
 
 _PROFILES = {"minimal", "standard", "strict"}
@@ -26,7 +31,19 @@ Este proyecto ({project}) fue inicializado con el perfil `{profile}`.
 3. Crea un contrato en `knowledge/contracts/` y sella su test.
 4. Si usas `standard` o `strict`, pide a una persona que apruebe el commit
    con contrato y test y te entregue su SHA completo.
-5. Ejecuta el perfil elegido:
+5. Prepara la herramienta de sintaxis revisada antes de ejecutar los controles:
+
+```text
+python scripts/validate_workflows.py install
+```
+
+El instalador usa la version y los hashes fijados en
+`tools/workflow-syntax/actionlint.json` y guarda el cache fuera del proyecto.
+Si falla, corrige la causa antes de continuar. Para trabajar sin red, proporciona
+el archivo oficial de tu plataforma con `--archive <RUTA_ARCHIVO_OFICIAL>`;
+el instalador verifica los mismos hashes y no consulta la red en ese modo.
+
+6. Ejecuta el perfil elegido:
 
 ```text
 python scripts/run_profile.py --profile {profile}{approved_ref}
@@ -63,11 +80,12 @@ si quieres una explicación sin tecnicismos.
 def bootstrap_project(repo_dir, apply, name, profile="standard", repository=None):
     if profile not in _PROFILES:
         raise ValueError("perfil desconocido: {} (use minimal, standard o strict)".format(profile))
-    result = init_project(repo_dir, apply, name, repository)
     start_here = _start_here(name, profile)
-    if apply:
-        path = Path(repo_dir).resolve() / "KDD-START-HERE.md"
-        path.write_text(start_here, encoding="utf-8")
+    with filesystem_transaction(repo_dir, ["KDD-START-HERE.md"]):
+        result = init_project(repo_dir, apply, name, repository)
+        if apply:
+            path = Path(repo_dir).resolve() / "KDD-START-HERE.md"
+            path.write_text(start_here, encoding="utf-8")
     return {**result, "profile": profile, "start_here": start_here,
             "start_file": "KDD-START-HERE.md", "applied": bool(apply)}
 

@@ -25,6 +25,17 @@ import re
 import sys
 from pathlib import Path
 
+if __package__:
+    from .bootstrap_transaction import filesystem_transaction
+else:
+    try:
+        from bootstrap_transaction import filesystem_transaction
+    except ModuleNotFoundError as error:
+        if error.name != 'bootstrap_transaction':
+            raise
+        # A file loader can expose the repository root instead of scripts/.
+        from scripts.bootstrap_transaction import filesystem_transaction
+
 # ---------------------------------------------------------------------------
 # Manifiesto explicito de artefactos de EJEMPLO (sin heuristicas).
 # Quien clona la plantilla hereda estos artefactos mezclados con la
@@ -400,6 +411,12 @@ def init_project(repo_dir, apply, name, repository=None) -> dict:
         raise ValueError("--repository debe tener formato OWNER/REPO")
     if apply and not repository:
         raise ValueError("--apply requiere --repository OWNER/REPO")
+    with filesystem_transaction(repo, (*MANIFEST, *REQUIRED_AFTER_DELETE)):
+        return _initialize(repo, apply, name, repository)
+
+
+def _initialize(repo, apply, name, repository):
+    """Register the complete cleanup plan before applying any changes."""
     missing = _missing(repo)
     # Pre-check de atomicidad: incluye lo que apply lee tras el borrado.
     missing += [rel for rel in REQUIRED_AFTER_DELETE
@@ -414,16 +431,17 @@ def init_project(repo_dir, apply, name, repository=None) -> dict:
     index_rewritten = False
     readme_renamed = False
 
-    if apply:
-        for rel in (*MANIFEST, *example_evidence):
-            (repo / rel).unlink()
-        _rewrite_index(repo)
-        index_rewritten = True
-        _reset_changelog(repo)
-        _reset_completion(repo, repository)
-        (repo / ".github/workflows/validate.yml").write_bytes(quality_ci)
-        if name:
-            readme_renamed = _rename_readme(repo, name)
+    with filesystem_transaction(repo, example_evidence):
+        if apply:
+            for rel in (*MANIFEST, *example_evidence):
+                (repo / rel).unlink()
+            _rewrite_index(repo)
+            index_rewritten = True
+            _reset_changelog(repo)
+            _reset_completion(repo, repository)
+            (repo / ".github/workflows/validate.yml").write_bytes(quality_ci)
+            if name:
+                readme_renamed = _rename_readme(repo, name)
 
     return {
         "removed": removed,
