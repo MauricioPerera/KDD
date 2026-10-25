@@ -1,8 +1,8 @@
 # Trazabilidad de requisitos
 
-Estado inicial: contratos y oraculos primero; las interfaces nuevas fallan
-explicitamente hasta implementar el baseline revisado. La receta siguiente
-define el flujo que la entrega debe verificar.
+Consulta requisitos, contratos, oraculos y tareas desde una revision Git fija.
+La evidencia se deriva del diario canonico. La receta siguiente permite
+adoptar la consulta y exigir su verificacion al aprobar la calidad del producto.
 
 1. Copiar templates/PRODUCT-SPEC.md a knowledge/product-spec.md, completar
    el resultado y cada requisito, y enlazar el nodo desde knowledge/index.md.
@@ -72,5 +72,12 @@ este check corre dos veces junto con los otros, sin agregar un workflow ni
 un gate global. Un proyecto sin manifiesto no tiene este check configurado;
 si lo configura y falta el archivo, la invocacion falla en vez de emitir SKIP.
 
-La prueba de integracion de CLI debe recorrer este flujo con Git y oraculo
-reales, comprobar las dos ejecuciones y rechazar una evidencia desfasada.
+La prueba de integracion de CLI recorre este flujo con Git y oraculo reales,
+comprueba las dos ejecuciones y rechaza una evidencia desfasada. El check no
+ejecuta de nuevo los tests: valida el respaldo registrado para el alcance
+declarado. Conservar las pruebas propias sigue siendo obligatorio.
+
+Se necesita un working tree Git con los objetos e historia requeridos. Una
+historia shallow insuficiente falla explicitamente. Los clones parciales con
+promisor se rechazan para impedir que una lectura de objetos active un fetch
+implicito. La CLI no realiza operaciones de red.
