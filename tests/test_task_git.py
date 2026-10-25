@@ -71,6 +71,8 @@ tests/test_value.py.
 PARAR y reportar si the oracle changes.
 '''.replace('DIGEST', digest), encoding='utf-8')
         self.git('init', '-q', '-b', 'main')
+        self.git('config', 'maintenance.autoDetach', 'false')
+        self.git('config', 'gc.autoDetach', 'false')
         self.git('config', 'user.name', 'KDD Task Test')
         self.git('config', 'user.email', 'tasks@example.test')
         self.git('config', 'core.autocrlf', 'false')
