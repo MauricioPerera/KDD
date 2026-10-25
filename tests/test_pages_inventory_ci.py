@@ -51,7 +51,7 @@ class PagesInventoryWorkflow(unittest.TestCase):
                              'github-token: ${{ github.token }}','digest-mismatch: error',
                              'path: ${{ runner.temp }}/kdd-ci-inventory/'+platform):
                 self.assertIn(required,block)
-            for forbidden in ('pattern:', 'merge-multiple:', 'latest','continue-on-error'):
+            for forbidden in ('pattern:', 'merge-multiple:', 'run-id: latest','continue-on-error'):
                 self.assertNotIn(forbidden,block)
             self.assertLess(self.pages.index('- name: Download '+title),self.pages.index('- name: Build and validate public bundle'))
 

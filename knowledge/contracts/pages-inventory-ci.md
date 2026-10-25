@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_pages_inventory_ci.py
-tests_sha256: '65f13cd016266324211adba1be834e858a3eafcc1fce81d6ce1c3301c2e47090'
+tests_sha256: '63fd48e338daf1cb4eb8bba366d66aacd9e5017b0740f95a8b32430a6c32139a'
 touch_only: ['.github/workflows/deploy-pages.yml', '.github/workflows/validate.yml']
 deps_allowed: ['GitHub Actions', 'Python3.11', 'Node24', 'Git']
 forbids: ['llm']
@@ -46,7 +46,8 @@ nunca HTML, codigo ejecutable ni artifacts de otro run/intento.
 
 ## Do / Don't
 - DO: nombres exactos ligados al evento, dos destinos separados y SHA completo.
-- DON'T: latest, merge-multiple, patrones, permisos write o continue-on-error.
+- DON'T: seleccionar run-id: latest, merge-multiple, patrones, permisos write
+  o continue-on-error. Los nombres de SO ubuntu-latest/windows-latest son validos.
 
 ## Tests
 tests/test_pages_inventory_ci.py comprueba cableado, procedencia, pins,
