@@ -25,7 +25,16 @@ import re
 import sys
 from pathlib import Path
 
-from bootstrap_transaction import filesystem_transaction
+if __package__:
+    from .bootstrap_transaction import filesystem_transaction
+else:
+    try:
+        from bootstrap_transaction import filesystem_transaction
+    except ModuleNotFoundError as error:
+        if error.name != 'bootstrap_transaction':
+            raise
+        # A file loader can expose the repository root instead of scripts/.
+        from scripts.bootstrap_transaction import filesystem_transaction
 
 # ---------------------------------------------------------------------------
 # Manifiesto explicito de artefactos de EJEMPLO (sin heuristicas).

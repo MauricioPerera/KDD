@@ -6,8 +6,12 @@ import argparse
 from pathlib import Path
 import sys
 
-from init_project import init_project
-from bootstrap_transaction import filesystem_transaction
+if __package__:
+    from .init_project import init_project
+    from .bootstrap_transaction import filesystem_transaction
+else:
+    from init_project import init_project
+    from bootstrap_transaction import filesystem_transaction
 
 
 _PROFILES = {"minimal", "standard", "strict"}
