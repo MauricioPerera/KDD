@@ -36,14 +36,19 @@ def fail(message, code='WORKFLOW_SYNTAX_TOOL'):
     raise WorkflowError(code, message)
 
 
-def selected_tool():
-    data = json.loads(MANIFEST.read_text(encoding='utf-8'))
+def native_platform():
     systems = {'win32': 'windows', 'linux': 'linux', 'darwin': 'darwin'}
     arches = {'amd64': 'amd64', 'x86_64': 'amd64', 'arm64': 'arm64', 'aarch64': 'arm64'}
     system, arch = systems.get(sys.platform), arches.get(platform.machine().lower())
     if not system or not arch:
         fail('Unsupported actionlint platform')
-    key = system + '_' + arch
+    return system + '_' + arch
+
+
+def selected_tool():
+    data = json.loads(MANIFEST.read_text(encoding='utf-8'))
+    key = native_platform()
+    system = key.split('_', 1)[0]
     if data.get('schema_version') != 1 or data.get('version') != '1.7.12':
         fail('Unrecognized reviewed actionlint manifest')
     pin = data['platforms'][key]
