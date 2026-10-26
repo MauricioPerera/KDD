@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "sdk_version": "1.30.0",
+  "sdk_wheel_sha256": "666edb5009503e1047c9d60346a756f94b261f05cc2625f23d41c728ffc484d0",
+  "oracle_path": "tests/test_mcp_server_smoke.py",
+  "oracle_sha256": "8c841369165941980755598d984556d6359007c2010caf52e42aa7126e7bfd51",
+  "expected_ids": [
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_gate_accepts_explicit_dir_inside_repo",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_gate_rejects_dir_escaping_repo",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_gate_rejects_list_dir_escaping_repo",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_lint_ascii_tool_call_end_to_end",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_lists_all_expected_tools",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_rule_hint_tool_call_end_to_end",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_rule_hint_unknown_id_falls_back_without_error",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_seal_tests_rejects_path_escaping_repo"
+  ],
+  "locks": {
+    "ubuntu": "tools/mcp-sdk/ubuntu.txt",
+    "windows": "tools/mcp-sdk/windows.txt"
+  },
+  "transport": "in-memory"
+}
