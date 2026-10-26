@@ -15,7 +15,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_task_history_read_cost.py
-tests_sha256: '568010bf35df33140c91b159a9bc33e9a18254bccfde1845024c114729382f7a'
+tests_sha256: 'ebffa345f9c0fe9fb1db9bcbcb17015f995fdffc764ec1348dfa22dbc511f000'
 touch_only: ['scripts/task_git.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -33,6 +33,8 @@ opciones de CLI, dependencias ni cache persistente.
 Cumplir el nodo enlazado: solo pruebas positivas de Git para SHA completos,
 clave por repositorio, descarte al terminar, consultas frescas para refs,
 negativos y errores. Conservar los controles de integracion y evidencia.
+Un SHA completo debe corresponder al formato de objetos del repositorio;
+un nombre hexadecimal de otra longitud sigue siendo una ref mutable.
 
 ## Examples
 - Repetir veinte veces el mismo par positivo dentro de una operacion usa una prueba Git.

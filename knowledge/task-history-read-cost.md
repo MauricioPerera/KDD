@@ -26,6 +26,10 @@ ya existente. Guardar exclusivamente resultados True producidos por Git
 para dos SHA completos, con clave raiz resuelta + ambos SHA. Conservar el
 booleano publico de ancestor; no almacenar un False ni un error como prueba.
 HEAD, nombres de ramas y otras refs simbolicas se consultan siempre de nuevo.
+La longitud debe corresponder al formato de objetos nativo de Git: en un
+repo SHA-1, una rama de 64 caracteres hexadecimales sigue siendo una ref
+mutable, aunque tenga la forma de un SHA-256. Determinar el formato por raiz
+y operacion; si no puede determinarse, usar la consulta fresca sin cache.
 
 La vida de esa prueba es la del object_cache actual. Los contextos anidados
 comparten la operacion; al salir, incluso por excepcion, se descarta. Sin

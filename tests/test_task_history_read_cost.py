@@ -192,6 +192,19 @@ class AncestryReadCost(TraceCase):
         self.assertEqual(values, [True, True])
         self.assertEqual(len(self.ancestor_commands(commands)), 1)
 
+    def test_hex_named_branches_of_other_hash_width_remain_mutable(self):
+        before, after = 'f' * 64, 'e' * 64
+        git(self.root, 'update-ref', 'refs/heads/' + before, self.refs['b'])
+        git(self.root, 'update-ref', 'refs/heads/' + after, self.refs['d'])
+        self.assertEqual(git(self.root, 'rev-parse', '--show-object-format'), 'sha1')
+        with journal.object_cache():
+            self.assertTrue(journal.ancestor(self.root, before, after))
+            git(self.root, 'update-ref', 'refs/heads/' + before, self.refs['e'])
+            self.assertFalse(journal.ancestor(self.root, before, after))
+            git(self.root, 'update-ref', 'refs/heads/' + before, self.refs['b'])
+            git(self.root, 'update-ref', 'refs/heads/' + after, self.refs['c'])
+            self.assertFalse(journal.ancestor(self.root, before, after))
+
 
 class HistoryReadCost(TraceCase):
     @classmethod
