@@ -118,8 +118,14 @@ def paths(root, ref, directory):
 
 
 def ancestor(root, before, after):
+    cache = _OBJECT_CACHE.get()
+    key = _key(root, 'ancestor', before, after) if valid_sha(before) and valid_sha(after) else None
+    if cache is not None and key in cache:
+        return True
     try:
         git(root, 'merge-base', '--is-ancestor', before, after)
+        if cache is not None and key is not None:
+            cache[key] = True
         return True
     except TaskError:
         return False

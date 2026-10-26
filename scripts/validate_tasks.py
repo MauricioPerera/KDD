@@ -133,10 +133,9 @@ def _audit_import(root, parents, nodes, changed, cache):
     return errors + _audit_range(root, bases[0], parents[1], cache)
 
 
-def _audit_commit(root, parent, revision, cache):
+def _audit_commit(root, parent, revision, cache, parents):
     before, after = journal.read_nodes(root, parent), journal.read_nodes(root, revision)
     changed = [key for key in sorted(before.keys() | after.keys()) if before.get(key) != after.get(key)]
-    parents = journal.git(root, 'rev-list', '--parents', '-n', '1', revision).split()[1:]
     if len(parents) > 1:
         errors = _audit_import(root, parents, (before, after), changed, cache)
         return errors + ['{}: {}'.format(revision, e) for e in validate_snapshot(root, revision)]
@@ -160,13 +159,15 @@ def _audit_range(root, base, head, cache):
     key = (base, head)
     if key in cache:
         return cache[key]
-    chain = journal.git(root, 'rev-list', '--first-parent', '--reverse', head).splitlines()
+    rows = [line.split() for line in journal.git(
+        root, 'rev-list', '--first-parent', '--reverse', '--parents', head).splitlines()]
+    chain = [row[0] for row in rows]
     if base not in chain:
         return ['TASK_BASELINE: base must be on the first-parent history of head']
     errors = validate_snapshot(root, base)
     parent = base
-    for revision in chain[chain.index(base) + 1:]:
-        errors.extend(_audit_commit(root, parent, revision, cache))
+    for revision, *parents in rows[chain.index(base) + 1:]:
+        errors.extend(_audit_commit(root, parent, revision, cache, parents))
         parent = revision
     cache[key] = errors
     return errors
