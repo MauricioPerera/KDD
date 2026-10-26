@@ -32,6 +32,7 @@ class _WindowsJob:
             'AssignProcessToJobObject': ([w.HANDLE, w.HANDLE], w.BOOL),
             'TerminateJobObject': ([w.HANDLE, w.UINT], w.BOOL),
             'OpenProcess': ([w.DWORD, w.BOOL, w.DWORD], w.HANDLE),
+            'WaitForSingleObject': ([w.HANDLE, w.DWORD], w.DWORD),
             'CloseHandle': ([w.HANDLE], w.BOOL),
         }
         for name, (args, result) in declarations.items():
@@ -77,17 +78,70 @@ class _WindowsJob:
         finally:
             self.k.CloseHandle(process)
 
-    def terminate(self, deadline):
-        self._check(self.k.TerminateJobObject(self.handle, 1))
+    def _members(self, deadline):
+        capacity = 16
         while True:
-            info = self.accounting()
-            self._check(self.k.QueryInformationJobObject(
-                self.handle, 1, self.c.byref(info), self.c.sizeof(info), None))
-            if info.active == 0:
-                return
+            class ProcessIds(self.c.Structure):
+                _fields_ = [('assigned', self.c.c_uint32), ('count', self.c.c_uint32),
+                            ('ids', self.c.c_size_t * capacity)]
+
+            info = ProcessIds()
+            ok = self.k.QueryInformationJobObject(
+                self.handle, 3, self.c.byref(info), self.c.sizeof(info), None)
+            if not ok and self.c.get_last_error() != 234:  # ERROR_MORE_DATA
+                self._check(ok)
+            if ok and info.count == info.assigned and info.count <= capacity:
+                return tuple(info.ids[:info.count])
             if time.monotonic() >= deadline:
-                raise OSError('contained process tree did not terminate within cleanup grace')
-            time.sleep(.01)
+                raise OSError('contained process list did not stabilize within cleanup grace')
+            capacity = max(capacity * 2, info.assigned)
+
+    def _retain_members(self, handles, deadline):
+        for pid in self._members(deadline):
+            if pid not in handles:
+                handle = self.k.OpenProcess(0x00100000, False, pid)  # SYNCHRONIZE
+                self._check(handle)
+                handles[pid] = handle
+
+    def _close_members(self, handles):
+        error = None
+        for handle in handles.values():
+            if not self.k.CloseHandle(handle):
+                error = self.c.get_last_error()
+        if error is not None:
+            raise self.c.WinError(error)
+
+    def _wait_members(self, handles, deadline):
+        for handle in handles.values():
+            remaining = max(0, math.ceil((deadline - time.monotonic()) * 1000))
+            status = self.k.WaitForSingleObject(handle, min(remaining, 0xfffffffe))
+            if status == 0xffffffff:  # WAIT_FAILED
+                self._check(False)
+            if status != 0:  # Only WAIT_OBJECT_0 confirms termination.
+                raise OSError('contained process did not signal within cleanup grace')
+
+    def terminate(self, deadline):
+        if not self.handle:
+            raise OSError('contained Job is already closed')
+        handles = {}
+        try:
+            # The Job's active count can reach zero before process handles are
+            # signaled. Retain owned members BEFORE asynchronous termination.
+            self._retain_members(handles, deadline)
+            self._check(self.k.TerminateJobObject(self.handle, 1))
+            while True:
+                self._retain_members(handles, deadline)
+                info = self.accounting()
+                self._check(self.k.QueryInformationJobObject(
+                    self.handle, 1, self.c.byref(info), self.c.sizeof(info), None))
+                if info.active == 0:
+                    self._wait_members(handles, deadline)
+                    return
+                if time.monotonic() >= deadline:
+                    raise OSError('contained process tree did not terminate within cleanup grace')
+                time.sleep(min(.01, max(0, deadline - time.monotonic())))
+        finally:
+            self._close_members(handles)
 
     def close(self):
         if self.handle:
@@ -123,6 +177,15 @@ def _stop(proc, job, deadline):
             pass
 
 
+def _capture_options(kwargs):
+    options = dict(kwargs)
+    if options.pop('capture_output', False):
+        if 'stdout' in options or 'stderr' in options:
+            raise ValueError('capture_output conflicts with stdout/stderr')
+        options.update(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return options
+
+
 def _drain(proc, deadline):
     try:
         return proc.communicate(timeout=max(.001, deadline - time.monotonic()))
@@ -148,12 +211,9 @@ def run(argv, *, cwd, timeout, **kwargs):
             environment = os.environ
         if shutil.which(argv[0], path=environment.get('PATH', '')) is None:
             raise FileNotFoundError(errno.ENOENT, 'executable not found', argv[0])
-    options = dict(kwargs)
-    if options.pop('capture_output', False):
-        if 'stdout' in options or 'stderr' in options:
-            raise ValueError('capture_output conflicts with stdout/stderr')
-        options.update(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    options = _capture_options(kwargs)
     job = proc = None
+    cleanup_deadline = math.inf
     with tempfile.TemporaryDirectory(prefix='kdd-contained-') as temporary:
         directory = Path(temporary)
         try:
@@ -184,7 +244,7 @@ def run(argv, *, cwd, timeout, **kwargs):
             return subprocess.CompletedProcess(argv, returncode, stdout, stderr)
         except BaseException:
             if proc is not None:
-                cleanup_deadline = time.monotonic() + 5
+                cleanup_deadline = min(cleanup_deadline, time.monotonic() + 5)
                 _stop(proc, job, cleanup_deadline)
                 if proc.poll() is None:
                     proc.kill()  # Also covers assignment failure before the release barrier.
