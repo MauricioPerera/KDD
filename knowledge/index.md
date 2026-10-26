@@ -164,6 +164,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contrato de CLI y calidad](./contracts/traceability-cli.md)
 
 - [Aprobacion integrada de calidad](quality-approval.md)
+- [Objetivo de cierre operativo de KDD](operational-closure.md)
 - [Contrato verify-quality](contracts/verify-quality.md)
 - [Nivel 2 nativo](native-level2.md)
 - [Contrato de integracion nativa](contracts/native-level2.md)
