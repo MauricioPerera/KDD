@@ -117,10 +117,25 @@ def paths(root, ref, directory):
     return result
 
 
+def _ancestor_key(root, before, after, cache):
+    if cache is None or not valid_sha(before) or not valid_sha(after):
+        return None
+    format_key = _key(root, 'object-format', '')
+    if format_key not in cache:
+        try:
+            cache[format_key] = git(root, 'rev-parse', '--show-object-format')
+        except TaskError:
+            return None
+    width = {'sha1': 40, 'sha256': 64}.get(cache[format_key])
+    if len(before) == len(after) == width:
+        return _key(root, 'ancestor', before, after)
+    return None
+
+
 def ancestor(root, before, after):
     cache = _OBJECT_CACHE.get()
-    key = _key(root, 'ancestor', before, after) if valid_sha(before) and valid_sha(after) else None
-    if cache is not None and key in cache:
+    key = _ancestor_key(root, before, after, cache)
+    if cache is not None and key is not None and key in cache:
         return True
     try:
         git(root, 'merge-base', '--is-ancestor', before, after)
