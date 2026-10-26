@@ -15,6 +15,8 @@ import guard_pr_baseline as guard
 
 SELECT_STEP = 'Select approved references'
 WORKFLOW = '.github/workflows/validate.yml'
+TEMPLATE = (ROOT / 'src/hello.py').is_file()
+TEMPLATE_ONLY = 'template-only bootstrap integration: project already initialized'
 
 
 class TestApprovalRouting(GitApprovalFixture, unittest.TestCase):
@@ -175,6 +177,7 @@ class TestApprovalRouting(GitApprovalFixture, unittest.TestCase):
         tree = self.command('git', 'rev-parse', 'HEAD^{tree}', cwd=project)
         return project, approved, tree
 
+    @unittest.skipUnless(TEMPLATE, TEMPLATE_ONLY)
     def test_initialized_project_uses_selected_refs_and_runs_real_quality_twice(self):
         with tempfile.TemporaryDirectory(prefix='kdd-routed-product-') as directory:
             area = Path(directory)
@@ -193,6 +196,7 @@ class TestApprovalRouting(GitApprovalFixture, unittest.TestCase):
             self.assertIn('PASS quality: integrity, perimeter and all checks verified twice', result.stdout)
             self.assertEqual(self.command('git', 'status', '--porcelain', cwd=project), '')
 
+    @unittest.skipUnless(TEMPLATE, TEMPLATE_ONLY)
     def test_initialized_project_rejects_missing_quality_before_product_checks(self):
         with tempfile.TemporaryDirectory(prefix='kdd-routed-missing-') as directory:
             area = Path(directory)
@@ -207,6 +211,33 @@ class TestApprovalRouting(GitApprovalFixture, unittest.TestCase):
             text = (project / WORKFLOW).read_text(encoding='utf-8')
             self.assertLess(text.index('- name: ' + SELECT_STEP), text.index('- name: ' + CONFIG_STEP))
             self.assertNotIn('continue-on-error:', text)
+
+    @unittest.skipUnless(TEMPLATE, TEMPLATE_ONLY)
+    def test_initialized_copy_marks_only_template_bootstrap_cases_inapplicable(self):
+        with tempfile.TemporaryDirectory(prefix='kdd-routed-applicability-') as directory:
+            project, _, _ = self.fresh_product(Path(directory))
+            self.assertFalse((project / 'src/hello.py').exists())
+            names = ['tests.test_approval_routing.TestApprovalRouting.' + name for name in (
+                'test_initialized_project_uses_selected_refs_and_runs_real_quality_twice',
+                'test_initialized_project_rejects_missing_quality_before_product_checks',
+                'test_initialized_copy_marks_only_template_bootstrap_cases_inapplicable')]
+            code = (
+                'import io,json,unittest\n'
+                'loader=unittest.TestLoader()\n'
+                'suite=loader.loadTestsFromNames(' + repr(names) + ')\n'
+                'result=unittest.TextTestRunner(stream=io.StringIO()).run(suite)\n'
+                'print(json.dumps(dict(tests=result.testsRun,skipped=[(c.id(),why) for c,why in result.skipped],'
+                'errors=[(c.id(),why) for c,why in result.errors],'
+                'failures=[(c.id(),why) for c,why in result.failures],loader_errors=loader.errors)))\n')
+            result = subprocess.run([sys.executable, '-c', code], cwd=project,
+                capture_output=True, text=True, encoding='utf-8', timeout=60)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            data = json.loads(result.stdout)
+            self.assertEqual(data['tests'], 3)
+            self.assertEqual(data['errors'], [])
+            self.assertEqual(data['failures'], [])
+            self.assertEqual(data['loader_errors'], [])
+            self.assertEqual(sorted(data['skipped']), sorted([name, TEMPLATE_ONLY] for name in names))
 
 
 if __name__ == '__main__':

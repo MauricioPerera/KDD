@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 20
   nesting_max: 4
 tests: tests/test_approval_routing.py
-tests_sha256: '9ba3116505a11290bc645a1d1c72e659bf247e3583fd8d01c3f6a4860cd59e1b'
+tests_sha256: '494c5ce45bc1dac55c20a03604a07646e6b0530af0023cb6fe96e2ac32cd2907'
 touch_only: ['scripts/guard_pr_baseline.py', '.github/workflows/validate.yml', '.github/workflows/trusted-pr-gate.yml', 'scripts/init_project.py', 'scripts/bootstrap_project.py']
 deps_allowed: ['stdlib']
 forbids: ['llm']
@@ -56,6 +56,10 @@ seleccionado y rechaza ausencias antes de ejecutar oraculos de producto.
 tests/test_approval_routing.py usa un remoto bare local con refs/pull reales,
 invoca el guard como proceso, prueba codigo candidato envenenado y ejecuta
 la seleccion extraida del workflow y la calidad real de un proyecto inicializado.
+Los tres casos que inicializan una copia se aplican a la plantilla integra.
+En una copia ya inicializada declaran esa inaplicabilidad; una integracion real
+verifica el inventario exacto de esos tres SKIP, sin errores de Git ni recursion.
+Los otros seis casos siguen ejecutandose tambien en copias inicializadas.
 Los controles sintacticos de todos los workflows permanecen vigentes.
 
 ## Constraints
