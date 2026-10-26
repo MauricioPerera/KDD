@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class ProcessTreeTimeout(unittest.TestCase):
     FIXTURE_TIMEOUT = 5.0
+    TASK_ORACLE_TIMEOUT = 15.0
 
     def setUp(self):
         case = tempfile.TemporaryDirectory(prefix='kdd process \u00f1 ')
@@ -62,23 +63,30 @@ class ProcessTreeTimeout(unittest.TestCase):
         parent.write_text(body, encoding='utf-8')
         return parent, body
 
-    def assert_cancelled(self, operation, delay=None):
+    def assert_cancelled(self, operation, delay=None, timeout=None):
+        if timeout is None:
+            timeout = self.FIXTURE_TIMEOUT
         if delay is None:
-            delay = self.FIXTURE_TIMEOUT + 2.0
+            delay = timeout + 2.0
         start = time.monotonic()
         (self.root / 'schedule.json').write_text(json.dumps({'late_at': start + delay}), encoding='utf-8')
         result = operation()
         elapsed = time.monotonic() - start
-        ready = [(self.root / name).exists() for name in ('child.ready', 'grand.ready', 'tree.ready')]
+        names = ('child.ready', 'grand.ready', 'tree.ready')
+        ready = [(self.root / name).exists() for name in names]
         # On the old implementation descendants self-terminate; keep fixtures alive
         # until then even when an assertion will fail, avoiding orphaned writes.
         until = start + delay + 1.0
         while time.monotonic() < until:
             time.sleep(.05)
-        self.assertTrue(all(ready), 'The test must observe real child and grandchild startup')
+        present = [name for name, exists in zip(names, ready) if exists]
+        missing = [name for name, exists in zip(names, ready) if not exists]
+        self.assertTrue(all(ready), 'The test must observe real child and grandchild startup; '
+                        'present={!r}; missing={!r}; elapsed={:.3f}; timeout={}; result={!r}'.format(
+                            present, missing, elapsed, timeout, result))
         self.assertFalse((self.root / 'child.late').exists(), 'child survived the timeout')
         self.assertFalse((self.root / 'grand.late').exists(), 'grandchild survived the timeout')
-        self.assertLess(elapsed, self.FIXTURE_TIMEOUT + 6.0, 'deadline plus five-second cleanup grace exceeded')
+        self.assertLess(elapsed, timeout + 6.0, 'deadline plus five-second cleanup grace exceeded')
         return result
 
     def test_completed_process_keeps_unicode_output_cwd_env_and_exit_code(self):
@@ -175,9 +183,12 @@ class ProcessTreeTimeout(unittest.TestCase):
                     'tests': 'tests/test_oracle.py'}
         def operation():
             with self.assertRaises(Exception) as raised:
-                evidence.execute(metadata, str(self.root), timeout=self.FIXTURE_TIMEOUT)
+                evidence.execute(metadata, str(self.root), timeout=self.TASK_ORACLE_TIMEOUT)
             self.assertIn('TASK_TESTS', str(raised.exception))
-        self.assert_cancelled(operation)
+            return raised.exception
+        result = self.assert_cancelled(operation, timeout=self.TASK_ORACLE_TIMEOUT)
+        self.assertIsInstance(result.__cause__, subprocess.TimeoutExpired,
+                              'Task oracle must fail because of TimeoutExpired: ' + str(result))
 
     def test_timeout_does_not_kill_an_unrelated_neighbor(self):
         runner = self.module('process_tree')

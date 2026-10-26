@@ -36,6 +36,9 @@ Python 3.11 documenta el reloj monotonic como comun al sistema y no afectado por
 cambios del reloj de pared: [documentacion oficial](https://docs.python.org/3.11/library/time.html#time.monotonic).
 El timeout del runtime no empieza despues del handshake: sigue incluyendo
 todo el lanzamiento. Si no hay arranque observable dentro de 5 s, el caso falla.
+La [revision de la variante de tareas](process-task-fixture.md) propone una
+reserva explicita de 15 s para ese caso y diagnosticos de arranque; los otros
+casos siguen usando este calendario de 5 s. Su adopcion requiere otro baseline.
 
 # Fuerza del oraculo
 
