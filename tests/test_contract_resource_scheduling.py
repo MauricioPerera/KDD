@@ -183,7 +183,7 @@ class ContractResourceScheduling(unittest.TestCase):
         self.assertEqual(len(self.events('a','start')), 2)
 
     def cli(self, raw):
-        return subprocess.run([sys.executable,str(ROOT/'scripts/validate_test_commands.py'),
+        return subprocess.run([sys.executable,'-X','utf8',str(ROOT/'scripts/validate_test_commands.py'),
             str(self.contracts),str(self.root),'--workers','4','--exclusive-commands-json',raw],
             cwd=self.root,capture_output=True,text=True,encoding='utf-8',timeout=60)
 
@@ -200,6 +200,24 @@ class ContractResourceScheduling(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
         end = self.events('heavy','end')[0]['time']
         self.assertTrue(all(row['time']>=end for row in self.events(phase='start') if row['label'] in ('a','b')))
+
+    def test_cli_unicode_round_trip_under_legacy_inherited_environment(self):
+        environment = dict(os.environ, PYTHONUTF8='0', PYTHONCOERCECLOCALE='0')
+        environment.pop('PYTHONIOENCODING', None)
+        if os.name != 'nt':
+            environment['LC_ALL'] = 'C'
+        program = (
+            'import sys,unittest; sys.path.insert(0,' + repr(str(ROOT/'tests')) + '); '
+            'suite=unittest.defaultTestLoader.loadTestsFromName('
+            '"test_contract_resource_scheduling.ContractResourceScheduling.'
+            'test_cli_runs_the_explicit_policy_with_real_commands"); '
+            'result=unittest.TextTestRunner(verbosity=2).run(suite); '
+            'sys.exit(not result.wasSuccessful())')
+        result = subprocess.run([sys.executable, '-I', '-X', 'utf8', '-c', program],
+            cwd=ROOT, env=environment, capture_output=True, text=True,
+            encoding='utf-8', timeout=90)
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+        self.assertIn('Ran 1 test', result.stderr)
 
     def test_real_external_bundle_accepts_the_resource_policy_and_reports_every_contract(self):
         heavy = self.example()

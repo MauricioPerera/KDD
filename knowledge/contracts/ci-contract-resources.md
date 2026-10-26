@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 20
   nesting_max: 4
 tests: tests/test_contract_resource_scheduling.py
-tests_sha256: '70f803ab174542a8db12961cda86be24b3c284c0107bac9abc5349e3c4c7b4eb'
+tests_sha256: '8cd56adc3f51820ffbb6255972250ad47807ec41d747fd9d5e1c9db177b4ea68'
 touch_only: ['scripts/validate_test_commands.py', 'scripts/trusted_ci.py', '.github/workflows/validate.yml']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -49,6 +49,11 @@ y matriz dual-OS permanecen; no agregar continue-on-error ni SKIP de cobertura.
 El oraculo usa procesos reales con diarios por invocacion, barreras de inicio,
 un comando que crea cuatro hijos, fallos, timeouts y CLI en un bundle real de Git.
 Comprueba tambien compatibilidad del modo sin politica y el workflow literal.
+El helper de CLI fija UTF-8 en el proceso hijo cuando captura su salida como
+UTF-8. Una regresion ejecuta el caso existente de rutas Unicode desde un padre
+con UTF-8 explicito y un entorno heredable legado, sin asumir que -X utf8 se
+propaga a los descendientes. Conservar las aserciones y los dieciocho casos
+anteriores; no sustituir bytes invalidos ni ocultar None en el diagnostico.
 
 ## Constraints
 PARAR y reportar si se necesita aprobar un runtime, cambiar un oraculo congelado
