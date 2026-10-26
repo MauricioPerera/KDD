@@ -13,9 +13,9 @@ on:
   # file fires on its native push/pull_request triggers, `inputs.*` is EMPTY,
   # so each job environment variable falls back to the literal default
   # embedded in the `${{ inputs.X || 'literal' }}` expression. That literal
-  # MUST match the value that was hardcoded here before this trigger existed
-  # (see ITEM4-REPORT.md for the equivalence check) — otherwise the KDD repo's
-  # own CI would change behavior on push.
+  # MUST match its documented default. Approval references are selected below
+  # from the external tree registry or explicit reusable inputs; legacy global
+  # references are not fallback values.
   # Worker inputs are opt-in: callers default to serial execution; only native
   # runs of this repository use the reviewed parallel defaults below.
   workflow_call:
@@ -97,6 +97,9 @@ on:
       approved_baseline_ref:
         type: string
         default: ''
+      approval_registry:
+        type: string
+        default: ''
       trusted_runtime_ref:
         type: string
         default: ''
@@ -124,6 +127,9 @@ jobs:
       KDD_SUITE_WORKERS: ${{ inputs.suite_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1') }}
       KDD_CONTRACT_WORKERS: ${{ inputs.contract_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1') }}
       KDD_TRUSTED_RUNTIME_REF: ${{ inputs.trusted_runtime_ref || vars.KDD_TRUSTED_RUNTIME_REF || (github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha) }}
+      KDD_APPROVAL_REGISTRY: ${{ inputs.approval_registry || (!inputs.reusable_execution && vars.KDD_APPROVAL_REGISTRY || '') }}
+      KDD_EXPLICIT_APPROVED_BASELINE_REF: ${{ inputs.approved_baseline_ref || '' }}
+      KDD_EXPLICIT_QUALITY_APPROVED_REF: ${{ inputs.quality_approved_ref || '' }}
       KDD_CONTRACTS_DIR: ${{ inputs.contracts_dir || 'knowledge/contracts' }}
       KDD_SPECS_DIR: ${{ inputs.specs_dir || 'specs' }}
       KDD_COMPLETION_POLICY: ${{ inputs.completion_policy_path || 'completion-legacy.json' }}
@@ -154,6 +160,30 @@ jobs:
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
+
+      - name: Select approved references
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, str(Path('scripts').resolve()))
+          from approval_registry import ApprovalError, resolve
+          required = {item.strip() for item in os.environ['KDD_REQUIRED_EVIDENCE'].split(',')}
+          try:
+              selected = resolve(
+                  '.', 'HEAD', os.environ['KDD_APPROVAL_REGISTRY'],
+                  explicit_baseline=os.environ['KDD_EXPLICIT_APPROVED_BASELINE_REF'],
+                  explicit_quality=os.environ['KDD_EXPLICIT_QUALITY_APPROVED_REF'],
+                  require_quality='quality' in required or Path(os.environ.get('KDD_QUALITY_POLICY', 'quality.json')).exists(),
+              )
+          except ApprovalError as error:
+              raise SystemExit('FAIL: ' + str(error))
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              output.write('KDD_APPROVED_BASELINE_REF=' + selected['baseline_ref'] + '\n')
+              output.write('KDD_QUALITY_APPROVED_REF=' + (selected['quality_ref'] or '') + '\n')
+          print(json.dumps(selected, sort_keys=True))
 
       - name: Materialize reviewed isolated CI runtime
         shell: python -I {0}
@@ -192,7 +222,6 @@ jobs:
       - name: Check approved contract and oracle baseline
         shell: python
         env:
-          KDD_APPROVED_BASELINE_REF: ${{ inputs.approved_baseline_ref || vars.KDD_APPROVED_BASELINE_REF || '' }}
           KDD_CONTRACTS_DIR: ${{ inputs.contracts_dir || 'knowledge/contracts' }}
         run: |
           import os
@@ -253,7 +282,6 @@ jobs:
         shell: bash
         env:
           KDD_CHANGE_CONTRACT: ${{ inputs.change_contract_path || '' }}
-          KDD_CHANGE_BASE_REF: ${{ inputs.approved_baseline_ref || vars.KDD_APPROVED_BASELINE_REF || '' }}
           KDD_CHANGE_HEAD_REF: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           if [ -z "$KDD_CHANGE_CONTRACT" ]; then
@@ -262,7 +290,7 @@ jobs:
           fi
           python scripts/validate_change_contract.py \
             --contract "$KDD_CHANGE_CONTRACT" \
-            --base-ref "$KDD_CHANGE_BASE_REF" \
+            --base-ref "$KDD_APPROVED_BASELINE_REF" \
             --head-ref "$KDD_CHANGE_HEAD_REF"
 
       - name: "Validate specs contracts"
@@ -436,7 +464,6 @@ jobs:
         shell: python
         env:
           KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
-          KDD_QUALITY_APPROVED_REF: ${{ inputs.quality_approved_ref || vars.KDD_QUALITY_APPROVED_REF || '' }}
         run: |
           import os
           from pathlib import Path

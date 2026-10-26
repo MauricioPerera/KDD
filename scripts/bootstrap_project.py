@@ -56,10 +56,14 @@ el perfil local minimal. Define contratos, oraculos y checks funcionales,
 adversariales y de interfaz propios antes de implementar. Protege el
 workflow generado, el runner y las dependencias de esas pruebas.
 
-La persona revisora aprueba el commit que contiene esa politica y registra
-su SHA completo en las variables de Actions `KDD_APPROVED_BASELINE_REF` y
-`KDD_QUALITY_APPROVED_REF` del repositorio nuevo. El CI verifica el checkout
-actual con el runner de ese commit y ejecuta los checks dos veces.
+La persona revisora aprueba los commits de contratos/oraculos y de calidad.
+Registra sus SHA completos en `KDD_APPROVAL_REGISTRY`, variable de Actions
+externa al PR, bajo el arbol Git exacto del candidato. Conserva las entradas
+de main y de otras propuestas. Consulta `knowledge/approval-registry.md`.
+El selector publica `KDD_APPROVED_BASELINE_REF` y `KDD_QUALITY_APPROVED_REF`
+para los pasos posteriores; no usa las variables globales antiguas como
+fallback. El CI verifica el checkout actual con el runner de la referencia
+de calidad y ejecuta los checks dos veces.
 Si falta configuracion, el CI falla antes de los oraculos.
 
 Consulta `knowledge/bootstrap-product-quality-ci.md` para preparar la

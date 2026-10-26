@@ -4,9 +4,13 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
-- Pages inventory correction implemented and verified locally on
-  `codex/pages-ci-inventory`; GitHub CI and deployment remain pending.
-  Deployment now requires matching manifests from both Ubuntu/Windows passes
+- Native CI selects reviewed baseline and quality commits from an external
+  registry keyed by the candidate Git tree. Main and concurrent proposals retain
+  independent entries; unknown trees and missing required quality fail without
+  falling back to legacy globals. Bootstrap keeps product checks mandatory.
+  See [approval routing](knowledge/approval-registry.md).
+
+- Pages deployment requires matching manifests from both Ubuntu/Windows passes
   in the exact run, attempt, commit and reviewed runtime. Strict discovery
   rejects import failures, empty inventories and duplicate IDs before creating
   the bundle. The counter reports inventory IDs, including declared skips.

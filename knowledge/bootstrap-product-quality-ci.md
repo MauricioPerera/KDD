@@ -32,16 +32,21 @@ solo anuncia la configuracion; no genera ni aprueba un producto.
    y el ejemplo adaptable en examples/quality-approval/README.md. Incluir
    comandos funcionales, adversariales y de interfaz cuando corresponda.
 3. Inventariar rutas exactas. Proteger oraculos, helpers, contratos,
-   scripts/verify_quality.py, el workflow generado y sus dependencias.
+   scripts/verify_quality.py, scripts/approval_registry.py, el workflow generado
+   y sus dependencias.
    No copiar rutas ni SHAs del experimento de demostracion.
 4. Registrar todo lo necesario en un commit y someter ese SHA completo a
    revision humana. La politica y todos los protected deben existir en el
    objeto Git aprobado. El manifiesto de quality_baseline.py facilita su
    revision; no aprueba la referencia.
-5. La persona revisora registra KDD_APPROVED_BASELINE_REF y
-   KDD_QUALITY_APPROVED_REF en las variables de Actions del repositorio
-   nuevo. Pueden coincidir cuando el commit revisado contiene ambos
-   baselines. El bootstrap no crea commits, variables, refs ni aprobaciones.
+5. La persona revisora registra los commits aprobados en la variable externa
+   KDD_APPROVAL_REGISTRY, bajo el arbol Git exacto del candidato. Seguir el
+   [protocolo de aprobaciones aisladas](approval-registry.md); conservar las
+   entradas de main y de otras propuestas. baseline_ref y quality_ref pueden
+   coincidir cuando el commit revisado contiene ambos baselines.
+   El selector publica KDD_APPROVED_BASELINE_REF y KDD_QUALITY_APPROVED_REF
+   para los pasos siguientes; los globals antiguos no son fallback.
+   El bootstrap no crea commits, variables, refs ni aprobaciones.
 
 Hasta completar esa preparacion, el CI nuevo falla con un diagnostico; la
 ausencia de calidad no se considera SKIP satisfactorio, incluso con el

@@ -330,7 +330,6 @@ _PRODUCT_CI_REPLACEMENTS = (
       KDD_REQUIRED_EVIDENCE: ${{ inputs.required_evidence || '' }}
 """,
         """      KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality/product.json' }}
-      KDD_QUALITY_APPROVED_REF: ${{ inputs.quality_approved_ref || vars.KDD_QUALITY_APPROVED_REF || '' }}
       KDD_REQUIRED_EVIDENCE: ${{ inputs.required_evidence || 'quality' }}
 """,
     ),
