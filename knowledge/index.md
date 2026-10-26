@@ -165,6 +165,9 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 - [Aprobacion integrada de calidad](quality-approval.md)
 - [Objetivo de cierre operativo de KDD](operational-closure.md)
+- [Aprobaciones externas aisladas](approval-registry.md)
+- [Contrato del selector de referencias](contracts/approval-registry.md)
+- [Contrato de integracion de aprobaciones](contracts/approval-routing.md)
 - [Contrato verify-quality](contracts/verify-quality.md)
 - [Nivel 2 nativo](native-level2.md)
 - [Contrato de integracion nativa](contracts/native-level2.md)
