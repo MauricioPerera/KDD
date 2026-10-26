@@ -116,15 +116,17 @@ def _commands(args, directory):
     if not contracts.is_absolute():
         contracts = Path(args.repo_root) / contracts
     planned = gate.collect_contracts(str(contracts))
+    exclusive = gate.parse_exclusive_commands(args.exclusive_commands_json)
     results = gate.run_all(str(contracts), args.repo_root, timeout=args.timeout,
                            deduplicate=args.deduplicate, workers=args.workers,
-                           trusted_bundle=directory)
+                           trusted_bundle=directory, exclusive_commands=exclusive)
     expected = [(item['path'], item['test_command']) for item in planned]
     actual = [(item['path'], item['test_command']) for item in results]
     ok = bool(results) and expected == actual and all(
         item['ok'] is True and item['exit_code'] == 0 and item['error'] is None for item in results)
     gate._print_results(results)
-    return dict(version=1, ok=ok, results=results, contracts=len(planned))
+    return dict(version=1, ok=ok, results=results, contracts=len(planned),
+                exclusive_commands=list(exclusive))
 
 
 def _report_destination(args):
@@ -162,6 +164,7 @@ def main(argv=None):
             command.add_argument('--contracts-dir', default='knowledge/contracts')
             command.add_argument('--timeout', type=float, default=600)
             command.add_argument('--deduplicate', action='store_true')
+            command.add_argument('--exclusive-commands-json', default='[]')
     args = parser.parse_args(argv)
     destination = None
     try:

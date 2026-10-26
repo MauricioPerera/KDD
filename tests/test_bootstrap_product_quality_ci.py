@@ -158,7 +158,7 @@ class BootstrapProductQualityCiTests(unittest.TestCase):
         self.assertEqual(text.count('os: [ubuntu-latest, windows-latest]'), 2)
         self.assertEqual(text.count('run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" --report-dir "$RUNNER_TEMP/kdd-suite-reports"'), 2)
         self.assertIn('KDD_QUALITY_OUTCOME: ', text)
-        self.assertIn('vars.KDD_QUALITY_APPROVED_REF', text.split('    steps:', 1)[0])
+        self.assertIn('KDD_APPROVAL_REGISTRY', text.split('    steps:', 1)[0])
         self.assertLess(text.index('- name: ' + CONFIG_STEP),
                         text.index("- name: Run each contract's test_command"))
         self.assertIn('- name: Validate Git task snapshots and transitions', text)

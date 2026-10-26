@@ -15,7 +15,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_bootstrap_product_quality_ci.py
-tests_sha256: '8907dd3ad7a86bf9473c059b5ad39667fbb79841dd63cbf1b5da52c2c05da8d9'
+tests_sha256: '862f2fb82f84b46f870573cbf16136cf66a05f7b0991a99a3c706f802fadbd3b'
 touch_only: ['scripts/init_project.py', 'scripts/bootstrap_project.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'subprocess', 'llm']
@@ -75,6 +75,9 @@ crea producto/oraculo/politica propios y ejecuta los cuerpos Python reales
 del workflow generado. Verifica PASS y rechazos efectivos, no solo texto.
 Los casos de instanciacion se omiten en copias ya inicializadas para evitar
 recursion; se ejecutan completos en KDD. El fixture no aprueba el repo real.
+La [seleccion aislada](../approval-registry.md) reemplaza la comprobacion
+literal de la variable global por la presencia del registro externo; sus
+integraciones ejecutan la referencia seleccionada y los checks reales.
 
 ## Constraints
 PARAR y reportar si fuera necesario modificar oraculos anteriores o elegir

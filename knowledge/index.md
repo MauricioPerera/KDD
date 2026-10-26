@@ -3,6 +3,9 @@
 Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está especificado en [OKF-SPEC](./OKF-SPEC.md).
 
 ## Referencia
+- [Barrera de terminacion de procesos](./process-exit-barrier.md) — handles propios senalados y limpieza acotada antes de liberar comandos.
+- [Contrato de barrera de terminacion](./contracts/process-exit-barrier.md)
+- [Coste de lectura del historial](./task-history-read-cost.md) — propuesta de cache por operacion y padres por lote, conservando la auditoria completa.
 - [Estado verificable de KDD](./estado-actual-kdd.md) — corte al 24 de octubre de 2026, diferencias entre main y la rama local, evidencia publica y pendientes.
 - [Calidad de producto desde el arranque](./bootstrap-product-quality-ci.md) — CI obligatorio sobre politica propia y referencia revisada.
 - [Optimizacion de CI](./contracts/ci-execution-deduplication.md) — agrupacion local de comandos identicos, concurrencia de PR y medicion antes/despues.
@@ -164,6 +167,14 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contrato de CLI y calidad](./contracts/traceability-cli.md)
 
 - [Aprobacion integrada de calidad](quality-approval.md)
+- [Objetivo de cierre operativo de KDD](operational-closure.md)
+- [Aprobaciones externas aisladas](approval-registry.md)
+- [Contrato del selector de referencias](contracts/approval-registry.md)
+- [Contrato de integracion de aprobaciones](contracts/approval-routing.md)
+- [Recursos de comandos y mediciones Windows](windows-contract-resources.md)
+- [Contrato de comandos exclusivos](contracts/ci-contract-resources.md)
+- [Perfil MCP con SDK fijado](mcp-sdk-ci.md)
+- [Contrato de verificacion SDK](contracts/mcp-sdk-ci.md)
 - [Contrato verify-quality](contracts/verify-quality.md)
 - [Nivel 2 nativo](native-level2.md)
 - [Contrato de integracion nativa](contracts/native-level2.md)

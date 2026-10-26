@@ -30,7 +30,7 @@ target: verify_user.py
 signature: "def verify_user(id: str) -> bool:"
 test_command: "python -m unittest verify_test.py"
 budget:
-  max_cyclomatic_complexity: 4
+  cyclomatic_max: 4
 tests: "verify_test.py"
 tests_sha256: "a1b2c3d4e5f6..."
 ---

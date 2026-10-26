@@ -1,17 +1,14 @@
 """Smoke test del wiring MCP real (scripts/mcp_server.py) via sesion in-memory.
 
-NO es un oraculo congelado CCDD (mcp_server.py no tiene task contract: depende
-del paquete externo `mcp`, fuera de la convencion deps_allowed: [] del resto
-del repo -- ver knowledge/contracts/mcp-gate-dispatch.md). Este archivo
+Sus bytes se conservan mediante el oraculo del perfil mcp-sdk-ci. Este archivo
 verifica, con el SDK real y sin stdio real (streams en memoria), que el
-server: (a) expone las 14 tools esperadas, y (b) al menos una tool corrida de
+server: (a) expone las 16 tools esperadas, y (b) al menos una tool corrida de
 punta a punta via el protocolo MCP real (tools/call) devuelve el resultado
 correcto contra el repo real.
 
-Se salta LIMPIO (unittest.SkipTest) si el paquete `mcp` no esta instalado --
-asi `python -m unittest discover` sigue verde en CI (que no instala `mcp`;
-esta herramienta es opt-in, no parte de Nivel 1). Correr localmente con
-`pip install mcp` primero para que esto se ejecute de verdad.
+El perfil base sin SDK declara sus SKIP. CI nativo tambien exige un perfil
+aislado con SDK fijado y ocho casos sin SKIP; ese es el que acredita MCP.
+Preparacion y limites en knowledge/mcp-sdk-ci.md.
 """
 
 import asyncio
@@ -43,7 +40,7 @@ EXPECTED_TOOLS = {
 }
 
 
-@unittest.skipUnless(_MCP_AVAILABLE, "paquete 'mcp' no instalado (pip install mcp)")
+@unittest.skipUnless(_MCP_AVAILABLE, "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md")
 class TestMcpServerSmoke(unittest.TestCase):
     def _run(self, coro):
         return asyncio.run(coro)
