@@ -42,7 +42,8 @@ Un fallo o timeout exclusivo no omite los comandos restantes.
 El [contrato](contracts/ci-contract-resources.md) agrega
 --exclusive-commands-json al runner confiable y al CLI del gate. El workflow
 reutilizable recibe exclusive_contract_commands con default '[]'. Solo KDD
-nativo selecciona por defecto el comando exacto de init-project; los callers
+nativo en Windows selecciona por defecto el comando exacto de init-project; Ubuntu
+conserva el pool paralelo. Los callers
 conservan su perfil serial salvo configuracion explicita.
 
 El timeout sigue siendo 600 s. No cambiar el oraculo de init-project ni su

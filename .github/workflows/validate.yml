@@ -132,7 +132,7 @@ jobs:
     env:
       KDD_SUITE_WORKERS: ${{ inputs.suite_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1') }}
       KDD_CONTRACT_WORKERS: ${{ inputs.contract_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1') }}
-      KDD_EXCLUSIVE_CONTRACT_COMMANDS: ${{ inputs.exclusive_contract_commands || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '["python -m unittest tests/test_init_project.py"]' || '[]') }}
+      KDD_EXCLUSIVE_CONTRACT_COMMANDS: ${{ inputs.exclusive_contract_commands || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && matrix.os == 'windows-latest' && '["python -m unittest tests/test_init_project.py"]' || '[]') }}
       KDD_MCP_SDK_REQUIRED: ${{ (inputs.verify_mcp_sdk || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD')) && '1' || '0' }}
       KDD_TRUSTED_RUNTIME_REF: ${{ inputs.trusted_runtime_ref || vars.KDD_TRUSTED_RUNTIME_REF || (github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha) }}
       KDD_APPROVAL_REGISTRY: ${{ inputs.approval_registry || (!inputs.reusable_execution && vars.KDD_APPROVAL_REGISTRY || '') }}
