@@ -321,7 +321,7 @@ jobs:
           spec.loader.exec_module(process_tree)
           result = process_tree.run([os.environ['KDD_MCP_SDK_PYTHON'], '-I', 'scripts/check_mcp_sdk.py',
                                      '--repo-root', '.', '--report-json', os.environ['KDD_MCP_SDK_REPORT'],
-                                     '--expected-commit', os.environ['GITHUB_SHA']], timeout=120)
+                                     '--expected-commit', os.environ['GITHUB_SHA']], cwd=Path.cwd(), timeout=120)
           if result.returncode:
               raise SystemExit(result.returncode)
           data = json.loads(Path(os.environ['KDD_MCP_SDK_REPORT']).read_text(encoding='utf-8'))
