@@ -4,6 +4,14 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- Native contract commands can reserve an exclusive phase for init-project's
+  nested suite, retaining its 600-second limit, every contract result, exact
+  deduplication and the existing worker defaults for reusable callers. Native
+  validation also requires eight real MCP protocol cases with a pinned SDK in
+  an external environment; missing SDK, skipped cases and stale evidence fail.
+  See [command resources](knowledge/windows-contract-resources.md) and
+  [the SDK profile](knowledge/mcp-sdk-ci.md).
+
 - Native CI selects reviewed baseline and quality commits from an external
   registry keyed by the candidate Git tree. Main and concurrent proposals retain
   independent entries; unknown trees and missing required quality fail without

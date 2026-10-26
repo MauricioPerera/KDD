@@ -91,6 +91,22 @@ los SHA revisados antes de lanzar su CI. Si cambia el arbol al actualizar la
 rama, se agrega otra entrada con el mismo baseline solo si los oraculos
 siguen intactos y ese baseline permanece aprobado para el trabajo.
 
+Identificar el candidato con git rev-parse HEAD y su clave con
+git rev-parse 'HEAD^{tree}'. Estos comandos describen el contexto; no eligen
+el baseline. Usar en baseline_ref y quality_ref los SHA entregados por la
+persona revisora. Conservar el mapa existente al agregar entradas.
+Antes de publicar, el CLI permite comprobar la seleccion sin escribir Git
+ni variables remotas:
+
+```text
+python scripts/approval_registry.py --repo-root . --candidate-ref HEAD
+```
+
+El JSON se obtiene de KDD_APPROVAL_REGISTRY. Un caller reusable proporciona
+approval_registry o los inputs explicitos completos; las variables globales
+antiguas no sustituyen esos inputs. Los repositorios con workflows anteriores
+conservan su comportamiento hasta migrar su copia o referencia del workflow.
+
 # Criterios verificables
 
 - Main y dos propuestas con oraculos distintos se validan independientemente.

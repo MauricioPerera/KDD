@@ -51,6 +51,28 @@ los ocho casos reales sin SKIP, ademas de las dos pasadas generales completas.
 
 # Operacion
 
+Preparar un directorio externo al repositorio y usar el lock de su plataforma:
+
+```text
+python -m venv <VENV_EXTERNO>
+<VENV_EXTERNO>/Scripts/python.exe -I -m pip install --only-binary=:all: --require-hashes --index-url https://pypi.org/simple -r tools/mcp-sdk/windows.txt
+```
+
+En Ubuntu, el ejecutable es <VENV_EXTERNO>/bin/python y el lock es
+tools/mcp-sdk/ubuntu.txt. El Python base conserva su entorno anterior.
+
+Configurar KDD_MCP_SDK_PYTHON con ese ejecutable antes de correr los comandos
+de contratos o las suites que incluyen la integracion SDK. Para verificar solo
+el protocolo, ejecutar el SDK Python directamente:
+
+```text
+<SDK_PYTHON> -I scripts/check_mcp_sdk.py --repo-root . --report-json <REPORTE_NUEVO.json>
+```
+
+Agregar --expected-commit <SHA_COMPLETO> exige un checkout limpio de ese commit,
+como hace CI. El reporte identifica version, origen del SDK, IDs, hash del
+oraculo y resultados; solo exit 0 acredita el perfil. No reutilizar su ruta.
+
 Consultar tools/mcp-sdk/pins.json y el lock de la plataforma antes de preparar
 un entorno. Los hashes evitan resolver versiones nuevas durante una misma
 revision. Actualizar SDK, locks u oraculos requiere otro baseline revisado;

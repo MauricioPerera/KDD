@@ -29,6 +29,12 @@ on:
       contract_workers:
         type: string
         default: '1'
+      exclusive_contract_commands:
+        type: string
+        default: '[]'
+      verify_mcp_sdk:
+        type: boolean
+        default: false
       contracts_dir:
         type: string
         default: 'knowledge/contracts'
@@ -126,6 +132,8 @@ jobs:
     env:
       KDD_SUITE_WORKERS: ${{ inputs.suite_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1') }}
       KDD_CONTRACT_WORKERS: ${{ inputs.contract_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1') }}
+      KDD_EXCLUSIVE_CONTRACT_COMMANDS: ${{ inputs.exclusive_contract_commands || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '["python -m unittest tests/test_init_project.py"]' || '[]') }}
+      KDD_MCP_SDK_REQUIRED: ${{ (inputs.verify_mcp_sdk || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD')) && '1' || '0' }}
       KDD_TRUSTED_RUNTIME_REF: ${{ inputs.trusted_runtime_ref || vars.KDD_TRUSTED_RUNTIME_REF || (github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha) }}
       KDD_APPROVAL_REGISTRY: ${{ inputs.approval_registry || (!inputs.reusable_execution && vars.KDD_APPROVAL_REGISTRY || '') }}
       KDD_EXPLICIT_APPROVED_BASELINE_REF: ${{ inputs.approved_baseline_ref || '' }}
@@ -273,6 +281,52 @@ jobs:
         if: ${{ hashFiles('tools/kdd-board/package-lock.json') != '' }}
         run: npm ci --ignore-scripts
         working-directory: tools/kdd-board
+
+      - name: Prepare pinned MCP SDK environment
+        if: ${{ env.KDD_MCP_SDK_REQUIRED == '1' }}
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          import subprocess
+          import tempfile
+          import venv
+          root = Path.cwd().resolve()
+          directory = Path(tempfile.mkdtemp(prefix='kdd-mcp-sdk-', dir=os.environ['RUNNER_TEMP'])).resolve()
+          if directory.is_relative_to(root):
+              raise SystemExit('FAIL: SDK environment must be outside the checkout')
+          venv.EnvBuilder(with_pip=True).create(directory / 'venv')
+          python = directory / 'venv' / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+          platform = 'windows' if os.name == 'nt' else 'ubuntu'
+          environment = dict(os.environ, PIP_CONFIG_FILE=os.devnull, PIP_INDEX_URL='https://pypi.org/simple',
+                             PIP_EXTRA_INDEX_URL='', PIP_FIND_LINKS='', PIP_DISABLE_PIP_VERSION_CHECK='1')
+          subprocess.run([str(python), '-I', '-m', 'pip', 'install', '--only-binary=:all:',
+                          '--require-hashes', '--index-url', 'https://pypi.org/simple',
+                          '-r', str(root / 'tools/mcp-sdk' / (platform + '.txt'))],
+                         env=environment, check=True, timeout=300)
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              output.write('KDD_MCP_SDK_PYTHON=' + python.as_posix() + '\n')
+              output.write('KDD_MCP_SDK_REPORT=' + (directory / 'protocol-report.json').as_posix() + '\n')
+
+      - name: Run required MCP SDK protocol smoke
+        if: ${{ env.KDD_MCP_SDK_REQUIRED == '1' }}
+        shell: python
+        run: |
+          import importlib.util
+          import json
+          import os
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location('reviewed_process_tree', Path(os.environ['KDD_TRUSTED_BUNDLE']) / 'process_tree.py')
+          process_tree = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(process_tree)
+          result = process_tree.run([os.environ['KDD_MCP_SDK_PYTHON'], '-I', 'scripts/check_mcp_sdk.py',
+                                     '--repo-root', '.', '--report-json', os.environ['KDD_MCP_SDK_REPORT'],
+                                     '--expected-commit', os.environ['GITHUB_SHA']], timeout=120)
+          if result.returncode:
+              raise SystemExit(result.returncode)
+          data = json.loads(Path(os.environ['KDD_MCP_SDK_REPORT']).read_text(encoding='utf-8'))
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as output:
+              output.write('MCP SDK ' + data['sdk_version'] + ': PASS, 8 protocol cases, 0 SKIP (in-memory).\n')
 
       - name: Validate contracts
         shell: bash
@@ -424,7 +478,7 @@ jobs:
       - name: Run each contract's test_command
         shell: bash
         # init-project also runs the post-initialization suite; allow slow Windows runners.
-        run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" commands --repo-root . --contracts-dir "$KDD_CONTRACTS_DIR" --timeout 600 --deduplicate --workers "$KDD_CONTRACT_WORKERS" --report-dir "$RUNNER_TEMP/kdd-command-reports"
+        run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" commands --repo-root . --contracts-dir "$KDD_CONTRACTS_DIR" --timeout 600 --deduplicate --workers "$KDD_CONTRACT_WORKERS" --report-dir "$RUNNER_TEMP/kdd-command-reports" --exclusive-commands-json "$KDD_EXCLUSIVE_CONTRACT_COMMANDS"
 
       - name: Scan for leaked secrets (src only — see knowledge/contracts/secret-scan-gate.md)
         shell: bash

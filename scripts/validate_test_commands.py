@@ -147,11 +147,45 @@ def run_test_command(cmd, cwd, timeout, capture=False, *, trusted_bundle=None):
     return result
 
 
-def run_all(contracts_dir, repo_root, timeout=600, deduplicate=False, workers=1, *, trusted_bundle=None):
+def parse_exclusive_commands(raw):
+    """Decode only the JSON transport; inventory validation precedes execution."""
+    try:
+        return json.loads(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError('exclusive commands must be valid JSON') from exc
+
+
+def _exclusive_commands(value, items):
+    if type(value) not in (list, tuple):
+        raise ValueError('exclusive commands must be a list or tuple')
+    if any(not isinstance(item, str) or not item for item in value):
+        raise ValueError('exclusive commands must contain nonempty strings')
+    selected = set(value)
+    if len(selected) != len(value):
+        raise ValueError('exclusive commands must not contain duplicates')
+    if selected - {item['test_command'] for item in items}:
+        raise ValueError('exclusive command is absent from the inventory')
+    return selected
+
+
+def _schedule(scheduled, exclusive, execute, workers):
+    outcomes = {index: execute(index) for index in scheduled if index in exclusive}
+    remaining = [index for index in scheduled if index not in exclusive]
+    if workers == 1:
+        outcomes.update({index: execute(index) for index in remaining})
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {index: pool.submit(execute, index) for index in remaining}
+            outcomes.update({index: future.result() for index, future in futures.items()})
+    return outcomes
+
+
+def run_all(contracts_dir, repo_root, timeout=600, deduplicate=False, workers=1, *, trusted_bundle=None, exclusive_commands=()):
     """Run every command with opt-in concurrency and per-call exact grouping."""
     if type(workers) is not int or not 1 <= workers <= 8:
         raise ValueError('workers must be an integer between 1 and 8')
     items = collect_contracts(contracts_dir)
+    exclusive = _exclusive_commands(exclusive_commands, items)
     representatives = {}
     scheduled = []
     for index, item in enumerate(items):
@@ -167,12 +201,8 @@ def run_all(contracts_dir, repo_root, timeout=600, deduplicate=False, workers=1,
                                    timeout=timeout, capture=True, **options)
         return outcome, time.perf_counter() - started
 
-    if workers == 1:
-        outcomes = {index: execute(index) for index in scheduled}
-    else:
-        with ThreadPoolExecutor(max_workers=workers) as pool:
-            futures = {index: pool.submit(execute, index) for index in scheduled}
-            outcomes = {index: future.result() for index, future in futures.items()}
+    exclusive_indices = {index for index in scheduled if items[index]['test_command'] in exclusive}
+    outcomes = _schedule(scheduled, exclusive_indices, execute, workers)
     results = []
     for index, item in enumerate(items):
         key = item['test_command'] if deduplicate else index
@@ -257,8 +287,19 @@ def main(argv):
             print('FAIL: --timeout debe ser positivo')
             return 1
     started = time.perf_counter()
-    results = run_all(contracts_dir, repo_root, timeout=timeout,
-                      deduplicate='--deduplicate' in argv, workers=workers)
+    try:
+        exclusive = ()
+        if '--exclusive-commands-json' in argv:
+            index = argv.index('--exclusive-commands-json')
+            if index + 1 >= len(argv):
+                raise ValueError('exclusive commands JSON argument is missing')
+            exclusive = parse_exclusive_commands(argv[index + 1])
+        results = run_all(contracts_dir, repo_root, timeout=timeout,
+                         deduplicate='--deduplicate' in argv, workers=workers,
+                         exclusive_commands=exclusive)
+    except ValueError as exc:
+        print('FAIL: ' + str(exc))
+        return 1
     if not results:
         print('FAIL: no contracts with test_command found in {}'.format(contracts_dir))
         return 1

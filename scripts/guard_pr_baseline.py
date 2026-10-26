@@ -16,6 +16,10 @@ from validate_contracts import parse_frontmatter
 
 PROTECTED_FILES = {
     'scripts/approval_registry.py',
+    'scripts/check_mcp_sdk.py',
+    'tools/mcp-sdk/pins.json',
+    'tools/mcp-sdk/ubuntu.txt',
+    'tools/mcp-sdk/windows.txt',
     'completion-legacy.json',
     'requirements-change-audit.txt',
     'scripts/optional_evidence.py',
@@ -38,7 +42,7 @@ PROTECTED_PREFIXES = ('.github/workflows/',)
 CONTRACTS_DIR = 'knowledge/contracts/'
 IMPORT_NAMES = set(sys.stdlib_module_names) | {
     'trusted_ci', 'run_test_suite', 'validate_test_commands', 'validate_contracts',
-    'process_tree', 'execution_profile', 'approval_registry',
+    'process_tree', 'execution_profile', 'approval_registry', 'check_mcp_sdk',
 }
 
 
