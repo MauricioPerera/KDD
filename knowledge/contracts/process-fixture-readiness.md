@@ -7,7 +7,7 @@ task: process-fixture-readiness
 intent: 'Distinguir falta de arranque de descendientes supervivientes y conservar la prueba del deadline de lanzamiento.'
 target: tests/test_process_tree_timeout.py
 language: python
-signature: 'def assert_cancelled(self, operation, delay=None):'
+signature: 'def assert_cancelled(self, operation, delay=None, timeout=None):'
 test_command: 'python -m unittest tests/test_process_fixture_startup.py'
 budget:
   cyclomatic_max: 10
@@ -27,6 +27,8 @@ el [contrato de runtime](process-tree-timeout.md) y la [revision de calidad](../
 El fixture usa FIXTURE_TIMEOUT=5.0 para casos con descendientes, handshake de
 marcadores reales y escrituras en un deadline monotonic absoluto del test.
 assert_cancelled conserva su resultado y assertions de no supervivencia y tiempo.
+La [reserva de tareas](../process-task-fixture.md) define la unica variante con
+timeout explicito de 15 s; los otros casos y este oraculo conservan sus 5 s.
 
 ## Invariants
 Cumplir el [protocolo](../process-fixture-readiness.md). Los nueve metodos previos

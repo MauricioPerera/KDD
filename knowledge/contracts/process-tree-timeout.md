@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 18
   nesting_max: 4
 tests: tests/test_process_tree_timeout.py
-tests_sha256: 'c8de0b40f8b8d80d8b7aa5e07c93ea5bce240cc1d58c5b9efbaa1783e516cf18'
+tests_sha256: 'b5f92faea89974c2a2b55301600590c970939ae6f045d0764605b740abd7c3cc'
 touch_only: ['scripts/process_tree.py', 'scripts/validate_test_commands.py', 'scripts/preflight.py', 'scripts/mcp_gate_dispatch.py', 'scripts/task_evidence.py', 'scripts/run_test_suite.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -57,6 +57,8 @@ descendientes, ausencia de escrituras tardias, pipes, retorno acotado, Unicode,
 exit no cero y adaptadores de contratos/preflight/MCP/tareas en fixtures aislados.
 La [precondicion observable](../process-fixture-readiness.md) separa el arranque
 real de la verificacion de cancelacion, con control negativo sin contencion.
+La [clasificacion del caso de tareas](../process-task-fixture.md) exige que
+TASK_TESTS tenga causa TimeoutExpired; otro error no prueba cancelacion.
 
 ## Constraints
 PARAR y reportar si el SO no permite establecer contencion antes del objetivo.
