@@ -12,7 +12,6 @@ import subprocess
 import sys
 
 from validate_contracts import parse_frontmatter
-from approval_registry import resolve
 
 
 PROTECTED_FILES = {
@@ -147,6 +146,7 @@ def main(argv=None):
              'refs/pull/{}/merge'.format(args.pr_number))
         candidate = _commit('FETCH_HEAD')
         if args.approval_registry is not None:
+            from approval_registry import resolve
             approved = resolve('.', candidate, args.approval_registry)['baseline_ref']
         else:
             approved = args.approved_ref
@@ -155,7 +155,7 @@ def main(argv=None):
             except ValueError:
                 _git('fetch', '--no-tags', 'origin', approved)
         findings = check(base, candidate, approved)
-    except (ValueError, UnicodeError) as exc:
+    except (ValueError, UnicodeError, ImportError) as exc:
         print('FAIL: ' + str(exc))
         return 2
     for finding in findings:
