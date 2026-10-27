@@ -178,3 +178,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contrato verify-quality](contracts/verify-quality.md)
 - [Nivel 2 nativo](native-level2.md)
 - [Contrato de integracion nativa](contracts/native-level2.md)
+- [Correcciones de calidad, cache y onboarding](audit-quality-cache-onboarding.md)
+- [Checks contenidos con helper aprobado](contracts/quality-process-lifecycle.md)
+- [Referencias moviles en lectores Git](contracts/git-reader-ref-cache.md)
+- [Onboarding de aprobaciones coherente](contracts/approval-onboarding-consistency.md)

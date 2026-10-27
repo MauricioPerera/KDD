@@ -39,7 +39,7 @@ class QualityWorkflow(unittest.TestCase):
 
     def test_configured_project_executes_real_gate(self):
         c=self.case
-        (c.root/'scripts').mkdir()
+        (c.root/'scripts').mkdir(exist_ok=True)
         shutil.copy2(ROOT/'scripts/verify_quality.py',c.root/'scripts/verify_quality.py')
         c.policy['protected'].append('scripts/verify_quality.py')
         c.freeze()
