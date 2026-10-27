@@ -130,7 +130,7 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     env:
-      KDD_SUITE_WORKERS: ${{ inputs.suite_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1') }}
+      KDD_SUITE_WORKERS: ${{ inputs.suite_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && (matrix.os == 'windows-latest' && '6' || '4') || '1') }}
       KDD_CONTRACT_WORKERS: ${{ inputs.contract_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1') }}
       KDD_EXCLUSIVE_CONTRACT_COMMANDS: ${{ inputs.exclusive_contract_commands || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && matrix.os == 'windows-latest' && '["python -m unittest tests/test_init_project.py"]' || '[]') }}
       KDD_MCP_SDK_REQUIRED: ${{ (inputs.verify_mcp_sdk || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD')) && '1' || '0' }}
