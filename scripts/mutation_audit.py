@@ -12,6 +12,7 @@ import sys
 import tempfile
 
 from validate_contracts import parse_frontmatter
+from process_tree import run as run_process
 
 
 class _FirstMutation(ast.NodeTransformer):
@@ -66,6 +67,37 @@ def _command(value):
         raise ValueError("test_command invalido: {}".format(exc)) from exc
 
 
+def _copy_inputs(root, destination):
+    agents = os.path.abspath(os.path.join(root, '.agents'))
+    def ignore(directory, names):
+        excluded = {name for name in names if name in ('.git', '__pycache__')
+                    or name.endswith(('.pyc', '.pyo'))}
+        if os.path.abspath(directory) == agents:
+            excluded.add('logs')
+        return excluded
+    shutil.copytree(root, destination, ignore=ignore)
+
+
+def _execute(command, directory, timeout):
+    try:
+        completed = run_process(command, cwd=directory, capture_output=True, timeout=timeout)
+        return {'exit_code': completed.returncode, 'timeout': False}
+    except subprocess.TimeoutExpired:
+        return {'exit_code': None, 'timeout': True}
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        return {'exit_code': None, 'timeout': False, 'error': str(exc)}
+
+
+def _control(command, root, destination, stage, timeout):
+    try:
+        _copy_inputs(root, destination)
+        result = _execute(command, destination, timeout)
+    except (OSError, ValueError) as exc:
+        result = {'exit_code': None, 'timeout': False, 'error': str(exc)}
+    return dict(result, stage=stage,
+                status='PASS' if result['exit_code'] == 0 else 'INCONCLUSIVE')
+
+
 def audit_contract(contract_path, repo_root, timeout=120):
     with open(contract_path, "r", encoding="utf-8") as fh:
         data, _body = parse_frontmatter(fh.read())
@@ -83,29 +115,31 @@ def audit_contract(contract_path, repo_root, timeout=120):
         return {"status": "SKIP", "reason": "sin operador aplicable", "detected": 0,
                 "survived": 0, "inconclusive": 0, "mutants": []}
     command = _command(data["test_command"])
-    outcomes = []
-    for mutant in mutants:
-        temp = tempfile.mkdtemp(prefix="kdd-mutant-")
-        try:
-            shutil.copytree(repo_root, temp, dirs_exist_ok=True,
-                            ignore=shutil.ignore_patterns(".git", "__pycache__", ".agents"))
-            mutated_target = os.path.join(temp, target_rel)
-            with open(mutated_target, "w", encoding="utf-8") as fh:
-                fh.write(mutant["source"])
+    outcomes, controls = [], []
+    with tempfile.TemporaryDirectory(prefix="kdd-mutant-") as temporary:
+        for stage in ('original', 'copy'):
+            control = _control(command, repo_root, os.path.join(temporary, stage), stage, timeout)
+            controls.append(control)
+            if control['status'] != 'PASS':
+                return {'status': 'FAIL', 'detected': 0, 'survived': 0, 'inconclusive': 0,
+                        'mutants': [], 'controls': controls}
+        for index, mutant in enumerate(mutants):
+            directory = os.path.join(temporary, 'mutant-' + str(index))
             try:
-                completed = subprocess.run(command, cwd=temp, capture_output=True,
-                                           timeout=timeout, check=False)
-                status = "DETECTED" if completed.returncode else "SURVIVED"
-            except subprocess.TimeoutExpired:
-                status = "INCONCLUSIVE"
+                _copy_inputs(repo_root, directory)
+                with open(os.path.join(directory, target_rel), "w", encoding="utf-8") as fh:
+                    fh.write(mutant['source'])
+                result = _execute(command, directory, timeout)
+            except (OSError, ValueError) as exc:
+                result = {'exit_code': None, 'timeout': False, 'error': str(exc)}
+            status = ('INCONCLUSIVE' if result['exit_code'] is None else
+                      'DETECTED' if result['exit_code'] else 'SURVIVED')
             outcomes.append({"operator": mutant["operator"], "status": status})
-        finally:
-            shutil.rmtree(temp, ignore_errors=True)
     counts = {status: sum(item["status"] == status for item in outcomes)
               for status in ("DETECTED", "SURVIVED", "INCONCLUSIVE")}
     return {"status": "PASS" if not counts["SURVIVED"] and not counts["INCONCLUSIVE"] else "FAIL",
             "detected": counts["DETECTED"], "survived": counts["SURVIVED"],
-            "inconclusive": counts["INCONCLUSIVE"], "mutants": outcomes}
+            "inconclusive": counts["INCONCLUSIVE"], "mutants": outcomes, 'controls': controls}
 
 
 def main(argv=None):
@@ -115,6 +149,9 @@ def main(argv=None):
     parser.add_argument("--strict", action="store_true")
     args = parser.parse_args(argv)
     result = audit_contract(args.contract, args.repo_root)
+    for control in result.get('controls', []):
+        print('control {}: {} exit={} timeout={}'.format(
+            control['stage'], control['status'], control['exit_code'], control['timeout']))
     for mutant in result.get("mutants", []):
         print("{}: {}".format(mutant["operator"], mutant["status"]))
     print("mutation-audit: {} detected, {} survived, {} inconclusive".format(

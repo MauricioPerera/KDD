@@ -165,7 +165,7 @@ export class GitTaskStore {
     const args = [operation,id];
     if (operation === 'ready') {
       const approved = text(input.approved_ref,'approved_ref');
-      if (!/^[a-f0-9]{40}$/.test(approved)) throw new BoardGitError('Explicit approved_ref SHA required');
+      if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(approved)) throw new BoardGitError('Explicit approved_ref SHA required');
       args.push('--approved-ref',approved);
     }
     if (operation === 'start') args.push('--assignee',text(input.assignee,'assignee'));
