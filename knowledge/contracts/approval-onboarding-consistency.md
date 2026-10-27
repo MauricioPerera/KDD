@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 8
   nesting_max: 3
 tests: tests/test_approval_onboarding_consistency.py
-tests_sha256: 'c3ca8655c0190e7c67b74ebd679154c1f476312842535649c1b764fef5563c72'
+tests_sha256: '0a371fb9ff378c08763d022495b9d21a410e47f13aa5d9908fdff0a17a89d238'
 touch_only: ['README.md', 'knowledge/validacion.md', 'knowledge/verification-guarantees.md']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -46,6 +46,9 @@ coherente. Documentacion historica fechada y reglas ajenas quedan intactas.
 tests/test_approval_onboarding_consistency.py crea un proyecto Git propio y
 ejecuta bootstrap/seleccion/calidad reales. Se ejecuta tambien en una copia
 ya inicializada sin inicializarla otra vez ni omitir sus checks aplicables.
+La fuente inicializada puede carecer de .git: enumerar sus archivos propios
+sin exigir Git en esa fuente. Una regresion ejecuta los seis casos reales
+de integracion desde una copia asi, sin SKIP ni creacion de .git en el origen.
 
 ## Constraints
 PARAR y reportar si se necesita cambiar el selector, un workflow, otra

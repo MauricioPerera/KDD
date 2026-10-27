@@ -89,8 +89,18 @@ class ApprovalOnboardingIntegration(unittest.TestCase):
         cls.addClassCleanup(cls.area.cleanup)
         cls.base = Path(cls.area.name) / 'base product-\u00f1'
         cls.base.mkdir()
-        files = subprocess.check_output(['git', '-C', str(ROOT), 'ls-files', '-z'],
-            env=environment(), timeout=30).decode('utf-8').split('\0')
+        if (ROOT / '.git').exists():
+            files = subprocess.check_output(['git', '-C', str(ROOT), 'ls-files', '-z'],
+                env=environment(), timeout=30).decode('utf-8').split('\0')
+        else:
+            files = []
+            for current, directories, names in os.walk(ROOT):
+                relative = Path(current).relative_to(ROOT)
+                directories[:] = [name for name in directories
+                    if name not in {'.git', 'node_modules', '__pycache__', '.audit'}
+                    and (relative / name).as_posix() != '.agents/logs']
+                files.extend((relative / name).as_posix() for name in names
+                             if not (Path(current) / name).is_symlink())
         for name in filter(None, files):
             source = ROOT / name
             if source.is_file():
@@ -227,6 +237,33 @@ class OwnOnboarding(unittest.TestCase):
             KDD_EXPLICIT_APPROVED_BASELINE_REF=self.ref)
         self.assert_no_product_run(result)
         self.assertIn('APPROVAL_AMBIGUOUS', result.stderr)
+
+
+class ApprovalOnboardingSourceCopy(unittest.TestCase):
+    def test_initialized_source_without_git_runs_all_six_workflow_cases(self):
+        with tempfile.TemporaryDirectory(prefix='kdd-onboarding-no-git-') as directory:
+            source = Path(directory)
+            for folder in ('.github/workflows', 'scripts', 'tests'):
+                (source / folder).mkdir(parents=True)
+            workflow = (ROOT / WORKFLOW).read_text(encoding='utf-8')
+            if 'Check product quality approval configuration' not in workflow:
+                sys.path.insert(0, str(ROOT / 'scripts'))
+                import init_project
+                workflow = init_project._product_quality_ci(ROOT).decode('utf-8')
+            (source / WORKFLOW).write_text(workflow, encoding='utf-8')
+            for name in ('approval_registry.py', 'verify_quality.py', 'process_tree.py'):
+                shutil.copyfile(ROOT / 'scripts' / name, source / 'scripts' / name)
+            shutil.copyfile(Path(__file__), source / 'tests/test_approval_onboarding_consistency.py')
+            (source / 'tests/__init__.py').write_text('', encoding='utf-8')
+            (source / '.gitignore').write_text('__pycache__/\n.audit/\n', encoding='utf-8')
+            self.assertFalse((source / '.git').exists())
+            result = command(source, [sys.executable, '-m', 'unittest',
+                'tests.test_approval_onboarding_consistency.ApprovalOnboardingIntegration', '-v'])
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn('Ran 6 tests', result.stderr)
+            self.assertIn('\nOK', result.stderr)
+            self.assertNotIn('skipped=', result.stderr)
+            self.assertFalse((source / '.git').exists(), 'source must remain an initialized copy without Git')
 
 
 if __name__ == '__main__':

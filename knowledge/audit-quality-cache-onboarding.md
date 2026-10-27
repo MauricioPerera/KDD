@@ -90,9 +90,12 @@ fechados historicos conservan su revision; no se reescribe su evidencia.
 Las pruebas crean producto, politica y Git propios, ejecutan el bootstrap
 cuando la fuente es la plantilla y consumen los cuerpos Python reales del
 workflow resultante. Una fuente ya inicializada no se inicializa otra vez;
-los mismos controles de seleccion y calidad siguen ejecutandose. No hay
-SKIP de infraestructura. El registro correcto selecciona y ejecuta los checks
-reales dos veces; solo variables antiguas, registro ausente, arbol desconocido
+los mismos controles de seleccion y calidad siguen ejecutandose, aunque la
+fuente ya inicializada no conserve .git. El fixture enumera esa fuente fisica
+y crea Git solo para su propio producto; una regresion ejecuta los seis casos
+de integracion desde una copia sin repositorio de origen. No hay SKIP de
+infraestructura. El registro correcto selecciona y ejecuta los checks reales
+dos veces; solo variables antiguas, registro ausente, arbol desconocido
 o calidad sin referencia fallan antes de esos checks.
 
 # Secuencia y cierre
