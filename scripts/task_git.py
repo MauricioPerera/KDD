@@ -130,11 +130,21 @@ def blobs(root, ref, names):
     revision = ref if _native_oid(root, ref) else commit_sha(root, ref)
     cache = _OBJECT_CACHE.get()
     names = list(dict.fromkeys(names))
+    if cache is not None:
+        for name in names:
+            key = _key(root, 'blob', revision, name)
+            oid = cache.get(_key(root, 'regular-path', revision, name))
+            content_key = _key(root, 'blob-object', oid)
+            if key not in cache and oid and content_key in cache:
+                cache[key] = cache[content_key]
     missing = [name for name in names if cache is None or _key(root, 'blob', revision, name) not in cache]
     values = _batch_blobs(root, revision, missing) if missing else {}
     if cache is not None:
         for name, value in values.items():
             cache[_key(root, 'blob', revision, name)] = value
+            oid = cache.get(_key(root, 'regular-path', revision, name))
+            if oid:
+                cache[_key(root, 'blob-object', oid)] = value
         return {name: cache[_key(root, 'blob', revision, name)] for name in names}
     return values
 
@@ -200,7 +210,7 @@ def _regular_paths(output):
                 or fields[0] not in ('100644', '100755') or fields[1] != 'blob'
                 or not valid_sha(fields[2])):
             raise TaskError('TASK_PATH: expected a regular Git blob: ' + path)
-        records[path] = True
+        records[path] = fields[2]
     return records
 
 
@@ -218,7 +228,11 @@ def _committed_paths(root, revision, names):
         raise TaskError('TASK_PATH: missing regular Git file')
     if cache is not None:
         for name in missing:
-            cache[_key(root, 'regular-path', revision, name)] = True
+            oid = records[name]
+            cache[_key(root, 'regular-path', revision, name)] = oid
+            content_key = _key(root, 'blob', revision, name)
+            if content_key in cache:
+                cache[_key(root, 'blob-object', oid)] = cache[content_key]
 
 
 def _metadata_paths(root, data, metadata, revision, committed_only):
