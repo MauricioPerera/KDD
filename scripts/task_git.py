@@ -291,11 +291,25 @@ def _history(root, task_id):
 
 def _clean_main(root, expected=None):
     actual = Path(git(root, 'rev-parse', '--show-toplevel')).resolve()
-    if actual != root or git(root, 'branch', '--show-current') != 'main':
+    if actual != root:
         raise TaskError('TASK_MAIN: run mutations from the repository root on main')
-    if git(root, 'status', '--porcelain', '--untracked-files=all'):
+    records = git(root, 'status', '--porcelain=v2', '--branch', '-z',
+                  '--untracked-files=all').split('\0')
+    headers = {}
+    dirty = False
+    for record in filter(None, records):
+        if not dirty and record.startswith('# '):
+            key, separator, value = record[2:].partition(' ')
+            if not separator or key in headers:
+                raise TaskError('TASK_MAIN: invalid Git branch metadata')
+            headers[key] = value
+        else:
+            dirty = True
+    head = headers.get('branch.oid', '')
+    if headers.get('branch.head') != 'main' or not valid_sha(head):
+        raise TaskError('TASK_MAIN: run mutations from an existing main commit')
+    if dirty:
         raise TaskError('TASK_DIRTY: preserve unrelated changes; commit or stash them first')
-    head = commit_sha(root, 'HEAD')
     if expected and head != expected:
         raise TaskError('TASK_RACE: HEAD changed during the operation')
     return head
@@ -319,7 +333,11 @@ def _lock(root):
 
 def contract_metadata(root, data, revision, *, committed_only=False):
     approved = data['approved_ref']
-    if not valid_sha(approved) or not ancestor(root, approved, revision):
+    try:
+        identity = commit_sha(root, approved) if valid_sha(approved) else None
+    except TaskError:
+        identity = None
+    if not valid_sha(approved) or identity != approved or not ancestor(root, approved, revision):
         raise TaskError('TASK_APPROVAL: supply an explicit approved ancestor SHA')
     original = blob(root, approved, data['contract'])
     metadata, _ = parse_frontmatter(original)

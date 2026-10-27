@@ -48,7 +48,7 @@
     return `<form id="git-transition-form">
       <label for="git-next-status">Siguiente estado</label>
       <select id="git-next-status">${options.map(s=>`<option value="${s}">${labels[s]}</option>`).join('')}</select>
-      ${needsApproval ? '<label for="git-approved-ref">SHA aprobado del contrato (40 caracteres)</label><input id="git-approved-ref" required pattern="[a-f0-9]{40}" autocomplete="off" />' : ''}
+      ${needsApproval ? '<label for="git-approved-ref">SHA aprobado del contrato (40 o 64 caracteres)</label><input id="git-approved-ref" required pattern="(?:[a-f0-9]{40}|[a-f0-9]{64})" autocomplete="off" />' : ''}
       ${needsOwner ? `<label for="git-assignee">Propietario</label><input id="git-assignee" required value="${escape(task.assignee)}" />` : ''}
       ${needsReason ? '<div id="git-reason-field"><label for="git-reason">Motivo publico (sin secretos)</label><input id="git-reason" /></div>' : ''}
       <p id="git-finish-note" hidden>El cierre exige la rama integrada en main y ejecuta los tests del contrato; puede tardar hasta 120 segundos.</p>
@@ -82,7 +82,7 @@
     try {
       const result = await api(`/api/tasks/${encodeURIComponent(task.id)}/status`,{
         method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      if (!/^[a-f0-9]{40}$/.test(result.commit)) throw new Error('Respuesta sin commit confirmado; refresca main.');
+      if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(result.commit)) throw new Error('Respuesta sin commit confirmado; refresca main.');
       node('git-action-result').textContent = `Commit confirmado: ${result.commit}`;
       pending = false;
       selectedId = undefined;

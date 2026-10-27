@@ -9,7 +9,7 @@ export const creationSchema = z.object({
   depends_on:z.array(taskId).optional(),
 }).strict();
 export const transitionSchema = z.object({
-  status:statusSchema,approved_ref:z.string().regex(/^[a-f0-9]{40}$/).optional(),
+  status:statusSchema,approved_ref:z.string().regex(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/).optional(),
   assignee:z.string().min(1).optional(),reason:z.string().min(1).optional(),
 }).strict();
 
