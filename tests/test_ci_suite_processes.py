@@ -334,7 +334,8 @@ class WorkflowIntegration(unittest.TestCase):
             self.assertIn("KDD_SKIP_INIT_POST_APPLY_SUITE: '1'", step)
         for name in ('suite_workers', 'contract_workers'):
             self.assertIn(name + ":\n        type: string\n        default: '1'", text)
-            self.assertIn("inputs." + name + " || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1')", text)
+            native = "(matrix.os == 'windows-latest' && '6' || '4')" if name == 'suite_workers' else "'4'"
+            self.assertIn("inputs." + name + " || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && " + native + " || '1')", text)
         self.assertIn('--timeout 600 --deduplicate --workers "$KDD_CONTRACT_WORKERS"', text)
         self.assertIn('Check approved contract and oracle baseline', text)
         self.assertIn('Validate Git task snapshots and transitions', text)

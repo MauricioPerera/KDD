@@ -36,9 +36,10 @@ comandos dependientes o escriben archivos compartidos. Ningun resultado se
 reutiliza entre invocaciones, commits, SO, pasadas ni directorios.
 
 En el workflow, inputs string `suite_workers` y `contract_workers`, default
-'1', permiten optar por concurrencia. Solo el CI nativo del repositorio
-MauricioPerera/KDD usa4 al no haber input; proyectos inicializados y callers
-reutilizables conservan1 por defecto. El fallback comprueba tambien
+'1', permiten optar por concurrencia. El [perfil nativo por SO](ci-windows-suite-concurrency.md)
+extiende el default de suite Windows a seis; Ubuntu y el lote de contratos
+conservan cuatro. Proyectos inicializados y callers reutilizables conservan1
+por defecto. Esta extension requiere su baseline antes de modificar el workflow. El fallback comprueba tambien
 !inputs.reusable_execution, conservando1 en callers sin valor explicito.
 Un valor invalido falla antes de
 ejecutar pruebas. No se interpolan esos inputs como codigo de shell: pasan

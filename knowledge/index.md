@@ -192,3 +192,6 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Identidad canonica del registro](contracts/approval-ref-identity.md)
 - [Comillas portables de mutacion](contracts/mutation-command-quoting.md)
 - [Preparacion eficiente de fixtures](contracts/fixture-preparation-cost.md)
+
+- [Perfil propuesto de suite Windows](ci-windows-suite-concurrency.md)
+- [Contrato de seis workers nativos Windows](contracts/ci-windows-suite-six.md)
