@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 12
   nesting_max: 4
 tests: 'tests/test_verify_quality.py'
-tests_sha256: '7a45563015e79e991cfa8ebbeb4edbb10bf1015d5e2b3d5b28dbd2e7288140fd'
+tests_sha256: '9dd2b958c95445f909f272dcdaf07f6c4a4b7aeabd53547f797d5eb37cef9243'
 touch_only: ['scripts/verify_quality.py']
 deps_allowed: ['stdlib']
 forbids: ['llm']
@@ -23,6 +23,11 @@ forbids: ['llm']
 Aplicar la [validacion](../validacion.md) mediante una politica de aprobacion del proyecto.
 
 ## Interface
+La [extension de ciclo de vida](../audit-quality-cache-onboarding.md) exige
+el helper regular scripts/process_tree.py del mismo commit aprobado. El
+fixture agrega ese archivo antes de congelar su repositorio; conserva todos
+sus metodos y aserciones. El runner nuevo no usa un helper candidato.
+
 `main()` procesa --repo-root, --policy y --approved-ref. Devuelve 0 solo tras integridad, perimetro y todos los checks aprobados dos veces; errores devuelven codigo no cero.
 
 ## Invariants

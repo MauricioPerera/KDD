@@ -45,13 +45,47 @@ def git(root, *args):
     return _output(root, args).strip()
 
 
+def _native_oid(root, ref):
+    if not valid_sha(ref):
+        return False
+    cache = _OBJECT_CACHE.get()
+    key = _key(root, 'object-format', '')
+    try:
+        if cache is not None and key in cache:
+            algorithm = cache[key]
+        else:
+            algorithm = git(root, 'rev-parse', '--show-object-format')
+            if cache is not None:
+                cache[key] = algorithm
+    except TaskError:
+        return False
+    return len(ref) == {'sha1': 40, 'sha256': 64}.get(algorithm)
+
+
 def commit_sha(root, ref):
     cache = _OBJECT_CACHE.get()
+    if cache is None:
+        return git(root, 'rev-parse', '--verify', '--end-of-options', ref + '^{commit}')
     key = _key(root, 'commit', ref)
-    if cache is not None and valid_sha(ref) and key in cache:
+    format_key = _key(root, 'object-format', '')
+    if format_key not in cache:
+        try:
+            fields = git(root, 'rev-parse', '--show-object-format', '--verify',
+                         '--end-of-options', ref + '^{commit}').splitlines()
+        except TaskError:
+            fields = []
+        if (len(fields) == 2 and valid_sha(fields[1])
+                and len(fields[1]) == {'sha1': 40, 'sha256': 64}.get(fields[0])):
+            cache[format_key] = fields[0]
+            if valid_sha(ref) and len(ref) == len(fields[1]):
+                cache[key] = fields[1]
+            return fields[1]
+        return git(root, 'rev-parse', '--verify', '--end-of-options', ref + '^{commit}')
+    immutable = _native_oid(root, ref)
+    if cache is not None and immutable and key in cache:
         return cache[key]
     revision = git(root, 'rev-parse', '--verify', '--end-of-options', ref + '^{commit}')
-    if cache is not None and valid_sha(ref):
+    if cache is not None and immutable:
         cache[key] = revision
     return revision
 
@@ -93,14 +127,24 @@ def _batch_blobs(root, revision, names):
 def blobs(root, ref, names):
     if not names:
         return {}
-    revision = ref if valid_sha(ref) else commit_sha(root, ref)
+    revision = ref if _native_oid(root, ref) else commit_sha(root, ref)
     cache = _OBJECT_CACHE.get()
     names = list(dict.fromkeys(names))
+    if cache is not None:
+        for name in names:
+            key = _key(root, 'blob', revision, name)
+            oid = cache.get(_key(root, 'regular-path', revision, name))
+            content_key = _key(root, 'blob-object', oid)
+            if key not in cache and oid and content_key in cache:
+                cache[key] = cache[content_key]
     missing = [name for name in names if cache is None or _key(root, 'blob', revision, name) not in cache]
     values = _batch_blobs(root, revision, missing) if missing else {}
     if cache is not None:
         for name, value in values.items():
             cache[_key(root, 'blob', revision, name)] = value
+            oid = cache.get(_key(root, 'regular-path', revision, name))
+            if oid:
+                cache[_key(root, 'blob-object', oid)] = value
         return {name: cache[_key(root, 'blob', revision, name)] for name in names}
     return values
 
@@ -108,26 +152,18 @@ def blobs(root, ref, names):
 def paths(root, ref, directory):
     cache = _OBJECT_CACHE.get()
     key = _key(root, 'paths', ref, directory)
-    if cache is not None and valid_sha(ref) and key in cache:
+    immutable = cache is not None and _native_oid(root, ref)
+    if cache is not None and immutable and key in cache:
         return list(cache[key])
     output = git(root, 'ls-tree', '-r', '--name-only', '-z', ref, '--', directory)
     result = sorted(filter(None, output.split('\0')))
-    if cache is not None and valid_sha(ref):
+    if cache is not None and immutable:
         cache[key] = tuple(result)
     return result
 
 
 def _ancestor_key(root, before, after, cache):
-    if cache is None or not valid_sha(before) or not valid_sha(after):
-        return None
-    format_key = _key(root, 'object-format', '')
-    if format_key not in cache:
-        try:
-            cache[format_key] = git(root, 'rev-parse', '--show-object-format')
-        except TaskError:
-            return None
-    width = {'sha1': 40, 'sha256': 64}.get(cache[format_key])
-    if len(before) == len(after) == width:
+    if cache is not None and _native_oid(root, before) and _native_oid(root, after):
         return _key(root, 'ancestor', before, after)
     return None
 
@@ -174,14 +210,14 @@ def _regular_paths(output):
                 or fields[0] not in ('100644', '100755') or fields[1] != 'blob'
                 or not valid_sha(fields[2])):
             raise TaskError('TASK_PATH: expected a regular Git blob: ' + path)
-        records[path] = True
+        records[path] = fields[2]
     return records
 
 
 def _committed_paths(root, revision, names):
     for name in names:
         _relative_parts(name)
-    revision = revision if valid_sha(revision) else commit_sha(root, revision)
+    revision = revision if _native_oid(root, revision) else commit_sha(root, revision)
     cache = _OBJECT_CACHE.get()
     missing = [name for name in names
                if cache is None or _key(root, 'regular-path', revision, name) not in cache]
@@ -192,7 +228,11 @@ def _committed_paths(root, revision, names):
         raise TaskError('TASK_PATH: missing regular Git file')
     if cache is not None:
         for name in missing:
-            cache[_key(root, 'regular-path', revision, name)] = True
+            oid = records[name]
+            cache[_key(root, 'regular-path', revision, name)] = oid
+            content_key = _key(root, 'blob', revision, name)
+            if content_key in cache:
+                cache[_key(root, 'blob-object', oid)] = cache[content_key]
 
 
 def _metadata_paths(root, data, metadata, revision, committed_only):
@@ -210,6 +250,11 @@ def _artifact_path(root, relative, committed_only):
 
 
 def read_nodes(root, ref='main'):
+    with object_cache():
+        return _read_nodes(root, ref)
+
+
+def _read_nodes(root, ref):
     revision = commit_sha(root, ref)
     records = {}
     names = [name for name in paths(root, revision, 'knowledge/tasks')
@@ -228,6 +273,11 @@ def read_tasks(root, ref='main'):
 
 
 def history(root, task_id):
+    with object_cache():
+        return _history(root, task_id)
+
+
+def _history(root, task_id):
     path = task_path(task_id)
     if task_id not in read_tasks(root):
         raise TaskError('TASK_MISSING: ' + task_id)
