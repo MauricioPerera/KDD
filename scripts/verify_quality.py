@@ -3,6 +3,8 @@
 The reviewed runner and Git are trusted. Candidate checks are not sandboxed.
 """
 import argparse
+from contextlib import contextmanager
+import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -273,6 +275,41 @@ def integrity(root, commit, policy_path, policy, approved, cache=None):
             raise Rejected('Outside approved perimeter: ' + name)
 
 
+@contextmanager
+def _approved_process_runner(root, commit, content):
+    name = 'scripts/process_tree.py'
+    entry = git(root, 'ls-tree', commit, '--', name)
+    header, separator, path = entry.rstrip(b'\n').partition(b'\t')
+    fields = header.split()
+    if (not separator or path != name.encode('ascii') or len(fields) != 3
+            or fields[0] not in (b'100644', b'100755') or fields[1] != b'blob'):
+        raise Rejected('Approved process helper must be a regular Git file')
+    with tempfile.TemporaryDirectory(prefix='kdd-approved-quality-process-') as directory:
+        helper = Path(directory) / 'process_tree.py'
+        if helper.resolve().is_relative_to(root):
+            raise Rejected('Approved process helper must be outside the checkout')
+        helper.write_bytes(content)
+        spec = importlib.util.spec_from_file_location('_kdd_approved_quality_process', helper)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        yield module.run
+
+
+def _checks(root, commit, policy_path, policy, approved, run):
+    cache = {}
+    integrity(root, commit, policy_path, policy, approved, cache)
+    for iteration in (1, 2):
+        for check in policy['checks']:
+            print('RUN %s/2 %s [%s]' % (iteration, check['name'], check['kind']), flush=True)
+            try:
+                result = run(check['argv'], cwd=root, timeout=check['timeout'],
+                             shell=False)
+            finally:
+                integrity(root, commit, policy_path, policy, approved, cache)
+            if result.returncode:
+                raise Rejected('Check failed: %s (exit %s)' % (check['name'], result.returncode))
+
+
 def approve(root, policy_path, reference):
     root = root.resolve(strict=True)
     actual = Path(git(root, 'rev-parse', '--show-toplevel').decode().strip()).resolve()
@@ -282,21 +319,12 @@ def approve(root, policy_path, reference):
     commit = git(root, 'rev-parse', '--verify', '--end-of-options', reference + '^{commit}').decode().strip()
     raw = git(root, 'show', commit + ':' + policy_path)
     policy = validate_policy(root, json.loads(raw, object_pairs_hook=unique_object))
-    objects = _objects(root, [commit + ':' + name for name in policy['protected']])
+    helper = commit + ':scripts/process_tree.py'
+    objects = _objects(root, [commit + ':' + name for name in policy['protected']] + [helper])
     approved = {name: objects[commit + ':' + name] for name in policy['protected']}
     approved[policy_path] = raw
-    cache = {}
-    integrity(root, commit, policy_path, policy, approved, cache)
-    for iteration in (1, 2):
-        for check in policy['checks']:
-            print('RUN %s/2 %s [%s]' % (iteration, check['name'], check['kind']), flush=True)
-            try:
-                result = subprocess.run(check['argv'], cwd=root, timeout=check['timeout'],
-                                        shell=False, check=False)
-            finally:
-                integrity(root, commit, policy_path, policy, approved, cache)
-            if result.returncode:
-                raise Rejected('Check failed: %s (exit %s)' % (check['name'], result.returncode))
+    with _approved_process_runner(root, commit, objects[helper]) as run:
+        _checks(root, commit, policy_path, policy, approved, run)
     print('PASS quality: integrity, perimeter and all checks verified twice', flush=True)
 
 

@@ -39,11 +39,16 @@ La referencia es obligatoria, sin default HEAD en `standard`/`strict`. Se
 comparan contrato y archivo tests declarado en el contrato aprobado,
 normalizando LF. La herramienta no modifica ni re-sella archivos. El commit
 aprobado debe existir localmente; en CI se usa checkout con historial completo.
-El CI de pull requests y de `push` a `main` exige
-`KDD_APPROVED_BASELINE_REF` como variable del repositorio o el input
-`approved_baseline_ref` del workflow reutilizable; si faltan ambos, falla.
+El CI nativo de pull requests y de `push` a `main` exige una entrada revisada
+para el árbol Git exacto del candidato en `KDD_APPROVAL_REGISTRY`; el
+[registro externo](approval-registry.md) define su formato y operación.
+El workflow reutilizable acepta `approval_registry` o los inputs explícitos
+`approved_baseline_ref` y `quality_approved_ref`, sin mezclar ambos modos.
+El selector exporta las referencias seleccionadas como
+`KDD_APPROVED_BASELINE_REF` y `KDD_QUALITY_APPROVED_REF`; las variables globales
+antiguas no sustituyen una entrada ausente. Sin aprobación aplicable falla.
 No usa el SHA de la rama base ni el commit que está validando como aprobación
-automática. El workflow comprueba esa referencia antes de ejecutar los
+automática. El workflow comprueba las referencias antes de ejecutar los
 `test_command` y la suite del PR. Usa `contents: read` y el checkout no
 persiste credenciales.
 

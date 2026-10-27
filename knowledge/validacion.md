@@ -76,10 +76,16 @@ validan primero los contratos y comparan todos los contratos/oráculos con
 `--approved-ref <SHA>` antes de ejecutar la suite heredada o los
 `test_command` de cada contrato. La referencia se exige como SHA completo;
 no se deduce de `HEAD`. En el CI de este repositorio, `.github/workflows/validate.yml`
-comprueba la referencia antes de ejecutar los `test_command` y la suite del PR: toma el input
-`approved_baseline_ref` del workflow reutilizable o la variable
-`KDD_APPROVED_BASELINE_REF`, y falla si no se configuró ninguno. No usa el SHA
-de la rama base como aprobación implícita. El check independiente
+comprueba la referencia antes de ejecutar los `test_command` y la suite del PR.
+El modo nativo selecciona las referencias revisadas desde
+`KDD_APPROVAL_REGISTRY`, bajo el árbol Git exacto del candidato; sigue el
+[registro externo](approval-registry.md). El workflow reutilizable admite
+el input `approval_registry` o referencias explícitas mediante
+`approved_baseline_ref` y `quality_approved_ref`, sin mezclar ambos modos.
+El selector exporta `KDD_APPROVED_BASELINE_REF` y `KDD_QUALITY_APPROVED_REF`
+para los pasos posteriores; las variables globales antiguas no son un fallback.
+Sin una aprobación aplicable falla. No usa el SHA de la rama base ni HEAD
+como aprobación implícita. El check independiente
 `trusted-pr-gate` lee el merge propuesto desde el código de `main` y bloquea
 cambios a los workflows o validadores protegidos; debe configurarse como
 obligatorio en la protección de rama de cada repositorio que adopte este
