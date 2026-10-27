@@ -182,3 +182,8 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Checks contenidos con helper aprobado](contracts/quality-process-lifecycle.md)
 - [Referencias moviles en lectores Git](contracts/git-reader-ref-cache.md)
 - [Onboarding de aprobaciones coherente](contracts/approval-onboarding-consistency.md)
+- [Aprobaciones, mutacion y formatos de Board](audit-remediation-approval-mutation-board.md)
+- [Identidad nativa de aprobaciones](contracts/task-approval-identity.md)
+- [Controles reales de mutacion](contracts/mutation-control-evidence.md)
+- [Formatos SHA del tablero](contracts/board-sha-formats.md)
+- [Lecturas frescas y acotadas de main](contracts/task-main-read-budget.md)

@@ -29,13 +29,18 @@ Complementa la [validacion](validacion.md), la
   vincula sus inventarios al mismo merge; la respuesta publica es HTTP 200
   y muestra 1349 casos del inventario. Las protecciones se conservan.
 
-- [ ] **OP-2: aislar las referencias aprobadas.** Una aprobacion para un PR
+- [x] **OP-2: aislar las referencias aprobadas.** Una aprobacion para un PR
   no debe invalidar main ni otro PR. Probar main y dos propuestas distintas
   con Git real, referencias externas revisadas y ausencia de interferencia.
   Rechazar referencias ausentes, ambiguas o invalidas; no elegir HEAD como
   aprobacion automatica ni ejecutar codigo del PR desde el guard confiable.
   Conservar los controles del workflow reutilizable y del bootstrap,
   incluido quality/product.json obligatorio en los proyectos inicializados.
+  Integrado en el [PR135](https://github.com/MauricioPerera/KDD/pull/135),
+  merge `b041a67429e124951cc6098a5548f18dbf4208b6`, con
+  [CI del merge](https://github.com/MauricioPerera/KDD/actions/runs/40416165179).
+  El [registro por arbol](approval-registry.md) conserva las entradas anteriores
+  y selecciona referencias distintas para main y propuestas concurrentes.
 
 - [ ] **OP-3: mejorar coste y estabilidad de Windows.** Medir antes/despues
   el trabajo costoso de integracion y el job completo, indicando las muestras
@@ -44,19 +49,45 @@ Complementa la [validacion](validacion.md), la
   inconcluso. Las dos pasadas, los IDs anteriores y las aserciones permanecen.
   El contrato de optimizacion fijara la metrica concreta tras perfilar el caso;
   no se atribuye una variacion de host al cambio de codigo sin evidencia.
+  Estado parcial: PR135 reduce el perfil Git de cuatro tareas de 542 a 358
+  procesos; PR136 reduce otra muestra de 356 a 299. Son perfiles de revisiones
+  y cargas distintas, no cifras acumulables. La comparacion total del PR135
+  observa 30:34 a 30:02 con una muestra por head y mas casos; no demuestra una
+  reduccion sustancial ni causal del CI. El host Windows conserva un timeout
+  local de bootstrap a 600 s; el runner Windows del
+  [PR136](https://github.com/MauricioPerera/KDD/actions/runs/40440423481)
+  lo ejecuta en 213,089 s. Se conserva esa distincion. La
+  [siguiente optimizacion acotada](audit-remediation-approval-mutation-board.md)
+  define contratos y mediciones antes de implementar.
 
-- [ ] **OP-4: verificar el adaptador MCP opcional.** Ejecutar sus ocho
+- [x] **OP-4: verificar el adaptador MCP opcional.** Ejecutar sus ocho
   pruebas reales de protocolo en Ubuntu y Windows con SDK fijado y entorno
   aislado. Un SDK ausente/incompatible, cero tests o un SKIP no acreditan ese
   check. Conservar el perfil sin SDK para los consumidores que no lo usan y
   las dos pasadas generales. El [alcance del servidor](mcp-server.md)
   distingue el protocolo en memoria de un transporte stdio real.
+  Integrado con SDK 1.30.0 y locks fijados: el
+  [CI de main del PR135](https://github.com/MauricioPerera/KDD/actions/runs/40416165179)
+  ejecuta ocho casos genuinos sin SKIP en cada SO, ademas de ambas suites.
+  El [protocolo de CI](mcp-sdk-ci.md) describe el entorno separado y el checker.
 
-- [ ] **OP-5: actualizar las instrucciones de desarrollo.** Corregir el
+- [x] **OP-5: actualizar las instrucciones de desarrollo.** Corregir el
   nombre de presupuesto obsoleto del ejemplo de la skill y alinear la
   plantilla de PR con el runner aprobado, la doble pasada y el inventario.
   Documentar la operacion de las nuevas aprobaciones y la preparacion MCP.
   Enlazar la [fuente normativa](validacion.md) para evitar duplicaciones.
+  Skill y plantilla de PR actualizadas en PR135. Las tres guias de entrada,
+  garantias y guia generada de onboarding se alinean con el registro externo
+  en el [PR136](https://github.com/MauricioPerera/KDD/pull/136), integrado en
+  `ffd7ef8d8989b9bcdecd8ee907f2a4f6f643c470`. Sus
+  [contratos y controles reales](audit-quality-cache-onboarding.md) conservan
+  el modo de aprobaciones explicitas del consumidor y rechazan el fallback
+  global en CI nativo.
+  El [CI del merge](https://github.com/MauricioPerera/KDD/actions/runs/40447304734)
+  verifica 108 contratos, dos pasadas de 1483 IDs, ocho casos SDK sin SKIP
+  y 40 de Board en cada SO. [Pages del mismo SHA](https://github.com/MauricioPerera/KDD/actions/runs/40450312700)
+  verifica los cuatro inventarios y publica el contador 1483. Las cinco
+  protecciones y strict se conservaron sin excepcion durante esta fusion.
 
 # Protocolo de ejecucion
 
