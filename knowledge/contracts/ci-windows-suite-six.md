@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_ci_windows_suite_profile.py
-tests_sha256: '4f5bbeff040ce0ba3d747c8aa69bbd046110ba5584c4ce1b72c4d1ae7d8d4847'
+tests_sha256: '096544aa19b0e19fa22c81a34ae0bf3e0acebfc55a5231c338f631ef7b68f05e'
 touch_only: ['.github/workflows/validate.yml']
 deps_allowed: ['stdlib', 'git']
 forbids: ['llm']
@@ -42,6 +42,10 @@ vez por pasada. Fallos reales siguen fallando y los inputs invalidos no ejecutan
 El oraculo evalua el subconjunto de expresiones usado por el workflow y ejecuta
 el runtime real extraido de Git en un bundle externo, con procesos y reportes reales.
 Comprueba dos invocaciones, fallo genuino y copia inicializada sin .git, sin SKIP.
+La integracion post-init retira tests/test_init_project.py para evitar recursion:
+el oraculo debe seguir funcionando sin importar ese archivo. Una regresion real
+inicializa una copia, elimina el helper y ejecuta el control de copia y sus diez
+casos internos. Conserva todos los metodos y aserciones anteriores; no agrega SKIP.
 ## Constraints
 PARAR y reportar si requiere otro baseline/runtime, proteccion o excepcion no revisados.
 Revisar baseline antes de cambiar el workflow y autorizar nueva entrada externa/publicacion.

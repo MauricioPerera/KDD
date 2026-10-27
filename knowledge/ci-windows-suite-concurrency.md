@@ -54,6 +54,11 @@ dos invocaciones con reportes frescos, un fallo genuino y un input invalido que
 no ejecuta casos. La copia inicializada sin .git ejecuta los mismos controles;
 si la fuente ya esta inicializada, no se intenta inicializarla otra vez.
 No se usan mocks del filesystem, Git, procesos ni reportes.
+El control post-init tambien debe funcionar cuando la suite de bootstrap retira
+tests/test_init_project.py para evitar recursion. Una copia propia de fuentes
+y el manifiesto de scripts.init_project evitan depender de ese oraculo ausente.
+La regresion inicializa y elimina realmente el archivo antes de ejecutar el
+control de copia y sus diez casos internos; no omite la comprobacion ni agrega SKIP.
 
 Se adapta una comprobacion del oraculo previo de workflow: suite Windows seis
 y Ubuntu cuatro, conservando contratos cuatro y defaults de consumidores uno.

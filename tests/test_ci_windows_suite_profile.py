@@ -16,6 +16,14 @@ COMMAND='run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . 
 RUNTIME=('trusted_ci.py','run_test_suite.py','validate_test_commands.py','validate_contracts.py','process_tree.py','execution_profile.py')
 
 
+def copy_profile_source(destination):
+    def ignore(directory,names):
+        excluded={'.git','__pycache__','node_modules'}
+        if Path(directory).name=='.agents':excluded.add('logs')
+        return [name for name in names if name in excluded or name.endswith('.gate.md')]
+    shutil.copytree(ROOT,destination,ignore=ignore,dirs_exist_ok=True)
+
+
 def selected(name,platform='windows-latest',repository='MauricioPerera/KDD',reusable=False,explicit=''):
     """Read the workflow and evaluate only its documented boolean/string subset."""
     text=(ROOT/'.github/workflows/validate.yml').read_text(encoding='utf-8')
@@ -209,16 +217,16 @@ class Lane(unittest.TestCase):
 
 class InitializedProfile(unittest.TestCase):
     def test_initialized_source_without_git_executes_profile_and_real_controls(self):
-        from tests import test_init_project as support
+        from scripts.init_project import MANIFEST
         area=tempfile.TemporaryDirectory(prefix='kdd initialized six profile ');self.addCleanup(area.cleanup)
-        project=Path(area.name)/'project';support._copy_repo(str(project),full=True)
-        complete=all((project/name).exists() for name in support.MANIFEST)
-        self.assertEqual(complete,all((ROOT/name).exists() for name in support.MANIFEST))
+        project=Path(area.name)/'project';copy_profile_source(project)
+        complete=all((project/name).exists() for name in MANIFEST)
+        self.assertEqual(complete,all((ROOT/name).exists() for name in MANIFEST))
         if complete:
             applied=subprocess.run([sys.executable,'-X','utf8',str(project/'scripts/init_project.py'),'--apply','--repository','ExampleCo/SixProfile'],cwd=project,
                 capture_output=True,text=True,encoding='utf-8',timeout=60)
             self.assertEqual(applied.returncode,0,applied.stdout+applied.stderr)
-            self.assertFalse(any((project/name).exists() for name in support.MANIFEST))
+            self.assertFalse(any((project/name).exists() for name in MANIFEST))
         self.assertFalse((project/'.git').exists())
         result=subprocess.run([sys.executable,'-X','utf8','-m','unittest',
             'tests.test_ci_windows_suite_profile.WorkflowProfile','tests.test_ci_windows_suite_profile.SixWorkerIntegration'],
@@ -227,6 +235,30 @@ class InitializedProfile(unittest.TestCase):
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
         self.assertRegex(result.stderr,r'Ran 10 tests?')
         self.assertNotIn('skipped=',result.stderr)
+
+
+class PostInitProfile(unittest.TestCase):
+    def test_initialized_profile_runs_after_recursion_helper_is_removed(self):
+        from scripts.init_project import MANIFEST
+        with tempfile.TemporaryDirectory(prefix='kdd profile missing helper ') as area:
+            project=Path(area)/'project';copy_profile_source(project)
+            if all((project/name).exists() for name in MANIFEST):
+                applied=subprocess.run([sys.executable,'-X','utf8',str(project/'scripts/init_project.py'),
+                    '--apply','--repository','ExampleCo/MissingHelper'],cwd=project,
+                    capture_output=True,text=True,encoding='utf-8',timeout=60)
+                self.assertEqual(applied.returncode,0,applied.stdout+applied.stderr)
+            helper=project/'tests/test_init_project.py'
+            if helper.exists():helper.unlink()
+            self.assertFalse(helper.exists())
+            self.assertFalse((project/'.git').exists())
+            self.assertFalse(any((project/name).exists() for name in MANIFEST))
+            result=subprocess.run([sys.executable,'-X','utf8','-m','unittest',
+                'tests.test_ci_windows_suite_profile.InitializedProfile'],cwd=project,
+                capture_output=True,text=True,encoding='utf-8',timeout=240,
+                env=dict(os.environ,PYTHONUTF8='1'))
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            self.assertRegex(result.stderr,r'Ran 1 tests?')
+            self.assertNotIn('skipped=',result.stderr)
 
 
 if __name__=='__main__':unittest.main()
