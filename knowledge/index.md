@@ -187,3 +187,8 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Controles reales de mutacion](contracts/mutation-control-evidence.md)
 - [Formatos SHA del tablero](contracts/board-sha-formats.md)
 - [Lecturas frescas y acotadas de main](contracts/task-main-read-budget.md)
+- [Contencion, identidad y coste de CI](audit-mutation-approval-ci.md)
+- [Destino seguro de mutaciones](contracts/mutation-target-boundary.md)
+- [Identidad canonica del registro](contracts/approval-ref-identity.md)
+- [Comillas portables de mutacion](contracts/mutation-command-quoting.md)
+- [Preparacion eficiente de fixtures](contracts/fixture-preparation-cost.md)

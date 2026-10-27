@@ -34,6 +34,8 @@ def audit_contract(contract_path: str, repo_root: str, timeout: int = 120) -> di
 ```
 
 ## Invariants
+Aplicar [target contenido](mutation-target-boundary.md) y
+[comillas portables](mutation-command-quoting.md) antes de ejecutar controles.
 
 - Nunca modifica el working tree ni el índice del repositorio real.
 - `DETECTED` exige controles verdes del original y de una copia sin mutar;

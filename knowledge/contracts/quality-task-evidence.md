@@ -15,7 +15,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_generated_task_evidence.py
-tests_sha256: 'ea776abdaffdcd3a3f7bee4aa6ce12e1faa808cf419c390fa0f06a29f33dc861'
+tests_sha256: '066ba84f013baf9cb6fc12ee11fba3870a9aaeba9adfbea95e0d883e38f0e272'
 touch_only: ['scripts/verify_quality.py']
 deps_allowed: ['stdlib']
 forbids: ['llm']
@@ -48,6 +48,8 @@ Mantener compatibilidad con los contratos anteriores salvo extension documentada
 - DON'T: sustituir una verificacion real por texto PASS, mocks de Git o skips.
 
 ## Tests
+La [preparacion local de Git](fixture-preparation-cost.md) conserva las politicas,
+los commits reales y todas las aserciones del oraculo.
 Oraculo sellado en tests/test_generated_task_evidence.py. Los casos negativos deben comprobar la
 ausencia de efectos y distinguir una asercion esperada de un error de entorno.
 Los escenarios, mediciones y limites viven en [pendientes](../pending-improvements.md).

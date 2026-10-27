@@ -15,7 +15,7 @@ budget:
   lines_max: 120
   params_max: 5
 tests: tests/test_bootstrap_boundary.py
-tests_sha256: 'ceb9dfe0aa5470f0fa46ab0c27c669f3887ce5cbe2134d738a10e26c575e4dce'
+tests_sha256: '2851ca19f984aa58157b9c58b70c1ff84bad795ec660645ef26b3c138482242a'
 touch_only: ['scripts/init_project.py', 'scripts/bootstrap_project.py', 'scripts/bootstrap_transaction.py']
 deps_allowed: ['stdlib', 'bootstrap_transaction']
 forbids: ['network', 'subprocess', 'llm']
@@ -53,6 +53,8 @@ manifiesto explicito por un glob ni tocar producto/tareas propias.
 - DON'T: considerar suficiente is_symlink o resolve sin comprobar hardlinks.
 
 ## Tests
+La [preparacion de fixtures](fixture-preparation-cost.md) conserva enlaces reales
+y todas las aserciones; no usa un proceso auxiliar por junction.
 
 tests/test_bootstrap_boundary.py incluye el fixture real compartido y los
 controles de ambas entradas. Windows: junctions; Ubuntu: symlinks; hardlinks en

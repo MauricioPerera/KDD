@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import unittest
 from tests import test_traceability_model as support
+from tests.test_fixture_preparation import directory_alias as native_directory_alias
 import task_git as journal
 from task_model import TaskError
 from traceability_git import build_trace
@@ -20,12 +21,7 @@ class TaskCommittedArtifactsTests(support.RepositoryFixture):
         self.assertTrue(outside.resolve().is_relative_to(area))
         source.rename(outside)
         if os.name == 'nt':
-            script = area / 'native-junction.ps1'
-            script.write_text('param([string]$Link,[string]$Target)\n'
-                'New-Item -ItemType Junction -Path $Link -Value $Target -ErrorAction Stop | Out-Null\n',
-                encoding='utf-8')
-            p = support.command(area, ['powershell.exe', '-NoProfile', '-NonInteractive',
-                '-ExecutionPolicy', 'Bypass', '-File', str(script), '-Link', str(source), '-Target', str(outside)])
+            p = native_directory_alias(source, outside, area)
             self.assertEqual(p.returncode, 0, p.stdout+p.stderr)
             self.assertTrue(source.lstat().st_file_attributes & 0x400)
         else:

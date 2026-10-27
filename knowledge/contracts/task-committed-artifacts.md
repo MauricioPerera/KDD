@@ -15,7 +15,7 @@ budget:
   lines_max: 100
   params_max: 5
 tests: tests/test_task_committed_artifacts.py
-tests_sha256: '944939286c2a0e177d02b841e5e837eec65c08ed878e370d062e99ff96461915'
+tests_sha256: 'e4522ae7cc1e5dc71aea4c6a83253df333274164207682b2ef080d2082f2f1f2'
 touch_only: ['scripts/task_git.py', 'scripts/validate_tasks.py']
 deps_allowed: ['stdlib', 'task_model', 'task_evidence', 'task_git', 'validate_contracts']
 forbids: ['network', 'llm']
@@ -54,6 +54,8 @@ y build_trace se conservan. Las mutaciones siguen con la proteccion fisica.
 - DON'T: desactivar auditoria, seguir enlaces Git o relajar el modo de escritura.
 
 ## Tests
+La [preparacion de fixtures](fixture-preparation-cost.md) conserva aliases nativos
+y todas las aserciones del oraculo.
 
 tests/test_task_committed_artifacts.py completa una tarea real y usa el fixture
 sellado por traceability-model, aliases nativos, canarios, indice Git y procesos
