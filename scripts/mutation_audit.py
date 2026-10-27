@@ -5,13 +5,15 @@ import argparse
 import ast
 import copy
 import os
+from pathlib import Path
 import shutil
 import shlex
+import stat
 import subprocess
 import sys
 import tempfile
 
-from validate_contracts import parse_frontmatter
+from validate_contracts import parse_frontmatter, relative_artifact
 from process_tree import run as run_process
 
 
@@ -62,7 +64,10 @@ def mutation_sources(source):
 
 def _command(value):
     try:
-        return shlex.split(value, posix=os.name != "nt")
+        tokens = shlex.split(value, posix=os.name != "nt")
+        if os.name == 'nt':
+            tokens = [t[1:-1] if len(t) > 1 and t[0] == t[-1] and t[0] in "\"'" else t for t in tokens]
+        return tokens
     except ValueError as exc:
         raise ValueError("test_command invalido: {}".format(exc)) from exc
 
@@ -98,16 +103,44 @@ def _control(command, root, destination, stage, timeout):
                 status='PASS' if result['exit_code'] == 0 else 'INCONCLUSIVE')
 
 
+def _target_path(root, relative):
+    if relative_artifact(str(root), relative) is None:
+        raise ValueError('MUTATION_PATH: exact relative target inside the project required')
+    path = root
+    for part in relative.split('/'):
+        path = path / part
+        try:
+            info = path.lstat()
+        except FileNotFoundError:
+            if not relative.lower().endswith('.py'):
+                return root / relative
+            raise
+        if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
+            raise ValueError('MUTATION_PATH: target aliases and reparse points are unsupported')
+    if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+        raise ValueError('MUTATION_PATH: target must be a regular file with one link')
+    return path
+
+
+def _reject(reason):
+    return dict(status='REJECT', reason=reason, detected=0, survived=0,
+                inconclusive=0, mutants=[], controls=[])
+
+
 def audit_contract(contract_path, repo_root, timeout=120):
     with open(contract_path, "r", encoding="utf-8") as fh:
         data, _body = parse_frontmatter(fh.read())
     if not isinstance(data, dict):
-        return {"status": "REJECT", "detected": 0, "survived": 0, "inconclusive": 0, "mutants": []}
+        return _reject('MUTATION_INPUT: task contract metadata required')
     target_rel = data.get("target", "")
+    try:
+        root = Path(repo_root).resolve(strict=True)
+        target = _target_path(root, target_rel)
+    except (OSError, ValueError) as error:
+        return _reject(str(error))
     if not target_rel.lower().endswith(".py"):
         return {"status": "SKIP", "reason": "target no Python", "detected": 0,
                 "survived": 0, "inconclusive": 0, "mutants": []}
-    target = os.path.join(repo_root, target_rel)
     with open(target, "r", encoding="utf-8") as fh:
         source = fh.read()
     mutants = mutation_sources(source)
@@ -117,8 +150,10 @@ def audit_contract(contract_path, repo_root, timeout=120):
     command = _command(data["test_command"])
     outcomes, controls = [], []
     with tempfile.TemporaryDirectory(prefix="kdd-mutant-") as temporary:
+        if Path(temporary).resolve().is_relative_to(root):
+            return _reject('MUTATION_PATH: mutation copies must be outside the project')
         for stage in ('original', 'copy'):
-            control = _control(command, repo_root, os.path.join(temporary, stage), stage, timeout)
+            control = _control(command, root, os.path.join(temporary, stage), stage, timeout)
             controls.append(control)
             if control['status'] != 'PASS':
                 return {'status': 'FAIL', 'detected': 0, 'survived': 0, 'inconclusive': 0,
@@ -126,8 +161,9 @@ def audit_contract(contract_path, repo_root, timeout=120):
         for index, mutant in enumerate(mutants):
             directory = os.path.join(temporary, 'mutant-' + str(index))
             try:
-                _copy_inputs(repo_root, directory)
-                with open(os.path.join(directory, target_rel), "w", encoding="utf-8") as fh:
+                _copy_inputs(root, directory)
+                destination = _target_path(Path(directory).resolve(strict=True), target_rel)
+                with open(destination, "w", encoding="utf-8") as fh:
                     fh.write(mutant['source'])
                 result = _execute(command, directory, timeout)
             except (OSError, ValueError) as exc:
@@ -148,7 +184,13 @@ def main(argv=None):
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--strict", action="store_true")
     args = parser.parse_args(argv)
-    result = audit_contract(args.contract, args.repo_root)
+    try:
+        result = audit_contract(args.contract, args.repo_root)
+    except (OSError, ValueError, KeyError) as error:
+        result = _reject(str(error))
+    if result['status'] == 'REJECT':
+        print('REJECT mutation: ' + result.get('reason', 'invalid contract'))
+        return 2
     for control in result.get('controls', []):
         print('control {}: {} exit={} timeout={}'.format(
             control['stage'], control['status'], control['exit_code'], control['timeout']))

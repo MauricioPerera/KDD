@@ -71,6 +71,13 @@ def _commit(root, ref):
     return _sha(value)
 
 
+def _approved_commit(root, ref):
+    commit = _commit(root, ref)
+    if commit != ref:
+        raise ApprovalError('APPROVAL_REF: an approval must be the canonical commit OID, not an alias')
+    return commit
+
+
 def _registry_text(registry_json):
     raw = '' if registry_json is None else registry_json
     if not isinstance(raw, str):
@@ -108,8 +115,8 @@ def resolve(repo_root, candidate_ref, registry_json, *, explicit_baseline=None,
     row = records[tree] if records is not None else explicit
     if require_quality and not row['quality_ref']:
         raise ApprovalError('APPROVAL_QUALITY: this context requires an approved quality reference')
-    baseline = _commit(repo_root, row['baseline_ref'])
-    quality = _commit(repo_root, row['quality_ref']) if row['quality_ref'] else None
+    baseline = _approved_commit(repo_root, row['baseline_ref'])
+    quality = _approved_commit(repo_root, row['quality_ref']) if row['quality_ref'] else None
     return {'candidate_commit': candidate, 'candidate_tree': tree,
             'baseline_ref': baseline, 'quality_ref': quality,
             'source': 'registry' if records is not None else 'explicit'}
