@@ -64,7 +64,23 @@ def _native_oid(root, ref):
 
 def commit_sha(root, ref):
     cache = _OBJECT_CACHE.get()
+    if cache is None:
+        return git(root, 'rev-parse', '--verify', '--end-of-options', ref + '^{commit}')
     key = _key(root, 'commit', ref)
+    format_key = _key(root, 'object-format', '')
+    if format_key not in cache:
+        try:
+            fields = git(root, 'rev-parse', '--show-object-format', '--verify',
+                         '--end-of-options', ref + '^{commit}').splitlines()
+        except TaskError:
+            fields = []
+        if (len(fields) == 2 and valid_sha(fields[1])
+                and len(fields[1]) == {'sha1': 40, 'sha256': 64}.get(fields[0])):
+            cache[format_key] = fields[0]
+            if valid_sha(ref) and len(ref) == len(fields[1]):
+                cache[key] = fields[1]
+            return fields[1]
+        return git(root, 'rev-parse', '--verify', '--end-of-options', ref + '^{commit}')
     immutable = _native_oid(root, ref)
     if cache is not None and immutable and key in cache:
         return cache[key]
@@ -126,7 +142,7 @@ def blobs(root, ref, names):
 def paths(root, ref, directory):
     cache = _OBJECT_CACHE.get()
     key = _key(root, 'paths', ref, directory)
-    immutable = _native_oid(root, ref)
+    immutable = cache is not None and _native_oid(root, ref)
     if cache is not None and immutable and key in cache:
         return list(cache[key])
     output = git(root, 'ls-tree', '-r', '--name-only', '-z', ref, '--', directory)
@@ -220,6 +236,11 @@ def _artifact_path(root, relative, committed_only):
 
 
 def read_nodes(root, ref='main'):
+    with object_cache():
+        return _read_nodes(root, ref)
+
+
+def _read_nodes(root, ref):
     revision = commit_sha(root, ref)
     records = {}
     names = [name for name in paths(root, revision, 'knowledge/tasks')
@@ -238,6 +259,11 @@ def read_tasks(root, ref='main'):
 
 
 def history(root, task_id):
+    with object_cache():
+        return _history(root, task_id)
+
+
+def _history(root, task_id):
     path = task_path(task_id)
     if task_id not in read_tasks(root):
         raise TaskError('TASK_MISSING: ' + task_id)
