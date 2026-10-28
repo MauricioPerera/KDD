@@ -26,6 +26,19 @@ def git(root, *args):
     return result.stdout
 
 
+def approved_commit(root, reference):
+    """Accept only the native, canonical OID of an existing commit object."""
+    if not isinstance(reference, str) or not re.fullmatch(r'[0-9a-f]{40}|[0-9a-f]{64}', reference):
+        raise Rejected('approved_ref must be a canonical full commit OID, not an alias')
+    algorithm = git(root, 'rev-parse', '--show-object-format').decode('ascii').strip()
+    if len(reference) != {'sha1': 40, 'sha256': 64}.get(algorithm):
+        raise Rejected('approved_ref must use the native Git object format')
+    identity = git(root, 'rev-parse', '--verify', '--end-of-options', reference).decode('ascii').strip()
+    if identity != reference or git(root, 'cat-file', '-t', reference).strip() != b'commit':
+        raise Rejected('approved_ref must identify the canonical commit object')
+    return reference
+
+
 def _objects(root, specifications, allow_missing=False):
     specs = list(dict.fromkeys(specifications))
     if not specs:
@@ -316,7 +329,7 @@ def approve(root, policy_path, reference):
     if actual != root:
         raise Rejected('repo-root must be the Git repository root')
     safe_path(root, policy_path)
-    commit = git(root, 'rev-parse', '--verify', '--end-of-options', reference + '^{commit}').decode().strip()
+    commit = approved_commit(root, reference)
     raw = git(root, 'show', commit + ':' + policy_path)
     policy = validate_policy(root, json.loads(raw, object_pairs_hook=unique_object))
     helper = commit + ':scripts/process_tree.py'

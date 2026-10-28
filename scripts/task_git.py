@@ -4,6 +4,7 @@ from contextvars import ContextVar
 import json
 import os
 from pathlib import Path, PurePosixPath
+import stat
 import subprocess
 
 import task_evidence as proof
@@ -194,10 +195,22 @@ def _relative_parts(relative):
 def safe_path(root, relative):
     parts = _relative_parts(relative)
     path = Path(root).joinpath(*parts)
+    component = Path(root)
+    for index, part in enumerate(parts):
+        component = component / part
+        try:
+            info = component.lstat()
+        except FileNotFoundError:
+            break
+        if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
+            raise TaskError('TASK_PATH: symlinks and reparse points are not supported')
+        if index < len(parts) - 1:
+            if not stat.S_ISDIR(info.st_mode):
+                raise TaskError('TASK_PATH: ancestor must be a directory')
+        elif not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+            raise TaskError('TASK_PATH: expected a regular file with one hardlink')
     if not path.resolve().is_relative_to(Path(root).resolve()):
         raise TaskError('TASK_PATH: path escapes repository')
-    if any(p.is_symlink() for p in (path, *path.parents) if p != Path(root).parent):
-        raise TaskError('TASK_PATH: symlinks are not supported')
     return path
 
 
@@ -381,6 +394,9 @@ def _start(root, task, options, head):
 
 
 def _finish(root, task, options, head):
+    evidence = 'docs/task-evidence/{}-{}.json'.format(task['task_id'], head)
+    if safe_path(root, evidence).exists():
+        raise TaskError('TASK_EVIDENCE: refusing to overwrite an existing artifact')
     tip = commit_sha(root, task['branch'])
     if tip == task['branch_base'] or not ancestor(root, task['branch_base'], tip):
         raise TaskError('TASK_INTEGRATION: task branch has no preserved implementation')
@@ -395,10 +411,8 @@ def _finish(root, task, options, head):
                   target_sha256=proof.digest(proof.normalized(blob(root, head, metadata['target']))),
                   oracle_sha256=proof.digest(proof.normalized(blob(root, head, metadata['tests']))))
     content = json.dumps(report, ensure_ascii=True, sort_keys=True, indent=2) + '\n'
-    task.update(verified_ref=head, evidence='docs/task-evidence/{}-{}.json'.format(task['task_id'], head),
+    task.update(verified_ref=head, evidence=evidence,
                 evidence_sha256=proof.digest(content))
-    if safe_path(root, task['evidence']).exists():
-        raise TaskError('TASK_EVIDENCE: refusing to overwrite an existing artifact')
     return {task['evidence']: content.encode('utf-8')}
 
 
@@ -439,9 +453,10 @@ def _changes(root, operation, task, options, head):
 
 
 def _restore(root, backups):
+    paths = {name: safe_path(root, name) for name in backups}
     git(root, 'reset', '-q', 'HEAD', '--', *backups)
     for name, content in backups.items():
-        path = safe_path(root, name)
+        path = paths[name]
         if content is None:
             path.unlink(missing_ok=True)
         else:
@@ -449,8 +464,8 @@ def _restore(root, backups):
 
 
 def _publish(root, head, changes, branch, message):
-    backups = {name: safe_path(root, name).read_bytes() if safe_path(root, name).exists() else None
-               for name in changes}
+    paths = {name: safe_path(root, name) for name in changes}
+    backups = {name: path.read_bytes() if path.exists() else None for name, path in paths.items()}
     created = False
     try:
         _clean_main(root, head)
@@ -483,6 +498,9 @@ def mutate(repo_root, operation, task_id, options):
                     'resume': 'needs_human_input', 'finish': 'in_progress'}
         if before and before['status'] != expected[operation]:
             raise TaskError('TASK_TRANSITION: {} cannot {}'.format(before['status'], operation))
+        safe_path(root, task_path(task_id))
+        if operation == 'create':
+            safe_path(root, 'knowledge/index.md')
         extra, branch = _changes(root, operation, task, options, head)
         completed = {key for key, pair in nodes.items() if pair[0]['status'] == 'done'}
         errors = validate_transition(before, task, completed)
