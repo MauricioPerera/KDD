@@ -3,7 +3,7 @@
   "checkpoint_id": "01M61JA7404B861NB5MX0FPPJ5",
   "strategy": "manual-commit",
   "branch": "codex/traceability-batch",
-  "checkpoints_count": 40,
+  "checkpoints_count": 50,
   "files_touched": [
     "scripts/traceability_git.py"
   ],
@@ -14,24 +14,31 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 35457,
+    "input_tokens": 773182,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 11146240,
-    "output_tokens": 14867,
-    "api_call_count": 30
+    "cache_read_tokens": 88407296,
+    "output_tokens": 353222,
+    "api_call_count": 385
   },
   "redaction": {
-    "replacements": 40398,
+    "replacements": 48103,
     "layers": {
-      "betterleaks": 32,
+      "betterleaks": 33,
       "connection_string": 0,
       "credential_key": 0,
-      "credential_value": 73,
+      "credential_value": 103,
       "credentialed_uri": 0,
-      "entropy": 52193,
+      "entropy": 59887,
       "key_context": 0,
       "provider_token": 0,
       "shell_stdin": 0
