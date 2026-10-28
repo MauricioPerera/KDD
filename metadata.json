@@ -1,0 +1,43 @@
+{
+  "cli_version": "0.12.2",
+  "checkpoint_id": "01M61HTE12AGW2ZGR8C07FCNGB",
+  "strategy": "manual-commit",
+  "branch": "codex/traceability-batch",
+  "checkpoints_count": 40,
+  "files_touched": [
+    "knowledge/contracts/traceability-contract-path-batch.md",
+    "knowledge/index.md",
+    "tests/test_traceability_contract_batch.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 12990053,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1306551936,
+    "output_tokens": 6314206,
+    "api_call_count": 6243,
+    "subagent_tokens_complete": true
+  },
+  "redaction": {
+    "replacements": 40398,
+    "layers": {
+      "betterleaks": 32,
+      "connection_string": 0,
+      "credential_key": 0,
+      "credential_value": 73,
+      "credentialed_uri": 0,
+      "entropy": 52193,
+      "key_context": 0,
+      "provider_token": 0,
+      "shell_stdin": 0
+    }
+  }
+}
