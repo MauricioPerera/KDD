@@ -15,7 +15,7 @@ budget:
   lines_max: 180
   params_max: 5
 tests: tests/test_ci_suite_processes.py
-tests_sha256: '46626ffc5b45ad353ee7f8976246363bfd77fd87471633803716071aaf594d4c'
+tests_sha256: '72bf496447358a97bf6dfdcd372860fa23fb2008c4005ac7284f03a07576bec1'
 touch_only: ['scripts/run_test_suite.py', 'scripts/guard_pr_baseline.py', '.github/workflows/validate.yml']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -57,7 +57,8 @@ No compartir cwd/entorno mutable entre modulos concurrentes en hilos.
 Agregar scripts/run_test_suite.py a PROTECTED_FILES del guard confiable;
 no cambiar ninguna otra regla de confianza ni ejecutar el candidato en el guard.
 Las dos pasadas del workflow son identicas y consecutivas; default seguro
-serial para consumidores, cuatro procesos solo en KDD nativo u opt-in.
+serial para consumidores. El [perfil nativo por SO](ci-windows-suite-six.md)
+regula sus defaults; inputs explicitos siguen siendo opt-in.
 
 ## Examples
 - Dos modulos esperando una barrera: ambos procesos deben estar vivos.

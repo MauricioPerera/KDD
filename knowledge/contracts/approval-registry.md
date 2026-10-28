@@ -33,6 +33,8 @@ El CLI lee el JSON desde KDD_APPROVAL_REGISTRY, admite --repo-root,
 imprime JSON en exito y error legible con exit 2 si no puede seleccionar.
 
 ## Invariants
+Aplicar la [identidad canonica](approval-ref-identity.md) a los campos aprobados,
+conservando los contextos candidatos que documenta la interfaz.
 Conservar el [protocolo](../approval-registry.md). No leer un registro del PR,
 elegir HEAD como baseline por defecto, ejecutar codigo candidato, modificar
 Git ni sobrescribir entradas. Exigir schema_version entero 1 y trees no vacio.

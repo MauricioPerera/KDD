@@ -26,6 +26,22 @@ import re
 import fnmatch
 
 
+def relative_artifact(root, value):
+    """Return a confined exact relative artifact, or None before any content read."""
+    if (not isinstance(value, str) or not value.strip() or value.startswith('/')
+            or any(c in value for c in '\\:\0\r\n')
+            or any(part in ('', '.', '..') for part in value.split('/'))):
+        return None
+    absolute = os.path.abspath(os.path.join(root, *value.split('/')))
+    try:
+        real_root, real_file = os.path.realpath(root), os.path.realpath(absolute)
+        if os.path.normcase(os.path.commonpath([real_root, real_file])) != os.path.normcase(real_root):
+            return None
+    except (OSError, ValueError):
+        return None
+    return absolute
+
+
 # ---------------------------------------------------------------------------
 # Parser YAML minimal (subset usado por la plantilla KDD)
 # ---------------------------------------------------------------------------
@@ -346,23 +362,18 @@ def validate_file(path, repo_root=None):
         repo_root = '.'
     repo_root = os.path.abspath(repo_root)
 
-    # Validar target
-    if 'target' in data and data['target']:
-        target_rel = data['target']
-        target_abs = os.path.abspath(os.path.join(repo_root, target_rel))
-        if not os.path.isfile(target_abs):
-            findings.append(Finding(rel, 'FM_PATH_target',
-                                    "target no existe o no es archivo: {} (resuelto a {})"
-                                    .format(target_rel, target_abs)))
-
-    # Validar tests
-    if 'tests' in data and data['tests']:
-        tests_rel = data['tests']
-        tests_abs = os.path.abspath(os.path.join(repo_root, tests_rel))
-        if not os.path.isfile(tests_abs):
-            findings.append(Finding(rel, 'FM_PATH_tests',
-                                    "tests no existe o no es archivo: {} (resuelto a {})"
-                                    .format(tests_rel, tests_abs)))
+    artifacts = {}
+    for field in ('target', 'tests'):
+        if field in data and data[field]:
+            value = data[field]
+            absolute = relative_artifact(repo_root, value)
+            artifacts[field] = absolute
+            if absolute is None:
+                findings.append(Finding(rel, 'FM_PATH_' + field,
+                    '{} requiere una ruta relativa exacta contenida: {!r}'.format(field, value)))
+            elif not os.path.isfile(absolute):
+                findings.append(Finding(rel, 'FM_PATH_' + field,
+                    '{} no existe o no es archivo: {} (resuelto a {})'.format(field, value, absolute)))
 
     # Validar tests_sha256 (REQUERIDA)
     tests_sha256 = data.get('tests_sha256')
@@ -381,8 +392,8 @@ def validate_file(path, repo_root=None):
         # Si tests existe, validar que el hash coincida
         elif 'tests' in data and data['tests']:
             tests_rel = data['tests']
-            tests_abs = os.path.abspath(os.path.join(repo_root, tests_rel))
-            if os.path.isfile(tests_abs):
+            tests_abs = artifacts.get('tests')
+            if tests_abs is not None and os.path.isfile(tests_abs):
                 actual_hash = _calculate_tests_hash(tests_abs)
                 if actual_hash is None:
                     # No se pudo leer el archivo, pero FM_PATH_tests ya lo reportó

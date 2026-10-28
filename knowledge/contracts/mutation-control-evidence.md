@@ -28,6 +28,7 @@ y la distincion de evidencia de [calidad](../quality-approval.md).
 Conservar audit_contract, CLI, claves y operadores existentes. Agregar controles
 original/copy con status, exit_code y timeout; FAIL sin ejecutar mutantes si fallan.
 ## Invariants
+El rechazo previo de [rutas inseguras](mutation-target-boundary.md) no ejecuta controles.
 - Exigir original y copia sin mutar verdes en temporales externos antes de operadores.
 - Un fallo de preparacion o control no suma DETECTED; --strict falla.
 - Conservar helpers .agents, oraculo y working tree original sin cambios.

@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from tests.test_fixture_preparation import directory_alias as native_directory_alias
 
 ROOT = Path(__file__).resolve().parents[1]
 IS_TEMPLATE = (ROOT / 'src/hello.py').is_file()
@@ -83,12 +84,7 @@ class SandboxFixture(unittest.TestCase):
         if os.name != 'nt':
             link.symlink_to(target, target_is_directory=True)
             return
-        script = self.area / 'junction.ps1'
-        script.write_text('param([string]$Link,[string]$Target)\n'
-                          'New-Item -ItemType Junction -Path $Link -Value $Target -ErrorAction Stop | Out-Null\n',
-                          encoding='utf-8')
-        p = self.command(['powershell.exe', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-                          '-File', str(script), '-Link', str(link), '-Target', str(target)])
+        p = native_directory_alias(link, target, self.area)
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertTrue(link.exists())
 

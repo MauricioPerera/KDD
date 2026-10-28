@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from tests.test_fixture_preparation import configure_git
 
 ROOT = Path(__file__).resolve().parents[1]
 TRUSTED_TASK_MODULES = ('validate_tasks.py', 'task_git.py', 'task_model.py',
@@ -62,12 +63,9 @@ tags: ['fixture']
             policy = self.policy()
             self.write('quality/product.json', json.dumps(policy, indent=2) + '\n')
             self.git('init', '-q', '-b', 'main')
-            for name, value in [('user.name', 'Simulated fixture reviewer'),
-                                ('user.email', 'fixture@example.invalid'),
-                                ('maintenance.autoDetach', 'false'),
-                                ('gc.autoDetach', 'false'),
-                                ('core.autocrlf', 'false'), ('commit.gpgsign', 'false')]:
-                self.git('config', name, value)
+            configure_git(self.root, {'user.name': 'Simulated fixture reviewer',
+                'user.email': 'fixture@example.invalid', 'maintenance.autoDetach': 'false',
+                'gc.autoDetach': 'false', 'core.autocrlf': 'false', 'commit.gpgsign': 'false'})
             self.ref = self.commit('Simulated reviewer baseline; temporary fixture only')
 
     def write(self, name, content):

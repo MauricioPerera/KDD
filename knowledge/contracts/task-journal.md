@@ -14,7 +14,7 @@ budget:
   lines_max: 100
   params_max: 5
 tests: 'tests/test_task_git.py'
-tests_sha256: 'e3bd42742770838fe7a414ad4979f92d64e7eb56dc7fbfe26e238789f81ecc9a'
+tests_sha256: 'ac1ab0657548168a4772246ce6dba6fb0ee51ade506472416c67d1a8c50fc590'
 touch_only: ['scripts/task_git.py', 'scripts/task_evidence.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -43,6 +43,8 @@ Persistir operaciones de tarea mediante commits acotados en main y ramas de impl
 - DON'T: editar oraculos aprobados ni tratar un commit o un exit 0 vacio como aprobacion.
 
 ## Tests
+La [preparacion local de Git](fixture-preparation-cost.md) conserva los commits,
+la identidad y el mantenimiento de los repos reales del oraculo.
 Oraculo independiente en `tests/test_task_git.py`, sellado antes de implementar.
 
 ## Constraints
