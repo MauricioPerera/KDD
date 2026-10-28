@@ -1,4 +1,5 @@
 """Real PR refs, trusted guard processes and generated product-quality CI."""
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -23,6 +24,7 @@ class TestApprovalRouting(GitApprovalFixture, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls._product_cache = None
         cls.origin = cls.root.parent / 'origin.git'
         cls.command('git', 'init', '--bare', '-q', str(cls.origin))
         cls.command('git', 'remote', 'add', 'origin', str(cls.origin))
@@ -136,20 +138,61 @@ class TestApprovalRouting(GitApprovalFixture, unittest.TestCase):
                             text.index('- name: Check approved contract and oracle baseline'))
             self.assertNotIn('continue-on-error:', text)
 
+    def fixture_sources(self):
+        from scripts.init_project import MANIFEST
+        present = [(ROOT / name).is_file() for name in MANIFEST]
+        if any(present) and not all(present):
+            raise ValueError('Partial template manifest cannot prepare a product fixture')
+        if (ROOT / '.git').exists():
+            names = self.command('git', '-C', str(ROOT), 'ls-files', '--cached',
+                                 '--others', '--exclude-standard', '-z').split('\0')
+        else:
+            names = []
+            for current, directories, files in os.walk(ROOT):
+                relative = Path(current).relative_to(ROOT)
+                directories[:] = [name for name in directories
+                    if name not in {'.git', 'node_modules', '__pycache__', '.audit', '.venv'}
+                    and (relative / name).as_posix() != '.agents/logs']
+                names.extend((relative / name).as_posix() for name in files
+                             if not name.endswith('.gate.md'))
+        files = tuple(sorted(name for name in set(filter(None, names)) if (ROOT / name).is_file()))
+        identity = (str(ROOT.resolve()), tuple((name, hashlib.sha256((ROOT / name).read_bytes()).hexdigest()) for name in files))
+        return files, identity, all(present)
+
     def fresh_product(self, area):
+        names, identity, template = self.fixture_sources()
+        owner = type(self)
+        cached = getattr(owner, '_product_cache', None)
+        if cached is None or cached[0] != identity:
+            directory = tempfile.TemporaryDirectory(prefix='kdd-routed-snapshot-')
+            owner.addClassCleanup(directory.cleanup)
+            project, approved, tree = self.prepare_product(Path(directory.name), names, template)
+            if self.fixture_sources()[1] != identity:
+                raise ValueError('Fixture sources changed during snapshot preparation')
+            cached = (identity, project, approved, tree)
+            owner._product_cache = cached
+        project = area / 'product'
+        self.command('git', '-c', 'maintenance.autoDetach=false', '-c', 'gc.autoDetach=false',
+            'clone', '-q', '--no-hardlinks', '--config', 'core.autocrlf=false', '--config', 'core.eol=lf',
+            '--config', 'maintenance.autoDetach=false', '--config', 'gc.autoDetach=false',
+            str(cached[1]), str(project), cwd=area)
+        return project, cached[2], cached[3]
+
+    def prepare_product(self, area, names, template):
         project = area / 'product'
         project.mkdir()
-        names = self.command('git', '-C', str(ROOT), 'ls-files', '--cached',
-                             '--others', '--exclude-standard', '-z').split('\0')
         for name in filter(None, names):
             source = ROOT / name
             if source.is_file():
                 target = project / name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source, target)
-        self.command(sys.executable, str(ROOT / 'scripts/bootstrap_project.py'),
-                     '--repo-dir', str(project), '--apply', '--name', 'Independent product',
-                     '--repository', 'ExampleCo/Independent', cwd=project)
+        if template:
+            self.command(sys.executable, str(ROOT / 'scripts/bootstrap_project.py'),
+                         '--repo-dir', str(project), '--apply', '--name', 'Independent product',
+                         '--repository', 'ExampleCo/Independent', cwd=project)
+        for folder in ('src', 'tests', 'quality'):
+            (project / folder).mkdir(exist_ok=True)
         (project / 'src/product.py').write_text(PRODUCT, encoding='utf-8')
         (project / 'tests/product_oracle.py').write_text(ORACLE, encoding='utf-8')
         policy = {'protected': [WORKFLOW, 'scripts/verify_quality.py', 'scripts/approval_registry.py',

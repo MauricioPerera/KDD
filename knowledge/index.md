@@ -195,3 +195,5 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 - [Perfil propuesto de suite Windows](ci-windows-suite-concurrency.md)
 - [Contrato de seis workers nativos Windows](contracts/ci-windows-suite-six.md)
+- [Instantaneas aisladas del producto de prueba](ci-product-fixture-snapshot.md)
+- [Contrato del fixture de producto](contracts/ci-product-fixture-snapshot.md)

@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 20
   nesting_max: 4
 tests: tests/test_approval_routing.py
-tests_sha256: '494c5ce45bc1dac55c20a03604a07646e6b0530af0023cb6fe96e2ac32cd2907'
+tests_sha256: 'a31fe8f13e834c7608bcf085d5609f2c15542d10595f81d4dc2c12a1a20bfc16'
 touch_only: ['scripts/guard_pr_baseline.py', '.github/workflows/validate.yml', '.github/workflows/trusted-pr-gate.yml', 'scripts/init_project.py', 'scripts/bootstrap_project.py']
 deps_allowed: ['stdlib']
 forbids: ['llm']
@@ -61,6 +61,8 @@ En una copia ya inicializada declaran esa inaplicabilidad; una integracion real
 verifica el inventario exacto de esos tres SKIP, sin errores de Git ni recursion.
 Los otros seis casos siguen ejecutandose tambien en copias inicializadas.
 Los controles sintacticos de todos los workflows permanecen vigentes.
+La [preparacion acotada del fixture](ci-product-fixture-snapshot.md) conserva
+esos nueve metodos y sus aserciones con proyectos clonados independientes.
 
 ## Constraints
 PARAR y reportar si se necesita actualizar el baseline de oraculos, runtime
