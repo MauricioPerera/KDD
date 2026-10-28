@@ -76,8 +76,10 @@ def directory_alias(link, target, owner):
     return NativeResult()
 
 
-def configure_git(root, values):
+def configure_git(root, values, *, ephemeral=False):
     """Prepare only the constant local settings of a fresh owned Git fixture."""
+    if type(ephemeral) is not bool:
+        raise ValueError('Fixture ephemeral mode must be a boolean')
     allowed = {'user.name', 'user.email', 'maintenance.autoDetach', 'gc.autoDetach',
                'core.autocrlf', 'commit.gpgsign'}
     if not isinstance(values, dict) or not values or set(values) - allowed:
@@ -99,6 +101,8 @@ def configure_git(root, values):
     for key, value in values.items():
         section, name = key.split('.')
         suffix += '\n[{}]\n\t{} = {}\n'.format(section, name, json.dumps(value, ensure_ascii=False))
+    if ephemeral:
+        suffix += '\n[maintenance]\n\tauto = false\n[gc]\n\tauto = 0\n'
     original = config.read_bytes()
     fd, temporary = tempfile.mkstemp(prefix='kdd-fixture-config-', dir=gitdir)
     temporary = Path(temporary)

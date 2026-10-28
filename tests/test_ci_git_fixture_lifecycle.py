@@ -20,7 +20,7 @@ class GitFixtureLifecycle(unittest.TestCase):
         self.root = Path(self.temp.name)
 
     def test_configuration_is_local_and_does_not_disable_maintenance(self):
-        project = TaskProject(self.root / 'project')
+        project = TaskProject(self.root / 'project', automatic_maintenance=True)
         for key in ('maintenance.autoDetach', 'gc.autoDetach'):
             proc = project.command(['git', 'config', '--local', '--get', key], check=False)
             self.assertEqual(proc.returncode, 0, key + ' must be configured before commits')
@@ -35,7 +35,7 @@ class GitFixtureLifecycle(unittest.TestCase):
     def test_real_maintenance_completes_before_commit_exit(self):
         trace = self.root / 'trace.jsonl'
         with patch.dict(os.environ, {'GIT_TRACE2_EVENT': str(trace)}):
-            project = TaskProject(self.root / 'project')
+            project = TaskProject(self.root / 'project', automatic_maintenance=True)
         project.write('extra.txt', 'one more real commit\n')
         project.commit('Fixture lifecycle proof')
         events = [json.loads(line) for line in trace.read_text(encoding='utf-8').splitlines()]

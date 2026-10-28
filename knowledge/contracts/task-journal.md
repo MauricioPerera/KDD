@@ -14,7 +14,7 @@ budget:
   lines_max: 100
   params_max: 5
 tests: 'tests/test_task_git.py'
-tests_sha256: 'ac1ab0657548168a4772246ce6dba6fb0ee51ade506472416c67d1a8c50fc590'
+tests_sha256: 'c8ffa61c37720ed5e6e1f6a2f29af01dccfb995c7d5bf6032f0cf92098d4c00a'
 touch_only: ['scripts/task_git.py', 'scripts/task_evidence.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']

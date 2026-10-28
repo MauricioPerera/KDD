@@ -17,7 +17,7 @@ import task_model as model
 
 
 class Repository:
-    def __init__(self, oracle=None):
+    def __init__(self, oracle=None, *, automatic_maintenance=False):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         for folder in ['scripts', 'knowledge/contracts', 'src', 'tests']:
@@ -73,7 +73,8 @@ PARAR y reportar si the oracle changes.
 '''.replace('DIGEST', digest), encoding='utf-8')
         self.git('init', '-q', '-b', 'main')
         configure_git(self.root, {'maintenance.autoDetach': 'false', 'gc.autoDetach': 'false',
-            'user.name': 'KDD Task Test', 'user.email': 'tasks@example.test', 'core.autocrlf': 'false'})
+            'user.name': 'KDD Task Test', 'user.email': 'tasks@example.test', 'core.autocrlf': 'false'},
+            ephemeral=not automatic_maintenance)
         self.approved = self.commit('approved contract')
 
     def git(self, *args):

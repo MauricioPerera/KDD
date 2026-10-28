@@ -28,7 +28,7 @@ class ExistingGitFixtureLifecycle(unittest.TestCase):
 
     def fixture(self, kind):
         if kind == 'tasks':
-            instance = tasks.Repository()
+            instance = tasks.Repository(automatic_maintenance=True)
             self.addCleanup(instance.close)
             return instance.root, instance.commit
         instance = changes.ChangeContractTests('test_target_change_with_stdlib_import_passes')

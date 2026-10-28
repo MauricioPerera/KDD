@@ -23,6 +23,9 @@ forbids: ['llm']
 Aplicar la [validacion](../validacion.md) mediante una politica de aprobacion del proyecto.
 
 ## Interface
+La [identidad canonica local](../task-quality-fixture-remediation.md) exige
+un OID completo nativo de commit, tambien cuando se invoca directamente
+esta API/CLI. Rechazar aliases antes de ejecutar los checks aprobados.
 La [extension de ciclo de vida](../audit-quality-cache-onboarding.md) exige
 el helper regular scripts/process_tree.py del mismo commit aprobado. El
 fixture agrega ese archivo antes de congelar su repositorio; conserva todos
