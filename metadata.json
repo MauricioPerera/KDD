@@ -1,0 +1,57 @@
+{
+  "cli_version": "0.12.2",
+  "checkpoint_id": "01M60CTFN3NH0F8K9DK8GQ8YNW",
+  "strategy": "manual-commit",
+  "branch": "codex/task-quality-fixture",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "knowledge/contracts/ci-git-fixture-lifecycle.md",
+    "knowledge/contracts/existing-git-fixture-lifecycle.md",
+    "knowledge/contracts/fixture-maintenance-budget.md",
+    "knowledge/contracts/fixture-preparation-cost.md",
+    "knowledge/contracts/quality-baseline.md",
+    "knowledge/contracts/quality-ref-canonical.md",
+    "knowledge/contracts/quality-task-evidence.md",
+    "knowledge/contracts/task-journal.md",
+    "knowledge/contracts/task-write-boundary.md",
+    "knowledge/contracts/verify-quality.md",
+    "knowledge/index.md",
+    "tests/test_ci_git_fixture_lifecycle.py",
+    "tests/test_existing_git_fixture_lifecycle.py",
+    "tests/test_fixture_preparation.py",
+    "tests/test_generated_task_evidence.py",
+    "tests/test_quality_ref_canonical.py",
+    "tests/test_task_git.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 86993,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 689280,
+    "output_tokens": 3273,
+    "api_call_count": 14,
+    "subagent_tokens_complete": true
+  },
+  "redaction": {
+    "replacements": 0,
+    "layers": {
+      "betterleaks": 0,
+      "connection_string": 0,
+      "credential_key": 0,
+      "credential_value": 0,
+      "credentialed_uri": 0,
+      "entropy": 0,
+      "key_context": 0,
+      "provider_token": 0,
+      "shell_stdin": 0
+    }
+  }
+}

@@ -1,0 +1,9 @@
+[https://docs.entire.com/agents/setup.md](https://docs.entire.com/agents/setup.md)
+
+---
+
+Activa el envío automático de checkpoints para este repositorio.
+
+---
+
+Verifica que los checkpoints se estén enviando correctamente a origin.
