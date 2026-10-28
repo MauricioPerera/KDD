@@ -30,11 +30,10 @@ def approved_commit(root, reference):
     """Accept only the native, canonical OID of an existing commit object."""
     if not isinstance(reference, str) or not re.fullmatch(r'[0-9a-f]{40}|[0-9a-f]{64}', reference):
         raise Rejected('approved_ref must be a canonical full commit OID, not an alias')
-    algorithm = git(root, 'rev-parse', '--show-object-format').decode('ascii').strip()
-    if len(reference) != {'sha1': 40, 'sha256': 64}.get(algorithm):
-        raise Rejected('approved_ref must use the native Git object format')
-    identity = git(root, 'rev-parse', '--verify', '--end-of-options', reference).decode('ascii').strip()
-    if identity != reference or git(root, 'cat-file', '-t', reference).strip() != b'commit':
+    fields = git(root, 'rev-parse', '--show-object-format', '--verify',
+                 '--end-of-options', reference + '^{commit}').decode('ascii').splitlines()
+    if (len(fields) != 2 or len(reference) != {'sha1': 40, 'sha256': 64}.get(fields[0])
+            or fields[1] != reference):
         raise Rejected('approved_ref must identify the canonical commit object')
     return reference
 
