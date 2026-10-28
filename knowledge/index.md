@@ -131,6 +131,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Concurrencia y recuperacion con worktrees](./contracts/task-worktree-integration.md)
 - [Prefijos de credenciales en contexto](./contracts/context-secret-prefixes.md)
 - [Tiempo total del CI y protocolo de medicion](./ci-runtime.md)
+- [Lecturas agrupadas del contrato de trazabilidad](./contracts/traceability-contract-path-batch.md)
 - [Suite completa mediante procesos](./contracts/ci-suite-processes.md)
 - [Correccion de confianza y fiabilidad del CI](./ci-audit-remediation.md)
 - [Arranque de CI desde runtime confiable](./contracts/ci-trusted-execution.md)
