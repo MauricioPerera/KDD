@@ -7,7 +7,7 @@ task: existing-git-fixture-lifecycle
 intent: 'Evitar mantenimiento desacoplado en las dos fixtures existentes sin debilitar pruebas ni alterar el entorno global.'
 target: tests/test_task_git.py
 language: python
-signature: 'def __init__(self, oracle=None):'
+signature: 'def __init__(self, oracle=None, *, automatic_maintenance=False):'
 test_command: 'python -m unittest tests/test_existing_git_fixture_lifecycle.py'
 budget:
   cyclomatic_max: 12
@@ -15,7 +15,7 @@ budget:
   lines_max: 450
   params_max: 6
 tests: tests/test_existing_git_fixture_lifecycle.py
-tests_sha256: 'd6a28569289db0ce2c999ff2855ea6358e786410f0b27a47fcd9d523dfd2646c'
+tests_sha256: 'f59da515eebe850af25050243f41915998f8617da7ec3e2520581d3d80f20a09'
 touch_only: ['tests/test_task_git.py', 'tests/test_validate_change_contract.py']
 deps_allowed: ['stdlib', 'git', 'task_git', 'task_model', 'validate_change_contract', 'change_contract_multilang']
 forbids: ['network', 'llm']
@@ -30,11 +30,14 @@ de oraculos sigue el [protocolo de calidad](../quality-approval.md).
 ## Interface
 Justo despues de git init y antes del primer commit, cada fixture configura
 maintenance.autoDetach=false y gc.autoDetach=false en su propio .git/config.
-La API de los helpers y todos los metodos/aserciones anteriores se conservan.
-El cambio de helper son exactamente dos llamadas config por fixture.
+Los argumentos anteriores y todos los metodos/aserciones se conservan.
+La [extension de fixtures efimeros](../task-quality-fixture-remediation.md)
+agrega el keyword a Repository; estos controles solicitan True al construirlo.
+ChangeContractTests conserva su configuracion anterior. Ambos controles
+siguen ejercitando mantenimiento real sin detach.
 
 ## Invariants
-El mantenimiento sigue habilitado. No modificar configuracion global/sistema,
+El mantenimiento sigue habilitado en estos controles dedicados. No modificar configuracion global/sistema,
 variables de CI, workflows ni runtime para compensar la carrera. La limpieza
 permanece estricta, sin sleeps, reintentos, ignore_errors ni excepciones tragadas.
 Conservar los 1234 IDs previos y agregar seis integraciones reales sin SKIP.

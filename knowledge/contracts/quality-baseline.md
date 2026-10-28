@@ -28,6 +28,10 @@ el índice, el working tree ni la referencia Git.
 
 ## Interface
 
+Aplicar la [identidad canonica local](../task-quality-fixture-remediation.md):
+rechazar tambien aliases, expresiones Git y objetos distintos de commit;
+conservar el OID completo nativo entregado por el revisor.
+
 ```python
 def build_baseline(repo_root: str, policy_path: str, approved_ref: str) -> dict:
     """Return the approved commit, policy hash and protected file hashes."""

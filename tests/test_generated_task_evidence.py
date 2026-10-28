@@ -31,7 +31,7 @@ def isolated_env():
 
 class TaskProject:
     """A real fresh Git history, synthetic product, approved oracle and policy."""
-    def __init__(self, root, count=1, initialize=True):
+    def __init__(self, root, count=1, initialize=True, *, automatic_maintenance=False):
         self.root = Path(root)
         self.env = isolated_env()
         self.count = count
@@ -65,7 +65,8 @@ tags: ['fixture']
             self.git('init', '-q', '-b', 'main')
             configure_git(self.root, {'user.name': 'Simulated fixture reviewer',
                 'user.email': 'fixture@example.invalid', 'maintenance.autoDetach': 'false',
-                'gc.autoDetach': 'false', 'core.autocrlf': 'false', 'commit.gpgsign': 'false'})
+                'gc.autoDetach': 'false', 'core.autocrlf': 'false', 'commit.gpgsign': 'false'},
+                ephemeral=not automatic_maintenance)
             self.ref = self.commit('Simulated reviewer baseline; temporary fixture only')
 
     def write(self, name, content):

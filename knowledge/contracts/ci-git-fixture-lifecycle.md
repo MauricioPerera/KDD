@@ -7,7 +7,7 @@ task: ci-git-fixture-lifecycle
 intent: 'Completar mantenimiento antes de devolver cada comando del fixture sin debilitar sus oraculos.'
 target: tests/test_generated_task_evidence.py
 language: python
-signature: 'def __init__(self, root, count=1, initialize=True):'
+signature: 'def __init__(self, root, count=1, initialize=True, *, automatic_maintenance=False):'
 test_command: 'python -m unittest tests/test_ci_git_fixture_lifecycle.py'
 budget:
   cyclomatic_max: 10
@@ -15,7 +15,7 @@ budget:
   lines_max: 100
   params_max: 4
 tests: tests/test_ci_git_fixture_lifecycle.py
-tests_sha256: '173e9f9dd9ff14a2536df99e9bd7abcb0881860e05e7161ba0a61fd3ec718112'
+tests_sha256: '5fa07ff258cbd7e5fb294e3a907f9f6452024b477b667360d4f29aeb9aa386f5'
 touch_only: ['tests/test_generated_task_evidence.py']
 deps_allowed: ['stdlib', 'git']
 forbids: ['network', 'llm']
@@ -27,14 +27,18 @@ Completar el [protocolo de tiempo total](../ci-runtime.md) y conservar la
 detectado por la segunda pasada Ubuntu del PR123.
 
 ## Interface
-TaskProject conserva su API y configura, en el repositorio temporal recien
+TaskProject conserva argumentos anteriores y agrega el keyword descrito en
+el [modo efimero](../task-quality-fixture-remediation.md). Los dos controles
+dedicados solicitan automatic_maintenance=True antes del primer commit.
+Ese modo configura, en el repositorio temporal recien
 inicializado y antes del primer commit, maintenance.autoDetach=false y
 gc.autoDetach=false. El mantenimiento sigue habilitado: solo se ejecuta
 sin desacoplarse. La configuracion no sale del .git/config de ese fixture.
 
 ## Invariants
-No cambiar ninguna prueba, asercion, umbral de procesos, dato de producto,
-timeout ni politica del helper. No cambiar isolated_env ni configuracion
+Conservar todos los metodos, aserciones, umbrales de procesos, datos de producto,
+timeouts y el modo dedicado del helper. Solo se adaptan las dos llamadas
+de preparacion para solicitar ese modo; no cambiar isolated_env ni configuracion
 del usuario, sistema, workflow o verificador para compensar el fallo.
 TemporaryDirectory.cleanup sigue siendo estricto: no usar ignore_errors,
 ignore_cleanup_errors, reintentos, sleeps ni excepciones tragadas.
@@ -44,7 +48,7 @@ su proteccion del objeto ausente sigue siendo un rechazo real del producto.
 ## Examples
 - Git moderno invoca mantenimiento con --no-detach y termina antes del commit.
 - mantenimiento aun habilitado, limpieza normal sin procesos escribiendo tarde.
-- Desactivar mantenimiento o ignorar Directory not empty no satisface el contrato.
+- Desactivar mantenimiento en el control dedicado o ignorar Directory not empty no satisface el contrato.
 
 ## Do / Don't
 - DO: usar Git real y Trace2; verificar orden de terminacion y origen local.

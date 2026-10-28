@@ -197,3 +197,8 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contrato de seis workers nativos Windows](contracts/ci-windows-suite-six.md)
 - [Instantaneas aisladas del producto de prueba](ci-product-fixture-snapshot.md)
 - [Contrato del fixture de producto](contracts/ci-product-fixture-snapshot.md)
+
+- [Fronteras de tareas, calidad y fixtures efimeros](task-quality-fixture-remediation.md)
+- [Contrato de escrituras del diario](contracts/task-write-boundary.md)
+- [Contrato de referencias locales canonicas](contracts/quality-ref-canonical.md)
+- [Contrato de mantenimiento de fixtures](contracts/fixture-maintenance-budget.md)
