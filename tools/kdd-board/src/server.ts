@@ -45,13 +45,26 @@ const bridge = gitStore ? createGitBridge(gitStore) : createWebMcpBridge(taskSto
 const gitApi = gitStore ? createGitApi(gitStore, parseJsonBody, sendJson) : undefined;
 const runGit = promisify(execFile);
 
+class BoardRestartRequired extends Error {
+  constructor() { super('El proyecto ahora usa Git; reinicia Board antes de modificarlo.'); }
+}
+
+function requireStableLegacyContext(): void {
+  if (!gitStore && isGitProject(projectDir)) throw new BoardRestartRequired();
+}
+
 async function checkVaultExclusion(): Promise<'ok' | 'unprotected' | 'unavailable'> {
-  if (!gitStore) return 'ok';
   try {
+    if (!gitStore) return isGitProject(projectDir) ? 'unprotected' : 'ok';
     if (fs.existsSync(dataDir) && fs.lstatSync(dataDir).isSymbolicLink()) return 'unprotected';
     const env = {...process.env};
     delete env.KDD_BOARD_TOKEN;
-    for (const key of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_INDEX_FILE']) delete env[key];
+    for (const key of Object.keys(env)) {
+      if (['GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_INDEX_FILE',
+           'GIT_CONFIG_COUNT', 'GIT_CONFIG_PARAMETERS', 'GIT_CONFIG_GLOBAL',
+           'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_NOSYSTEM'].includes(key) ||
+          /^GIT_CONFIG_(KEY|VALUE)_\d+$/.test(key)) delete env[key];
+    }
     for (const target of ['.kdd-board/', '.kdd-board/vault.env']) {
       await runGit('git', ['-C', projectDir, 'check-ignore', '-q', '--', target],
         {cwd:projectDir, env, timeout:10000, windowsHide:true});
@@ -82,7 +95,9 @@ function parseJsonBody<T>(req: http.IncomingMessage): Promise<T> {
     });
     req.on('end', () => {
       try {
-        resolve(body ? JSON.parse(body) : ({} as T));
+        const parsed = body ? JSON.parse(body) : ({} as T);
+        requireStableLegacyContext();
+        resolve(parsed);
       } catch (err) {
         reject(err);
       }
@@ -249,6 +264,11 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
     }
 
     try {
+      // A server started in legacy mode must not keep writing JSON or secrets
+      // after its project becomes a Git checkout. Restart to select Git mode.
+      if (pathname.startsWith('/api/') && ['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method || '')) {
+        requireStableLegacyContext();
+      }
       if (gitApi && await gitApi(req, res, url)) return;
       if (req.method === 'GET' && pathname === '/api/board') {
         return sendJson(res, 200, {mode:'legacy', sourceRef:null});
@@ -338,6 +358,13 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
         }>(req);
 
         if (body.secretValue) {
+          const task = taskStore!.getTask(taskId);
+          const key = (body.fieldKey || '').trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+          if (!task || !task.requirements.some(r => r.fieldKey === key)) {
+            return sendJson(res, 404, {error:'Tarea o requerimiento no encontrado'});
+          }
+          if (!await allowVaultWrite(res)) return;
+          requireStableLegacyContext();
           vault.setSecret(body.fieldKey, body.secretValue);
         }
         const task = taskStore!.satisfyHumanInput(taskId, body.fieldKey, body.value);
@@ -386,6 +413,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
           return sendJson(res, 400, { error: 'Clave y valor requeridos' });
         }
         if (!await allowVaultWrite(res)) return;
+        requireStableLegacyContext();
         vault.setSecret(body.key, body.value);
         const sanitized = body.key.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
         
@@ -406,6 +434,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
       if (req.method === 'DELETE' && vaultDelMatch) {
         const key = decodeURIComponent(vaultDelMatch[1]);
         if (!await allowVaultWrite(res)) return;
+        requireStableLegacyContext();
         vault.deleteSecret(key);
         return sendJson(res, 200, vault.listSecrets());
       }
@@ -475,6 +504,9 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('Not Found');
     } catch (err: any) {
+      if (err instanceof BoardRestartRequired) {
+        return sendJson(res, 409, {error:err.message, code:'BOARD_RESTART_REQUIRED'});
+      }
       sendJson(res, 500, { error: err?.message || 'Internal Server Error' });
     }
   });
