@@ -41,38 +41,6 @@ const vault = new BlindVault(vaultFile);
 const bridge = gitStore ? createGitBridge(gitStore) : createWebMcpBridge(taskStore!, vault, projectDir);
 const gitApi = gitStore ? createGitApi(gitStore, parseJsonBody, sendJson) : undefined;
 
-// Populate default sample tasks if store is empty
-if (taskStore && taskStore.getAllTasks().length === 0) {
-  const t1 = taskStore.createTask({
-    title: 'Definir especificación KDD del pipeline de datos',
-    description: 'Crear contrato con invariantes y budgets para el ingestor.',
-    assignee: 'human',
-    priority: 'high',
-  });
-  taskStore.updateTaskStatus(t1.id, 'ready');
-
-  const t2 = taskStore.createTask({
-    title: 'Generar parser de eventos con Zod y fastwebmcp',
-    description: 'Implementar validación estricta y esquemas declarativos.',
-    assignee: 'agent',
-    priority: 'high',
-  });
-  taskStore.updateTaskStatus(t2.id, 'in_progress');
-  taskStore.requestHumanInput(t2.id, {
-    fieldKey: 'DATABASE_URL',
-    label: 'URL de Base de Datos PostgreSQL',
-    description: 'Cadena de conexión para pruebas de integración local',
-    isSecret: true,
-  });
-
-  const t3 = taskStore.createTask({
-    title: 'Refactorizar suite de pruebas unitarias',
-    description: 'Asegurar cobertura >90% en la máquina de estados.',
-    assignee: 'unassigned',
-    priority: 'medium',
-  });
-}
-
 function parseJsonBody<T>(req: http.IncomingMessage): Promise<T> {
   return new Promise((resolve, reject) => {
     let body = '';

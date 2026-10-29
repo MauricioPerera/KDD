@@ -10,7 +10,7 @@ import { TaskStore } from '../src/task-store.ts';
 import { BlindVault } from '../src/blind-vault.ts';
 import { writeVersion } from '../src/persistence.ts';
 import { runTaskTests } from '../src/task-execution.ts';
-import { projectFixture } from './project-fixture.ts';
+import { projectFixture, tempOutsideGit } from './project-fixture.ts';
 
 test('printed TAP totals cannot verify a task without executed tests', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kdd-fake-tap-'));
@@ -59,7 +59,7 @@ test('reports saved before runner verification cannot complete a task', async ()
 });
 
 test('priority is validated by the store and authenticated HTTP API', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kdd-priority-'));
+  const root = tempOutsideGit('kdd-priority-');
   projectFixture(root);
   const store = new TaskStore(path.join(root, 'local-tasks.json'));
   const payload = `<img src=x onerror=alert(1)>`;

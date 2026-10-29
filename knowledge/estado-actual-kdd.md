@@ -1,7 +1,7 @@
 ---
 type: 'Concept'
-title: 'Estado verificable de KDD al 24 de octubre de 2026'
-description: 'Corte de main y rama local: tareas, bootstrap, CI confiable, Pages, evidencia real y trabajo pendiente.'
+title: 'Estado verificable de KDD y evidencia historica'
+description: 'Estado verificado de main, historial de pruebas y limites de KDD.'
 tags: ['kdd', 'reference', 'verification', 'tasks', 'bootstrap', 'ci', 'pages']
 ---
 
@@ -13,15 +13,42 @@ Actualmente dispone de una plantilla inicializable, validadores, una CLI de
 tareas y KDD-Board integrados con Git. El flujo se ha comprobado desde un
 proyecto vacío hasta su calidad de producto en CI.
 
+## Actualizacion verificada del 28 de octubre de 2026
+
+El main `92a594e3701b25809925c8d6e1842fa0b6b0c76f` integra el PR140 con sus
+[dos commits originales](https://github.com/MauricioPerera/KDD/pull/140).
+El [CI de main](https://github.com/MauricioPerera/KDD/actions/runs/40791293282)
+paso en Ubuntu y Windows, con dos pasadas de 1651 IDs por sistema. Hubo
+10 skips declarados en Ubuntu y 9 en Windows; el inventario incluye esos IDs.
+El [despliegue de Pages](https://github.com/MauricioPerera/KDD/actions/runs/40795357919)
+reconcilio los cuatro reportes y publico el contador de ese run.
+
+La agrupacion de lecturas Git del PR140 redujo de 60 a 59 procesos Git en un
+fixture instrumentado con resultados identicos. Las dos muestras remotas son
+insuficientes para atribuirle una reduccion del tiempo total. En el CI de
+main citado, el job Windows tardo 36:44 y Ubuntu 7:35; el
+[diagnostico historico de CI](ci-diagnostico-2026-10.md) aporta contexto sin
+prometer que las mediciones sean comparables causalmente.
+
+La auditoria posterior identifico mejoras de arranque de Board sin Git, de
+seleccion de raiz Git y de aislamiento de fixtures. La propuesta de esta
+rama implementa las correcciones; aun no forman parte del main citado ni
+cuentan con CI remoto. Su [integracion Board](board-git.md) describe el flujo.
+La aprobacion del baseline no sustituye la revision de producto ni autentica
+por si sola una decision humana. Los cinco checks de proteccion de main se
+mantienen; la fusion de PR140 tuvo la excepcion puntual a Entire autorizada.
+
+## Corte historico del 24 de octubre
+
 Este corte, fechado el **24 de octubre de 2026, America/Mexico_City**, distingue
 la revision publicada de la propuesta local. Las reglas normativas siguen en
 los nodos enlazados; los conteos corresponden a las revisiones indicadas.
 
 | Revision observada | Estado y evidencia |
 | --- | --- |
-| `main`: [`db1717fa`](https://github.com/MauricioPerera/KDD/commit/db1717fa3e6d3497498afbd79a45b07718b1d3ce), PR127 | [CI satisfactorio](https://github.com/MauricioPerera/KDD/actions/runs/40141077949), Ubuntu/Windows, dos pasadas de 1182 casos por SO; [Pages desplegado](https://github.com/MauricioPerera/KDD/actions/runs/40142198858). |
-| Rama local `codex/pages-ci-inventory`: `34bdfb708ca044f1e2532f733863337a4d894799` | Baseline aprobado e implementacion comprobada localmente: 19 gates, 86 contratos, 143 nodos, dos pasadas de 1207 casos y 40 pruebas de Board por SO. Conserva los 1182 IDs anteriores y agrega 25 sin nuevas omisiones. |
-| Publicacion del contador nuevo | Pendiente de publicar la rama, verificar CI en GitHub y desplegar Pages. Los 1207 casos son evidencia local; no representan aun el sitio publico. |
+| `main` en ese corte: [`db1717fa`](https://github.com/MauricioPerera/KDD/commit/db1717fa3e6d3497498afbd79a45b07718b1d3ce), PR127 | [CI satisfactorio](https://github.com/MauricioPerera/KDD/actions/runs/40141077949), Ubuntu/Windows, dos pasadas de 1182 casos por SO; [Pages desplegado](https://github.com/MauricioPerera/KDD/actions/runs/40142198858). |
+| Rama local en ese corte `codex/pages-ci-inventory`: `34bdfb708ca044f1e2532f733863337a4d894799` | Baseline aprobado e implementacion comprobada localmente: 19 gates, 86 contratos, 143 nodos, dos pasadas de 1207 casos y 40 pruebas de Board por SO. Conserva los 1182 IDs anteriores y agrega 25 sin nuevas omisiones. |
+| Publicacion del contador nuevo en ese corte | Pendiente de publicar la rama, verificar CI en GitHub y desplegar Pages. Los 1207 casos son evidencia local; no representan aun el sitio publico. |
 
 Las cuatro pasadas locales coinciden en el digest de IDs
 `5f302ea4517a7329e70dd8f6889c9d15540200b8fcb5fb083c40e7a28eb2ac8e`.
@@ -156,8 +183,10 @@ La [deduplicacion](contracts/ci-execution-deduplication.md) agrupa comandos
 exactamente iguales dentro de una invocacion, evita el doble disparo push de
 rama/PR y cancela runs nativos superados del mismo PR. El
 [paralelismo acotado](ci-runtime.md), integrado mediante PR123, mantiene
-cuatro jobs, Ubuntu/Windows y dos pasadas completas consecutivas. Solo el
-KDD nativo opta por cuatro workers; los consumidores conservan uno por defecto.
+cuatro jobs, Ubuntu/Windows y dos pasadas completas consecutivas. El perfil
+nativo usa cuatro workers para contratos y suite Ubuntu, y seis para la suite
+Windows; los consumidores conservan uno por defecto. Ver el
+[perfil por sistema](ci-windows-suite-concurrency.md).
 No se reutiliza evidencia entre commits, SO, pasadas ni invocaciones.
 
 La comparacion del PR123 uso dos muestras anteriores con arboles iguales
@@ -184,7 +213,7 @@ de arboles y contabilizacion de fixtures/hooks. PR125 corrigio el import como
 paquete; PR126 agrego el build real de PR y PR127 ajusto los fixtures de
 arranque. Los protocolos enlazados conservan el alcance de cada cambio.
 
-## Correccion local del contador de Pages
+## Correccion del contador de Pages en el corte historico
 
 En el despliegue de `db1717fa` se observaron 1145 casos frente a los 1182 del
 CI: faltaban parsers de discovery y un import fallido se contaba como un solo
@@ -192,7 +221,8 @@ CI: faltaban parsers de discovery y un import fallido se contaba como un solo
 incompleto y compara IDs de las cuatro pasadas del run/intento/SHA exactos
 antes de crear el bundle. El control negativo real reprodujo el defecto del
 builder anterior y verifico el rechazo del nuevo en Windows/Ubuntu.
-Falta confirmar el transporte de artifacts y el resultado publico en GitHub.
+En ese corte faltaba confirmar el transporte de artifacts y el resultado publico.
+La actualizacion superior enlaza al despliegue ya verificado en main.
 
 ## Alcance de las garantías y trabajo pendiente
 
@@ -210,7 +240,7 @@ Falta confirmar el transporte de artifacts y el resultado publico en GitHub.
 - **Arranque remoto.** Variables, protecciones y disponibilidad de Actions son
   configuración externa. La demo requirió habilitar Actions desde GitHub; el
   bootstrap no automatiza esa administración.
-- **Publicacion de la mejora local.** Publicar y revisar la rama del contador,
+- **Publicacion de la mejora local en ese corte.** Publicar y revisar la rama del contador,
   verificar CI en GitHub y comprobar despues el despliegue y la cifra publicada.
   Los cambios de workflows siguen sujetos a la revision de confianza; este
   documento no autoriza modificar protecciones.

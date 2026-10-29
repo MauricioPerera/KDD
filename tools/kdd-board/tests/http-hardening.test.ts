@@ -1,12 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { projectFixture } from './project-fixture.ts';
+import { projectFixture, tempOutsideGit } from './project-fixture.ts';
 
 test('HTTP rejects anonymous and cross-origin access; runs linked project evidence', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kdd-http-'));
+  const root = tempOutsideGit('kdd-http-');
   projectFixture(root);
   process.env.KDD_PROJECT_DIR = root;
   const {createServer} = await import('../src/server.ts');

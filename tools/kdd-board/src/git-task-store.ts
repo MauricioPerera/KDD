@@ -53,20 +53,29 @@ const coordinatorReasons:Record<string,string>={
 
 // A broken/missing git executable must never select JSON for a Git checkout.
 export function isGitProject(root: string): boolean {
-  let cursor = path.resolve(root);
+  const selected = fs.realpathSync(root);
+  const rejectNested = () => {
+    throw new BoardGitError('TASK_PROJECT_ROOT: select the Git repository root or initialize Git in this project',409);
+  };
+  let cursor = selected;
   while (true) {
-    if (fs.existsSync(path.join(cursor, '.git'))) return true;
+    if (fs.existsSync(path.join(cursor, '.git'))) {
+      if (path.relative(selected, cursor)) rejectNested();
+      return true;
+    }
     const parent = path.dirname(cursor);
     if (parent === cursor) break;
     cursor = parent;
   }
+  let top: string;
   try {
-    execFileSync('git', ['-C',root,'rev-parse','--show-toplevel'], {stdio:'pipe'});
-    return true;
+    top = execFileSync('git', ['-C',root,'rev-parse','--show-toplevel'], {encoding:'utf8',stdio:'pipe'}).trim();
   } catch (error: any) {
     if (error.code === 'ENOENT') throw new BoardGitError('Git executable unavailable',503);
     return false;
   }
+  if (path.relative(selected, fs.realpathSync(top))) rejectNested();
+  return true;
 }
 
 function text(value: unknown, name: string): string {

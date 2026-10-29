@@ -20,6 +20,14 @@ en proyectos Git. Las lecturas siguen funcionando desde una rama de tarea.
 Un repositorio sin `main`, con nodos invalidos o sin Git disponible falla
 explicitamente; no degrada a JSON. Solo los directorios que no pertenecen a
 un repositorio conservan el tablero JSON anterior, identificado como `legacy`.
+Ese modo conserva las tareas existentes y empieza vacio si no las hay; no
+crea ejemplos. Para usar el diario de commits, inicializa Git en el proyecto
+y crea su rama `main` antes de operar tareas.
+
+Si el directorio elegido esta dentro de otro repositorio, pero no es su raiz,
+el arranque rechaza `TASK_PROJECT_ROOT`: selecciona la raiz de ese repositorio
+o inicializa uno propio en el proyecto. No se crean tareas ni se modifica el
+repositorio padre. Los worktrees cuya raiz coincide con el proyecto son validos.
 
 ## Proyeccion e interfaz
 
