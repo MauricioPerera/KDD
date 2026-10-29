@@ -46,10 +46,33 @@ test('initializing Git after startup prevents legacy task creation', t => {
   `);
 });
 
+test('fulfilling a nonexistent task after Git initialization cannot write the vault', t => {
+  run(t, setup + `
+    const {createServer}=await import('./src/server.ts');const s=createServer('test-only');await new Promise(r=>s.listen(0,'127.0.0.1',r));
+    try {
+      git('init','-b','main');
+      const response=await request(s,'/api/tasks/nonexistent/fulfill','POST',{fieldKey:'TEST_KEY',secretValue:'synthetic-value'});
+      assert.notEqual(response.status,200);
+      assert.equal(fs.existsSync(path.join(root,'.kdd-board','vault.env')),false);
+    } finally {await new Promise(r=>s.close(r));}
+  `);
+});
+
 test('vault cannot rely only on transient Git configuration', t => {
   run(t, setup + `
     git('init','-b','main');const excluded=path.join(root,'temp-excludes');fs.writeFileSync(excluded,'.kdd-board/\\n');
     process.env.GIT_CONFIG_COUNT='1';process.env.GIT_CONFIG_KEY_0='core.excludesfile';process.env.GIT_CONFIG_VALUE_0=excluded;
+    const {createServer}=await import('./src/server.ts');const s=createServer('test-only');await new Promise(r=>s.listen(0,'127.0.0.1',r));
+    try {const result=await request(s,'/api/vault','POST',{key:'TEST_KEY',value:'synthetic-value'});assert.notEqual(result.status,200);assert.equal(fs.existsSync(path.join(root,'.kdd-board','vault.env')),false);}
+    finally {await new Promise(r=>s.close(r));}
+  `);
+});
+
+test('vault cannot rely only on a transient global Git config override', t => {
+  run(t, setup + `
+    git('init','-b','main');const excluded=path.join(root,'temp-excludes');fs.writeFileSync(excluded,'.kdd-board/\\n');
+    const config=path.join(root,'temporary-git-config');git('config','--file',config,'core.excludesfile',excluded);
+    process.env.GIT_CONFIG_GLOBAL=config;
     const {createServer}=await import('./src/server.ts');const s=createServer('test-only');await new Promise(r=>s.listen(0,'127.0.0.1',r));
     try {const result=await request(s,'/api/vault','POST',{key:'TEST_KEY',value:'synthetic-value'});assert.notEqual(result.status,200);assert.equal(fs.existsSync(path.join(root,'.kdd-board','vault.env')),false);}
     finally {await new Promise(r=>s.close(r));}

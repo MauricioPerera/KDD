@@ -8,7 +8,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 BOARD = ROOT / 'tools' / 'kdd-board'
 ORACLE = BOARD / 'tests' / 'audit-board-context.test.ts'
-ORACLE_SHA256 = '040b5f198b891326450036aea884ba439c1971b7b50a2d661b6581c85739a0b3'
+ORACLE_SHA256 = '6c89277229c05cf3c56b1946f7111c24a1069717b6fab0c5dd7200239e5f542a'
 
 
 class BoardAuditContext(unittest.TestCase):
@@ -24,5 +24,5 @@ class BoardAuditContext(unittest.TestCase):
                                 cwd=BOARD, env={**os.environ, 'PYTHONUTF8': '1'},
                                 capture_output=True, text=True, encoding='utf-8', timeout=120)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn('# pass 7', result.stdout)
+        self.assertIn('# pass 9', result.stdout)
         self.assertIn('# fail 0', result.stdout)

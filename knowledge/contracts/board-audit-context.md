@@ -15,7 +15,7 @@ budget:
   lines_max: 250
   params_max: 5
 tests: tests/test_board_audit_context.py
-tests_sha256: '8885a14c2b0a51071db57ade3544e81b76d3241241e03ab6a399a267a5136d41'
+tests_sha256: '83c61968723ff2b9a294ae89aaabbd3360eae4ea0db58d2ff98dd0143029c012'
 touch_only: ['tools/kdd-board/src/server.ts', 'tools/kdd-board/src/task-store.ts', 'tools/kdd-board/public/app.js']
 deps_allowed: ['node', 'git', 'zod', 'fastwebmcp']
 forbids: ['llm']
@@ -41,7 +41,10 @@ Conservar la exclusion, indexacion y concurrencia del vault ya contratado.
 ## Examples
 - Inicializar Git con Board abierto impide crear tareas legacy y guardar el vault.
 - Un Git sin exclusiones persistentes rechaza credenciales aunque el proceso
-  reciba core.excludesfile por variables de configuracion temporales.
+  reciba core.excludesfile por variables de configuracion temporales o un
+  archivo global seleccionado solo mediante variables del proceso.
+- Cumplir un requerimiento de una tarea inexistente tras inicializar Git no
+  puede escribir un vault ni dejar credenciales fuera de las exclusiones.
 - Dos IDs identicos no se reducen silenciosamente a una sola tarea.
 - Un requirements que es texto no borra la tarjeta mostrada anteriormente.
 
