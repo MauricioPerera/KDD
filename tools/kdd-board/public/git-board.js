@@ -15,7 +15,6 @@
       const config = await api('/api/board');
       mode = config.mode;
       if (mode !== 'git') return config;
-      const contracts = await api('/api/board/contracts');
       node('git-create-fields').hidden = false;
       node('task-id').required = true;
       node('task-contract').required = true;
@@ -25,13 +24,26 @@
       node('task-assignee').closest('.form-group').style.display = 'none';
       node('task-priority').closest('.form-group').style.display = 'none';
       node('task-contract-label').textContent = 'Contrato confirmado en main';
-      node('task-contract').innerHTML = '<option value="">-- Seleccionar contrato --</option>' +
-        contracts.map(c=>`<option value="${escape(c.id)}">${escape(c.title)}</option>`).join('');
       node('git-board-notice').hidden = false;
       node('git-board-notice').textContent = 'Tareas OKF de main. Crear y cambiar estado genera commits; requiere main limpio.';
       return config;
     })().catch(error => {configuration=undefined;throw error;});
-    return configuration;
+    const config = await configuration;
+    if (mode === 'git') {
+      const contracts = await api('/api/board/contracts');
+      if (!Array.isArray(contracts) || contracts.some(c=>!c || typeof c.id !== 'string' || typeof c.title !== 'string')) {
+        throw new Error('Catalogo de contratos invalido');
+      }
+      const select = node('task-contract');
+      const selected = select.value;
+      const options = '<option value="">-- Seleccionar contrato --</option>' +
+        contracts.map(c=>`<option value="${escape(c.id)}">${escape(c.title)}</option>`).join('');
+      if (select.innerHTML !== options) {
+        select.innerHTML = options;
+        select.value = contracts.some(c=>c.id === selected) ? selected : '';
+      }
+    }
+    return config;
   }
 
   function createInput(input) {

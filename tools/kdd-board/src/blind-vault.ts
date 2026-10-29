@@ -5,21 +5,32 @@ import { readVersion, writeVersion } from './persistence.ts';
 
 export class BlindVault {
   private filePath: string;
+  private legacyFilePath?: string;
+  private legacyVersion: string | null = null;
   private version: string | null = null;
   private secrets: Map<string, { value: string; updatedAt: string }> = new Map();
 
-  constructor(filePath: string) {
+  constructor(filePath: string, legacyFilePath?: string) {
     this.filePath = filePath;
+    this.legacyFilePath = legacyFilePath;
     this.load();
   }
 
   private load(): void {
     this.secrets.clear();
     this.version = readVersion(this.filePath);
-    if (this.version === null) {
+    this.legacyVersion = null;
+    let content = this.version;
+    if (content === null && this.legacyFilePath) {
+      const legacy = readVersion(this.legacyFilePath);
+      if (legacy !== null && legacy.split(/\r?\n/, 1)[0] === '# Blind Vault managed credentials (KDD-Board)') {
+        this.legacyVersion = legacy;
+        content = legacy;
+      }
+    }
+    if (content === null) {
       return;
     }
-    const content = this.version;
     const lines = content.split('\n');
     for (const line of lines) {
       const trimmed = line.trim();
@@ -50,8 +61,12 @@ export class BlindVault {
       lines.push(`${key}=${JSON.stringify(item.value)}`);
     }
     const content = lines.join('\n') + '\n';
+    if (this.legacyVersion !== null && this.legacyFilePath && readVersion(this.legacyFilePath) !== this.legacyVersion) {
+      throw new Error('Storage conflict: reload before retrying');
+    }
     writeVersion(this.filePath, this.version, content);
     this.version = content;
+    this.legacyVersion = null;
     if (process.platform !== 'win32') {
       fs.chmodSync(this.filePath, 0o600);
     }

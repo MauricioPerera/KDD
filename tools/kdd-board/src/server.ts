@@ -1,5 +1,7 @@
 import http from 'node:http';
 import crypto from 'node:crypto';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
 import { runTaskTests } from './task-execution.ts';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -32,14 +34,44 @@ projectDir = path.resolve(projectDir);
 
 const dataDir = path.join(projectDir, '.kdd-board');
 const tasksFile = path.join(dataDir, 'tasks.json');
-const vaultFile = path.join(projectDir, '.env.local');
+const vaultFile = path.join(dataDir, 'vault.env');
+const legacyVaultFile = path.join(projectDir, '.env.local');
 const publicDir = path.join(rootDir, 'public');
 
 const gitStore = isGitProject(projectDir) ? new GitTaskStore(projectDir) : undefined;
 const taskStore = gitStore ? undefined : new TaskStore(tasksFile);
-const vault = new BlindVault(vaultFile);
+const vault = new BlindVault(vaultFile, legacyVaultFile);
 const bridge = gitStore ? createGitBridge(gitStore) : createWebMcpBridge(taskStore!, vault, projectDir);
 const gitApi = gitStore ? createGitApi(gitStore, parseJsonBody, sendJson) : undefined;
+const runGit = promisify(execFile);
+
+async function checkVaultExclusion(): Promise<'ok' | 'unprotected' | 'unavailable'> {
+  if (!gitStore) return 'ok';
+  try {
+    if (fs.existsSync(dataDir) && fs.lstatSync(dataDir).isSymbolicLink()) return 'unprotected';
+    const env = {...process.env};
+    delete env.KDD_BOARD_TOKEN;
+    for (const key of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_INDEX_FILE']) delete env[key];
+    for (const target of ['.kdd-board/', '.kdd-board/vault.env']) {
+      await runGit('git', ['-C', projectDir, 'check-ignore', '-q', '--', target],
+        {cwd:projectDir, env, timeout:10000, windowsHide:true});
+    }
+    return 'ok';
+  } catch (error: any) {
+    return error?.code === 1 ? 'unprotected' : 'unavailable';
+  }
+}
+
+async function allowVaultWrite(res: http.ServerResponse): Promise<boolean> {
+  const status = await checkVaultExclusion();
+  if (status === 'ok') return true;
+  if (status === 'unprotected') {
+    sendJson(res, 409, {error: 'Excluye .kdd-board/ de Git y retira el vault del indice antes de guardar.', code: 'VAULT_GIT_EXCLUSION'});
+  } else {
+    sendJson(res, 503, {error: 'No se pudo comprobar la exclusion Git del vault.', code: 'VAULT_GIT_UNAVAILABLE'});
+  }
+  return false;
+}
 
 function parseJsonBody<T>(req: http.IncomingMessage): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -353,6 +385,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
         if (!body.key || !body.value) {
           return sendJson(res, 400, { error: 'Clave y valor requeridos' });
         }
+        if (!await allowVaultWrite(res)) return;
         vault.setSecret(body.key, body.value);
         const sanitized = body.key.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
         
@@ -372,6 +405,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
       const vaultDelMatch = pathname.match(/^\/api\/vault\/([^/]+)$/);
       if (req.method === 'DELETE' && vaultDelMatch) {
         const key = decodeURIComponent(vaultDelMatch[1]);
+        if (!await allowVaultWrite(res)) return;
         vault.deleteSecret(key);
         return sendJson(res, 200, vault.listSecrets());
       }

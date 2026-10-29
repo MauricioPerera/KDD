@@ -62,7 +62,7 @@ commit. See [the integration contract](knowledge/board-git.md).
 
 For teams and developers who prefer a visual, real-time workflow, the repository includes **KDD-Board**:
 - **Interactive Kanban**: Manage backlog, agent-assigned tasks, and human gates across 5 stages (`backlog` -> `ready` -> `in_progress` -> `needs_human_input` -> `done`).
-- **Blind Secrets Vault**: Stores credentials in the project `.env.local` and injects them into the test subprocess. Listings are masked and known raw values are redacted from output. Executed code can read them: this is not isolation from an untrusted agent.
+- **Blind Secrets Vault**: Stores credentials in `.kdd-board/vault.env` and injects them into the legacy test subprocess. Recognized earlier Board vaults migrate on first change without modifying the project's `.env.local`. Listings are masked and known raw values are redacted from output. Executed code can read them: this is not isolation from an untrusted agent.
 - **WebMCP Bridge (`fastwebmcp`)**: Exposes 8 declarative MCP tools directly into browser sessions for autonomous agent collaboration.
 - **Project Definition & Contracts Explorer**: Live viewer for `DEFINITION.md`, OKF specs, and CCDD contracts with 1-click bidirectional navigation.
 - **Automated Evidence Generation**: Generates verified reports (`.agents/logs/<task>-REPORT.md`) capturing raw test execution to complete the KDD lifecycle.
@@ -211,7 +211,7 @@ historial y evidencia. Ver [contratos de integracion](knowledge/board-git.md).
 
 Para desarrolladores y equipos que buscan una experiencia visual en tiempo real, la plantilla incluye **KDD-Board**:
 - **Tablero Kanban Interactivo**: Gestiona el flujo colaborativo en 5 estados (`backlog` -> `ready` -> `in_progress` -> `needs_human_input` -> `done`).
-- **Blind Secrets Vault**: Guarda credenciales en `.env.local` del proyecto y las inyecta al subproceso de tests. Enmascara listados y redacta valores conocidos en la salida; el código ejecutado puede leerlos. No aísla a un agente no confiable.
+- **Blind Secrets Vault**: Guarda credenciales en `.kdd-board/vault.env` y las inyecta al subproceso de tests legacy. Un vault anterior reconocido se migra al primer cambio sin modificar `.env.local` del proyecto. Enmascara listados y redacta valores conocidos en la salida; el código ejecutado puede leerlos. No aísla a un agente no confiable.
 - **Puente WebMCP (`fastwebmcp`)**: Expone 8 herramientas MCP declarativas directamente en el navegador para que agentes autónomos operen el tablero.
 - **Explorador de Contratos y `DEFINITION.md`**: Navegación en 1 clic entre tareas y contratos formales con validador determinista en vivo.
 - **Evidencia Automatizada KDD**: Genera reportes de auditoría (`.agents/logs/<task>-REPORT.md`) con la salida real de los tests para certificar el estado `verified`.
