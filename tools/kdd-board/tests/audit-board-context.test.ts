@@ -46,6 +46,26 @@ test('initializing Git after startup prevents legacy task creation', t => {
   `);
 });
 
+test('Git initialization while reading a request blocks legacy task creation', t => {
+  run(t, setup + `
+    const {createServer}=await import('./src/server.ts');const s=createServer('test-only');
+    s.prependListener('request',req=>req.once('data',()=>git('init','-b','main')));
+    await new Promise(r=>s.listen(0,'127.0.0.1',r));
+    try {const response=await request(s,'/api/tasks','POST',{title:'test task'});assert.notEqual(response.status,201);assert.equal(fs.existsSync(path.join(root,'.kdd-board','tasks.json')),false);}
+    finally {await new Promise(r=>s.close(r));}
+  `);
+});
+
+test('Git initialization while reading a request prevents vault creation', t => {
+  run(t, setup + `
+    const {createServer}=await import('./src/server.ts');const s=createServer('test-only');
+    s.prependListener('request',req=>req.once('data',()=>git('init','-b','main')));
+    await new Promise(r=>s.listen(0,'127.0.0.1',r));
+    try {const response=await request(s,'/api/vault','POST',{key:'TEST_KEY',value:'synthetic-value'});assert.notEqual(response.status,200);assert.equal(fs.existsSync(path.join(root,'.kdd-board','vault.env')),false);}
+    finally {await new Promise(r=>s.close(r));}
+  `);
+});
+
 test('fulfilling a nonexistent task after Git initialization cannot write the vault', t => {
   run(t, setup + `
     const {createServer}=await import('./src/server.ts');const s=createServer('test-only');await new Promise(r=>s.listen(0,'127.0.0.1',r));
