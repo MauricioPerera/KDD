@@ -64,6 +64,33 @@ class _Projection:
             self.plans[revision] = parse_plan(spec, manifest)
         return self.plans[revision]
 
+    def _contract_inputs(self, revision, oracle, target):
+        def serial():
+            return self.blob(revision, oracle), self.blob(revision, target)
+
+        try:
+            first, second = exact_path(oracle), exact_path(target)
+        except ValueError:
+            return serial()
+        if (first == second or first.startswith(second + '/') or second.startswith(first + '/')
+                or (revision, first) in self.objects or (revision, second) in self.objects
+                or not journal._native_oid(self.root, revision)):
+            return serial()
+        output = journal.git(self.root, 'ls-tree', '-z', revision, '--', first, second)
+        records = {}
+        for record in filter(None, output.split('\0')):
+            header, separator, path = record.partition('\t')
+            fields = header.split()
+            if (not separator or path in records or len(fields) != 3
+                    or fields[0] not in ('100644', '100755') or fields[1] != 'blob'):
+                return serial()
+            records[path] = fields[2]
+        if set(records) != {first, second}:
+            return serial()
+        self.objects[(revision, first)] = journal.blob(self.root, revision, first)
+        self.objects[(revision, second)] = journal.blob(self.root, revision, second)
+        return self.objects[(revision, first)], self.objects[(revision, second)]
+
     def contract(self, revision, name):
         key = (revision, name)
         if key not in self.contracts:
@@ -75,8 +102,7 @@ class _Projection:
                 _input('contract has invalid oracle metadata: ' + name)
             if not re.fullmatch(r'[0-9a-f]{64}', metadata['tests_sha256']):
                 _input('contract has an invalid oracle seal: ' + name)
-            oracle = self.blob(revision, metadata['tests'])
-            self.blob(revision, metadata['target'])
+            oracle, _ = self._contract_inputs(revision, metadata['tests'], metadata['target'])
             sealed = hashlib.sha256(oracle.encode('utf-8')).hexdigest() == metadata['tests_sha256']
             self.contracts[key] = metadata, sealed
         return self.contracts[key]
