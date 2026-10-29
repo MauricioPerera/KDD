@@ -278,12 +278,12 @@
   <div class="modal-overlay hidden" id="modal-vault">
     <div class="modal-box" style="max-width:640px;">
       <div class="modal-header">
-        <h3>🔒 Blind Secrets Vault (.env.local)</h3>
+        <h3>🔒 Blind Secrets Vault</h3>
         <button type="button" class="close-btn" data-close>&times;</button>
       </div>
       <div class="modal-body">
         <div class="vault-banner">
-          <strong>Seguridad Ciega para Agentes:</strong> Las credenciales guardadas aquí son escritas directamente en <code>data/.env.local</code>. El agente de IA puede verificar su presencia con <code>list_available_credentials</code> e invocarlas en su código como <code>process.env.VARIABLE</code>, pero sus valores permanecen <strong>completamente enmascarados</strong> en el protocolo WebMCP.
+          Las credenciales se guardan en <code>.kdd-board/vault.env</code>. Los listados ocultan los valores, pero el código ejecutado y quien pueda leer el archivo pueden acceder a ellos. El vault no cifra ni aísla las credenciales.
         </div>
 
         <!-- Formulario para agregar / editar credencial -->

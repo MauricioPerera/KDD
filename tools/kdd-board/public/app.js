@@ -186,8 +186,22 @@ async function fetchTasks() {
     if (window.KddGitBoard) await window.KddGitBoard.configure(apiJson);
     if (window.KddGitBoard?.mode !== 'git') await loadContractCatalog();
     const res = await apiFetch('/api/tasks');
-    currentTasks = await res.json();
+    const tasks = await res.json();
+    if (!Array.isArray(tasks) || tasks.some(task => !task || typeof task !== 'object' ||
+      typeof task.id !== 'string' || typeof task.status !== 'string' || typeof task.title !== 'string')) {
+      throw new Error('Respuesta de tareas invalida');
+    }
+    currentTasks = tasks;
     renderBoard();
+    if (fetchTasks.hadError) {
+      const notice = document.getElementById('git-board-notice');
+      if (notice) {
+        const git = window.KddGitBoard?.mode === 'git';
+        notice.hidden = !git;
+        notice.textContent = git ? 'Tareas OKF de main. Crear y cambiar estado genera commits; requiere main limpio.' : '';
+      }
+      fetchTasks.hadError = false;
+    }
     if (activeView === 'dashboard') {
       renderDashboard();
     }
@@ -196,6 +210,7 @@ async function fetchTasks() {
     }
   } catch (err) {
     console.error('Error cargando tareas:', err);
+    fetchTasks.hadError = true;
     const notice = document.getElementById('git-board-notice');
     if (notice) {notice.hidden=false;notice.textContent=err.message;}
   }
@@ -391,7 +406,7 @@ function renderTaskWorkspace(taskId) {
                   ${
                     r.isSecret
                       ? `<p style="font-size:0.75rem; color:var(--accent-cyan); margin-top:0.5rem;">
-                          🔒 <strong>Blind Security:</strong> El valor se guardará en <code>.env.local</code>. El agente sabrá que existe pero nunca podrá leerlo en texto claro.
+                          🔒 El valor se guardará en <code>.kdd-board/vault.env</code>. Los listados ocultan el valor; el código ejecutado y quien lea el archivo pueden acceder a él.
                         </p>`
                       : ''
                   }
@@ -576,7 +591,7 @@ window.fulfillRequirement = async function (taskId, fieldKey, isSecret) {
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error('Error al guardar requerimiento');
-    alert(isSecret ? '¡Credencial guardada de forma segura en .env.local! La tarea fue reasignada al Agente.' : '¡Respuesta guardada!');
+    alert(isSecret ? 'Credencial guardada en el vault local. La tarea fue reasignada al Agente.' : '¡Respuesta guardada!');
     await loadTasks();
   } catch (err) {
     alert(err.message);
@@ -734,7 +749,7 @@ async function loadVault() {
     const secrets = await res.json();
     if (secrets.length === 0) {
       container.innerHTML =
-        '<span style="color:var(--text-dim); font-size:0.85rem; font-style:italic;">No hay credenciales configuradas en .env.local todavía.</span>';
+        '<span style="color:var(--text-dim); font-size:0.85rem; font-style:italic;">No hay credenciales configuradas en el vault todavía.</span>';
       return;
     }
     container.innerHTML = secrets
@@ -783,7 +798,7 @@ if (formVaultSave) {
       resetVaultForm();
       await loadVault();
       await loadTasks();
-      alert(`¡Credencial "${key}" guardada correctamente en .env.local!`);
+      alert(`¡Credencial "${key}" guardada correctamente en el vault local!`);
     } catch (err) {
       alert(err.message);
     }
@@ -809,7 +824,7 @@ window.editVaultSecret = function (key) {
 };
 
 window.deleteVaultSecret = async function (key) {
-  if (!confirm(`¿Estás seguro de que deseas eliminar la credencial "${key}" del Vault (.env.local)?`)) {
+  if (!confirm(`¿Estás seguro de que deseas eliminar la credencial "${key}" del vault local?`)) {
     return;
   }
   try {
