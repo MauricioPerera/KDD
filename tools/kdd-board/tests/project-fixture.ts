@@ -1,6 +1,25 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import os from 'node:os';
+
+export function tempOutsideGit(prefix: string): string {
+  const fallback = process.platform === 'win32'
+    ? path.join(process.env.SystemRoot || 'C:\\Windows', 'Temp') : '/tmp';
+  for (const parent of [os.tmpdir(), fallback, path.parse(os.tmpdir()).root]) {
+    let cursor = path.resolve(parent), insideGit = false;
+    while (true) {
+      if (fs.existsSync(path.join(cursor, '.git'))) { insideGit = true; break; }
+      const next = path.dirname(cursor);
+      if (next === cursor) break;
+      cursor = next;
+    }
+    if (!insideGit) {
+      try { return fs.mkdtempSync(path.join(parent, prefix)); } catch { /* try next parent */ }
+    }
+  }
+  throw new Error('No writable temporary directory outside Git');
+}
 
 export function projectFixture(root: string) {
   fs.mkdirSync(path.join(root, 'src'), {recursive: true});

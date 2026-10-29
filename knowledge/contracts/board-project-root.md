@@ -15,7 +15,7 @@ budget:
   lines_max: 200
   params_max: 5
 tests: tests/test_board_onboarding_audit.py
-tests_sha256: '42fe4ee61169c79eb31b0942965b2d350e8bbbdf42bcd7e2ff5b288ea94b6a29'
+tests_sha256: 'afeabde4583eda4a706cbcc5ccaf6485ef8c4a720095267b3a2bad228764713a'
 touch_only: ['tools/kdd-board/src/git-task-store.ts']
 deps_allowed: ['node', 'git']
 forbids: ['llm']
@@ -45,6 +45,8 @@ worktrees validos, deteccion de Git ausente y main inexistente sin fallback.
 ## Tests
 El oraculo construye repositorios temporales, arranca el servidor y comprueba
 ausencia de escrituras y commits en el caso rechazado.
+Los dos fixtures HTTP legacy eligen un temporal fuera de Git usando un helper
+compartido; una regresion real ejecuta cada uno con TEMP dentro de un repo.
 
 ## Constraints
 Conservar las dos pasadas y la cobertura. PARAR y reportar si hace falta cambiar un

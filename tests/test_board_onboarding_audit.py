@@ -211,6 +211,19 @@ class BoardOnboardingAudit(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn('fail 0', result.stdout)
 
+    def test_existing_priority_fixture_works_when_temp_is_inside_git(self):
+        parent = self.root / 'parent'
+        parent.mkdir()
+        git(parent, 'init', '-q', '-b', 'main')
+        env = dict(os.environ, TEMP=str(parent), TMP=str(parent), TMPDIR=str(parent),
+                   PYTHONUTF8='1')
+        result = subprocess.run(['node', '--test', '--test-name-pattern',
+            'priority is validated by the store and authenticated HTTP API',
+            'tests/audit-regressions.test.ts'], cwd=BOARD, env=env,
+            capture_output=True, text=True, encoding='utf-8', timeout=120)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('fail 0', result.stdout)
+
 
 if __name__ == '__main__':
     unittest.main()

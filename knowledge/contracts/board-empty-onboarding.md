@@ -15,7 +15,7 @@ budget:
   lines_max: 250
   params_max: 5
 tests: tests/test_board_onboarding_audit.py
-tests_sha256: '42fe4ee61169c79eb31b0942965b2d350e8bbbdf42bcd7e2ff5b288ea94b6a29'
+tests_sha256: 'afeabde4583eda4a706cbcc5ccaf6485ef8c4a720095267b3a2bad228764713a'
 touch_only: ['tools/kdd-board/src/server.ts']
 deps_allowed: ['node', 'fastwebmcp', 'zod']
 forbids: ['llm']
