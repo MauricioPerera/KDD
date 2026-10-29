@@ -66,6 +66,18 @@ verificado y su evidencia pertenecen al coordinador. El vault sigue siendo
 local e independiente; no mueve tareas automaticamente en modo Git ni se
 inyecta en los tests del coordinador. No se persisten secretos en nodos.
 
+Board guarda su vault en `.kdd-board/vault.env`, sin modificar el `.env.local`
+de la aplicacion. Si aun no existe el archivo dedicado, reconoce un vault
+anterior solo cuando su primera linea es la cabecera propia de Board. En el
+primer cambio copia sus credenciales al archivo dedicado y conserva intacto el
+archivo anterior; la eliminacion posterior de ese archivo es una decision del
+operador. Un `.env.local` ordinario no se importa. El vault no cifra secretos
+ni aisla el codigo que se ejecuta en el proceso de pruebas.
+En modo Git, Board exige que `.kdd-board/` este excluido y que el archivo del
+vault no este en el indice; si no se cumplen ambas condiciones, rechaza las
+escrituras y pide resolverlo sin modificar automaticamente la configuracion Git.
+La exclusion del directorio tambien cubre los archivos temporales de escritura.
+
 ## Concurrencia y errores
 
 El lock y las comprobaciones de main limpio pertenecen al coordinador Python.
@@ -91,6 +103,14 @@ muestra rama, contrato, SHA aprobado, evidencia e historial de commits. No
 muestra exito antes de recibir el commit; al fallar conserva el estado real
 y presenta el error. El polling no reemplaza un formulario de transicion
 mientras el usuario lo esta editando.
+
+El catalogo de contratos confirmados se actualiza durante la sesion y conserva
+la seleccion mientras siga disponible. Una respuesta de tareas invalida o un
+fallo HTTP deja visible la ultima lista valida; al recuperarse, el aviso se
+limpia. Estas garantias estan definidas por los contratos de
+[catalogo](contracts/board-contract-refresh.md),
+[recuperacion](contracts/board-polling-recovery.md) y
+[vault](contracts/board-vault-isolation.md).
 
 ## Verificacion
 

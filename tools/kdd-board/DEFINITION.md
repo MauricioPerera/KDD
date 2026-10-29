@@ -14,7 +14,7 @@ Las operaciones JSON y las ocho tools descritas abajo solo corresponden al
 modo legacy, para directorios que no pertenecen a un repositorio Git.
 El sistema se compone de un backend modular en Node.js/TypeScript y un frontend reactivo sin dependencias pesadas:
 - **Core State Engine (`TaskStore`)**: Máquina de estados determinista y persistente en JSON (`.kdd-board/tasks.json` del proyecto) que rige el ciclo de vida colaborativo (`backlog` -> `ready` -> `in_progress` -> `needs_human_input` -> `done`).
-- **Blind Vault (`BlindVault`)**: Almacén local en `.env.local` que inyecta variables al subproceso de tests. Los listados se enmascaran visualmente; no hay cifrado ni protección frente al código ejecutado. La salida redacta valores conocidos, pero no sus transformaciones.
+- **Blind Vault (`BlindVault`)**: Almacén local en `.kdd-board/vault.env` que inyecta variables al subproceso de tests legacy. Un vault anterior identificado por su cabecera se migra al primer cambio sin modificar `.env.local`. Los listados se enmascaran visualmente; no hay cifrado ni protección frente al código ejecutado. La salida redacta valores conocidos, pero no sus transformaciones.
 - **WebMCP Bridge (`fastwebmcp`)**: El navegador registra 8 herramientas declarativas con esquemas Zod publicados por el servidor (`list_tasks`, `get_task`, `create_task`, `update_task_status`, `request_human_input`, `list_available_credentials`, `run_task_tests`, `generate_kdd_report`).
 - **KDD Test Runner (`TestRunner`)**: Ejecutor automatizado que corre comandos oráculo congelados (`node --test`), capturando salida, tiempos y métricas de conformidad KDD.
 - **Frontend SPA Multi-Vista**:
@@ -37,5 +37,5 @@ Los agentes de IA actuales sufren de pérdida de contexto, riesgo de alucinació
 
 ## Fuera de alcance
 - Autenticación multi-usuario remota con OAuth/JWT (el sistema es una herramienta local de ingeniería y pair programming).
-- Persistencia en base de datos distribuida (se prioriza formato plano auditable en Git `tasks.json` y `.env.local`).
+- Persistencia en base de datos distribuida (se prioriza el diario Git de tareas y el almacenamiento local del tablero).
 - Ejecución de código en contenedores remotos o sandbox cloud (se ejecuta contra el runtime local del proyecto).

@@ -13,7 +13,23 @@ Actualmente dispone de una plantilla inicializable, validadores, una CLI de
 tareas y KDD-Board integrados con Git. El flujo se ha comprobado desde un
 proyecto vacío hasta su calidad de producto en CI.
 
-## Actualizacion verificada del 28 de octubre de 2026
+## Actualizacion verificada del 29 de octubre de 2026
+
+El main [`76603cf8`](https://github.com/MauricioPerera/KDD/commit/76603cf867e004d9b1cfc447fa4bc98b66eaf299)
+integra el [PR141](https://github.com/MauricioPerera/KDD/pull/141) con sus
+cuatro commits originales. El [CI de main](https://github.com/MauricioPerera/KDD/actions/runs/40824973487)
+paso en Ubuntu y Windows: dos pasadas de 1662 IDs por sistema, con 10 skips
+declarados en Ubuntu y 9 en Windows. El [despliegue de Pages](https://github.com/MauricioPerera/KDD/actions/runs/40828573792)
+paso y publico el inventario de ese run.
+
+Board inicia vacio en un proyecto sin tareas, rechaza la seleccion de un
+subdirectorio que no es raiz Git y conserva el soporte de worktrees. El
+fixture de trazabilidad evita importar un paquete `src` ajeno. Los controles
+de Entire del PR141 fallaron por falta de aprobacion del trail; los cinco
+checks exigidos por la proteccion de main pasaron y la fusion no modifico
+esa proteccion.
+
+## Corte historico del 28 de octubre de 2026
 
 El main `92a594e3701b25809925c8d6e1842fa0b6b0c76f` integra el PR140 con sus
 [dos commits originales](https://github.com/MauricioPerera/KDD/pull/140).
@@ -31,9 +47,9 @@ main citado, el job Windows tardo 36:44 y Ubuntu 7:35; el
 prometer que las mediciones sean comparables causalmente.
 
 La auditoria posterior identifico mejoras de arranque de Board sin Git, de
-seleccion de raiz Git y de aislamiento de fixtures. La propuesta de esta
-rama implementa las correcciones; aun no forman parte del main citado ni
-cuentan con CI remoto. Su [integracion Board](board-git.md) describe el flujo.
+seleccion de raiz Git y de aislamiento de fixtures. En este corte aun no
+formaban parte del main citado; la actualizacion superior registra su posterior
+integracion y CI. Su [integracion Board](board-git.md) describe el flujo.
 La aprobacion del baseline no sustituye la revision de producto ni autentica
 por si sola una decision humana. Los cinco checks de proteccion de main se
 mantienen; la fusion de PR140 tuvo la excepcion puntual a Entire autorizada.
@@ -68,7 +84,7 @@ no constituye una ejecucion autenticada de GitHub Actions.
 | Bootstrap | Adaptar la plantilla a la identidad del proyecto, retirar ejemplos e historial operativo heredado y preparar el CI de producto. | [Inicializador](contracts/init-project.md), [arranque guiado](contracts/bootstrap-project.md) |
 | Política de calidad | Delimitar archivos protegidos y cambios permitidos; ejecutar checks estructurales, funcionales, adversariales y de interfaz según el producto. | [Aprobación de calidad](quality-approval.md) |
 | CI | Ejecutar validación y tablero en Ubuntu/Windows, con runtime revisado fuera del checkout, dos pasadas completas y reportes por ID; exigir calidad de producto en proyectos inicializados. | [Calidad desde el arranque](bootstrap-product-quality-ci.md), [tiempo del CI](ci-runtime.md), [frontera de confianza](ci-audit-remediation.md) |
-| Pages | Compilar el sitio real en PR de ambas plataformas y reconstruir al desplegar el SHA de main cuyo CI paso. La rama local agrega cotejo de inventarios de las cuatro pasadas y discovery estricto. | [Build en PR](pages-pr-validation.md), [inventario](pages-ci-inventory.md), [operacion](../site/README.md) |
+| Pages | Compilar el sitio real en PR de ambas plataformas y reconstruir al desplegar el SHA de main cuyo CI paso, con cotejo de inventarios de las cuatro pasadas y discovery estricto. | [Build en PR](pages-pr-validation.md), [inventario](pages-ci-inventory.md), [operacion](../site/README.md) |
 
 El **ciclo del contrato** (`draft → validated → implemented → verified`) y el
 **estado de la tarea** son dimensiones distintas. Una tarea lista para comenzar
