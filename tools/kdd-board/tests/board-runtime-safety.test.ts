@@ -59,6 +59,22 @@ test('vault reads explicitly marked legacy data without changing it', t => {
   `);
 });
 
+test('vault requires Git exclusion and refuses already tracked vault files', t => {
+  const root = project(t);
+  run(root, `
+    import assert from 'node:assert/strict'; import fs from 'node:fs'; import path from 'node:path'; import {execFileSync} from 'node:child_process';
+    const root=process.env.KDD_PROJECT_DIR;const git=(...args)=>execFileSync('git',['-C',root,...args],{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
+    git('init','-q','-b','main');git('config','user.name','Test');git('config','user.email','test@example.invalid');git('config','gc.auto','0');git('config','maintenance.auto','false');fs.writeFileSync(path.join(root,'README.md'),'test');git('add','.');git('commit','-qm','initial');
+    const {createServer}=await import('./src/server.ts');const server=createServer('test-only');await new Promise(r=>server.listen(0,'127.0.0.1',r));
+    const req=(key)=>fetch('http://127.0.0.1:'+server.address().port+'/api/vault',{method:'POST',headers:{authorization:'Bearer test-only','content-type':'application/json'},body:JSON.stringify({key,value:'synthetic'})});
+    try {
+      const file=path.join(root,'.kdd-board','vault.env');const head=git('rev-parse','HEAD');let res=await req('FIRST');assert.equal(res.status,409);assert.equal(fs.existsSync(file),false);assert.equal(git('status','--porcelain'),'');assert.equal(git('rev-parse','HEAD'),head);
+      fs.writeFileSync(path.join(root,'.gitignore'),'.kdd-board/\\n');git('add','.gitignore');git('commit','-qm','ignore vault');res=await req('FIRST');assert.equal(res.status,200);assert.equal(git('status','--porcelain'),'');const original=fs.readFileSync(file);
+      git('add','-f','.kdd-board/vault.env');git('commit','-qm','tracked synthetic');res=await req('SECOND');assert.equal(res.status,409);assert.deepEqual(fs.readFileSync(file),original);assert.equal(git('status','--porcelain'),'');
+    } finally {await new Promise(r=>server.close(r));}
+  `);
+});
+
 test('live catalog refreshes against real main and preserves a valid selection', t => {
   const root = project(t);
   run(root, `

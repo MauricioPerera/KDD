@@ -14,7 +14,7 @@ budget:
   lines_max: 250
   params_max: 5
 tests: tests/test_board_runtime_safety.py
-tests_sha256: 'be19bb0f1a354fef08234e90136c6219f0382c8ba6e2ddf4c117084d825ec268'
+tests_sha256: '36e4a445ae50468926bb3a57d88d9b8c4c2b3f7078786685c3c5108a8d7918d1'
 touch_only: ['tools/kdd-board/public/app.js']
 deps_allowed: ['node']
 forbids: ['llm']
