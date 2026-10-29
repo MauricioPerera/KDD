@@ -7,7 +7,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 BOARD = ROOT / 'tools' / 'kdd-board'
-NODE_ORACLE_SHA256 = 'a33776e6b8e27be17f74671eb39a55d11b24a2bce32ec90367f5d8ecfe7d3a7c'
+NODE_ORACLE_SHA256 = 'fc0ecc9a35079a09c1a810ab39140e838285ad3a677dce2c0ff10b464ee0cf05'
 
 
 class BoardRuntimeSafety(unittest.TestCase):

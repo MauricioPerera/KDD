@@ -14,7 +14,7 @@ budget:
   lines_max: 250
   params_max: 5
 tests: tests/test_board_runtime_safety.py
-tests_sha256: 'ad1a0d516f5a471c26de4122c873cb445c32a0a29dbaca278d7c6171fc6ea6c5'
+tests_sha256: 'be19bb0f1a354fef08234e90136c6219f0382c8ba6e2ddf4c117084d825ec268'
 touch_only: ['tools/kdd-board/public/app.js']
 deps_allowed: ['node']
 forbids: ['llm']
@@ -34,7 +34,9 @@ Nunca tratar un objeto de error como un arreglo de tareas. No borrar ni mutar
 Git al fallar una lectura. Evitar peticiones simultaneas redundantes.
 
 ## Examples
-- Un 503 muestra el error del coordinador y conserva las tarjetas.
+- Un 503 muestra el error del coordinador y conserva las tarjetas; este control
+  ya existe mediante apiFetch y se conserva con la ruta real del cliente.
+- Un 200 con cuerpo que no es una lista conserva los datos y notifica el error.
 - Una respuesta posterior correcta restaura la actualizacion y limpia el aviso.
 
 ## Do / Don't
@@ -42,8 +44,9 @@ Git al fallar una lectura. Evitar peticiones simultaneas redundantes.
 - DON'T: informar una excepcion de iteracion en vez del error recibido.
 
 ## Tests
-El oraculo sellado verifica el helper Node y comprueba el comportamiento con
-servidor HTTP local y DOM simulado; no representa una prueba visual de navegador.
+El oraculo sellado verifica el helper Node y comprueba apiFetch y fetchTasks
+reales con servidor HTTP local y DOM simulado; no representa una prueba visual
+de navegador. La auditoria previa que omitio apiFetch no describe un 503 real.
 
 ## Constraints
 Conservar Ubuntu/Windows, la cobertura y las dos pasadas. PARAR y reportar si fuera

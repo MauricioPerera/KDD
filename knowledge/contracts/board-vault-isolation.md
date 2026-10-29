@@ -15,7 +15,7 @@ budget:
   lines_max: 250
   params_max: 5
 tests: tests/test_board_runtime_safety.py
-tests_sha256: 'ad1a0d516f5a471c26de4122c873cb445c32a0a29dbaca278d7c6171fc6ea6c5'
+tests_sha256: 'be19bb0f1a354fef08234e90136c6219f0382c8ba6e2ddf4c117084d825ec268'
 touch_only: ['tools/kdd-board/src/server.ts', 'tools/kdd-board/src/blind-vault.ts']
 deps_allowed: ['node', 'fastwebmcp', 'zod']
 forbids: ['llm']
