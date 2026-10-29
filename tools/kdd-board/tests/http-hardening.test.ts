@@ -5,8 +5,26 @@ import os from 'node:os';
 import path from 'node:path';
 import { projectFixture } from './project-fixture.ts';
 
+function tempOutsideGit(): string {
+  const fallback = process.platform === 'win32'
+    ? path.join(process.env.SystemRoot || 'C:\\Windows', 'Temp') : '/tmp';
+  for (const parent of [os.tmpdir(), fallback, path.parse(os.tmpdir()).root]) {
+    let cursor = path.resolve(parent), insideGit = false;
+    while (true) {
+      if (fs.existsSync(path.join(cursor, '.git'))) { insideGit = true; break; }
+      const next = path.dirname(cursor);
+      if (next === cursor) break;
+      cursor = next;
+    }
+    if (!insideGit) {
+      try { return fs.mkdtempSync(path.join(parent, 'kdd-http-')); } catch { /* try next parent */ }
+    }
+  }
+  throw new Error('No writable temporary directory outside Git');
+}
+
 test('HTTP rejects anonymous and cross-origin access; runs linked project evidence', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kdd-http-'));
+  const root = tempOutsideGit();
   projectFixture(root);
   process.env.KDD_PROJECT_DIR = root;
   const {createServer} = await import('../src/server.ts');

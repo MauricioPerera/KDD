@@ -107,6 +107,7 @@ def prepare_project(root):
     for name in SCRIPT_FILES:
         write(root, 'scripts/' + name, (ROOT / 'scripts' / name).read_text(encoding='utf-8'))
     write(root, 'src/value.py', "def value(item):\n    raise NotImplementedError('fixture red phase')\n")
+    write(root, 'src/__init__.py', '')
     write(root, 'tests/__init__.py', '')
     write(root, 'tests/test_value.py', ORACLE)
     write(root, 'knowledge/product-spec.md', SPEC)
