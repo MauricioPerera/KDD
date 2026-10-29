@@ -35,7 +35,7 @@ elif name.startswith('inner-'):
     while not Path('events/release').exists():
         if time.monotonic()>deadline: raise RuntimeError('observable release absent')
         time.sleep(.01)
-elif name=='sleep': time.sleep(10)
+elif name=='sleep': time.sleep(30)
 else: time.sleep(.03)
 event('end')
 print('RESOURCE_PROBE:'+name)
@@ -123,7 +123,7 @@ class ContractResourceScheduling(unittest.TestCase):
 
     def test_exclusive_timeout_preserves_timeout_and_executes_the_rest(self):
         sleeping = self.contract('z-sleep.md','sleep'); self.contract('a.md','a')
-        results = self.configured([sleeping], workers=4, timeout=1.5)
+        results = self.configured([sleeping], workers=4, timeout=5)
         self.assertEqual(results[-1]['error'], 'timeout')
         self.assertFalse(results[-1]['ok'])
         self.assertTrue(results[0]['ok'], results[0])

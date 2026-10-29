@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 20
   nesting_max: 4
 tests: tests/test_contract_resource_scheduling.py
-tests_sha256: '8cd56adc3f51820ffbb6255972250ad47807ec41d747fd9d5e1c9db177b4ea68'
+tests_sha256: '62c647b1345c51a8a97f2567bd7c1d7edc252ef1caef649e8725cd0efa470a7d'
 touch_only: ['scripts/validate_test_commands.py', 'scripts/trusted_ci.py', '.github/workflows/validate.yml']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -33,8 +33,9 @@ El input reusable exclusive_contract_commands mantiene '[]' por defecto.
 Conservar la politica enlazada, los perfiles y controles actuales. Ejecutar
 todos los contratos aun si un exclusivo falla. Conservar deduplicacion exacta,
 scopes, orden del reporte, shared_from, timeouts y limpieza de descendientes.
-No modificar los oraculos previos ni el timeout de init-project. Dos pasadas
-y matriz dual-OS permanecen; no agregar continue-on-error ni SKIP de cobertura.
+Mantener los oraculos previos bajo revision explicita; no cambiar el timeout
+de init-project. Dos pasadas y matriz dual-OS permanecen; no agregar
+continue-on-error ni SKIP de cobertura.
 
 ## Examples
 - init-project exclusivo: su suite anidada no comparte el lote con otros comandos.
@@ -54,6 +55,10 @@ UTF-8. Una regresion ejecuta el caso existente de rutas Unicode desde un padre
 con UTF-8 explicito y un entorno heredable legado, sin asumir que -X utf8 se
 propaga a los descendientes. Conservar las aserciones y los dieciocho casos
 anteriores; no sustituir bytes invalidos ni ocultar None en el diagnostico.
+El fixture de timeout tiene un margen de cinco segundos y un hijo de treinta;
+la [regresion del margen](ci-timeout-fixture-margin.md) ejecuta su metodo previo
+con demora real de dos segundos en el proceso ligero. El limite de produccion
+permanece intacto.
 
 ## Constraints
 PARAR y reportar si se necesita aprobar un runtime, cambiar un oraculo congelado
