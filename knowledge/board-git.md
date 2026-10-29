@@ -77,6 +77,14 @@ En modo Git, Board exige que `.kdd-board/` este excluido y que el archivo del
 vault no este en el indice; si no se cumplen ambas condiciones, rechaza las
 escrituras y pide resolverlo sin modificar automaticamente la configuracion Git.
 La exclusion del directorio tambien cubre los archivos temporales de escritura.
+La comprobacion no acepta una exclusion aportada solamente por una
+configuracion Git temporal heredada del proceso de Board. Configurar la regla
+de forma persistente para que otras invocaciones de Git la compartan.
+Si se inicializa Git mientras un Board legacy sigue abierto, sus escrituras
+se rechazan y se solicita reiniciar Board para activar el modo Git.
+El almacenamiento legacy con identificadores duplicados se rechaza sin
+reescribir el archivo; una respuesta de tareas invalida conserva la ultima
+vista valida y permite reintentar.
 
 ## Concurrencia y errores
 
