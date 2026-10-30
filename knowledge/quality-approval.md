@@ -9,7 +9,7 @@ tags: ['quality', 'ccdd', 'verification']
 
 El objetivo de KDD es aportar garantías verificables de calidad, no prometer velocidad ni ausencia universal de defectos. Un sello demuestra integridad del oráculo; no demuestra su fuerza. Un validador disponible que el comando de aprobación no ejecuta no protege la entrega.
 
-Este protocolo complementa la [validación de la plantilla](validacion.md) con un punto de aprobación específico de cada proyecto. Lo implementa [verify-quality](contracts/verify-quality.md). No reemplaza los validadores existentes ni cambia el conteo de sus 18 gates. El proyecto declara qué comandos los integran junto con sus pruebas.
+Este protocolo complementa la [validación de la plantilla](validacion.md) con un punto de aprobación específico de cada proyecto. Lo implementa [verify-quality](contracts/verify-quality.md). No reemplaza los validadores existentes ni cambia la lista `LEVEL1_GATES` de preflight. El proyecto declara qué comandos los integran junto con sus pruebas.
 
 ## Flujo de aprobación
 
@@ -56,3 +56,12 @@ Declarar un comando como adversarial o UI no prueba que lo sea. La revisión hum
 ## Evidencia que motivó este protocolo
 
 En el experimento local del gestor de gastos, el oráculo inicial detectó 7 de 12 mutaciones manuales. Tras reforzarlo, rechazó las 12 conocidas y la regresión de identidad; también se comprobó bloqueo de archivos no autorizados y pruebas alteradas. Esto motivó integración obligatoria del perímetro y de pruebas complementarias. No representa una medición universal de KDD ni acredita proyectos que no ejecuten estos controles. Los resultados detallados pertenecen al repositorio del experimento, no se enlazan como archivos inexistentes en la plantilla.
+
+## Aceptacion de nuevas entregas
+
+Para nuevas entregas, [acceptance](acceptance.md) exige inventario de oraculos,
+runners reconocidos y matriz por obligacion. `verify_quality` conserva el
+protocolo historico de checks libres: no demuestra por si solo que se ejecuto
+el archivo tests ni que cada restriccion tiene cobertura. Migrar esas politicas
+sin convertir un exit 0 libre en aceptacion. El revisor verifica la fuerza de
+cada assert y la completitud del inventario antes de aprobar el commit.

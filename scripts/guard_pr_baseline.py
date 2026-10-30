@@ -12,9 +12,21 @@ import subprocess
 import sys
 
 from validate_contracts import parse_frontmatter
+from oracle_inventory import approved_binary_paths, inventory_paths, oracle_equal
 
 
 PROTECTED_FILES = {
+    'scripts/board_oracle_bridge.py',
+    'acceptance.json',
+    'scripts/oracle_inventory.py',
+    'scripts/oracle_execution.py',
+    'scripts/unittest_oracle_runner.py',
+    'scripts/node_oracle_reporter.mjs',
+    'scripts/verify_acceptance.py',
+    'scripts/verify_quality.py',
+    'scripts/validation_runtime.py',
+    'scripts/run_profile.py',
+    'scripts/validate_documentation_examples.py',
     'completion-legacy.json',
     'requirements-change-audit.txt',
     'scripts/optional_evidence.py',
@@ -90,19 +102,20 @@ def check(base_ref, candidate_ref, approved_ref):
         if _normalize(actual) != _normalize(expected):
             findings.append(path + ': contract differs from approved baseline')
         metadata, _ = parse_frontmatter(expected.decode('utf-8'))
-        oracle = metadata.get('tests') if isinstance(metadata, dict) else None
-        if not isinstance(oracle, str) or not oracle:
-            raise ValueError(path + ': approved contract has no tests path')
-        oracle_path = PurePosixPath(oracle)
-        if oracle_path.is_absolute() or '..' in oracle_path.parts:
-            raise ValueError(path + ': approved tests path escapes repository')
-        oracle = oracle_path.as_posix()
-        expected_oracle = _blob(approved, oracle)
-        if expected_oracle is None:
-            raise ValueError(path + ': approved oracle missing')
-        candidate_oracle = _blob(candidate, oracle)
-        if candidate_oracle is None or _normalize(candidate_oracle) != _normalize(expected_oracle):
-            findings.append(oracle + ': oracle differs from approved baseline')
+        binary = (approved_binary_paths(_git, approved, inventory_paths(metadata))
+                  if 'oracle_files' in metadata else set())
+        for oracle in inventory_paths(metadata):
+            expected_oracle = _blob(approved, oracle)
+            mode = _git('ls-tree', approved, '--', oracle).decode().split()
+            if expected_oracle is None or not mode or mode[0] not in ('100644', '100755'):
+                raise ValueError(path + ': approved oracle missing or not regular: ' + oracle)
+            candidate_oracle = _blob(candidate, oracle)
+            candidate_mode = _git('ls-tree', candidate, '--', oracle).decode().split()
+            regular = bool(candidate_mode and candidate_mode[0] in ('100644', '100755'))
+            changed = (not oracle_equal(candidate_oracle or b'', expected_oracle, oracle in binary) if 'oracle_files' in metadata else
+                       _normalize(candidate_oracle or b'') != _normalize(expected_oracle))
+            if not regular or candidate_oracle is None or changed:
+                findings.append(oracle + ': oracle differs from approved baseline')
     if not expected_contracts:
         raise ValueError('Approved baseline contains no contracts')
     return sorted(set(findings))

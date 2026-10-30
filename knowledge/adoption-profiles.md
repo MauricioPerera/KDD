@@ -7,7 +7,7 @@ tags: ['kdd', 'adopcion', 'validacion']
 
 # Perfiles de adopción KDD
 
-KDD ofrece tres perfiles explícitos. El perfil elegido cambia la profundidad de
+KDD ofrece perfiles explícitos de validacion y un perfil de aceptacion por politica. El perfil elegido cambia la profundidad de
 la verificación, no el formato de los contratos ni la trazabilidad de los tests.
 
 ## Minimal
@@ -32,8 +32,9 @@ python scripts/run_profile.py --profile standard --approved-ref <SHA_APROBADO>
 ## Strict
 
 Para CI o una revisión de entrega: añade budgets, auditoría de seals, auditoría
-de `forbids` y preflight. El modo global de budgets es diagnóstico mientras se
-migran los contratos históricos; una tarea nueva puede limitarlo con
+de `forbids` y preflight. El ejecutor del perfil strict bloquea excesos del modo global de budgets;
+la ejecucion directa global tambien sirve para diagnosticar deuda historica.
+Una tarea nueva puede limitarlo con
 `validate_budgets.py --contract <task>`.
 
 ```text
@@ -58,3 +59,17 @@ convertir un proyecto pequeño en una instalación de infraestructura completa.
 El reporte separa `PASS`, `FAIL` y `SKIP`; los comandos de contratos se agrupan
 por producto e infraestructura. `minimal` conserva su uso sin referencia
 aprobada y no ofrece la misma garantía.
+
+## Acceptance
+
+Para aceptar una entrega nueva, usar [la politica por obligacion](acceptance.md).
+El perfil valida los contratos seleccionados, protege el inventario completo,
+comprueba el diff real y exige pruebas ejecutadas para cada requisito declarado:
+
+```text
+python scripts/run_profile.py --profile acceptance --acceptance-policy acceptance.json --approved-ref SHA_APROBADO
+```
+
+No sustituye la revision semantica de los oraculos. Los perfiles anteriores
+muestran `Acceptance: NOT_EVALUATED`; migrar declarando inventario, runner y
+politica, sin atribuir al verde historico una garantia que no comprobaba.

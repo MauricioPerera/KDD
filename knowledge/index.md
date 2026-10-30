@@ -3,7 +3,7 @@
 Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está especificado en [OKF-SPEC](./OKF-SPEC.md).
 
 ## Referencia
-- [Perfiles de adopción KDD](./adoption-profiles.md) — niveles minimal, standard y strict para incorporar gates progresivamente.
+- [Perfiles de adopción KDD](./adoption-profiles.md) — perfiles minimal, standard, strict y acceptance para incorporar controles progresivamente.
 - [Sprints orientados a resultados](./sprints.md) — protocolo piloto opt-in para seleccionar backlog, admitir tareas y medir consumo por resultado aceptado.
 - [Por que KDD](./por-que-kdd.md) — posicionamiento honesto frente a Spec Kit, BMAD-METHOD y un AGENTS.md solo: que verifica distinto KDD, y en que casos no conviene.
 - [Quickstart](./quickstart.md) — tutorial paso a paso y ejecutable: de clonar la plantilla a tu primer task contract propio en verde.
@@ -106,3 +106,13 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contrato verify-quality](contracts/verify-quality.md)
 - [Nivel 2 nativo](native-level2.md)
 - [Contrato de integracion nativa](contracts/native-level2.md)
+
+- [Correcciones de auditoria del tablero](contracts/board-audit-improvements.md)
+- [Diagnostico de validaciones](contracts/validation-diagnostics.md)
+- [Inventario aprobado del oraculo](contracts/oracle-inventory.md)
+- [Ejecucion del oraculo declarado](contracts/oracle-execution.md)
+- [Aceptacion por obligacion](contracts/contract-acceptance.md)
+- [Instrucciones metodologicas ejecutables](contracts/methodology-onboarding.md)
+- [Aceptacion por obligacion verificable](acceptance.md)
+
+- [Deuda historica de presupuestos](deuda-presupuestos-heredada.md)

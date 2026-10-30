@@ -267,6 +267,26 @@ def _extract_sections(body):
     return sections
 
 
+def _inventory_findings(data, rel, repo_root):
+    if 'oracle_files' not in data:
+        return []
+    from pathlib import Path
+    from oracle_inventory import inventory_paths, local_file
+    findings = []
+    try:
+        files = inventory_paths(data, required=True)
+        touches = data.get('touch_only', [])
+        touches = touches if isinstance(touches, list) else []
+        for name in files:
+            if not local_file(Path(repo_root).resolve(), name).is_file():
+                findings.append(Finding(rel, 'FM_PATH_tests', 'oracle inventory file missing: ' + name))
+            if any(fnmatch.fnmatch(name, pattern) for pattern in touches if isinstance(pattern, str)):
+                findings.append(Finding(rel, 'FM_TOUCH_TESTS', 'oracle inventory intersects touch_only: ' + name))
+    except (ValueError, OSError) as exc:
+        findings.append(Finding(rel, 'FM_TESTS_FROZEN', str(exc)))
+    return findings
+
+
 def validate_file(path, repo_root=None):
     findings = []
     rel = path
@@ -421,6 +441,10 @@ def validate_file(path, repo_root=None):
                     if is_covered:
                         findings.append(Finding(rel, 'FM_TOUCH_TESTS',
                                                 "archivo tests '{}' no debe estar cubierto por ningun patron en touch_only (oraculo protegido)".format(tests_val)))
+
+    findings.extend(_inventory_findings(data, rel, repo_root))
+    if 'test_timeout' in data and (not _is_positive_int(data['test_timeout']) or int(data['test_timeout']) > 3600):
+        findings.append(Finding(rel, 'FM_KEY_test_command', 'test_timeout debe ser entero en 1..3600'))
 
     # (d) secciones del cuerpo
     sections = _extract_sections(body)

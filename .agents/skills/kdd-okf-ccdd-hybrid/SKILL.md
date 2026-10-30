@@ -6,7 +6,7 @@ description: Define el estándar Knowledge-Driven Development (KDD) que unifica 
 # Knowledge-Driven Development (KDD): OKF + CCDD
 
 Esta skill establece las reglas obligatorias al definir tareas de desarrollo utilizando la metodología híbrida. 
-El objetivo es que los contratos no sean documentos aislados, sino nodos vivos de la base de conocimiento OKF que controlan determinísticamente a los agentes efímeros.
+El objetivo es que los contratos no sean documentos aislados, sino nodos vivos de la base de conocimiento OKF que permiten comprobar propiedades explicitas del trabajo de los agentes mediante instrumentos declarados.
 
 ## 1. El Contrato es un Nodo OKF
 Todo Task Contract CCDD que se escriba (p.ej. `implementar_login.md`) debe comenzar estrictamente con un Frontmatter YAML válido.
@@ -14,27 +14,9 @@ Todo Task Contract CCDD que se escriba (p.ej. `implementar_login.md`) debe comen
 ## 2. Fusión de Metadatos (Frontmatter)
 El Frontmatter debe unificar los campos requeridos por ambas metodologías:
 - **OKF Fields:** `type` (debe ser `'Task Contract'`), `title`, `description`, `tags`.
-- **CCDD Fields:** `task`, `intent`, `target`, `signature`, `test_command`, `budget`, `tests`, `tests_sha256`, `deps_allowed`.
+- **CCDD Fields:** `task`, `intent`, `target`, `signature`, `test_command`, `budget`, `tests`, `tests_sha256`, `deps_allowed`, `touch_only`.
 
-Ejemplo:
-```yaml
----
-type: 'Task Contract'
-title: 'Implementar verify_user'
-description: 'Función pura para validación de ID.'
-tags: ['ccdd', 'auth']
-
-task: verify_user
-intent: "Implementar la validación..."
-target: verify_user.py
-signature: "def verify_user(id: str) -> bool:"
-test_command: "python -m unittest verify_test.py"
-budget:
-  max_cyclomatic_complexity: 4
-tests: "verify_test.py"
-tests_sha256: "a1b2c3d4e5f6..."
----
-```
+Plantilla unica: [TEMPLATE-task-contract.md](../../../knowledge/contracts/TEMPLATE-task-contract.md). Copiarla y completar sus campos; sellar el hash real del oraculo. No usar hashes abreviados. Para aceptacion, declarar `oracle_files`, `test_runner` y la politica descrita en [aceptacion por obligacion](../../../knowledge/acceptance.md).
 
 ## 3. Contexto Interconectado (Enlaces OKF)
 Para proveer el contexto del negocio y diseño a los agentes efímeros sin abrumarlos, **está prohibido duplicar reglas de negocio de manera verbosa en el contrato**.
@@ -70,3 +52,11 @@ parte de lo que hace que una tarea quede **verified**. Si un guardrail sale con
 `on_fail: abort` (exit 2), la delegación se bloquea — resuélvelo antes de continuar. No
 duplices aquí la doc del ensamblador: la referencia por ruta basta (regla 7 de
 `.agents/AGENTS.md`).
+
+## 8. Aceptacion por obligacion
+
+Para entregas nuevas usar [acceptance](../../../knowledge/acceptance.md). Exigir
+inventario completo, runner instrumentado y checks aprobados por cada obligacion.
+No degradar un instrumento ausente a un comando libre ni presentar el verde de
+un perfil historico como aceptacion. Dos corridas verifican repetibilidad basica;
+la fuerza semantica de oraculos y la independencia del aprobador se revisan.

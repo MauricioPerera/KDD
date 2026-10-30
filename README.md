@@ -293,3 +293,26 @@ O KDD upstream usa **versionamento semântico**; suas versões estão em [`CHANG
 ### Aprobacion integrada de calidad
 
 Para que los controles disponibles sean obligatorios en la entrega de un proyecto, consulta el [protocolo de calidad](knowledge/quality-approval.md) y la [politica de ejemplo](examples/quality-approval/README.md). El comando verify_quality.py exige una referencia aprobada explicita, protege oraculos y politica, comprueba el perimetro real y ejecuta los checks declarados dos veces. No atribuye calidad universal a un sello ni a una suite verde.
+
+
+### Validacion local en Windows
+
+Si tienes Git para Windows y MSYS instalados, usa
+`python scripts/validation_runtime.py suite` para ejecutar la suite con Git
+nativo primero en el PATH del subproceso. Usa `preflight` para los gates locales
+o `contracts --timings-json tiempos.json` para medir cada comando de contrato.
+Los limites individuales siguen activos. Consulta
+[el diagnostico reproducible](knowledge/validacion.md#diagnostico-reproducible-de-comandos).
+
+## Aceptacion de nuevas entregas
+
+El verde de los perfiles historicos valida estructura y comandos. Para aceptar
+una entrega nueva, usar [la matriz por obligacion](knowledge/acceptance.md):
+inventario aprobado de tests/helpers/fixtures/configuracion, runners que prueban
+casos ejecutados y checks requeridos de cada restriccion. Ausencia, omision,
+fallo o timeout bloquean. La revision humana comprueba que cada oraculo cubre
+su obligacion; dos corridas no demuestran ausencia de flaky.
+
+```text
+python scripts/run_profile.py --profile acceptance --acceptance-policy acceptance.json --approved-ref SHA_APROBADO
+```

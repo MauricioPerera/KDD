@@ -19,6 +19,8 @@ export function digest(file: string): string {
 export function evidenceCurrent(task: Task): boolean {
   const r = task.testReport;
   if (!task.contractId || !r?.success || !r.verifiedOracle || !r.evidence || r.passedTests < 1 || r.failedTests !== 0) return false;
+  if (/^["']?python(?:3(?:\.\d+)?)?["']?\s+-m\s+unittest(?:\s|$)/.test(r.command?.trim() ?? '')
+      && r.oracleRunner !== 'python-unittest-recorder-v1') return false;
   if (!r.cwd || Object.keys(r.evidence).length < 2) return false;
   if (r.command !== task.testCommand || r.contractId !== task.contractId) return false;
   try { return Object.entries(r.evidence).every(([file, hash]) => digest(file) === hash); }
@@ -66,6 +68,7 @@ export async function runTaskTests(store: TaskStore, vault: BlindVault, projectD
   report.evidence = evidence;
   if (files.some(file => { try { return digest(file) !== evidence[file]; } catch { return true; } })) {
     report.success = false;
+    report.status = 'FAIL';
     report.output += '\nEvidence changed during execution; run again.';
   }
   const updated = store.recordTestReport(id, report);

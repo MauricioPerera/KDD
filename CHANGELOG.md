@@ -4,6 +4,9 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- Metodologia: inventario aprobado de oraculos, ejecucion instrumentada, aceptacion por obligacion y onboarding verificable. Board: bloqueo de resúmenes Python inventados y caducidad de evidencias anteriores. [Revision y limites](docs/reports/METHODOLOGY-REVIEW-REPORT.md).
+- Se documentan 49 excesos de presupuesto heredados del arbol revisado, sin ampliacion del alcance ni nuevos excesos en esa medicion. [Deuda historica](knowledge/deuda-presupuestos-heredada.md).
+
 - Correccion de tres hallazgos del review multilenguaje: el auditor revisa manifiestos aunque no cambie el target, el gate confiable protege las versiones de parsers y los presupuestos cuentan ramas switch/select de Go y bucles de Rust.
 - El manifiesto efectivo se resuelve por commit para evitar bloquear cambios de un manifiesto padre no usado; los casos de un switch/select Go cuentan una vez para nesting.
 

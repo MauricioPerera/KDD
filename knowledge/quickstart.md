@@ -14,7 +14,9 @@ llegar a tu primer contrato en verde.
 
 ## 0. Prerrequisitos
 
-- Python 3.9+ en PATH (`python --version`).
+- Python 3.11+ en PATH (`python --version`), como la version minima de CI.
+- Node.js 24 y npm para los contratos JavaScript/TypeScript y el tablero.
+- Los parsers fijados en `requirements-change-audit.txt` para la suite completa.
 - Git.
 - Vocabulario minimo (definiciones completas en
   [OKF-SPEC](./OKF-SPEC.md) y [validacion.md](./validacion.md)):
@@ -32,12 +34,21 @@ llegar a tu primer contrato en verde.
 ```
 git clone <tu-fork-o-el-template> mi-proyecto
 cd mi-proyecto
+python -m pip install --only-binary=:all: -r requirements-change-audit.txt
+npm ci --ignore-scripts --prefix tools/kdd-board
+python scripts/validation_runtime.py suite
+```
+
+El wrapper selecciona Git nativo en Windows y usa el interprete actual.
+La invocacion equivalente de unittest, con el entorno preparado, es:
+
+```
 python -m unittest discover -s tests -p "test_*.py"
 ```
 
 Esperado: la suite completa termina en `OK` (el template trae ejemplos
-funcionando). Si falla aca, es un problema de entorno (version de Python),
-no de KDD — resolvelo antes de seguir.
+funcionando). Si falla, inspecciona la salida: puede ser un requisito de entorno
+o una regresion del proyecto. Conserva esa evidencia y resuelve la causa antes de seguir.
 
 ## 2. Correr los gates de Nivel 1 tal cual vienen
 
@@ -164,6 +175,8 @@ intent: "Devolver un saludo con el nombre dado."
 target: src/saludar.py
 signature: "def saludar(nombre: str) -> str:"
 test_command: "python -m unittest tests/test_saludar.py"
+test_runner: python-unittest
+oracle_files: ['tests/test_saludar.py', 'tests/__init__.py']
 budget:
   cyclomatic_max: 2
   nesting_max: 1
@@ -201,7 +214,11 @@ python scripts/validate_test_commands.py knowledge/contracts .
 ```
 
 Esperado: ambos exit 0, `saludar.md` aparece como `PASS` en la segunda
-corrida. Ya tenes un contrato completo, verificado de punta a punta.
+corrida. Esto demuestra estructura valida y ejecucion del oraculo; la aceptacion
+requiere los checks adicionales y la referencia externa de
+[aceptacion por obligacion](acceptance.md). No declarar la entrega aceptada
+solo por estos dos comandos. Antes de implementar una entrega nueva, aprobar
+contrato, inventario completo y politica; despues correr el perfil acceptance.
 
 ## 5. Siguiente paso
 

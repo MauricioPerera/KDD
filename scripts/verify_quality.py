@@ -10,6 +10,14 @@ import subprocess
 import sys
 
 
+def oracle_equal(current, approved, binary=False):
+    """Keep the standalone quality executor independent of sibling scripts."""
+    if binary or b'\0' in current or b'\0' in approved:
+        return current == approved
+    normalize = lambda data: data.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+    return normalize(current) == normalize(approved)
+
+
 class Rejected(ValueError):
     """An approval condition was not satisfied."""
 
@@ -61,10 +69,17 @@ def validate_policy(root, data):
     required = strings(data['required_kinds'], 'required_kinds', True)
     if not {'functional', 'adversarial'}.issubset(required):
         raise Rejected('functional and adversarial kinds are required')
-    if not isinstance(data['checks'], list) or not data['checks']:
+    kinds = _check_kinds(data['checks'])
+    if not set(required).issubset(kinds):
+        raise Rejected('Required kind has no check')
+    return data
+
+
+def _check_kinds(checks):
+    if not isinstance(checks, list) or not checks:
         raise Rejected('checks must be a nonempty list')
     names, kinds = set(), set()
-    for check in data['checks']:
+    for check in checks:
         if not isinstance(check, dict) or set(check) != {'name', 'kind', 'argv', 'timeout'}:
             raise Rejected('Invalid check schema')
         strings([check['name'], check['kind']], 'check name/kind', True)
@@ -75,9 +90,7 @@ def validate_policy(root, data):
         strings(check['argv'], 'argv', True)
         if type(check['timeout']) is not int or not 0 < check['timeout'] <= 3600:
             raise Rejected('timeout must be an integer in 1..3600')
-    if not set(required).issubset(kinds):
-        raise Rejected('Required kind has no check')
-    return data
+    return kinds
 
 
 def normalized(content):
@@ -97,7 +110,7 @@ def changed_paths(root, commit):
     return names
 
 
-def integrity(root, commit, policy_path, policy, approved):
+def integrity(root, commit, policy_path, policy, approved, exact_paths=()):
     for field in ('protected', 'implementation', 'pm'):
         for name in policy[field]:
             safe_path(root, name)
@@ -105,11 +118,12 @@ def integrity(root, commit, policy_path, policy, approved):
         path = safe_path(root, name)
         if not path.is_file() or path.is_symlink():
             raise Rejected('Protected file missing or symlink: ' + name)
-        if normalized(path.read_bytes()) != normalized(content):
+        current = path.read_bytes()
+        if not oracle_equal(current, content, name in exact_paths):
             raise Rejected('Protected file changed: ' + name)
         # Check index too: staged tampering cannot hide behind restored work files.
         index = git(root, 'show', ':' + name)
-        if normalized(index) != normalized(content):
+        if not oracle_equal(index, content, name in exact_paths):
             raise Rejected('Protected index changed: ' + name)
     allowed = set(policy['implementation']) | set(policy['pm'])
     for name in changed_paths(root, commit):

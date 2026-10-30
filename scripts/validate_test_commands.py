@@ -15,10 +15,13 @@ API publica (fijada por ``tests/test_validate_test_commands.py``):
 """
 
 import os
+import json
+import time
 import shlex
 import subprocess
 import sys
 from validate_contracts import parse_frontmatter
+from validation_runtime import prepare_runtime
 
 
 def extract_test_command(text):
@@ -70,9 +73,22 @@ def collect_contracts(directory):
                      target.replace('\\', '/').startswith(
                          ('scripts/', 'tools/', 'plugins/', '.github/', 'tests/'))
                      else 'product')
-        items.append({'path': path, 'test_command': cmd, 'scope': scope})
+        items.append(_configured_item(path, cmd, scope, metadata))
     items.sort(key=lambda item: item['path'])
     return items
+
+
+def _configured_item(path, command, scope, metadata):
+    item = {'path': path, 'test_command': command, 'scope': scope}
+    if 'test_timeout' in metadata:
+        from oracle_execution import declared_timeout
+        try:
+            item['test_timeout'] = declared_timeout(metadata)
+        except ValueError:
+            item['test_timeout'] = metadata['test_timeout']
+    if 'test_runner' in metadata:
+        item['oracle_metadata'] = metadata
+    return item
 
 
 def _strip_quotes(token):
@@ -122,12 +138,27 @@ def run_test_command(cmd, cwd, timeout, capture=False):
     return result
 
 
-def run_all(contracts_dir, repo_root, timeout=180):
+def _run_item(item, repo_root, timeout):
+    try:
+        if 'test_timeout' in item:
+            from oracle_execution import declared_timeout
+            timeout = declared_timeout(item, timeout)
+        if 'oracle_metadata' in item:
+            from oracle_execution import execute_oracle
+            return execute_oracle(item['oracle_metadata'], repo_root, timeout)
+        return run_test_command(item['test_command'], cwd=repo_root, timeout=timeout, capture=True)
+    except ValueError as exc:
+        return {'exit_code': 1, 'ok': False, 'error': str(exc), 'executed_tests': 0}
+
+
+def run_all(contracts_dir, repo_root, timeout=180, progress=None):
     """Corre ``run_test_command`` para cada contrato, desde ``repo_root``."""
     results = []
     for item in collect_contracts(contracts_dir):
-        ran = run_test_command(item['test_command'], cwd=repo_root, timeout=timeout,
-                               capture=True)
+        if progress:
+            progress('RUN', item)
+        started = time.perf_counter()
+        ran = _run_item(item, repo_root, timeout)
         results.append({
             'path': item['path'],
             'scope': item['scope'],
@@ -137,7 +168,14 @@ def run_all(contracts_dir, repo_root, timeout=180):
             'error': ran['error'],
             'stdout': ran.get('stdout', ''),
             'stderr': ran.get('stderr', ''),
+            'duration_seconds': time.perf_counter() - started,
         })
+        if 'oracle_metadata' in item:
+            results[-1].update(executed_tests=ran['executed_tests'],
+                               runner=item['oracle_metadata'].get('test_runner'),
+                               runner_evidence=ran.get('evidence'))
+        if progress:
+            progress('RESULT', results[-1])
     return results
 
 
@@ -145,8 +183,12 @@ def _print_results(results):
     counts = {'product': {'PASS': 0, 'FAIL': 0},
               'infrastructure': {'PASS': 0, 'FAIL': 0}}
     for item in results:
-        status = 'PASS' if item['ok'] else 'FAIL'
-        counts[item['scope']][status] += 1
+        status = result_status(item)
+        counts[item['scope']]['PASS' if item['ok'] else 'FAIL'] += 1
+        print('  duration={:.3f}s'.format(item.get('duration_seconds', 0)))
+        if 'runner' in item:
+            print('  oracle_execution: runner={} executed_tests={}'.format(
+                item['runner'], item['executed_tests']))
         if item['ok']:
             print('PASS [{}] {}'.format(item['scope'], item['path']))
         else:
@@ -154,10 +196,12 @@ def _print_results(results):
                 detail = item['error']
             else:
                 detail = 'exit_code={}'.format(item['exit_code'])
-            print('FAIL [{}] {}: {}'.format(item['scope'], item['path'], detail))
+            print('{} [{}] {}: {}'.format(status, item['scope'], item['path'], detail))
         output = (item.get('stdout', '') + item.get('stderr', '')).strip()
         if output:
-            print('  TEST_OUTPUT (informativo; el exit code es el veredicto):')
+            label = ('salida capturada; se exigen exit y evidencia del runner' if 'runner' in item else
+                     'informativo; el exit code es el veredicto')
+            print('  TEST_OUTPUT ({}):'.format(label))
             for line in output.splitlines():
                 print('    ' + line)
     for scope in ('infrastructure', 'product'):
@@ -169,8 +213,31 @@ def _print_results(results):
     return 1 if any(not item['ok'] for item in results) else 0
 
 
+
+def result_status(item):
+    return 'TIMEOUT' if item['error'] == 'timeout' else 'PASS' if item['ok'] else 'FAIL'
+
+
+def _progress(phase, item):
+    if phase == 'RUN':
+        print('RUN [{}] {}'.format(item['scope'], item['path']), flush=True)
+    else:
+        print('{} [{}] {} duration={:.3f}s'.format(
+            result_status(item), item['scope'], item['path'], item['duration_seconds']), flush=True)
+
+
+def _write_timings(path, results):
+    fields = ('path', 'scope', 'duration_seconds', 'exit_code', 'error')
+    data = {'results': [dict({key: item[key] for key in fields}, status=result_status(item))
+                        for item in results],
+            'total_duration_seconds': sum(item['duration_seconds'] for item in results)}
+    with open(path, 'w', encoding='utf-8') as file:
+        json.dump(data, file, indent=2)
+
+
 def main(argv):
     """Entry point CLI. Devuelve 0 si todos PASS, 1 si alguno FAIL o no hay."""
+    prepare_runtime()
     contracts_dir = argv[1] if len(argv) > 1 else 'knowledge/contracts'
     repo_root = argv[2] if len(argv) > 2 else '.'
     timeout = 180
@@ -187,10 +254,20 @@ def main(argv):
         if timeout <= 0:
             print('FAIL: --timeout debe ser positivo')
             return 1
-    results = run_all(contracts_dir, repo_root, timeout=timeout)
+    results = run_all(contracts_dir, repo_root, timeout=timeout, progress=_progress)
     if not results:
         print('FAIL: no contracts with test_command found in {}'.format(contracts_dir))
         return 1
+    if '--timings-json' in argv:
+        index = argv.index('--timings-json')
+        if index + 1 >= len(argv):
+            print('FAIL: --timings-json requires a file path')
+            return 1
+        try:
+            _write_timings(argv[index + 1], results)
+        except OSError as exc:
+            print('FAIL: cannot write timings: ' + str(exc))
+            return 1
     return _print_results(results)
 
 

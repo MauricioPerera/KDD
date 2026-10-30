@@ -1,0 +1,335 @@
+{
+  "final_validation": {
+    "clean_synced_files": [
+      "knowledge/acceptance.md",
+      "knowledge/contracts/board-oracle-execution.md",
+      "knowledge/contracts/contract-acceptance.md",
+      "knowledge/contracts/oracle-execution.md",
+      "knowledge/contracts/oracle-inventory.md",
+      "scripts/board_oracle_bridge.py",
+      "scripts/guard_pr_baseline.py",
+      "scripts/oracle_execution.py",
+      "scripts/oracle_inventory.py",
+      "scripts/run_profile.py",
+      "scripts/validate_baseline.py",
+      "scripts/validate_test_commands.py",
+      "scripts/verify_acceptance.py",
+      "scripts/verify_quality.py",
+      "tests/test_binary_oracle_inventory.py",
+      "tests/test_oracle_runtime_binding.py",
+      "tests/test_quality_budget_review.py",
+      "tools/kdd-board/src/input-validation.ts",
+      "tools/kdd-board/src/task-execution.ts",
+      "tools/kdd-board/src/test-runner.ts",
+      "tools/kdd-board/src/types.ts",
+      "tools/kdd-board/tests/python-legacy-proof.test.ts",
+      "tools/kdd-board/tests/python-oracle-proof.test.ts"
+    ],
+    "steps": [
+      {
+        "label": "preflight",
+        "command": [
+          "C:\\Python314\\python.exe",
+          "-c",
+          "import json,sys; from pathlib import Path; sys.path.insert(0,'scripts'); from validation_runtime import prepare_runtime; from preflight import run_preflight; prepare_runtime(); r=run_preflight(); Path(sys.argv[1]).write_text(json.dumps(r,indent=2),encoding='utf-8'); print('\\n'.join(r['lines'])); sys.exit(0 if r['overall_ok'] else 1)",
+          "D:\\Repo\\Nueva carpeta (107)\\review-final-preflight-details.json"
+        ],
+        "cwd": "D:\\Repo\\Nueva carpeta (107)\\KDD",
+        "exit_code": 0,
+        "seconds": 489.1534449000028,
+        "log": "D:\\Repo\\Nueva carpeta (107)\\review-final-preflight.log"
+      },
+      {
+        "label": "suite",
+        "command": [
+          "C:\\Python314\\python.exe",
+          "scripts/validation_runtime.py",
+          "suite"
+        ],
+        "cwd": "D:\\Repo\\Nueva carpeta (107)\\KDD",
+        "exit_code": 0,
+        "seconds": 209.1750033000135,
+        "log": "D:\\Repo\\Nueva carpeta (107)\\review-final-suite.log"
+      },
+      {
+        "label": "budget-oracle-inventory",
+        "command": [
+          "C:\\Python314\\python.exe",
+          "scripts/validate_budgets.py",
+          "--contract",
+          "oracle-inventory"
+        ],
+        "cwd": "D:\\Repo\\Nueva carpeta (107)\\KDD",
+        "exit_code": 0,
+        "seconds": 0.17175290000159293,
+        "log": "D:\\Repo\\Nueva carpeta (107)\\review-final-budget-oracle-inventory.log"
+      },
+      {
+        "label": "budget-oracle-execution",
+        "command": [
+          "C:\\Python314\\python.exe",
+          "scripts/validate_budgets.py",
+          "--contract",
+          "oracle-execution"
+        ],
+        "cwd": "D:\\Repo\\Nueva carpeta (107)\\KDD",
+        "exit_code": 0,
+        "seconds": 0.1502705000457354,
+        "log": "D:\\Repo\\Nueva carpeta (107)\\review-final-budget-oracle-execution.log"
+      },
+      {
+        "label": "budget-contract-acceptance",
+        "command": [
+          "C:\\Python314\\python.exe",
+          "scripts/validate_budgets.py",
+          "--contract",
+          "contract-acceptance"
+        ],
+        "cwd": "D:\\Repo\\Nueva carpeta (107)\\KDD",
+        "exit_code": 0,
+        "seconds": 0.1638144999742508,
+        "log": "D:\\Repo\\Nueva carpeta (107)\\review-final-budget-contract-acceptance.log"
+      },
+      {
+        "label": "budget-methodology-onboarding",
+        "command": [
+          "C:\\Python314\\python.exe",
+          "scripts/validate_budgets.py",
+          "--contract",
+          "methodology-onboarding"
+        ],
+        "cwd": "D:\\Repo\\Nueva carpeta (107)\\KDD",
+        "exit_code": 0,
+        "seconds": 0.1322053000330925,
+        "log": "D:\\Repo\\Nueva carpeta (107)\\review-final-budget-methodology-onboarding.log"
+      },
+      {
+        "label": "budget-verify-quality",
+        "command": [
+          "C:\\Python314\\python.exe",
+          "scripts/validate_budgets.py",
+          "--contract",
+          "verify-quality"
+        ],
+        "cwd": "D:\\Repo\\Nueva carpeta (107)\\KDD",
+        "exit_code": 0,
+        "seconds": 0.16405249998206273,
+        "log": "D:\\Repo\\Nueva carpeta (107)\\review-final-budget-verify-quality.log"
+      },
+      {
+        "label": "documentation",
+        "command": [
+          "C:\\Python314\\python.exe",
+          "scripts/validate_documentation_examples.py"
+        ],
+        "cwd": "D:\\Repo\\Nueva carpeta (107)\\KDD",
+        "exit_code": 0,
+        "seconds": 0.7472404000000097,
+        "log": "D:\\Repo\\Nueva carpeta (107)\\review-final-documentation.log"
+      },
+      {
+        "label": "seals",
+        "command": [
+          "C:\\Python314\\python.exe",
+          "scripts/audit_seals.py",
+          "--strict"
+        ],
+        "cwd": "D:\\Repo\\Nueva carpeta (107)\\KDD",
+        "exit_code": 0,
+        "seconds": 0.21022970002377406,
+        "log": "D:\\Repo\\Nueva carpeta (107)\\review-final-seals.log"
+      },
+      {
+        "label": "diff",
+        "command": [
+          "C:\\Program Files\\Git\\cmd\\git.exe",
+          "diff",
+          "--check"
+        ],
+        "cwd": "D:\\Repo\\Nueva carpeta (107)\\KDD",
+        "exit_code": 0,
+        "seconds": 0.06748660001903772,
+        "log": "D:\\Repo\\Nueva carpeta (107)\\review-final-diff.log"
+      },
+      {
+        "label": "clean-final-suite",
+        "command": [
+          "D:\\Repo\\Nueva carpeta (107)\\methodology-clean-jlw_cx1d\\.venv\\Scripts\\python.exe",
+          "scripts/validation_runtime.py",
+          "suite"
+        ],
+        "cwd": "D:\\Repo\\Nueva carpeta (107)\\methodology-clean-jlw_cx1d",
+        "exit_code": 0,
+        "seconds": 202.12607509997906,
+        "log": "D:\\Repo\\Nueva carpeta (107)\\review-final-clean-final-suite.log"
+      },
+      {
+        "label": "clean-final-contracts",
+        "command": [
+          "D:\\Repo\\Nueva carpeta (107)\\methodology-clean-jlw_cx1d\\.venv\\Scripts\\python.exe",
+          "scripts/validate_test_commands.py",
+          "knowledge/contracts",
+          ".",
+          "--timings-json",
+          "D:\\Repo\\Nueva carpeta (107)\\review-final-clean-timings.json"
+        ],
+        "cwd": "D:\\Repo\\Nueva carpeta (107)\\methodology-clean-jlw_cx1d",
+        "exit_code": 0,
+        "seconds": 262.4554062000243,
+        "log": "D:\\Repo\\Nueva carpeta (107)\\review-final-clean-final-contracts.log"
+      }
+    ],
+    "source_unchanged": true,
+    "ok": true
+  },
+  "board": {
+    "typecheck": {
+      "exit_code": 0,
+      "command": [
+        "npm.cmd",
+        "run",
+        "typecheck"
+      ]
+    },
+    "test": {
+      "exit_code": 0,
+      "command": [
+        "npm.cmd",
+        "test"
+      ]
+    }
+  },
+  "budget_comparison": {
+    "base_ref": "HEAD",
+    "base_findings": [
+      "ERROR [BUDGET_CYCLOMATIC] assemble-context.md:_validate_contract: cyclomatic_max=39 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] assemble-context.md:_assemble_okf_nodes: cyclomatic_max=11 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] assemble-context.md:assemble: cyclomatic_max=28 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] assemble-context.md:assemble: nesting_max=6 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] attestation-gate.md:validate_report: cyclomatic_max=19 excede cyclomatic_max=16",
+      "ERROR [BUDGET_NESTING] attestation-gate.md:validate_report: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] benchmark-gates.md:main: cyclomatic_max=15 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] benchmark-gates.md:main: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] changelog-gate.md:validate_changelog: cyclomatic_max=12 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] check-agent-wiring.md:check_agent_wiring: cyclomatic_max=27 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] check-graph.md:find_graph_cycles: cyclomatic_max=12 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] commit-message-gate.md:main: cyclomatic_max=13 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] commit-message-gate.md:main: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] diagram-gate.md:parse_gantt: cyclomatic_max=17 excede cyclomatic_max=14",
+      "ERROR [BUDGET_CYCLOMATIC] diagram-gate.md:_validate_flowchart: cyclomatic_max=17 excede cyclomatic_max=14",
+      "ERROR [BUDGET_CYCLOMATIC] diagram-gate.md:_validate_gantt: cyclomatic_max=15 excede cyclomatic_max=14",
+      "ERROR [BUDGET_CYCLOMATIC] diagram-gate.md:_validate_journey: cyclomatic_max=17 excede cyclomatic_max=14",
+      "ERROR [BUDGET_NESTING] diagram-gate.md:main: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] evidence-hardening.md:main: cyclomatic_max=13 excede cyclomatic_max=12",
+      "ERROR [BUDGET_CYCLOMATIC] forbids-audit.md:audit_contract: cyclomatic_max=13 excede cyclomatic_max=12",
+      "ERROR [BUDGET_CYCLOMATIC] forbids-audit.md:main: cyclomatic_max=13 excede cyclomatic_max=12",
+      "ERROR [BUDGET_NESTING] forbids-audit.md:main: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_NESTING] lint-ascii.md:_find_docstrings: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] lint-ascii.md:_lint_file: cyclomatic_max=15 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] lint-ascii.md:_lint_file: nesting_max=6 excede nesting_max=4",
+      "ERROR [BUDGET_PARAMS] pages-build.md:update_landing: params_max=5 excede params_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] pages-build.md:build_pages: cyclomatic_max=13 excede cyclomatic_max=12",
+      "ERROR [BUDGET_CYCLOMATIC] perimeter-gate.md:_parse_block: cyclomatic_max=11 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] rules-gate.md:_validate_golden_forma: cyclomatic_max=20 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] rules-gate.md:validate_rules: cyclomatic_max=12 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] seal-audit.md:main: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] skills-gate.md:_parse_block: cyclomatic_max=11 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] skills-gate.md:validate_skills: cyclomatic_max=27 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] ux-page-gate.md:_check_contrast: cyclomatic_max=17 excede cyclomatic_max=12",
+      "ERROR [BUDGET_CYCLOMATIC] validate-article.md:validate_article: cyclomatic_max=34 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] validate-article.md:validate_article: nesting_max=6 excede nesting_max=3",
+      "ERROR [BUDGET_CYCLOMATIC] validate-okf.md:_parse_block: cyclomatic_max=11 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] validate-okf.md:_validate_frontmatter: cyclomatic_max=16 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] validate-okf.md:_validate_frontmatter: nesting_max=6 excede nesting_max=4",
+      "ERROR [BUDGET_NESTING] validate-okf.md:_reachable_from_index: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] validate-payment-limit.md:validate_payment_limit: cyclomatic_max=13 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] validate-payment-limit.md:validate_payment_limit: nesting_max=4 excede nesting_max=3",
+      "ERROR [BUDGET_CYCLOMATIC] validate-rules.md:_check_type: cyclomatic_max=12 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] validate-rules.md:_check_type: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] validate-rules.md:_check_bounds: cyclomatic_max=15 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] validate-rules.md:_check_bounds: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] validate-rules.md:evaluate: cyclomatic_max=38 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] validate-rules.md:evaluate: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] validate-specs.md:validate_file: cyclomatic_max=13 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] verify-quality.md:validate_policy: cyclomatic_max=15 excede cyclomatic_max=12"
+    ],
+    "current_findings": [
+      "ERROR [BUDGET_CYCLOMATIC] assemble-context.md:_validate_contract: cyclomatic_max=39 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] assemble-context.md:_assemble_okf_nodes: cyclomatic_max=11 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] assemble-context.md:assemble: cyclomatic_max=28 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] assemble-context.md:assemble: nesting_max=6 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] attestation-gate.md:validate_report: cyclomatic_max=19 excede cyclomatic_max=16",
+      "ERROR [BUDGET_NESTING] attestation-gate.md:validate_report: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] benchmark-gates.md:main: cyclomatic_max=15 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] benchmark-gates.md:main: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] changelog-gate.md:validate_changelog: cyclomatic_max=12 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] check-agent-wiring.md:check_agent_wiring: cyclomatic_max=27 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] check-graph.md:find_graph_cycles: cyclomatic_max=12 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] commit-message-gate.md:main: cyclomatic_max=13 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] commit-message-gate.md:main: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] diagram-gate.md:parse_gantt: cyclomatic_max=17 excede cyclomatic_max=14",
+      "ERROR [BUDGET_CYCLOMATIC] diagram-gate.md:_validate_flowchart: cyclomatic_max=17 excede cyclomatic_max=14",
+      "ERROR [BUDGET_CYCLOMATIC] diagram-gate.md:_validate_gantt: cyclomatic_max=15 excede cyclomatic_max=14",
+      "ERROR [BUDGET_CYCLOMATIC] diagram-gate.md:_validate_journey: cyclomatic_max=17 excede cyclomatic_max=14",
+      "ERROR [BUDGET_NESTING] diagram-gate.md:main: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] evidence-hardening.md:main: cyclomatic_max=13 excede cyclomatic_max=12",
+      "ERROR [BUDGET_CYCLOMATIC] forbids-audit.md:audit_contract: cyclomatic_max=13 excede cyclomatic_max=12",
+      "ERROR [BUDGET_CYCLOMATIC] forbids-audit.md:main: cyclomatic_max=13 excede cyclomatic_max=12",
+      "ERROR [BUDGET_NESTING] forbids-audit.md:main: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_NESTING] lint-ascii.md:_find_docstrings: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] lint-ascii.md:_lint_file: cyclomatic_max=15 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] lint-ascii.md:_lint_file: nesting_max=6 excede nesting_max=4",
+      "ERROR [BUDGET_PARAMS] pages-build.md:update_landing: params_max=5 excede params_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] pages-build.md:build_pages: cyclomatic_max=13 excede cyclomatic_max=12",
+      "ERROR [BUDGET_CYCLOMATIC] perimeter-gate.md:_parse_block: cyclomatic_max=11 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] rules-gate.md:_validate_golden_forma: cyclomatic_max=20 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] rules-gate.md:validate_rules: cyclomatic_max=12 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] seal-audit.md:main: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] skills-gate.md:_parse_block: cyclomatic_max=11 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] skills-gate.md:validate_skills: cyclomatic_max=27 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] ux-page-gate.md:_check_contrast: cyclomatic_max=17 excede cyclomatic_max=12",
+      "ERROR [BUDGET_CYCLOMATIC] validate-article.md:validate_article: cyclomatic_max=34 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] validate-article.md:validate_article: nesting_max=6 excede nesting_max=3",
+      "ERROR [BUDGET_CYCLOMATIC] validate-okf.md:_parse_block: cyclomatic_max=11 excede cyclomatic_max=10",
+      "ERROR [BUDGET_CYCLOMATIC] validate-okf.md:_validate_frontmatter: cyclomatic_max=16 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] validate-okf.md:_validate_frontmatter: nesting_max=6 excede nesting_max=4",
+      "ERROR [BUDGET_NESTING] validate-okf.md:_reachable_from_index: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] validate-payment-limit.md:validate_payment_limit: cyclomatic_max=13 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] validate-payment-limit.md:validate_payment_limit: nesting_max=4 excede nesting_max=3",
+      "ERROR [BUDGET_CYCLOMATIC] validate-rules.md:_check_type: cyclomatic_max=12 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] validate-rules.md:_check_type: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] validate-rules.md:_check_bounds: cyclomatic_max=15 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] validate-rules.md:_check_bounds: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] validate-rules.md:evaluate: cyclomatic_max=38 excede cyclomatic_max=10",
+      "ERROR [BUDGET_NESTING] validate-rules.md:evaluate: nesting_max=5 excede nesting_max=4",
+      "ERROR [BUDGET_CYCLOMATIC] validate-specs.md:validate_file: cyclomatic_max=13 excede cyclomatic_max=10"
+    ],
+    "new_findings": [],
+    "resolved_findings": [
+      "ERROR [BUDGET_CYCLOMATIC] verify-quality.md:validate_policy: cyclomatic_max=15 excede cyclomatic_max=12"
+    ]
+  },
+  "frozen_primary_oracles_preserved": {
+    "tests/test_oracle_inventory.py": true,
+    "tests/test_oracle_execution.py": true,
+    "tests/test_contract_acceptance.py": true,
+    "tests/test_methodology_docs.py": true,
+    "tools/kdd-board/tests/python-oracle-proof.test.ts": true
+  },
+  "prior_board_files_intentionally_changed": [
+    "tools/kdd-board/src/input-validation.ts",
+    "tools/kdd-board/src/task-execution.ts",
+    "tools/kdd-board/src/test-runner.ts",
+    "tools/kdd-board/src/types.ts"
+  ],
+  "local_attestations_exit": 0,
+  "bridge_smoke": {
+    "real_case": "PASS",
+    "redacted": true,
+    "timeout": "TIMEOUT",
+    "timeout_verified": false
+  },
+  "scope_decision": "Document 49 inherited budget overruns; close review of changes",
+  "external_approval": "NOT_EVALUATED",
+  "remote_ci": "NOT_RUN"
+}

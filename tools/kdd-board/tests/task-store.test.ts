@@ -3,12 +3,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { BlindVault } from '../src/blind-vault.ts';
 import { TaskStore } from '../src/task-store.ts';
 
 test('TaskStore: ciclo completo de creación, asignación y transición de estados', () => {
   const tmpFile = path.join(os.tmpdir(), `test-tasks-${Date.now()}.json`);
   try {
-    const store = new TaskStore(tmpFile);
+    const vault = new BlindVault(tmpFile + '.env');
+    const store = new TaskStore(tmpFile, key => Boolean(vault.getSecretValue(key)?.trim()));
 
     // 1. Crear tarea
     const task = store.createTask({
@@ -48,6 +50,7 @@ test('TaskStore: ciclo completo de creación, asignación y transición de estad
     assert.equal(updated.requirements[0].isSatisfied, false);
 
     // 4. El Humano suministra la credencial -> se satisface y la tarea vuelve a Ready para el Agente
+    vault.setSecret('GITHUB_CLIENT_SECRET', 'fictional-credential');
     store.satisfyHumanInput(task.id, 'GITHUB_CLIENT_SECRET');
 
     updated = store.getTask(task.id)!;
@@ -66,6 +69,7 @@ test('TaskStore: ciclo completo de creación, asignación y transición de estad
     assert.equal(updated.status, 'in_progress');
     assert.ok(updated.comments.length >= 4);
   } finally {
+    if (fs.existsSync(tmpFile + '.env')) fs.unlinkSync(tmpFile + '.env');
     if (fs.existsSync(tmpFile)) {
       fs.unlinkSync(tmpFile);
     }

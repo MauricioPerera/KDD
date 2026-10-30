@@ -25,13 +25,17 @@ export interface TaskComment {
   timestamp: string;
 }
 
+export type VerificationStatus = 'PASS' | 'FAIL' | 'SKIP' | 'TIMEOUT';
+
 export interface TaskTestReport {
+  status?: VerificationStatus;
   lastRun: string;
   success: boolean;
   durationMs: number;
   passedTests: number;
   failedTests: number;
   verifiedOracle?: boolean;
+  oracleRunner?: 'python-unittest-recorder-v1';
   output: string;
   reportPath?: string;
   command?: string;
