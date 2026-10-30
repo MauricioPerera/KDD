@@ -224,3 +224,5 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contrato de mantenimiento de fixtures](contracts/fixture-maintenance-budget.md)
 
 - [Runtime activo del auditor de mutaciones](contracts/mutation-python-runtime.md)
+
+- [Runtime activo de comandos de contratos](contracts/contract-python-runtime.md)

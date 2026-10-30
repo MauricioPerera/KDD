@@ -108,10 +108,17 @@ def _strip_quotes(token):
     return token
 
 
+def _active_python(tokens):
+    if tokens and tokens[0] in ('python', 'python3', 'python.exe'):
+        tokens[0] = sys.executable
+    return tokens
+
+
 def _command_tokens(cmd):
     posix = os.name != 'nt'
     tokens = shlex.split(cmd, posix=posix)
-    return tokens if posix else [_strip_quotes(token) for token in tokens]
+    tokens = tokens if posix else [_strip_quotes(token) for token in tokens]
+    return _active_python(tokens)
 
 
 def _trusted_suite_command(tokens, cwd, trusted_bundle, temporary):
