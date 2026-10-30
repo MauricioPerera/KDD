@@ -4,6 +4,8 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- El auditor de mutaciones vincula los alias Python genericos al interprete activo; conserva ejecutables explicitos y evita controles rotos al escapar de un venv. Regresion con procesos reales en [mutation-python-runtime](knowledge/contracts/mutation-python-runtime.md).
+
 - Integracion de la revision metodologica con el main de octubre: 98 excesos frente a 100 heredados, sin nuevos o agravados; evidencia local y limites de publicacion en el [informe de integracion](docs/reports/METHODOLOGY-INTEGRATION-REPORT.md).
 
 - Metodologia: inventario aprobado de oraculos, ejecucion instrumentada, aceptacion por obligacion y onboarding verificable. Board: bloqueo de resúmenes Python inventados y caducidad de evidencias anteriores. [Revision y limites](docs/reports/METHODOLOGY-REVIEW-REPORT.md).
