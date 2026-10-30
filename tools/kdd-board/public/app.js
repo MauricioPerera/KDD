@@ -1,3 +1,13 @@
+function safeAssignee(value) {
+  return ['human', 'agent', 'unassigned'].includes(value) ? value : 'unassigned';
+}
+
+function verificationStatus(report) {
+  if (!report) return 'SKIP';
+  if (['PASS', 'FAIL', 'SKIP', 'TIMEOUT'].includes(report.status)) return report.status;
+  return !report.success ? 'FAIL' : report.verifiedOracle && report.passedTests > 0 ? 'PASS' : 'SKIP';
+}
+
 // KDD-Board Client Application
 // Capture before card handlers; contract identifiers are data, never JavaScript.
 document.addEventListener('click', (event) => {
@@ -18,6 +28,25 @@ if (tokenFromLink) {
   sessionStorage.setItem('kdd-token', tokenFromLink);
   history.replaceState(null, '', location.pathname + location.search);
 }
+document.addEventListener('click', (event) => {
+  const button = event.target.closest?.('[data-action]');
+  if (!button) return;
+  event.preventDefault();
+  const { action, taskId, fieldKey, secret, key } = button.dataset;
+  const actions = {
+    board: () => switchView('board'),
+    link: () => window.linkTaskContract(taskId),
+    fulfill: () => fulfillRequirement(taskId, fieldKey, secret === 'true'),
+    tests: () => runTaskTests(taskId),
+    report: () => generateTaskKddReport(taskId),
+    task: () => openTaskDetail(taskId),
+    editSecret: () => window.editVaultSecret(key),
+    deleteSecret: () => window.deleteVaultSecret(key),
+    goTask: () => window.goToTask(taskId),
+  };
+  actions[action]?.();
+});
+
 async function apiFetch(url, options = {}) {
   const headers = new Headers(options.headers);
   headers.set('Authorization', `Bearer ${sessionStorage.getItem('kdd-token') || ''}`);
@@ -305,6 +334,9 @@ window.openTaskDetail = function (taskId) {
 };
 
 function renderTaskWorkspace(taskId) {
+  const workspace = document.getElementById('workspace-container');
+  const inputs = [...(workspace.querySelectorAll?.('input, textarea') || [])];
+  if (workspace.dataset.taskId === taskId && (inputs.includes(document.activeElement) || inputs.some(input => input.value))) return;
   const task = currentTasks.find((t) => t.id === taskId);
   if (!task) return;
   if (task.sourceRef === 'main' && window.KddGitBoard) {
@@ -316,19 +348,20 @@ function renderTaskWorkspace(taskId) {
   const container = document.getElementById('workspace-container');
   const pendingReqs = task.requirements?.filter((r) => !r.isSatisfied) || [];
 
+  container.dataset.taskId = taskId;
   container.innerHTML = `
     <!-- Top Bar with Back Link -->
     <div class="workspace-top-row">
       <div style="display:flex; align-items:center; gap:0.75rem;">
-        <button type="button" class="btn-back-board" onclick="switchView('board')">
+        <button type="button" class="btn-back-board" data-action="board">
           &larr; Volver al Tablero
         </button>
         <span style="color:var(--text-dim); font-size:0.85rem;">/</span>
-        <span style="font-family:var(--font-mono); font-size:0.82rem; color:var(--text-muted);">${task.id}</span>
+        <span style="font-family:var(--font-mono); font-size:0.82rem; color:var(--text-muted);">${escapeHtml(task.id)}</span>
       </div>
       <div style="display:flex; align-items:center; gap:0.6rem;">
         <span class="priority-tag priority-${priority}">${escapeHtml(priority)}</span>
-        <span class="assignee-badge assignee-${task.assignee}">
+        <span class="assignee-badge assignee-${['agent','human'].includes(task.assignee) ? task.assignee : 'unassigned'}">
           ${task.assignee === 'agent' ? '🤖 Agente' : task.assignee === 'human' ? '👤 Humano' : '⚪ Libre'}
         </span>
       </div>
@@ -374,7 +407,7 @@ function renderTaskWorkspace(taskId) {
                     .map((d) => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.title)}</option>`)
                     .join('')}
                 </select>
-                <button type="button" class="btn btn-primary" style="font-size:0.8rem; padding:0.3rem 0.75rem;" onclick="window.linkTaskContract(decodeURIComponent('${escapeJsArgument(task.id)}'))">
+                <button type="button" class="btn btn-primary" style="font-size:0.8rem; padding:0.3rem 0.75rem;" data-action="link" data-task-id="${escapeHtml(task.id)}">
                   Vincular Contrato
                 </button>
               </div>
@@ -399,11 +432,11 @@ function renderTaskWorkspace(taskId) {
                   <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
                     <input
                       type="${r.isSecret ? 'password' : 'text'}"
-                      id="workspace-input-req-${r.fieldKey}"
+                      id="workspace-input-req-${escapeHtml(r.fieldKey)}"
                       placeholder="${r.isSecret ? 'Escribe el valor secreto (Blind Vault)...' : 'Escribe el valor solicitado...'}"
                       style="flex:1; min-width:240px;"
                     />
-                    <button type="button" class="btn btn-primary" onclick="fulfillRequirement(decodeURIComponent('${escapeJsArgument(task.id)}'), decodeURIComponent('${escapeJsArgument(r.fieldKey)}'), ${r.isSecret})">
+                    <button type="button" class="btn btn-primary" data-action="fulfill" data-task-id="${escapeHtml(task.id)}" data-field-key="${escapeHtml(r.fieldKey)}" data-secret="${r.isSecret === true}">
                       ${r.isSecret ? '🔒 Guardar Secreto Ciego' : 'Enviar Respuesta'}
                     </button>
                   </div>
@@ -431,10 +464,10 @@ function renderTaskWorkspace(taskId) {
               <h4 style="font-size:1.05rem; font-weight:600; color:var(--text-main); margin-top:0.1rem;">Batería de Pruebas &amp; Métricas</h4>
             </div>
             <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-              <button type="button" class="btn-run-tests" id="btn-run-task-tests" onclick="runTaskTests(decodeURIComponent('${escapeJsArgument(task.id)}'))">
+              <button type="button" class="btn-run-tests" id="btn-run-task-tests" data-action="tests" data-task-id="${escapeHtml(task.id)}">
                 ▶ Ejecutar Tests de Tarea
               </button>
-              <button type="button" class="btn" id="btn-generate-kdd-report" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-size:0.8rem; padding:0.45rem 0.85rem;" onclick="generateTaskKddReport(decodeURIComponent('${escapeJsArgument(task.id)}'))">
+              <button type="button" class="btn" id="btn-generate-kdd-report" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-size:0.8rem; padding:0.45rem 0.85rem;" data-action="report" data-task-id="${escapeHtml(task.id)}">
                 📝 Generar Reporte KDD (.agents/logs)
               </button>
             </div>
@@ -444,8 +477,8 @@ function renderTaskWorkspace(taskId) {
           <div class="metrics-kpi-grid">
             <div class="kpi-card">
               <span class="kpi-label">Estado</span>
-              <span class="kpi-val ${task.testReport ? (task.testReport.success ? 'success' : 'failed') : ''}">
-                ${task.testReport ? (task.testReport.success ? 'PASÓ ✓' : 'FALLÓ ✖') : 'SIN CORRER'}
+              <span class="kpi-val ${verificationStatus(task.testReport) === 'PASS' ? 'success' : verificationStatus(task.testReport) === 'FAIL' || verificationStatus(task.testReport) === 'TIMEOUT' ? 'failed' : ''}">
+                ${verificationStatus(task.testReport)}
               </span>
             </div>
             <div class="kpi-card">
@@ -474,7 +507,7 @@ function renderTaskWorkspace(taskId) {
             </div>
             <pre class="test-terminal">${task.testReport ? escapeHtml(task.testReport.output) : 'No se ha ejecutado la batería de pruebas para esta tarea aún.\nHaz clic en "▶ Ejecutar Tests de Tarea" para correr los tests reales y generar el reporte.'}</pre>
             ${
-              task.testReport?.reportPath
+              task.testReport?.reportPath && verificationStatus(task.testReport) === 'PASS'
                 ? `
               <div style="margin-top:0.75rem; background:rgba(95,179,172,0.1); border:1px solid rgba(95,179,172,0.28); border-radius:6px; padding:0.6rem 0.9rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
                 <span style="font-size:0.8rem; color:var(--accent-cyan);">
@@ -595,6 +628,8 @@ window.fulfillRequirement = async function (taskId, fieldKey, isSecret) {
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error('Error al guardar requerimiento');
+    inputEl.value = '';
+    inputEl.blur?.();
     alert(isSecret ? 'Credencial guardada en el vault local. La tarea fue reasignada al Agente.' : '¡Respuesta guardada!');
     await loadTasks();
   } catch (err) {
@@ -730,7 +765,7 @@ async function renderDashboard() {
     blockedContainer.innerHTML = blockedList
       .map(
         (t) => `
-      <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:6px; padding:0.65rem 0.85rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="openTaskDetail(decodeURIComponent('${escapeJsArgument(t.id)}'))">
+      <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:6px; padding:0.65rem 0.85rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" data-action="task" data-task-id="${escapeHtml(t.id)}">
         <div>
           <strong style="font-size:0.86rem; color:var(--text-main); display:block;">${escapeHtml(t.title)}</strong>
           <span style="font-size:0.75rem; color:var(--accent-rose);">${t.status === 'needs_human_input' ? '🛑 Requiere entrada humana' : '🔥 Prioridad Urgente'}</span>
@@ -766,10 +801,10 @@ async function loadVault() {
             <span style="color:var(--accent-emerald); font-size:0.72rem; font-family:var(--font-mono);">✓ is_set</span>
           </div>
           <div style="display:flex; gap:0.4rem;">
-            <button type="button" class="btn" style="font-size:0.72rem; padding:0.2rem 0.5rem;" onclick="window.editVaultSecret(decodeURIComponent('${escapeJsArgument(s.key)}'))">
+            <button type="button" class="btn" style="font-size:0.72rem; padding:0.2rem 0.5rem;" data-action="editSecret" data-key="${escapeHtml(s.key)}">
               ✏️ Modificar
             </button>
-            <button type="button" class="btn" style="font-size:0.72rem; padding:0.2rem 0.5rem; color:var(--accent-rose); border-color:rgba(244,63,94,0.3);" onclick="window.deleteVaultSecret(decodeURIComponent('${escapeJsArgument(s.key)}'))">
+            <button type="button" class="btn" style="font-size:0.72rem; padding:0.2rem 0.5rem; color:var(--accent-rose); border-color:rgba(244,63,94,0.3);" data-action="deleteSecret" data-key="${escapeHtml(s.key)}">
               🗑️ Eliminar
             </button>
           </div>
@@ -778,7 +813,7 @@ async function loadVault() {
       )
       .join('');
   } catch (err) {
-    container.innerHTML = `<span style="color:var(--accent-rose);">Error cargando vault: ${err.message}</span>`;
+    container.innerHTML = `<span style="color:var(--accent-rose);">Error cargando vault: ${escapeHtml(err.message)}</span>`;
   }
 }
 
@@ -882,7 +917,7 @@ async function loadTools() {
       )
       .join('');
   } catch (err) {
-    container.innerHTML = `<span style="color:var(--accent-rose);">Error cargando tools: ${err.message}</span>`;
+    container.innerHTML = `<span style="color:var(--accent-rose);">Error cargando tools: ${escapeHtml(err.message)}</span>`;
   }
 }
 
@@ -1057,7 +1092,7 @@ window.loadDocItem = async function (id) {
                   </span>
                   <strong style="font-size:0.86rem; color:var(--text-main);">${escapeHtml(t.title)}</strong>
                 </div>
-                <button type="button" class="btn" style="font-size:0.75rem; padding:0.25rem 0.65rem; color:var(--accent-orange); border-color:var(--accent-orange);" onclick="window.goToTask(decodeURIComponent('${escapeJsArgument(t.id)}'))">
+                <button type="button" class="btn" style="font-size:0.75rem; padding:0.25rem 0.65rem; color:var(--accent-orange); border-color:var(--accent-orange);" data-action="goTask" data-task-id="${escapeHtml(t.id)}">
                   Ir a la Tarea en 1 Clic &rarr;
                 </button>
               </div>
@@ -1089,7 +1124,7 @@ window.loadDocItem = async function (id) {
       </article>
     `;
   } catch (err) {
-    pane.innerHTML = `<span style="color:var(--accent-rose);">Error: ${err.message}</span>`;
+    pane.innerHTML = `<span style="color:var(--accent-rose);">Error: ${escapeHtml(err.message)}</span>`;
   }
 };
 

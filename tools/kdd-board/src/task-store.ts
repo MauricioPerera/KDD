@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { assigneeSchema, taskInputSchema, requirementInputSchema, fieldKeySchema, storedTasksSchema, InputError } from './input-validation.ts';
 import { evidenceCurrent } from './task-execution.ts';
 import { readVersion, writeVersion } from './persistence.ts';
 import type { Task, TaskStatus, TaskAssignee, TaskPriority, HumanInputRequirement, TaskComment, TaskTestReport } from './types.ts';
@@ -9,9 +10,12 @@ export class TaskStore {
   private filePath: string;
   private version: string | null = null;
   private tasks: Map<string, Task> = new Map();
+  private legacyTasks: Map<string, Task> = new Map();
+  private secretAvailable: (key: string) => boolean;
 
-  constructor(filePath: string) {
+  constructor(filePath: string, secretAvailable: (key: string) => boolean = () => false) {
     this.filePath = filePath;
+    this.secretAvailable = secretAvailable;
     this.load();
   }
 
@@ -20,20 +24,34 @@ export class TaskStore {
     if (version === null) {
       this.version = null;
       this.tasks.clear();
+      this.legacyTasks.clear();
       return;
     }
     try {
       const data = version;
-      const list: Task[] = JSON.parse(data);
+      const original = JSON.parse(data);
+      const list: Task[] = storedTasksSchema.parse(original);
       if (!Array.isArray(list)) throw new Error('Expected task array');
       const loaded = new Map<string, Task>();
       for (const t of list) {
         if (!t || typeof t.id !== 'string' || !t.id || loaded.has(t.id)) {
           throw new Error('Duplicate or invalid task ID');
         }
+        for (const r of t.requirements) {
+          if (r.isSatisfied && (r.isSecret ? !this.secretAvailable(r.fieldKey) : !r.value?.trim())) {
+            r.isSatisfied = false;
+            t.status = 'needs_human_input';
+            t.testReport = undefined;
+          }
+        }
+        if (t.testReport) {
+          t.testReport.status ??= !t.testReport.success ? 'FAIL' : t.testReport.verifiedOracle && t.testReport.passedTests > 0 ? 'PASS' : 'SKIP';
+          if (t.testReport.status === 'PASS' && !evidenceCurrent(t)) t.testReport.status = 'SKIP';
+        }
         if (t.status === 'done' && !evidenceCurrent(t)) t.status = 'ready';
         loaded.set(t.id, t);
       }
+      this.legacyTasks = new Map(original.filter((t: any) => Object.keys(t).every(key => ['id','title','status','updatedAt'].includes(key))).map((t: Task) => [t.id, {...t, status:loaded.get(t.id)!.status}]));
       this.tasks = loaded;
       this.version = version;
     } catch {
@@ -57,8 +75,9 @@ export class TaskStore {
     const all = Array.from(this.tasks.values()).sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     );
-    if (!status) return all;
-    return all.filter((t) => t.status === status);
+    const visible = all.map(task => this.legacyTasks.get(task.id) ?? task);
+    if (!status) return visible;
+    return visible.filter((t) => t.status === status);
   }
 
   public getTask(id: string): Task | undefined {
@@ -75,6 +94,7 @@ export class TaskStore {
     contractId?: string;
   }): Task {
     this.validateContractId(params.contractId);
+    params = taskInputSchema.parse(params) as typeof params;
     if (!params.title || params.title.trim() === '') {
       throw new Error('TaskStore: title must be a non-empty string');
     }
@@ -119,7 +139,7 @@ export class TaskStore {
       throw new Error(`TaskStore: task with id "${id}" not found`);
     }
     if (!['backlog', 'ready', 'in_progress', 'needs_human_input', 'done'].includes(newStatus)) throw new Error('Invalid status');
-    if (newStatus === 'done' && (!evidenceCurrent(task) || task.requirements.some(r => !r.isSatisfied))) {
+    if (newStatus === 'done' && (!evidenceCurrent(task) || task.requirements.some(r => !r.isSatisfied || (r.isSecret && !this.secretAvailable(r.fieldKey))))) {
       throw new Error('Current contract evidence and satisfied requirements are required');
     }
     task.status = newStatus;
@@ -141,7 +161,7 @@ export class TaskStore {
     if (!task) {
       throw new Error(`TaskStore: task with id "${id}" not found`);
     }
-    task.assignee = assignee;
+    task.assignee = assigneeSchema.parse(assignee);
     task.updatedAt = new Date().toISOString();
     task.comments.push({
       id: `cmt-${crypto.randomBytes(3).toString('hex')}`,
@@ -166,7 +186,8 @@ export class TaskStore {
     if (!task) {
       throw new Error(`TaskStore: task with id "${id}" not found`);
     }
-    const key = requirement.fieldKey.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+    requirement = requirementInputSchema.parse(requirement);
+    const key = requirement.fieldKey;
     const existingIdx = task.requirements.findIndex((r) => r.fieldKey === key);
     const req: HumanInputRequirement = {
       fieldKey: key,
@@ -199,10 +220,13 @@ export class TaskStore {
     if (!task) {
       throw new Error(`TaskStore: task with id "${taskId}" not found`);
     }
-    const key = fieldKey.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+    const key = fieldKeySchema.parse(fieldKey);
     const req = task.requirements.find((r) => r.fieldKey === key);
     if (!req) {
       throw new Error(`TaskStore: requirement "${key}" not found in task "${taskId}"`);
+    }
+    if (req.isSecret ? !this.secretAvailable(key) : typeof value !== 'string' || !value.trim()) {
+      throw new InputError('A saved credential or non-empty answer is required');
     }
     req.isSatisfied = true;
     if (!req.isSecret && value !== undefined) {
@@ -252,7 +276,9 @@ export class TaskStore {
     if (!task) {
       throw new Error(`TaskStore: task with id "${id}" not found`);
     }
+    report.status ??= !report.success ? 'FAIL' : report.verifiedOracle && report.passedTests > 0 ? 'PASS' : 'SKIP';
     task.testReport = report;
+    if (report.status === 'PASS' && !evidenceCurrent(task)) report.status = 'SKIP';
     if (task.status === 'done' && !evidenceCurrent(task)) task.status = 'ready';
     task.metrics = {
       requirementsCount: task.requirements.length,
@@ -264,9 +290,7 @@ export class TaskStore {
     task.comments.push({
       id: `cmt-${crypto.randomBytes(3).toString('hex')}`,
       author: 'system',
-      text: report.success
-        ? `Batería de tests EXITOSA (${report.passedTests} pasados en ${report.durationMs.toFixed(1)}ms).`
-        : `Batería de tests FALLIDA (${report.failedTests} fallados, ${report.passedTests} pasados).`,
+      text: `Tests ${report.status}: ${report.passedTests} pasados, ${report.failedTests} fallados (${report.durationMs.toFixed(1)}ms).`,
       timestamp: task.updatedAt,
     });
     this.save();
@@ -316,7 +340,7 @@ export class TaskStore {
       throw new Error(`TaskStore: task with id "${id}" not found`);
     }
 
-    if (!evidenceCurrent(task)) throw new Error('Current contract evidence is required for a verified report');
+    if (!evidenceCurrent(task) || task.requirements.some(r => !r.isSatisfied || (r.isSecret && !this.secretAvailable(r.fieldKey)))) throw new Error('Current contract evidence and satisfied requirements are required for a verified report');
     const slug =
       task.title
         .toUpperCase()

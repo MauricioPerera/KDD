@@ -17,6 +17,20 @@ HTTP y MCP comparten el mismo ejecutor. Este valida el contrato con el parser Py
 
 La evidencia cubre esos tres archivos. No cubre automaticamente dependencias transitivas, servicios externos, herramientas ni toda la revision del proyecto. La salida del runner reconoce totales de Node TAP/spec y unittest; una salida no reconocida conserva cero tests y no habilita done. Un proceso puede terminar correctamente sin ejecutar tests. El codigo hostil puede falsificar salida: estos controles presuponen un ejecutor y oraculo confiables.
 
+Los cuerpos HTTP y las tareas persistidas se validan con esquemas de runtime.
+Datos persistidos malformados bloquean la carga sin sobrescribir el archivo.
+Los handlers de acciones reciben atributos de datos y no codigo interpolado.
+Los requisitos humanos exigen una respuesta no vacia o una credencial presente
+en el vault; eliminar una credencial vuelve a bloquear sus requisitos al leer
+las tareas. El cierre y el reporte vuelven a comprobar la presencia del secreto.
+
+El tablero muestra PASS solo para pruebas reconocidas y evidencia vigente;
+un proceso correcto sin pruebas reconocidas es SKIP, un fallo es FAIL y una
+ejecucion interrumpida por el limite del runner es TIMEOUT. Un reporte antiguo
+sin estado se interpreta conservadoramente. El refresco aplaza el reemplazo
+de la vista activa mientras hay foco o borradores de entradas, preservando
+los nodos del formulario y la seleccion. Los borradores no se persisten.
+
 ## Vault
 
 El piloto de [autoridad local](./data_models/local-authority.md) aplica permisos antes
@@ -172,3 +186,27 @@ validador para no confundir archivo presente con evidencia validada.
 ## Optimizacion y riesgo
 
 La ejecucion compartida elimina divergencias entre canales; las regresiones del tablero se ejecutan en un job independiente. Antes de agregar cache o seleccion incremental de gates, medir su costo y definir dependencias: saltarse un gate sin conocer sus entradas puede volver a producir falsos verdes. No se habilita cache de evidencia ni se reduce la suite completa en esta revision.
+
+## Inventario, runners y aceptacion por obligacion
+
+[Acceptance](acceptance.md) define el punto de aprobacion de nuevas entregas.
+`oracle_files` protege el conjunto declarado de tests, helpers, fixtures y
+configuracion mediante el baseline local y la comparacion confiable de PR.
+El inventario se lee de la referencia aprobada. Un contrato historico sin este
+campo conserva proteccion del archivo tests y requiere migracion para acceptance.
+
+`test_runner` vincula comandos explicitos a unittest o node:test. Se exigen casos
+reales por cada archivo seleccionado y se rechazan omisiones, skips/todos,
+cero casos, errores y timeout. El stdout del test no se considera evidencia del
+runner. Comandos libres historicos comprueban exit code y no aceptan entregas.
+
+La matriz exige integridad, ejecucion, perimetro y checks aprobados para firma,
+dependencias, budget, prohibiciones e invariantes. La politica puede agregar
+obligaciones. Ausencia o un instrumento sin adapter bloquean; el JSON vincula
+comandos, salidas, cantidades y hashes con la referencia y el snapshot actual.
+La CI conserva `NOT_EVALUATED` para proyectos historicos sin politica; una politica
+que existia en el baseline no puede borrarse para convertir el paso en SKIP.
+
+La completitud de inventario y la cobertura semantica de cada check necesitan
+revision. No se autentica al aprobador ni se aisla codigo hostil. Dos corridas
+son una comprobacion basica de repetibilidad, no prueba de ausencia de flaky.

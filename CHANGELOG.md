@@ -4,6 +4,14 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- Los comandos de contrato historicos tambien conservan el interprete Python activo, sin alterar seleccion explicita de ejecutables, captura, timeout o deduplicacion. [Contrato y regresion real](knowledge/contracts/contract-python-runtime.md).
+
+- El auditor de mutaciones vincula los alias Python genericos al interprete activo; conserva ejecutables explicitos y evita controles rotos al escapar de un venv. Regresion con procesos reales en [mutation-python-runtime](knowledge/contracts/mutation-python-runtime.md).
+
+- Integracion de la revision metodologica con el main de octubre: 98 excesos frente a 100 heredados, sin nuevos o agravados; evidencia local y limites de publicacion en el [informe de integracion](docs/reports/METHODOLOGY-INTEGRATION-REPORT.md).
+
+- Metodologia: inventario aprobado de oraculos, ejecucion instrumentada, aceptacion por obligacion y onboarding verificable. Board: bloqueo de resúmenes Python inventados y caducidad de evidencias anteriores. [Revision y limites](docs/reports/METHODOLOGY-REVIEW-REPORT.md).
+- Se documentan 49 excesos de presupuesto heredados del arbol revisado, sin ampliacion del alcance ni nuevos excesos en esa medicion. [Deuda historica](knowledge/deuda-presupuestos-heredada.md).
 - Native contract commands can reserve an exclusive phase for init-project's
   nested suite, retaining its 600-second limit, every contract result, exact
   deduplication and the existing worker defaults for reusable callers. Native

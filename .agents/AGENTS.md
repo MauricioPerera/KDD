@@ -28,3 +28,11 @@ Tres herramientas de diagnóstico local, opt-in, que **no son gates y no corren 
 ## Aprobacion integrada de nuevos proyectos
 
 Al instanciar un proyecto nuevo, seguir [quality-approval](../knowledge/quality-approval.md): definir politica y oraculos antes de implementar y usar verify_quality.py con referencia aprobada explicita como punto de aprobacion. Incluir checks funcionales, adversariales y de interfaz cuando corresponda. Nunca convertir un fallo inconcluso en deteccion de una mutacion ni elegir HEAD automaticamente para aprobar el trabajo actual.
+
+## Aceptacion de nuevas entregas
+
+Para una entrega nueva aplicar [acceptance](../knowledge/acceptance.md): inventario
+completo, runner reconocido y checks aprobados de cada obligacion. Los perfiles
+historicos no autorizan declarar `acceptance_approved`. La revision externa del
+SHA y la fuerza semantica de cada oraculo no se sustituyen por validacion propia.
+Dos corridas comprueban repetibilidad basica, no ausencia de flaky.

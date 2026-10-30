@@ -14,7 +14,9 @@ llegar a tu primer contrato en verde.
 
 ## 0. Prerrequisitos
 
-- Python 3.11 en PATH (`python --version`), para reproducir el entorno del CI.
+- Python 3.11+ en PATH (`python --version`), como la version minima de CI.
+- Node.js 24 y npm para los contratos JavaScript/TypeScript y el tablero.
+- Los parsers fijados en `requirements-change-audit.txt` para la suite completa.
 - Git.
 - Node 24 y npm para KDD-Board y sus integraciones. Pages tiene su propia
   instalacion y [guia de construccion](../site/README.md).
@@ -35,8 +37,15 @@ llegar a tu primer contrato en verde.
 git clone <tu-fork-o-el-template> mi-proyecto
 cd mi-proyecto
 python -m pip install --only-binary=:all: -r requirements-change-audit.txt
-npm ci --prefix tools/kdd-board --ignore-scripts --no-audit --no-fund
+npm ci --ignore-scripts --prefix tools/kdd-board
 python scripts/validate_workflows.py install
+python scripts/validation_runtime.py suite
+```
+
+El wrapper selecciona Git nativo en Windows y usa el interprete actual.
+La invocacion equivalente de unittest, con el entorno preparado, es:
+
+```
 python -m unittest discover -s tests -p "test_*.py"
 ```
 
@@ -205,6 +214,8 @@ intent: "Devolver un saludo con el nombre dado."
 target: src/saludar.py
 signature: "def saludar(nombre: str) -> str:"
 test_command: "python -m unittest tests/test_saludar.py"
+test_runner: python-unittest
+oracle_files: ['tests/test_saludar.py', 'tests/__init__.py']
 budget:
   cyclomatic_max: 2
   nesting_max: 1
@@ -242,7 +253,11 @@ python scripts/validate_test_commands.py knowledge/contracts .
 ```
 
 Esperado: ambos exit 0, `saludar.md` aparece como `PASS` en la segunda
-corrida. Ya tenes un contrato completo, verificado de punta a punta.
+corrida. Esto demuestra estructura valida y ejecucion del oraculo; la aceptacion
+requiere los checks adicionales y la referencia externa de
+[aceptacion por obligacion](acceptance.md). No declarar la entrega aceptada
+solo por estos dos comandos. Antes de implementar una entrega nueva, aprobar
+contrato, inventario completo y politica; despues correr el perfil acceptance.
 
 ## 5. Siguiente paso
 

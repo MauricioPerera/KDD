@@ -112,6 +112,12 @@ on:
       change_contract_path:
         type: string
         default: ''
+      acceptance_policy_path:
+        type: string
+        default: 'acceptance.json'
+      acceptance_required:
+        type: boolean
+        default: false
       required_evidence:
         type: string
         default: ''
@@ -332,6 +338,9 @@ jobs:
         shell: bash
         run: python scripts/validate_contracts.py "$KDD_CONTRACTS_DIR"
 
+      - name: Execute normative documentation examples
+        run: python scripts/validate_documentation_examples.py
+
       - name: Audit implementation diff against approved contract (when configured)
         shell: bash
         env:
@@ -463,6 +472,15 @@ jobs:
         shell: bash
         run: python scripts/validate_test_coverage_findings.py "$KDD_TEST_COVERAGE_SCAN_DIR"
 
+      # The template has a sealed board oracle as well as Python contracts.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
+        if: hashFiles('tools/kdd-board/package-lock.json') != ''
+        with:
+          node-version: '24'
+      - name: Install board oracle dependencies
+        if: hashFiles('tools/kdd-board/package-lock.json') != ''
+        run: npm ci --ignore-scripts
+        working-directory: tools/kdd-board
       - name: Install pinned Pages publisher for PR
         if: ${{ github.event_name == 'pull_request' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
         shell: bash
@@ -531,6 +549,51 @@ jobs:
                   raise SystemExit('FAIL: project policy requires an explicitly approved reference (full commit SHA)')
               raise SystemExit(subprocess.call([sys.executable, 'scripts/verify_quality.py', '--policy', policy, '--approved-ref', approved]))
           print('SKIP: no project quality policy configured; template validation does not approve a project')
+
+      - name: Verify required contract acceptance
+        id: acceptance
+        shell: python
+        env:
+          KDD_ACCEPTANCE_POLICY: ${{ inputs.acceptance_policy_path || 'acceptance.json' }}
+          KDD_ACCEPTANCE_REQUIRED: ${{ inputs.acceptance_required || false }}
+          KDD_ACCEPTANCE_APPROVED_REF: ${{ inputs.approved_baseline_ref || vars.KDD_APPROVED_BASELINE_REF || '' }}
+        run: |
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          policy = os.environ['KDD_ACCEPTANCE_POLICY']
+          required = os.environ['KDD_ACCEPTANCE_REQUIRED'].lower() == 'true'
+          approved = os.environ['KDD_ACCEPTANCE_APPROVED_REF']
+          approved_policy = subprocess.run(
+              ['git', 'cat-file', '-e', approved + ':' + policy],
+              capture_output=True, timeout=30).returncode == 0
+          if required or approved_policy or Path(policy).exists():
+              raise SystemExit(subprocess.call([
+                  sys.executable, 'scripts/verify_acceptance.py', '--policy', policy,
+                  '--approved-ref', approved,
+                  '--json-output', str(Path(os.environ['RUNNER_TEMP']) / 'kdd-acceptance.json')]))
+          print('SKIP: legacy project has no acceptance policy; acceptance is NOT_EVALUATED')
+
+      - name: Upload acceptance matrix
+        if: always() && steps.acceptance.outcome != 'skipped'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: acceptance-${{ matrix.os }}
+          path: ${{ runner.temp }}/kdd-acceptance.json
+          if-no-files-found: ignore
+
+      - name: Summarize acceptance state
+        if: always()
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+          path = Path(os.environ['RUNNER_TEMP']) / 'kdd-acceptance.json'
+          state = json.loads(path.read_text())['state'] if path.exists() else 'NOT_EVALUATED'
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as output:
+              output.write('\nAcceptance: `' + state + '`\n')
 
       - name: Assemble context (smoke)
         run: python scripts/assemble_context.py ccdd/context.json "smoke"

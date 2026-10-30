@@ -62,12 +62,19 @@ def mutation_sources(source):
     return results
 
 
+def _python_runtime(tokens):
+    """Generic aliases use this runtime; explicit executable choices stay exact."""
+    if tokens and tokens[0] in ('python', 'python3', 'python.exe'):
+        tokens[0] = sys.executable
+    return tokens
+
+
 def _command(value):
     try:
         tokens = shlex.split(value, posix=os.name != "nt")
         if os.name == 'nt':
             tokens = [t[1:-1] if len(t) > 1 and t[0] == t[-1] and t[0] in "\"'" else t for t in tokens]
-        return tokens
+        return _python_runtime(tokens)
     except ValueError as exc:
         raise ValueError("test_command invalido: {}".format(exc)) from exc
 

@@ -1,0 +1,191 @@
+{
+  "date": "2026-10-29",
+  "base_ref": "1df365d2307a7058876bc609e09fb4af8c9c9ca9",
+  "initial_integration_commit": "7a61dd824d072fe371fb3c041fc09fa806a0592d",
+  "final_local_checks": [
+    {
+      "name": "integration-regressions",
+      "command": [
+        "C:\\Python314\\python.exe",
+        "-m",
+        "unittest",
+        "tests.test_board_onboarding_audit",
+        "tests.test_ci_action_runtime",
+        "tests.test_workflow_syntax.GuardIntegration",
+        "tests.test_bootstrap_cold_start",
+        "tests.test_bootstrap_fixture_cache",
+        "tests.test_binary_oracle_inventory",
+        "tests.test_oracle_inventory",
+        "tests.test_methodology_remote_integration",
+        "tests.test_ci_trusted_execution",
+        "tests.test_quality_budget_review",
+        "tests.test_quality_workflow"
+      ],
+      "exit_code": 0,
+      "seconds": 141.53855080000358
+    },
+    {
+      "name": "board-types",
+      "command": [
+        "npm.cmd",
+        "--prefix",
+        "tools/kdd-board",
+        "run",
+        "typecheck"
+      ],
+      "exit_code": 0,
+      "seconds": 0.7287341999908676
+    },
+    {
+      "name": "board-tests",
+      "command": [
+        "npm.cmd",
+        "--prefix",
+        "tools/kdd-board",
+        "test"
+      ],
+      "exit_code": 0,
+      "seconds": 76.37569179999991
+    },
+    {
+      "name": "workflow",
+      "command": [
+        "C:\\Python314\\python.exe",
+        "scripts/validate_workflows.py",
+        "check",
+        "--repo-root",
+        "."
+      ],
+      "exit_code": 0,
+      "seconds": 0.5563756999908946
+    },
+    {
+      "name": "contracts",
+      "command": [
+        "C:\\Python314\\python.exe",
+        "scripts/validate_contracts.py",
+        "knowledge/contracts"
+      ],
+      "exit_code": 0,
+      "seconds": 0.20304560000658967
+    },
+    {
+      "name": "okf",
+      "command": [
+        "C:\\Python314\\python.exe",
+        "scripts/validate_okf.py",
+        "knowledge"
+      ],
+      "exit_code": 0,
+      "seconds": 0.19874700000218581
+    },
+    {
+      "name": "secrets",
+      "command": [
+        "C:\\Python314\\python.exe",
+        "scripts/scan_secrets.py",
+        "src"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08323590000509284
+    }
+  ],
+  "final_board": {
+    "tests": 79,
+    "passed": 79,
+    "skipped": 0
+  },
+  "final_focused_python": {
+    "tests": 58,
+    "exit_code": 0
+  },
+  "frozen_primary_oracles": {
+    "tests/test_oracle_inventory.py": "9c92dbcba88d7475b1433786e9e1709f4dd052731c6c1c7ec4ff2813abe9d80c",
+    "tests/test_oracle_execution.py": "58310b12e05ea62c4dbcc78bb3127669aa5cf22d6de500bb37f7fecd5088125a",
+    "tests/test_contract_acceptance.py": "527490867a309f5ac4108b4ac7f1f26bb8c45f36a7378a907fd29a6818d00295",
+    "tests/test_methodology_docs.py": "8b7bf6b979f4221d988a1408630bbbc8cbb12d8d56a871a7374920a6f2d9d284",
+    "tools/kdd-board/tests/python-oracle-proof.test.ts": "83499da71ea953dfb195ecf58309940e36979581fbc0569a59990d56b1d3a225"
+  },
+  "changed_files_sha256": {
+    ".github/workflows/validate.yml": "6f954b25f60674e000c5a41da4623acd40658a51ae8656c7be8a7471bcb75b5b",
+    "scripts/guard_pr_baseline.py": "c2b121390247de75499ecfb8c35cbcc7adc03d05783e6bb086d5ada1a712e36c",
+    "tools/kdd-board/src/input-validation.ts": "471045477715a88d1c5541414d5fbfbe057cd12315d37605738439bf3359cd2c",
+    "tools/kdd-board/src/task-store.ts": "b4a568b57f10b120a4a611a5d63d9579ec849fb627a535ce77d45177b5f2f77b",
+    "tools/kdd-board/src/test-runner.ts": "1e38d5bf096f051d62d7524b8bc9eddb36b9021ddccd073b1009f5a2e37b13a1",
+    "tools/kdd-board/tests/python-legacy-proof.test.ts": "5b86e373a40f6ae0ce4de7884615d7b2d8a0c6e329c3c08a75dfe2ff7c9cea35"
+  },
+  "inherited_mutation_files_equal_main": true,
+  "first_full_run": {
+    "ok": false,
+    "tests_run": 1711,
+    "failures": [
+      {
+        "id": "test_board_onboarding_audit.BoardOnboardingAudit.test_existing_legacy_task_is_preserved",
+        "traceback": "Traceback (most recent call last):\n  File \"D:\\Repo\\Nueva carpeta (107)\\KDD\\tests\\test_board_onboarding_audit.py\", line 129, in test_existing_legacy_task_is_preserved\n    self.assertEqual(result.returncode, 0, result.stderr)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 1 != 0 : file:///D:/Repo/Nueva%20carpeta%20(107)/KDD/tools/kdd-board/src/task-store.ts:54\n      throw new Error('Invalid task storage; refusing to overwrite it');\n            ^\n\nError: Invalid task storage; refusing to overwrite it\n    at TaskStore.load (file:///D:/Repo/Nueva%20carpeta%20(107)/KDD/tools/kdd-board/src/task-store.ts:54:13)\n    at new TaskStore (file:///D:/Repo/Nueva%20carpeta%20(107)/KDD/tools/kdd-board/src/task-store.ts:18:10)\n    at file:///D:/Repo/Nueva%20carpeta%20(107)/KDD/tools/kdd-board/src/server.ts:44:42\n    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)\n    at async node:internal/modules/esm/loader:230:26\n    at async ModuleLoader.executeModuleJob (node:internal/modules/esm/loader:227:20)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n\nNode.js v24.16.0\n\n"
+      },
+      {
+        "id": "test_bootstrap_cold_start.BootstrapColdStart.test_cold_guide_installs_verified_bytes_and_runs_real_oracles",
+        "traceback": "Traceback (most recent call last):\n  File \"D:\\Repo\\Nueva carpeta (107)\\KDD\\tests\\test_bootstrap_cold_start.py\", line 90, in test_cold_guide_installs_verified_bytes_and_runs_real_oracles\n    archive, pin = self.reviewed_archive()\n                   ~~~~~~~~~~~~~~~~~~~~~^^\n  File \"D:\\Repo\\Nueva carpeta (107)\\KDD\\tests\\test_bootstrap_cold_start.py\", line 59, in reviewed_archive\n    self.assertTrue(package.is_file(), 'Provide the reviewed official archive as offline fixture data')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: False is not true : Provide the reviewed official archive as offline fixture data\n"
+      },
+      {
+        "id": "test_ci_action_runtime.ActionRuntime.test_every_official_setup_reference_is_a_reviewed_full_sha",
+        "traceback": "Traceback (most recent call last):\n  File \"D:\\Repo\\Nueva carpeta (107)\\KDD\\tests\\test_ci_action_runtime.py\", line 26, in test_every_official_setup_reference_is_a_reviewed_full_sha\n    self.assertEqual(ref, PINS[repo], str(path.relative_to(ROOT)))\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: '49933ea5288caeca8642d1e84afbd3f7d6820020' != '949feb2413d6458794dcd2491c4babbbce0c15c1'\n- 49933ea5288caeca8642d1e84afbd3f7d6820020\n+ 949feb2413d6458794dcd2491c4babbbce0c15c1\n : .github\\workflows\\validate.yml\n"
+      },
+      {
+        "id": "test_mutation_audit.MutationAuditTests.test_real_test_detects_mutant",
+        "traceback": "Traceback (most recent call last):\n  File \"D:\\Repo\\Nueva carpeta (107)\\KDD\\tests\\test_mutation_audit.py\", line 48, in test_real_test_detects_mutant\n    self.assertGreaterEqual(result[\"detected\"], 1)\n    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 0 not greater than or equal to 1\n"
+      },
+      {
+        "id": "test_workflow_syntax.GuardIntegration.test_tool_manifest_is_protected_using_two_real_commits",
+        "traceback": "Traceback (most recent call last):\n  File \"D:\\Repo\\Nueva carpeta (107)\\KDD\\tests\\test_workflow_syntax.py\", line 377, in test_tool_manifest_is_protected_using_two_real_commits\n    self.assert_protected('tools/workflow-syntax/actionlint.json')\n    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Repo\\Nueva carpeta (107)\\KDD\\tests\\test_workflow_syntax.py\", line 370, in assert_protected\n    self.assertEqual(result.returncode, 0, result.stderr)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 1 != 0 : Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    import json,sys;sys.path.insert(0,'scripts');import guard_pr_baseline as g;print(json.dumps(g.check(*sys.argv[1:])))\n                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Windows\\Temp\\kdd workflow syntax ld0bwnbt\\project with spaces\\scripts\\guard_pr_baseline.py\", line 15, in <module>\n    from oracle_inventory import approved_binary_paths, inventory_paths, oracle_equal\nModuleNotFoundError: No module named 'oracle_inventory'\n\n"
+      },
+      {
+        "id": "test_workflow_syntax.GuardIntegration.test_validator_is_protected_using_two_real_commits",
+        "traceback": "Traceback (most recent call last):\n  File \"D:\\Repo\\Nueva carpeta (107)\\KDD\\tests\\test_workflow_syntax.py\", line 374, in test_validator_is_protected_using_two_real_commits\n    self.assert_protected('scripts/validate_workflows.py')\n    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Repo\\Nueva carpeta (107)\\KDD\\tests\\test_workflow_syntax.py\", line 370, in assert_protected\n    self.assertEqual(result.returncode, 0, result.stderr)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 1 != 0 : Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    import json,sys;sys.path.insert(0,'scripts');import guard_pr_baseline as g;print(json.dumps(g.check(*sys.argv[1:])))\n                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Windows\\Temp\\kdd workflow syntax r5ksh4eg\\project with spaces\\scripts\\guard_pr_baseline.py\", line 15, in <module>\n    from oracle_inventory import approved_binary_paths, inventory_paths, oracle_equal\nModuleNotFoundError: No module named 'oracle_inventory'\n\n"
+      }
+    ],
+    "errors": [
+      {
+        "id": "setUpClass (test_bootstrap_fixture_cache.BootstrapFixtureCacheTests)",
+        "infrastructure": true,
+        "traceback": "Traceback (most recent call last):\n  File \"D:\\Repo\\Nueva carpeta (107)\\KDD\\tests\\test_bootstrap_fixture_cache.py\", line 37, in setUpClass\n    binary, archive, cls.platform_key, cls.pin = workflow.tool()\n                                                 ~~~~~~~~~~~~~^^\n  File \"D:\\Repo\\Nueva carpeta (107)\\KDD\\tests\\test_workflow_syntax.py\", line 125, in tool\n    raise AssertionError('Prepare the reviewed actionlint binary before running integration tests: ' + str(binary))\nAssertionError: Prepare the reviewed actionlint binary before running integration tests: C:\\Windows\\Temp\\kdd-actionlint\\1.7.12\\windows_amd64\\actionlint.exe\n"
+      }
+    ],
+    "skipped": [
+      {
+        "id": "test_init_project.TestInitProject.test_gates_verdes_post_apply_en_copia",
+        "reason": "already covered by the init-project contract test_command"
+      },
+      {
+        "id": "test_mcp_sdk_ci.McpSdkEvidence.test_genuine_sdk_runs_all_existing_protocol_cases_without_skips",
+        "reason": "optional SDK integration: configure KDD_MCP_SDK_PYTHON"
+      },
+      {
+        "id": "test_mcp_sdk_ci.McpSdkEvidence.test_project_sdk_shadow_cannot_replace_the_installed_sdk",
+        "reason": "optional SDK integration: configure KDD_MCP_SDK_PYTHON"
+      },
+      {
+        "id": "test_mcp_sdk_ci.McpSdkEvidence.test_wrong_commit_context_fails_before_claiming_ci_evidence",
+        "reason": "optional SDK integration: configure KDD_MCP_SDK_PYTHON"
+      }
+    ],
+    "fixture_omitted_ids": [
+      "test_bootstrap_fixture_cache.BootstrapFixtureCacheTests.test_corrupt_default_archive_is_not_accepted_or_repaired",
+      "test_bootstrap_fixture_cache.BootstrapFixtureCacheTests.test_corrupt_explicit_archive_cannot_fall_back_to_good_cache",
+      "test_bootstrap_fixture_cache.BootstrapFixtureCacheTests.test_default_installer_cache_without_exports_is_used",
+      "test_bootstrap_fixture_cache.BootstrapFixtureCacheTests.test_documented_default_preparation_runs_real_cold_guide_and_27_oracles",
+      "test_bootstrap_fixture_cache.BootstrapFixtureCacheTests.test_explicit_archive_has_priority_over_bad_cache_and_binary",
+      "test_bootstrap_fixture_cache.BootstrapFixtureCacheTests.test_explicit_binary_neighbor_has_priority_over_default_cache",
+      "test_bootstrap_fixture_cache.BootstrapFixtureCacheTests.test_missing_default_cache_is_an_explicit_failure",
+      "test_bootstrap_fixture_cache.BootstrapFixtureCacheTests.test_only_the_pinned_version_and_platform_cache_are_considered",
+      "test_bootstrap_fixture_cache.BootstrapFixtureCacheTests.test_path_binary_neighbor_has_priority_over_default_cache"
+    ]
+  },
+  "first_full_inventory": {
+    "expected_count": 1720,
+    "executed_count": 1711
+  },
+  "remote_approval": "APPROVAL_UNKNOWN_TREE",
+  "pull_request": "https://github.com/MauricioPerera/KDD/pull/144",
+  "main_merged": false
+}
