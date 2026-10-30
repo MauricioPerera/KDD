@@ -10,6 +10,7 @@ export class TaskStore {
   private filePath: string;
   private version: string | null = null;
   private tasks: Map<string, Task> = new Map();
+  private legacyTasks: Map<string, Task> = new Map();
   private secretAvailable: (key: string) => boolean;
 
   constructor(filePath: string, secretAvailable: (key: string) => boolean = () => false) {
@@ -23,11 +24,13 @@ export class TaskStore {
     if (version === null) {
       this.version = null;
       this.tasks.clear();
+      this.legacyTasks.clear();
       return;
     }
     try {
       const data = version;
-      const list: Task[] = storedTasksSchema.parse(JSON.parse(data));
+      const original = JSON.parse(data);
+      const list: Task[] = storedTasksSchema.parse(original);
       if (!Array.isArray(list)) throw new Error('Expected task array');
       const loaded = new Map<string, Task>();
       for (const t of list) {
@@ -48,6 +51,7 @@ export class TaskStore {
         if (t.status === 'done' && !evidenceCurrent(t)) t.status = 'ready';
         loaded.set(t.id, t);
       }
+      this.legacyTasks = new Map(original.filter((t: any) => Object.keys(t).every(key => ['id','title','status','updatedAt'].includes(key))).map((t: Task) => [t.id, {...t, status:loaded.get(t.id)!.status}]));
       this.tasks = loaded;
       this.version = version;
     } catch {
@@ -71,8 +75,9 @@ export class TaskStore {
     const all = Array.from(this.tasks.values()).sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     );
-    if (!status) return all;
-    return all.filter((t) => t.status === status);
+    const visible = all.map(task => this.legacyTasks.get(task.id) ?? task);
+    if (!status) return visible;
+    return visible.filter((t) => t.status === status);
   }
 
   public getTask(id: string): Task | undefined {

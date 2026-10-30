@@ -12,7 +12,6 @@ import subprocess
 import sys
 
 from validate_contracts import parse_frontmatter
-from oracle_inventory import approved_binary_paths, inventory_paths, oracle_equal
 
 
 PROTECTED_FILES = {
@@ -105,10 +104,25 @@ def _normalize(content):
     return content.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
 
 
+def _inventory_paths(metadata):
+    if 'oracle_files' not in metadata:
+        return [metadata['tests']]
+    from oracle_inventory import inventory_paths
+    return inventory_paths(metadata)
+
+
+def _oracle_changed(metadata, candidate, approved, binary):
+    if 'oracle_files' not in metadata:
+        return _normalize(candidate or b'') != _normalize(approved)
+    from oracle_inventory import oracle_equal
+    return not oracle_equal(candidate or b'', approved, binary)
+
+
 def _binary_inventory(metadata, approved):
     if 'oracle_files' not in metadata:
         return set()
-    return approved_binary_paths(_git, approved, inventory_paths(metadata))
+    from oracle_inventory import approved_binary_paths
+    return approved_binary_paths(_git, approved, _inventory_paths(metadata))
 
 
 def check(base_ref, candidate_ref, approved_ref):
@@ -133,7 +147,7 @@ def check(base_ref, candidate_ref, approved_ref):
             findings.append(path + ': contract differs from approved baseline')
         metadata, _ = parse_frontmatter(expected.decode('utf-8'))
         binary = _binary_inventory(metadata, approved)
-        for oracle in inventory_paths(metadata):
+        for oracle in _inventory_paths(metadata):
             expected_oracle = _blob(approved, oracle)
             mode = _git('ls-tree', approved, '--', oracle).decode().split()
             if expected_oracle is None or not mode or mode[0] not in ('100644', '100755'):
@@ -141,8 +155,7 @@ def check(base_ref, candidate_ref, approved_ref):
             candidate_oracle = _blob(candidate, oracle)
             candidate_mode = _git('ls-tree', candidate, '--', oracle).decode().split()
             regular = bool(candidate_mode and candidate_mode[0] in ('100644', '100755'))
-            changed = (not oracle_equal(candidate_oracle or b'', expected_oracle, oracle in binary) if 'oracle_files' in metadata else
-                       _normalize(candidate_oracle or b'') != _normalize(expected_oracle))
+            changed = _oracle_changed(metadata, candidate_oracle, expected_oracle, oracle in binary)
             if not regular or candidate_oracle is None or changed:
                 findings.append(oracle + ': oracle differs from approved baseline')
     if not expected_contracts:

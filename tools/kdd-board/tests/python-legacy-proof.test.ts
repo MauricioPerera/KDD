@@ -34,3 +34,17 @@ test('persisted Python summary evidence expires and instrumented reruns survive 
     assert.equal(evidenceCurrent(new TaskStore(storage).getTask(task.id)!), true);
   } finally { fs.rmSync(root, {recursive:true, force:true}); }
 });
+
+
+test('legacy minimal done records cannot display completion without evidence', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kdd-minimal-proof-'));
+  try {
+    const file = path.join(root, 'tasks.json');
+    const raw = JSON.stringify([{id:'task-existing', title:'Existing', status:'done', updatedAt:'2026-01-01T00:00:00Z'}]);
+    fs.writeFileSync(file, raw);
+    const store = new TaskStore(file);
+    assert.equal(store.getAllTasks()[0].status, 'ready');
+    assert.equal(store.getTask('task-existing')!.status, 'ready');
+    assert.equal(fs.readFileSync(file, 'utf8'), raw);
+  } finally { fs.rmSync(root, {recursive:true, force:true}); }
+});

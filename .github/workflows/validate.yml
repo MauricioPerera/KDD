@@ -473,7 +473,7 @@ jobs:
         run: python scripts/validate_test_coverage_findings.py "$KDD_TEST_COVERAGE_SCAN_DIR"
 
       # The template has a sealed board oracle as well as Python contracts.
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
         if: hashFiles('tools/kdd-board/package-lock.json') != ''
         with:
           node-version: '24'

@@ -90,7 +90,7 @@ export function executeTaskTest(command: string, cwd: string, secrets: Record<st
       const success = !error;
 
       const verifiedOracle = Boolean(invocation && success && totals.passed > 0 && totals.failed === 0);
-      const timedOut = Boolean(error && (error as any).killed && (error as any).signal);
+      const timedOut = Boolean(error && (error as any).killed);
       resolve({
         status: timedOut ? 'TIMEOUT' : !success ? 'FAIL' : verifiedOracle ? 'PASS' : 'SKIP',
         lastRun: new Date().toISOString(),

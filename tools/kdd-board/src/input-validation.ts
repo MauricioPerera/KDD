@@ -37,13 +37,13 @@ const reportSchema = z.object({
   cwd: z.string().optional(), contractId: z.string().optional(), evidence: z.record(z.string(), z.string()).optional(),
 }).strict();
 export const storedTasksSchema = z.array(z.object({
-  id: z.string().regex(/^task-[\w-]+$/), title: nonempty, description: z.string(),
-  status: statusSchema, assignee: assigneeSchema, priority: prioritySchema, contractId,
+  id: z.string().regex(/^task-[\w-]+$/), title: nonempty, description: z.string().default(''),
+  status: statusSchema, assignee: assigneeSchema.default('unassigned'), priority: prioritySchema.default('medium'), contractId,
   testCommand: z.string().optional(), testReport: reportSchema.optional(),
   metrics: z.object({requirementsCount: z.number(), satisfiedCount: z.number(), commentsCount: z.number(), lastRunDurationMs: z.number().optional()}).strict().optional(),
-  requirements: z.array(requirementSchema),
-  comments: z.array(commentInput.extend({id: z.string(), timestamp: z.string()})),
-  createdAt: z.string(), updatedAt: z.string(),
+  requirements: z.array(requirementSchema).default([]),
+  comments: z.array(commentInput.extend({id: z.string(), timestamp: z.string()})).default([]),
+  createdAt: z.string().default(''), updatedAt: z.string(),
 }).strict());
 
 export class InputError extends Error {}
