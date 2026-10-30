@@ -188,7 +188,11 @@ async function fetchTasks() {
     const res = await apiFetch('/api/tasks');
     const tasks = await res.json();
     if (!Array.isArray(tasks) || tasks.some(task => !task || typeof task !== 'object' ||
-      typeof task.id !== 'string' || typeof task.status !== 'string' || typeof task.title !== 'string')) {
+      typeof task.id !== 'string' || typeof task.status !== 'string' || typeof task.title !== 'string' ||
+      (task.contractId != null && typeof task.contractId !== 'string') ||
+      (task.comments != null && (!Array.isArray(task.comments) || task.comments.some(c => !c || typeof c !== 'object'))) ||
+      (task.requirements != null && (!Array.isArray(task.requirements) ||
+        task.requirements.some(r => !r || typeof r !== 'object' || typeof r.isSatisfied !== 'boolean'))))) {
       throw new Error('Respuesta de tareas invalida');
     }
     currentTasks = tasks;
