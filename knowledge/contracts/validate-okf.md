@@ -38,7 +38,8 @@ CLI: `python scripts/validate_okf.py <knowledge_dir>` — salida y resumen en el
 
 ## Invariants
 - Reglas: frontmatter presente y parseable con claves `type/title/description/tags`
-  (`tags` lista no vacía, valores en minúsculas); `type` ∈ los 4 reconocidos de la spec;
+  (`tags` lista no vacía, valores en minúsculas); `type` ∈ los reconocidos de la spec
+  (incluido Task para seguimiento Git);
   enlaces markdown relativos internos a `knowledge/` resuelven a un archivo `.md`
   existente o a una carpeta existente (archivo existente con otra extensión → ERROR
   nombrando archivo y extensión); todo nodo alcanzable desde `index.md` (directo o

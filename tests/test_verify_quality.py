@@ -1,6 +1,7 @@
 """Independent oracle for the project quality approval entry point."""
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -16,6 +17,8 @@ class QualityApproval(unittest.TestCase):
         self.git('init','-q')
         self.git('config','user.name','Quality Test')
         self.git('config','user.email','test@example.invalid')
+        (self.root/'scripts').mkdir()
+        shutil.copyfile(SCRIPT.with_name('process_tree.py'), self.root/'scripts/process_tree.py')
         (self.root/'oracle.py').write_text('assert True\n',encoding='utf-8')
         (self.root/'app.py').write_text('value = 1\n',encoding='utf-8')
         self.policy = {'protected':['oracle.py'], 'implementation':['app.py'], 'pm':['report.txt'], 'required_kinds':['functional','adversarial'], 'checks':[

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import http.server
 import re
@@ -95,7 +96,7 @@ def validate_under_prefix(repo: Path, output: Path) -> None:
         thread.join()
 
 
-def build_pages(repo_root: str, output_dir: str, ci_run_url: str) -> dict:
+def build_pages(repo_root: str, output_dir: str, ci_run_url: str, *, ci_inventory=None) -> dict:
     """Build a fresh Pages artifact and return its evidence counts."""
     repo = Path(repo_root).resolve()
     output = Path(output_dir).resolve()
@@ -105,6 +106,10 @@ def build_pages(repo_root: str, output_dir: str, ci_run_url: str) -> dict:
         raise FileExistsError(output)
     if output == repo or repo in output.parents:
         raise ValueError("Output must be separate from source")
+    spec = importlib.util.spec_from_file_location('_pages_ci_inventory', Path(__file__).with_name('ci_inventory.py'))
+    inventory = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(inventory)
+    discovered = inventory.inspect_inventory(str(repo), ci_run_url, ci_inventory)
     source_files = tracked_public_files(repo)
     for rel in source_files:
         source = repo / rel
@@ -130,10 +135,7 @@ def build_pages(repo_root: str, output_dir: str, ci_run_url: str) -> dict:
         gates = len(LEVEL1_GATES)
     finally:
         sys.path.pop(0)
-    tests = int(subprocess.check_output(
-        [sys.executable, "-c", "import unittest; print(unittest.defaultTestLoader.discover('tests', pattern='test_*.py').countTestCases())"],
-        cwd=repo, text=True,
-    ).strip())
+    tests = discovered['tests']
     reports = len(list((output / "docs/reports").glob("CONTRACT-*-REPORT.md")))
     landing = output / "index.html"
     landing.write_text(update_landing(landing.read_text(encoding="utf-8"), reports, gates, tests, ci_run_url), encoding="utf-8")
@@ -144,12 +146,21 @@ def build_pages(repo_root: str, output_dir: str, ci_run_url: str) -> dict:
     run_publisher(repo, output, "publish")
     run_publisher(repo, output, "publish", "--check")
     validate_under_prefix(repo, output)
-    return {"reports": reports, "gates": gates, "tests": tests, "ci_run_url": ci_run_url, "output": str(output)}
+    return {"reports": reports, "gates": gates, "tests": tests, "ci_run_url": ci_run_url, "output": str(output),
+            "ids_sha256": discovered['ids_sha256'], "inventory_source": discovered['inventory_source']}
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", required=True)
     parser.add_argument("--ci-run-url", required=True)
+    parser.add_argument("--ci-inventory-dir")
+    parser.add_argument("--ci-run-attempt", type=int)
+    parser.add_argument("--ci-trusted-runtime-ref")
     arguments = parser.parse_args()
-    print(json.dumps(build_pages(str(Path(__file__).resolve().parent.parent), arguments.output, arguments.ci_run_url)))
+    group = (arguments.ci_inventory_dir, arguments.ci_run_attempt, arguments.ci_trusted_runtime_ref)
+    if any(value is not None for value in group) and any(value is None for value in group):
+        parser.exit(1, "PAGES_CI_INVENTORY: all CI inventory arguments are required together\n")
+    context = dict(directory=group[0], run_attempt=group[1], trusted_runtime_ref=group[2]) if group[0] is not None else None
+    print(json.dumps(build_pages(str(Path(__file__).resolve().parent.parent), arguments.output,
+                                arguments.ci_run_url, ci_inventory=context)))

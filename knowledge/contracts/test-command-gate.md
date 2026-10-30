@@ -51,6 +51,16 @@ gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
 "despachar otro gate como subprocess" debe seguir sin `subprocess`.
 
 ## Interface
+
+La [cancelacion del arbol](process-tree-timeout.md) sustituye subprocess.run
+directo por contencion y espera completas. El [perfil compartido](gate-execution-profile.md)
+actualiza el default de timeout por comando a600 y amplia el perimetro con
+los helpers declarados, conservando los veredictos y el opt-in de scheduling.
+
+La [extension de concurrencia](ci-command-workers.md) agrega workers=1 y
+--workers, conservando el default serial, el orden del reporte y los
+veredictos de este contrato; el opt-in se rige por [tiempo total](../ci-runtime.md).
+
 - `extract_test_command(text) -> str|None` — valor de `test_command` segun
   el mismo parser de frontmatter que usa `validate_contracts.py`, con o sin
   comillas. `None` si la clave no esta o esta vacia. Si la clave aparece
@@ -68,6 +78,9 @@ gate nuevo que NO sea "ejecutar el `test_command` de un contrato" o
 - `run_all(contracts_dir, repo_root, timeout=180) -> [{'path',
   'test_command','exit_code','ok','error','stdout','stderr'}]` — corre `run_test_command`
   para cada item de `collect_contracts(contracts_dir)`, mismo orden.
+  La extension opt-in `deduplicate=False` y el flag `--deduplicate` se
+  especifican en [ci-execution-deduplication](ci-execution-deduplication.md).
+  Sin el flag se conserva una ejecucion por contrato.
 - `main(argv) -> int` — `argv[1]`=contracts_dir (default
   `knowledge/contracts`), `argv[2]`=repo_root (default `.`). Imprime
   `PASS [scope] <path>` o `FAIL [scope] <path>: <detalle>` por linea, y

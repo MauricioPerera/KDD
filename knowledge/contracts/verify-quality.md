@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 12
   nesting_max: 4
 tests: 'tests/test_verify_quality.py'
-tests_sha256: '7a45563015e79e991cfa8ebbeb4edbb10bf1015d5e2b3d5b28dbd2e7288140fd'
+tests_sha256: '9dd2b958c95445f909f272dcdaf07f6c4a4b7aeabd53547f797d5eb37cef9243'
 touch_only: ['scripts/verify_quality.py']
 deps_allowed: ['stdlib']
 forbids: ['llm']
@@ -23,6 +23,14 @@ forbids: ['llm']
 Aplicar la [validacion](../validacion.md) mediante una politica de aprobacion del proyecto.
 
 ## Interface
+La [identidad canonica local](../task-quality-fixture-remediation.md) exige
+un OID completo nativo de commit, tambien cuando se invoca directamente
+esta API/CLI. Rechazar aliases antes de ejecutar los checks aprobados.
+La [extension de ciclo de vida](../audit-quality-cache-onboarding.md) exige
+el helper regular scripts/process_tree.py del mismo commit aprobado. El
+fixture agrega ese archivo antes de congelar su repositorio; conserva todos
+sus metodos y aserciones. El runner nuevo no usa un helper candidato.
+
 `main()` procesa --repo-root, --policy y --approved-ref. Devuelve 0 solo tras integridad, perimetro y todos los checks aprobados dos veces; errores devuelven codigo no cero.
 
 ## Invariants
@@ -46,8 +54,8 @@ Oraculo sellado antes de implementar.
 
 ## Politica de aprobacion integrada
 CLI: python scripts/verify_quality.py --repo-root DIR --policy quality.json --approved-ref SHA. Los tres argumentos son explicitos; repo-root puede tener default '.', los otros dos son obligatorios. No elegir HEAD automaticamente.
-Politica JSON del commit aprobado: protected (lista no vacia de oraculos), implementation y pm (listas de rutas exactas relativas), required_kinds (lista no vacia incluye functional y adversarial; ui cuando aplique), checks (lista no vacia de {name, kind, argv: lista strings no vacia, timeout: entero positivo <=3600}). Rechazar esquema malformado, nombres duplicados, tipos falsos y categorias requeridas sin comprobacion.
+Politica JSON del commit aprobado: protected (lista no vacia de oraculos), implementation y pm (listas de rutas exactas relativas), required_kinds (lista no vacia incluye functional y adversarial; ui cuando aplique), checks (lista no vacia de {name, kind, argv: lista strings no vacia, timeout: entero positivo <=3600}). Rechazar esquema malformado, nombres duplicados, tipos falsos y categorias requeridas sin comprobacion. La unica extension opcional es generated_task_evidence, definida por el [contrato de evidencia de tareas](quality-task-evidence.md); no permite glob ni archivos arbitrarios.
 Leer politica del objeto Git aprobado y comparar tambien la copia de trabajo; comparar cada protected con Git, LF normalizado. Rechazar rutas absolutas, '..', backslash, NUL y symlinks fuera del repo; listas de permisos sin glob. Protected nunca puede ser modificable aunque tambien figure en permisos.
-Perimetro real: diff contra approved-ref incluye staged, unstaged, committed y archivos sin seguimiento no ignorados. Solo implementation y pm pueden diferir. Comprobar integridad/perimetro antes y despues de ejecutar checks, para detectar efectos del propio comando. No confiar en reportes previos.
+Perimetro real: diff contra approved-ref incluye staged, unstaged, committed y archivos sin seguimiento no ignorados. Solo implementation y pm pueden diferir, salvo los artefactos canonicos confirmados y verificados de generated_task_evidence cuando la politica aprobada activa esa extension. Comprobar integridad/perimetro antes y despues de ejecutar checks, para detectar efectos del propio comando. No confiar en reportes previos.
 Ejecutar checks con argv sin shell, cwd=repo-root, timeout por check, dos vueltas. Propagar fallo, timeout o comando ausente como rechazo; no imprimir PASS global hasta terminar. Functional/adversarial/ui son declaraciones revisadas, no prueba automatica de que el comando sea un oraculo fuerte. El ejecutor y eleccion del commit son base de confianza.
 El script debe ser ASCII y stdlib. Tu perimetro unico es scripts/verify_quality.py. Tests y este contrato son del PM y no se modifican.

@@ -45,12 +45,14 @@
   <div class="webmcp-bar">
     <div class="webmcp-status">
       <span class="status-dot"></span>
-      <span>WebMCP Bridge: <strong>7 Tools Activas</strong> (list_tasks, get_task, create_task, update_task_status, request_human_input, list_available_credentials, run_task_tests)</span>
+      <span id="webmcp-tool-summary">WebMCP Bridge: consultando herramientas disponibles...</span>
     </div>
     <div>
       <span>Colaboración Humano-Agente en tiempo real &bull; <code>fastwebmcp v0.4.2</code></span>
     </div>
   </div>
+
+  <p id="git-board-notice" role="status" style="padding:0.75rem 1.5rem" hidden></p>
 
   <!-- View 1: Kanban Board -->
   <div class="view-container" id="view-board">
@@ -136,10 +138,10 @@
         <div class="dash-kpi-card">
           <span class="dash-kpi-title">Carga de Trabajo</span>
           <span class="dash-kpi-value" id="dash-kpi-workload" style="color:var(--accent-purple);">0 / 0</span>
-          <span style="font-size:0.78rem; color:var(--text-dim);">🤖 Agente vs 👤 Humano</span>
+          <span id="dash-workload-label" style="font-size:0.78rem; color:var(--text-dim);">🤖 Agente vs 👤 Humano</span>
         </div>
         <div class="dash-kpi-card">
-          <span class="dash-kpi-title">Salud Tests KDD</span>
+          <span class="dash-kpi-title" id="dash-tests-label">Salud Tests KDD</span>
           <span class="dash-kpi-value" id="dash-kpi-tests" style="color:var(--accent-emerald);">0%</span>
           <span style="font-size:0.78rem; color:var(--text-dim);" id="dash-kpi-tests-sub">0 verificadas con éxito</span>
         </div>
@@ -212,6 +214,10 @@
       </div>
       <form id="form-new-task">
         <div class="modal-body">
+          <div id="git-create-fields" hidden>
+            <div class="form-group"><label for="task-id">ID de tarea (TASK-001)</label><input id="task-id" pattern="TASK-[0-9]{3,}" autocomplete="off" /></div>
+            <div class="form-group"><label for="task-dependencies">Dependencias (IDs separados por comas)</label><input id="task-dependencies" placeholder="TASK-001, TASK-002" /></div>
+          </div>
           <div class="form-group">
             <label for="task-title">Título de la Tarea</label>
             <input type="text" id="task-title" required placeholder="Ej. Implementar autenticación OAuth" />
@@ -238,7 +244,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="task-contract">Vincular a Contrato KDD (Opcional)</label>
+            <label for="task-contract" id="task-contract-label">Vincular a Contrato KDD (Opcional)</label>
             <select id="task-contract">
               <option value="">-- Sin contrato vinculado --</option>
             </select>
@@ -272,12 +278,12 @@
   <div class="modal-overlay hidden" id="modal-vault">
     <div class="modal-box" style="max-width:640px;">
       <div class="modal-header">
-        <h3>🔒 Blind Secrets Vault (.env.local)</h3>
+        <h3>🔒 Blind Secrets Vault</h3>
         <button type="button" class="close-btn" data-close>&times;</button>
       </div>
       <div class="modal-body">
         <div class="vault-banner">
-          <strong>Seguridad Ciega para Agentes:</strong> Las credenciales guardadas aquí son escritas directamente en <code>data/.env.local</code>. El agente de IA puede verificar su presencia con <code>list_available_credentials</code> e invocarlas en su código como <code>process.env.VARIABLE</code>, pero sus valores permanecen <strong>completamente enmascarados</strong> en el protocolo WebMCP.
+          Las credenciales se guardan en <code>.kdd-board/vault.env</code>. Los listados ocultan los valores, pero el código ejecutado y quien pueda leer el archivo pueden acceder a ellos. El vault no cifra ni aísla las credenciales.
         </div>
 
         <!-- Formulario para agregar / editar credencial -->
@@ -333,6 +339,7 @@
     </div>
   </div>
 
+  <script src="git-board.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

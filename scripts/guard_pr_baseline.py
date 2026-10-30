@@ -27,6 +27,11 @@ PROTECTED_FILES = {
     'scripts/validation_runtime.py',
     'scripts/run_profile.py',
     'scripts/validate_documentation_examples.py',
+    'scripts/approval_registry.py',
+    'scripts/check_mcp_sdk.py',
+    'tools/mcp-sdk/pins.json',
+    'tools/mcp-sdk/ubuntu.txt',
+    'tools/mcp-sdk/windows.txt',
     'completion-legacy.json',
     'requirements-change-audit.txt',
     'scripts/optional_evidence.py',
@@ -38,9 +43,26 @@ PROTECTED_FILES = {
     'scripts/validate_baseline.py',
     'scripts/validate_contracts.py',
     'scripts/validate_test_commands.py',
+    'scripts/run_test_suite.py',
+    'scripts/trusted_ci.py',
+    'scripts/process_tree.py',
+    'scripts/execution_profile.py',
+    'scripts/validate_workflows.py',
+    'tools/workflow-syntax/actionlint.json',
 }
 PROTECTED_PREFIXES = ('.github/workflows/',)
 CONTRACTS_DIR = 'knowledge/contracts/'
+IMPORT_NAMES = set(sys.stdlib_module_names) | {
+    'trusted_ci', 'run_test_suite', 'validate_test_commands', 'validate_contracts',
+    'process_tree', 'execution_profile', 'approval_registry', 'check_mcp_sdk',
+}
+
+
+def _shadows_runtime(path):
+    parts = PurePosixPath(path).parts
+    if parts and parts[0] == 'scripts':
+        parts = parts[1:]
+    return bool(parts) and parts[0].split('.')[0] in IMPORT_NAMES
 
 
 def _git(*args):
@@ -83,6 +105,12 @@ def _normalize(content):
     return content.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
 
 
+def _binary_inventory(metadata, approved):
+    if 'oracle_files' not in metadata:
+        return set()
+    return approved_binary_paths(_git, approved, inventory_paths(metadata))
+
+
 def check(base_ref, candidate_ref, approved_ref):
     """Return findings for protected code and approved contract/oracle drift."""
     base, candidate, approved = map(_commit, (base_ref, candidate_ref, approved_ref))
@@ -91,6 +119,8 @@ def check(base_ref, candidate_ref, approved_ref):
     for path in sorted(filter(None, changed.split('\0'))):
         if path in PROTECTED_FILES or path.startswith(PROTECTED_PREFIXES):
             findings.append(path + ': trusted gate file changed in PR')
+        elif _shadows_runtime(path):
+            findings.append(path + ': trusted import name changed in PR')
 
     expected_contracts = _contracts(approved)
     candidate_contracts = _contracts(candidate)
@@ -102,8 +132,7 @@ def check(base_ref, candidate_ref, approved_ref):
         if _normalize(actual) != _normalize(expected):
             findings.append(path + ': contract differs from approved baseline')
         metadata, _ = parse_frontmatter(expected.decode('utf-8'))
-        binary = (approved_binary_paths(_git, approved, inventory_paths(metadata))
-                  if 'oracle_files' in metadata else set())
+        binary = _binary_inventory(metadata, approved)
         for oracle in inventory_paths(metadata):
             expected_oracle = _blob(approved, oracle)
             mode = _git('ls-tree', approved, '--', oracle).decode().split()
@@ -125,23 +154,30 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--pr-number', required=True, type=int)
     parser.add_argument('--base-ref', required=True)
-    parser.add_argument('--approved-ref', required=True)
+    approvals = parser.add_mutually_exclusive_group(required=True)
+    approvals.add_argument('--approved-ref')
+    approvals.add_argument('--approval-registry')
     args = parser.parse_args(argv)
     if args.pr_number <= 0:
         parser.error('--pr-number must be positive')
-    if not re.fullmatch(r'[0-9a-fA-F]{40}|[0-9a-fA-F]{64}', args.approved_ref):
+    if args.approved_ref is not None and not re.fullmatch(r'[0-9a-fA-F]{40}|[0-9a-fA-F]{64}', args.approved_ref):
         parser.error('--approved-ref must be a full commit SHA')
     try:
         base = _commit(args.base_ref)
         _git('fetch', '--no-tags', 'origin',
              'refs/pull/{}/merge'.format(args.pr_number))
         candidate = _commit('FETCH_HEAD')
-        try:
-            _commit(args.approved_ref)
-        except ValueError:
-            _git('fetch', '--no-tags', 'origin', args.approved_ref)
-        findings = check(base, candidate, args.approved_ref)
-    except (ValueError, UnicodeError) as exc:
+        if args.approval_registry is not None:
+            from approval_registry import resolve
+            approved = resolve('.', candidate, args.approval_registry)['baseline_ref']
+        else:
+            approved = args.approved_ref
+            try:
+                _commit(approved)
+            except ValueError:
+                _git('fetch', '--no-tags', 'origin', approved)
+        findings = check(base, candidate, approved)
+    except (ValueError, UnicodeError, ImportError) as exc:
         print('FAIL: ' + str(exc))
         return 2
     for finding in findings:

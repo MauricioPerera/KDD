@@ -132,7 +132,7 @@ def _intact(root, context):
                         'implementation': policy['implementation'], 'pm': policy['pm']}
     names = {name for _, data, _ in contracts for name in inventory_paths(data, required=True)}
     exact = approved_binary_paths(lambda *args: git(root, *args), commit, sorted(names))
-    integrity(root, commit, policy_path, inventory_policy, protected, exact_paths=exact)
+    integrity(root, commit, policy_path, inventory_policy, protected, cache={'oracle_exact_paths': exact})
     if _snapshot(root, policy, contracts) != snapshot:
         raise ValueError('Implementation changed during verification')
 

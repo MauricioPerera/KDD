@@ -13,11 +13,28 @@ on:
   # file fires on its native push/pull_request triggers, `inputs.*` is EMPTY,
   # so each job environment variable falls back to the literal default
   # embedded in the `${{ inputs.X || 'literal' }}` expression. That literal
-  # MUST match the value that was hardcoded here before this trigger existed
-  # (see ITEM4-REPORT.md for the equivalence check) — otherwise the KDD repo's
-  # own CI would change behavior on push.
+  # MUST match its documented default. Approval references are selected below
+  # from the external tree registry or explicit reusable inputs; legacy global
+  # references are not fallback values.
+  # Worker inputs are opt-in: callers default to serial execution; only native
+  # runs of this repository use the reviewed parallel defaults below.
   workflow_call:
     inputs:
+      reusable_execution:
+        type: boolean
+        default: true
+      suite_workers:
+        type: string
+        default: '1'
+      contract_workers:
+        type: string
+        default: '1'
+      exclusive_contract_commands:
+        type: string
+        default: '[]'
+      verify_mcp_sdk:
+        type: boolean
+        default: false
       contracts_dir:
         type: string
         default: 'knowledge/contracts'
@@ -86,6 +103,12 @@ on:
       approved_baseline_ref:
         type: string
         default: ''
+      approval_registry:
+        type: string
+        default: ''
+      trusted_runtime_ref:
+        type: string
+        default: ''
       change_contract_path:
         type: string
         default: ''
@@ -99,6 +122,12 @@ on:
         type: string
         default: ''
 
+# Supersede native PR runs only. A caller owns its concurrency policy.
+# A distinct namespace prevents a reusable call from cancelling its caller.
+concurrency:
+  group: kdd-validate-${{ github.workflow }}-${{ github.event_name == 'pull_request' && !inputs.reusable_execution && format('pr-{0}', github.event.pull_request.number) || format('run-{0}-{1}', github.run_id, github.run_attempt) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && !inputs.reusable_execution }}
+
 jobs:
   validate:
     strategy:
@@ -107,6 +136,14 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     env:
+      KDD_SUITE_WORKERS: ${{ inputs.suite_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && (matrix.os == 'windows-latest' && '6' || '4') || '1') }}
+      KDD_CONTRACT_WORKERS: ${{ inputs.contract_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1') }}
+      KDD_EXCLUSIVE_CONTRACT_COMMANDS: ${{ inputs.exclusive_contract_commands || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && matrix.os == 'windows-latest' && '["python -m unittest tests/test_init_project.py"]' || '[]') }}
+      KDD_MCP_SDK_REQUIRED: ${{ (inputs.verify_mcp_sdk || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD')) && '1' || '0' }}
+      KDD_TRUSTED_RUNTIME_REF: ${{ inputs.trusted_runtime_ref || vars.KDD_TRUSTED_RUNTIME_REF || (github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha) }}
+      KDD_APPROVAL_REGISTRY: ${{ inputs.approval_registry || (!inputs.reusable_execution && vars.KDD_APPROVAL_REGISTRY || '') }}
+      KDD_EXPLICIT_APPROVED_BASELINE_REF: ${{ inputs.approved_baseline_ref || '' }}
+      KDD_EXPLICIT_QUALITY_APPROVED_REF: ${{ inputs.quality_approved_ref || '' }}
       KDD_CONTRACTS_DIR: ${{ inputs.contracts_dir || 'knowledge/contracts' }}
       KDD_SPECS_DIR: ${{ inputs.specs_dir || 'specs' }}
       KDD_COMPLETION_POLICY: ${{ inputs.completion_policy_path || 'completion-legacy.json' }}
@@ -128,15 +165,69 @@ jobs:
       KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
       KDD_REQUIRED_EVIDENCE: ${{ inputs.required_evidence || '' }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
+
+      - name: Select approved references
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, str(Path('scripts').resolve()))
+          from approval_registry import ApprovalError, resolve
+          required = {item.strip() for item in os.environ['KDD_REQUIRED_EVIDENCE'].split(',')}
+          try:
+              selected = resolve(
+                  '.', 'HEAD', os.environ['KDD_APPROVAL_REGISTRY'],
+                  explicit_baseline=os.environ['KDD_EXPLICIT_APPROVED_BASELINE_REF'],
+                  explicit_quality=os.environ['KDD_EXPLICIT_QUALITY_APPROVED_REF'],
+                  require_quality='quality' in required or Path(os.environ.get('KDD_QUALITY_POLICY', 'quality.json')).exists(),
+              )
+          except ApprovalError as error:
+              raise SystemExit('FAIL: ' + str(error))
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              output.write('KDD_APPROVED_BASELINE_REF=' + selected['baseline_ref'] + '\n')
+              output.write('KDD_QUALITY_APPROVED_REF=' + (selected['quality_ref'] or '') + '\n')
+          print(json.dumps(selected, sort_keys=True))
+
+      - name: Materialize reviewed isolated CI runtime
+        shell: python -I {0}
+        run: |
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          import sys
+          import tempfile
+          root = Path.cwd().resolve()
+          ref = os.environ['KDD_TRUSTED_RUNTIME_REF']
+          if not re.fullmatch(r'[0-9a-fA-F]{40}', ref):
+              raise SystemExit('FAIL: trusted runtime requires a reviewed full commit SHA')
+          ref = ref.lower()
+          if subprocess.check_output(['git', 'cat-file', '-t', ref]).strip() != b'commit':
+              raise SystemExit('FAIL: trusted runtime must be a commit')
+          temporary = Path(tempfile.mkdtemp(prefix='kdd-ci-runtime-', dir=os.environ['RUNNER_TEMP'])).resolve()
+          if temporary.is_relative_to(root):
+              raise SystemExit('FAIL: the trusted runtime must be outside the checkout')
+          entry = temporary / 'trusted_ci.py'
+          entry.write_bytes(subprocess.check_output(['git', 'show', ref + ':scripts/trusted_ci.py']))
+          bundle = temporary / 'bundle'
+          subprocess.run([
+              sys.executable, '-I', str(entry), 'prepare', '--repo-root', str(root),
+              '--trusted-ref', ref, '--bundle-dir', str(bundle),
+          ], check=True)
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              output.write('KDD_TRUSTED_BUNDLE=' + bundle.as_posix() + '\n')
+          print('Trusted CI runtime: ' + ref)
 
       - name: Install pinned change-audit parsers
         run: |
@@ -145,7 +236,6 @@ jobs:
       - name: Check approved contract and oracle baseline
         shell: python
         env:
-          KDD_APPROVED_BASELINE_REF: ${{ inputs.approved_baseline_ref || vars.KDD_APPROVED_BASELINE_REF || '' }}
           KDD_CONTRACTS_DIR: ${{ inputs.contracts_dir || 'knowledge/contracts' }}
         run: |
           import os
@@ -160,13 +250,89 @@ jobs:
               '--contracts-dir', os.environ['KDD_CONTRACTS_DIR'],
           ]))
 
+      - name: Install pinned workflow checker
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          subprocess.run([
+              sys.executable, 'scripts/validate_workflows.py', 'install',
+              '--cache-dir', str(Path(os.environ['RUNNER_TEMP']) / 'kdd-actionlint'),
+              '--github-env', os.environ['GITHUB_ENV'],
+              '--github-path', os.environ['GITHUB_PATH'],
+          ], check=True)
+
+      - name: Validate all GitHub Actions workflows
+        shell: python
+        run: |
+          import os
+          import subprocess
+          import sys
+          subprocess.run([
+              sys.executable, 'scripts/validate_workflows.py', 'check',
+              '--repo-root', '.', '--actionlint', os.environ['KDD_ACTIONLINT_BINARY'],
+          ], check=True)
+
       - name: Check required optional evidence
         run: python scripts/optional_evidence.py check --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage,quality
 
       - name: Set up Node.js (for the multi-language example contract)
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
+
+      - name: Install board dependencies for contract oracles (when present)
+        if: ${{ hashFiles('tools/kdd-board/package-lock.json') != '' }}
+        run: npm ci --ignore-scripts
+        working-directory: tools/kdd-board
+
+      - name: Prepare pinned MCP SDK environment
+        if: ${{ env.KDD_MCP_SDK_REQUIRED == '1' }}
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          import subprocess
+          import tempfile
+          import venv
+          root = Path.cwd().resolve()
+          directory = Path(tempfile.mkdtemp(prefix='kdd-mcp-sdk-', dir=os.environ['RUNNER_TEMP'])).resolve()
+          if directory.is_relative_to(root):
+              raise SystemExit('FAIL: SDK environment must be outside the checkout')
+          venv.EnvBuilder(with_pip=True).create(directory / 'venv')
+          python = directory / 'venv' / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+          platform = 'windows' if os.name == 'nt' else 'ubuntu'
+          environment = dict(os.environ, PIP_CONFIG_FILE=os.devnull, PIP_INDEX_URL='https://pypi.org/simple',
+                             PIP_EXTRA_INDEX_URL='', PIP_FIND_LINKS='', PIP_DISABLE_PIP_VERSION_CHECK='1')
+          subprocess.run([str(python), '-I', '-m', 'pip', 'install', '--only-binary=:all:',
+                          '--require-hashes', '--index-url', 'https://pypi.org/simple',
+                          '-r', str(root / 'tools/mcp-sdk' / (platform + '.txt'))],
+                         env=environment, check=True, timeout=300)
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              output.write('KDD_MCP_SDK_PYTHON=' + python.as_posix() + '\n')
+              output.write('KDD_MCP_SDK_REPORT=' + (directory / 'protocol-report.json').as_posix() + '\n')
+
+      - name: Run required MCP SDK protocol smoke
+        if: ${{ env.KDD_MCP_SDK_REQUIRED == '1' }}
+        shell: python
+        run: |
+          import importlib.util
+          import json
+          import os
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location('reviewed_process_tree', Path(os.environ['KDD_TRUSTED_BUNDLE']) / 'process_tree.py')
+          process_tree = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(process_tree)
+          result = process_tree.run([os.environ['KDD_MCP_SDK_PYTHON'], '-I', 'scripts/check_mcp_sdk.py',
+                                     '--repo-root', '.', '--report-json', os.environ['KDD_MCP_SDK_REPORT'],
+                                     '--expected-commit', os.environ['GITHUB_SHA']], cwd=Path.cwd(), timeout=120)
+          if result.returncode:
+              raise SystemExit(result.returncode)
+          data = json.loads(Path(os.environ['KDD_MCP_SDK_REPORT']).read_text(encoding='utf-8'))
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as output:
+              output.write('MCP SDK ' + data['sdk_version'] + ': PASS, 8 protocol cases, 0 SKIP (in-memory).\n')
 
       - name: Validate contracts
         shell: bash
@@ -179,7 +345,6 @@ jobs:
         shell: bash
         env:
           KDD_CHANGE_CONTRACT: ${{ inputs.change_contract_path || '' }}
-          KDD_CHANGE_BASE_REF: ${{ inputs.approved_baseline_ref || vars.KDD_APPROVED_BASELINE_REF || '' }}
           KDD_CHANGE_HEAD_REF: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           if [ -z "$KDD_CHANGE_CONTRACT" ]; then
@@ -188,7 +353,7 @@ jobs:
           fi
           python scripts/validate_change_contract.py \
             --contract "$KDD_CHANGE_CONTRACT" \
-            --base-ref "$KDD_CHANGE_BASE_REF" \
+            --base-ref "$KDD_APPROVED_BASELINE_REF" \
             --head-ref "$KDD_CHANGE_HEAD_REF"
 
       - name: "Validate specs contracts"
@@ -230,6 +395,20 @@ jobs:
 
       - name: Lint ASCII scripts
         run: python scripts/lint_ascii.py scripts
+
+      - name: Validate Git task snapshots and transitions
+        shell: python
+        env:
+          KDD_TASK_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+        run: |
+          import os
+          import subprocess
+          import sys
+          base = os.environ['KDD_TASK_BASE_REF']
+          command = [sys.executable, 'scripts/validate_tasks.py', '--head-ref', 'HEAD']
+          if base and set(base) != {'0'}:
+              command += ['--base-ref', base]
+          raise SystemExit(subprocess.call(command))
 
       - name: Validate rule contracts
         shell: bash
@@ -302,10 +481,22 @@ jobs:
         if: hashFiles('tools/kdd-board/package-lock.json') != ''
         run: npm ci --ignore-scripts
         working-directory: tools/kdd-board
+      - name: Install pinned Pages publisher for PR
+        if: ${{ github.event_name == 'pull_request' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: bash
+        run: npm ci --prefix site --ignore-scripts --no-audit --no-fund
+
+      - name: Build and validate Pages for PR
+        if: ${{ github.event_name == 'pull_request' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: bash
+        env:
+          CI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python site/build.py --output "$RUNNER_TEMP/kdd-pages-pr-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$RUNNER_OS" --ci-run-url "$CI_RUN_URL"
 
       - name: Run each contract's test_command
         shell: bash
-        run: python scripts/validate_test_commands.py "$KDD_CONTRACTS_DIR" .
+        # init-project also runs the post-initialization suite; allow slow Windows runners.
+        run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" commands --repo-root . --contracts-dir "$KDD_CONTRACTS_DIR" --timeout 600 --deduplicate --workers "$KDD_CONTRACT_WORKERS" --report-dir "$RUNNER_TEMP/kdd-command-reports" --exclusive-commands-json "$KDD_EXCLUSIVE_CONTRACT_COMMANDS"
 
       - name: Scan for leaked secrets (src only — see knowledge/contracts/secret-scan-gate.md)
         shell: bash
@@ -314,21 +505,37 @@ jobs:
       # The suite runs twice on purpose (identical command): the second run
       # detects flaky tests / verifies determinism. See specs/CONTRACT-11-ci-windows-suite2x.md.
       - name: Run unit tests (1/2)
+        shell: bash
         env:
           KDD_SKIP_INIT_POST_APPLY_SUITE: '1'
-        run: python -m unittest discover -s tests -p "test_*.py"
+        run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" --report-dir "$RUNNER_TEMP/kdd-suite-reports"
 
       - name: Run unit tests (2/2)
+        shell: bash
         env:
           KDD_SKIP_INIT_POST_APPLY_SUITE: '1'
-        run: python -m unittest discover -s tests -p "test_*.py"
+        run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" --report-dir "$RUNNER_TEMP/kdd-suite-reports"
+
+      - name: Export Pages CI inventory
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: bash
+        run: python site/ci_inventory.py export --repo-root . --reports-dir "$RUNNER_TEMP/kdd-suite-reports" --output "$RUNNER_TEMP/kdd-pages-ci-inventory/inventory.json" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --head-sha "$GITHUB_SHA" --platform "${{ matrix.os }}" --trusted-runtime-ref "$KDD_TRUSTED_RUNTIME_REF"
+
+      - name: Upload Pages CI inventory
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kdd-ci-inventory-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.os }}
+          path: ${{ runner.temp }}/kdd-pages-ci-inventory/inventory.json
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 7
 
       - name: Approve project quality (when configured)
         id: quality
         shell: python
         env:
           KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
-          KDD_QUALITY_APPROVED_REF: ${{ inputs.quality_approved_ref || vars.KDD_QUALITY_APPROVED_REF || '' }}
         run: |
           import os
           from pathlib import Path
@@ -410,13 +617,13 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
       - run: npm ci --ignore-scripts

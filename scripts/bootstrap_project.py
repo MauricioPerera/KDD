@@ -6,7 +6,12 @@ import argparse
 from pathlib import Path
 import sys
 
-from init_project import init_project
+if __package__:
+    from .init_project import init_project
+    from .bootstrap_transaction import filesystem_transaction
+else:
+    from init_project import init_project
+    from bootstrap_transaction import filesystem_transaction
 
 
 _PROFILES = {"minimal", "standard", "strict"}
@@ -26,11 +31,43 @@ Este proyecto ({project}) fue inicializado con el perfil `{profile}`.
 3. Crea un contrato en `knowledge/contracts/` y sella su test.
 4. Si usas `standard` o `strict`, pide a una persona que apruebe el commit
    con contrato y test y te entregue su SHA completo.
-5. Ejecuta el perfil elegido:
+5. Prepara la herramienta de sintaxis revisada antes de ejecutar los controles:
+
+```text
+python scripts/validate_workflows.py install
+```
+
+El instalador usa la version y los hashes fijados en
+`tools/workflow-syntax/actionlint.json` y guarda el cache fuera del proyecto.
+Si falla, corrige la causa antes de continuar. Para trabajar sin red, proporciona
+el archivo oficial de tu plataforma con `--archive <RUTA_ARCHIVO_OFICIAL>`;
+el instalador verifica los mismos hashes y no consulta la red en ese modo.
+
+6. Ejecuta el perfil elegido:
 
 ```text
 python scripts/run_profile.py --profile {profile}{approved_ref}
 ```
+
+## Calidad del producto en CI
+
+El CI exige `quality/product.json` y una referencia revisada, tambien con
+el perfil local minimal. Define contratos, oraculos y checks funcionales,
+adversariales y de interfaz propios antes de implementar. Protege el
+workflow generado, el runner y las dependencias de esas pruebas.
+
+La persona revisora aprueba los commits de contratos/oraculos y de calidad.
+Registra sus SHA completos en `KDD_APPROVAL_REGISTRY`, variable de Actions
+externa al PR, bajo el arbol Git exacto del candidato. Conserva las entradas
+de main y de otras propuestas. Consulta `knowledge/approval-registry.md`.
+El selector publica `KDD_APPROVED_BASELINE_REF` y `KDD_QUALITY_APPROVED_REF`
+para los pasos posteriores; no usa las variables globales antiguas como
+fallback. El CI verifica el checkout actual con el runner de la referencia
+de calidad y ejecuta los checks dos veces.
+Si falta configuracion, el CI falla antes de los oraculos.
+
+Consulta `knowledge/bootstrap-product-quality-ci.md` para preparar la
+politica, el inventario protegido y las referencias de aprobacion.
 
 Para una tarea concreta, valida también su budget:
 
@@ -44,14 +81,15 @@ si quieres una explicación sin tecnicismos.
 """.format(project=project, profile=profile, approved_ref=approved_ref)
 
 
-def bootstrap_project(repo_dir, apply, name, profile="standard"):
+def bootstrap_project(repo_dir, apply, name, profile="standard", repository=None):
     if profile not in _PROFILES:
         raise ValueError("perfil desconocido: {} (use minimal, standard o strict)".format(profile))
-    result = init_project(repo_dir, apply, name)
     start_here = _start_here(name, profile)
-    if apply:
-        path = Path(repo_dir).resolve() / "KDD-START-HERE.md"
-        path.write_text(start_here, encoding="utf-8")
+    with filesystem_transaction(repo_dir, ["KDD-START-HERE.md"]):
+        result = init_project(repo_dir, apply, name, repository)
+        if apply:
+            path = Path(repo_dir).resolve() / "KDD-START-HERE.md"
+            path.write_text(start_here, encoding="utf-8")
     return {**result, "profile": profile, "start_here": start_here,
             "start_file": "KDD-START-HERE.md", "applied": bool(apply)}
 
@@ -62,9 +100,11 @@ def main(argv=None):
     parser.add_argument("--name")
     parser.add_argument("--profile", choices=sorted(_PROFILES), default="standard")
     parser.add_argument("--repo-dir", default=".")
+    parser.add_argument("--repository", help="GitHub OWNER/REPO for the new project")
     args = parser.parse_args(argv)
     try:
-        result = bootstrap_project(args.repo_dir, args.apply, args.name, args.profile)
+        result = bootstrap_project(args.repo_dir, args.apply, args.name,
+                                   args.profile, args.repository)
     except (ValueError, OSError) as error:
         print("ERROR: {}".format(error))
         return 2

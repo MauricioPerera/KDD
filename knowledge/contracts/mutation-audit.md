@@ -16,7 +16,7 @@ budget:
 tests: 'tests/test_mutation_audit.py'
 tests_sha256: '76279f6f9e1adb1aaa36b791488f89943b6852a5340c7c7577681011fde63410'
 touch_only: ['scripts/mutation_audit.py']
-deps_allowed: ['stdlib']
+deps_allowed: ['stdlib', 'process_tree']
 forbids: ['network', 'llm']
 ---
 
@@ -34,12 +34,18 @@ def audit_contract(contract_path: str, repo_root: str, timeout: int = 120) -> di
 ```
 
 ## Invariants
+Aplicar [target contenido](mutation-target-boundary.md) y
+[comillas portables](mutation-command-quoting.md) antes de ejecutar controles.
 
 - Nunca modifica el working tree ni el índice del repositorio real.
-- `DETECTED` significa que el test_command terminó con código distinto de cero.
+- `DETECTED` exige controles verdes del original y de una copia sin mutar;
+  despues, el test_command del mutante termina con codigo distinto de cero.
 - `SURVIVED` significa que el mutante pasó; en `--strict` el comando falla.
 - `INCONCLUSIVE` significa timeout y nunca se presenta como mutación detectada.
 - Targets no Python se omiten explícitamente.
+- Los [controles de fidelidad](../audit-remediation-approval-mutation-board.md)
+  fallidos producen FAIL sin detecciones ni mutantes ejecutados. Conservar
+  helpers declarados, incluidos los de .agents, y la API del auditor.
 
 ## Examples
 

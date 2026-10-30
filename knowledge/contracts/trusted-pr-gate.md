@@ -27,11 +27,19 @@ checkout ni se ejecuta codigo del PR en este gate.
 
 ## Interface
 
+La [extension confiable](ci-trusted-execution.md) amplia los archivos protegidos
+y los nombres de imports suplantables. No permite ejecutar el candidato ni
+autoaprobar cambios de runtime; sus pruebas usan Git real.
+
 `check(base_ref, candidate_ref, approved_ref)` devuelve hallazgos. Compara
 los contratos y oraculos de la propuesta con el commit aprobado y bloquea
 cambios al workflow y a los validadores que forman la raiz de confianza.
 
 ## Invariants
+
+- La [extension de suite por procesos](ci-suite-processes.md) incorpora
+  scripts/run_test_suite.py a la raiz protegida. El guard tomado de main
+  rechaza sus cambios aun cuando contratos/oraculos esten aprobados.
 
 - La referencia aprobada es un SHA completo configurado fuera del PR.
 - Un contrato u oraculo agregado, eliminado o modificado sin aprobar falla.

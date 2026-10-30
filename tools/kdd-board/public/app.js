@@ -53,7 +53,11 @@ async function apiFetch(url, options = {}) {
   const response = await fetch(url, {...options, headers});
   if (!response.ok) {
     const detail = await response.json().catch(() => ({}));
-    throw new Error(detail.error || `HTTP ${response.status}`);
+    const error = new Error(detail.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    error.code = detail.code;
+    error.details = detail.details || {};
+    throw error;
   }
   return response;
 }
@@ -74,18 +78,22 @@ function registerWebMcpTools() {
   }
 
   webMcpRegistration = apiJson('/api/tools').then((tools) => {
+    const summary = document.getElementById('webmcp-tool-summary');
+    if (summary) summary.textContent = `WebMCP Bridge: ${tools.length} herramientas (${tools.map(tool=>tool.name).join(', ')})`;
     const taskUrl = (taskId, suffix = '') => `/api/tasks/${encodeURIComponent(taskId)}${suffix}`;
     const execute = {
       list_tasks: ({ status } = {}) => apiJson(`/api/tasks${status ? `?status=${encodeURIComponent(status)}` : ''}`),
       get_task: async ({ task_id }) => {
+        if (tools.some(tool => tool.name === 'task_history')) return apiJson(taskUrl(task_id));
         const task = (await apiJson('/api/tasks')).find((item) => item.id === task_id);
         if (!task) throw new Error(`Tarea \"${task_id}\" no encontrada`);
         return task;
       },
-      create_task: ({ title, description = '', assignee = 'unassigned', priority = 'medium' }) =>
-        apiJson('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, description, assignee, priority }) }),
-      update_task_status: ({ task_id, status, comment }) =>
-        apiJson(taskUrl(task_id, '/status'), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, comment: comment ? { author: 'agent', text: comment } : undefined }) }),
+      create_task: (input) =>
+        apiJson('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }),
+      update_task_status: ({ task_id, comment, ...input }) =>
+        apiJson(taskUrl(task_id, '/status'), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...input, ...(comment ? {comment:{author:'agent',text:comment}} : {}) }) }),
+      task_history: ({task_id}) => apiJson(taskUrl(task_id, '/history')),
       request_human_input: ({ task_id, field_key, label, description, is_secret = false }) =>
         apiJson(taskUrl(task_id, '/requirements'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fieldKey: field_key, label, description, isSecret: is_secret }) }),
       list_available_credentials: () => apiJson('/api/vault').then((credentials) => ({ credentials, note: 'Los valores se inyectan solo al proceso de prueba. El codigo ejecutado puede leerlos; el vault no aisla codigo hostil. La salida redacta valores conocidos, no transformaciones.' })),
@@ -94,7 +102,16 @@ function registerWebMcpTools() {
     };
 
     tools.forEach((tool) => {
-      if (execute[tool.name]) document.modelContext.registerTool({ ...tool, execute: execute[tool.name] });
+      if (execute[tool.name]) document.modelContext.registerTool({ ...tool, execute: async (input) => {
+        try { return await execute[tool.name](input); }
+        catch (error) {
+          const known = typeof error.code === 'string' && /^TASK_[A-Z_]+$/.test(error.code);
+          const status = Number.isInteger(error.status) ? error.status : 503;
+          return {isError:true,error:{code:known?error.code:(error.status?'TASK_HTTP':'TASK_UNAVAILABLE'),
+            message:known?error.message:`Coordinator request failed (${status})`,status,
+            details:known?error.details || {}:{}}};
+        }
+      }});
     });
     return true;
   }).catch((error) => {
@@ -188,12 +205,36 @@ function closeAllModals() {
 }
 
 // 1. Fetch & Render Tasks
-async function loadTasks() {
+let taskLoadPromise;
+function loadTasks() {
+  if (!taskLoadPromise) taskLoadPromise = fetchTasks().finally(()=>{taskLoadPromise=undefined;});
+  return taskLoadPromise;
+}
+async function fetchTasks() {
   try {
-    await loadContractCatalog();
+    if (window.KddGitBoard) await window.KddGitBoard.configure(apiJson);
+    if (window.KddGitBoard?.mode !== 'git') await loadContractCatalog();
     const res = await apiFetch('/api/tasks');
-    currentTasks = await res.json();
+    const tasks = await res.json();
+    if (!Array.isArray(tasks) || tasks.some(task => !task || typeof task !== 'object' ||
+      typeof task.id !== 'string' || typeof task.status !== 'string' || typeof task.title !== 'string' ||
+      (task.contractId != null && typeof task.contractId !== 'string') ||
+      (task.comments != null && (!Array.isArray(task.comments) || task.comments.some(c => !c || typeof c !== 'object'))) ||
+      (task.requirements != null && (!Array.isArray(task.requirements) ||
+        task.requirements.some(r => !r || typeof r !== 'object' || typeof r.isSatisfied !== 'boolean'))))) {
+      throw new Error('Respuesta de tareas invalida');
+    }
+    currentTasks = tasks;
     renderBoard();
+    if (fetchTasks.hadError) {
+      const notice = document.getElementById('git-board-notice');
+      if (notice) {
+        const git = window.KddGitBoard?.mode === 'git';
+        notice.hidden = !git;
+        notice.textContent = git ? 'Tareas OKF de main. Crear y cambiar estado genera commits; requiere main limpio.' : '';
+      }
+      fetchTasks.hadError = false;
+    }
     if (activeView === 'dashboard') {
       renderDashboard();
     }
@@ -202,6 +243,9 @@ async function loadTasks() {
     }
   } catch (err) {
     console.error('Error cargando tareas:', err);
+    fetchTasks.hadError = true;
+    const notice = document.getElementById('git-board-notice');
+    if (notice) {notice.hidden=false;notice.textContent=err.message;}
   }
 }
 
@@ -221,7 +265,7 @@ function renderBoard() {
     card.innerHTML = `
       <div class="card-header-row">
         <span class="task-title">${escapeHtml(task.title)}</span>
-        <span class="priority-tag priority-${priority}">${escapeHtml(priority)}</span>
+        <span class="priority-tag priority-${priority}">${task.sourceRef === 'main' ? escapeHtml(task.id) : escapeHtml(priority)}</span>
       </div>
       <p class="task-desc">${escapeHtml(task.description || 'Sin descripción.')}</p>
       ${
@@ -231,15 +275,17 @@ function renderBoard() {
       }
       ${
         task.contractId
-          ? `<div class="contract-pill" data-contract-action="go" data-contract-id="${escapeHtml(task.contractId)}">📜 ${escapeHtml(task.contractId.replace(/^app-|^core-|^spec-/, ''))}</div>`
+          ? task.sourceRef === 'main'
+            ? `<div class="contract-pill">📜 ${escapeHtml(task.contractId)}</div>`
+            : `<div class="contract-pill" data-contract-action="go" data-contract-id="${escapeHtml(task.contractId)}">📜 ${escapeHtml(task.contractId.replace(/^app-|^core-|^spec-/, ''))}</div>`
           : ''
       }
       <div class="card-footer">
-        <span class="assignee-badge assignee-${safeAssignee(task.assignee)}">
-          ${task.assignee === 'agent' ? '🤖 Agente' : task.assignee === 'human' ? '👤 Humano' : '⚪ Libre'}
+        <span class="assignee-badge assignee-${['agent','human'].includes(task.assignee) ? task.assignee : 'unassigned'}">
+          ${task.sourceRef === 'main' ? escapeHtml(task.assignee || 'Sin asignar') : task.assignee === 'agent' ? '🤖 Agente' : task.assignee === 'human' ? '👤 Humano' : '⚪ Libre'}
         </span>
         <span style="color:var(--text-dim); font-family:var(--font-mono); font-size:0.7rem;">
-          ${new Date(task.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          ${task.sourceRef === 'main' ? escapeHtml(task.branch) : new Date(task.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
     `;
@@ -267,7 +313,9 @@ document.getElementById('form-new-task').addEventListener('submit', async (e) =>
     const res = await apiFetch('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description, assignee, priority, contractId }),
+      body: JSON.stringify(window.KddGitBoard?.mode === 'git'
+        ? window.KddGitBoard.createInput({title,description,contractId})
+        : { title, description, assignee, priority, contractId }),
     });
     if (!res.ok) throw new Error('Error al crear tarea');
     closeAllModals();
@@ -291,6 +339,10 @@ function renderTaskWorkspace(taskId) {
   if (workspace.dataset.taskId === taskId && (inputs.includes(document.activeElement) || inputs.some(input => input.value))) return;
   const task = currentTasks.find((t) => t.id === taskId);
   if (!task) return;
+  if (task.sourceRef === 'main' && window.KddGitBoard) {
+    window.KddGitBoard.render(task, apiJson, loadTasks);
+    return;
+  }
   const priority = safePriority(task.priority);
 
   const container = document.getElementById('workspace-container');
@@ -309,7 +361,7 @@ function renderTaskWorkspace(taskId) {
       </div>
       <div style="display:flex; align-items:center; gap:0.6rem;">
         <span class="priority-tag priority-${priority}">${escapeHtml(priority)}</span>
-        <span class="assignee-badge assignee-${safeAssignee(task.assignee)}">
+        <span class="assignee-badge assignee-${['agent','human'].includes(task.assignee) ? task.assignee : 'unassigned'}">
           ${task.assignee === 'agent' ? '🤖 Agente' : task.assignee === 'human' ? '👤 Humano' : '⚪ Libre'}
         </span>
       </div>
@@ -391,7 +443,7 @@ function renderTaskWorkspace(taskId) {
                   ${
                     r.isSecret
                       ? `<p style="font-size:0.75rem; color:var(--accent-cyan); margin-top:0.5rem;">
-                          🔒 <strong>Blind Security:</strong> El valor se guardará en <code>.env.local</code>. Los listados ocultan el valor. El código de pruebas puede leerlo durante su ejecución.
+                          🔒 El valor se guardará en <code>.kdd-board/vault.env</code>. Los listados ocultan el valor; el código ejecutado y quien lea el archivo pueden acceder a él.
                         </p>`
                       : ''
                   }
@@ -578,7 +630,7 @@ window.fulfillRequirement = async function (taskId, fieldKey, isSecret) {
     if (!res.ok) throw new Error('Error al guardar requerimiento');
     inputEl.value = '';
     inputEl.blur?.();
-    alert(isSecret ? '¡Credencial guardada de forma segura en .env.local! La tarea fue reasignada al Agente.' : '¡Respuesta guardada!');
+    alert(isSecret ? 'Credencial guardada en el vault local. La tarea fue reasignada al Agente.' : '¡Respuesta guardada!');
     await loadTasks();
   } catch (err) {
     alert(err.message);
@@ -656,9 +708,14 @@ async function renderDashboard() {
 
   const agentTasks = currentTasks.filter((t) => t.assignee === 'agent').length;
   const humanTasks = currentTasks.filter((t) => t.assignee === 'human').length;
-  document.getElementById('dash-kpi-workload').textContent = `${agentTasks} / ${humanTasks}`;
+  const gitMode = window.KddGitBoard?.mode === 'git';
+  const assigned = currentTasks.filter(t=>Boolean(t.assignee)).length;
+  document.getElementById('dash-kpi-workload').textContent = gitMode ? `${assigned} / ${total-assigned}` : `${agentTasks} / ${humanTasks}`;
+  document.getElementById('dash-workload-label').textContent = gitMode ? 'Asignadas / sin asignar' : 'Agente / humano';
+  document.getElementById('dash-tests-label').textContent = gitMode ? 'Tareas con evidencia Git' : 'Salud Tests KDD';
 
-  const testedTasks = currentTasks.filter((t) => t.testReport?.success === true).length;
+  const testedTasks = currentTasks.filter((t) => gitMode
+    ? t.status === 'done' && t.verified_ref && t.evidence : t.testReport?.success === true).length;
   const testPct = total > 0 ? Math.round((testedTasks / total) * 100) : 0;
   document.getElementById('dash-kpi-tests').textContent = `${testPct}%`;
   document.getElementById('dash-kpi-tests-sub').textContent = `${testedTasks} de ${total} verificadas`;
@@ -731,7 +788,7 @@ async function loadVault() {
     const secrets = await res.json();
     if (secrets.length === 0) {
       container.innerHTML =
-        '<span style="color:var(--text-dim); font-size:0.85rem; font-style:italic;">No hay credenciales configuradas en .env.local todavía.</span>';
+        '<span style="color:var(--text-dim); font-size:0.85rem; font-style:italic;">No hay credenciales configuradas en el vault todavía.</span>';
       return;
     }
     container.innerHTML = secrets
@@ -780,7 +837,7 @@ if (formVaultSave) {
       resetVaultForm();
       await loadVault();
       await loadTasks();
-      alert(`¡Credencial "${key}" guardada correctamente en .env.local!`);
+      alert(`¡Credencial "${key}" guardada correctamente en el vault local!`);
     } catch (err) {
       alert(err.message);
     }
@@ -806,7 +863,7 @@ window.editVaultSecret = function (key) {
 };
 
 window.deleteVaultSecret = async function (key) {
-  if (!confirm(`¿Estás seguro de que deseas eliminar la credencial "${key}" del Vault (.env.local)?`)) {
+  if (!confirm(`¿Estás seguro de que deseas eliminar la credencial "${key}" del vault local?`)) {
     return;
   }
   try {
@@ -891,7 +948,7 @@ async function loadContractCatalog() {
       if (!Array.isArray(catalog)) throw new Error('Invalid contract catalog');
       docsCatalog = catalog;
       const select = document.getElementById('task-contract');
-      if (select) {
+      if (select && window.KddGitBoard?.mode !== 'git') {
         const previous = select.value;
         select.innerHTML = '<option value="">-- Sin contrato vinculado --</option>' +
           docsCatalog.filter(doc => doc.isContract).map(doc =>
@@ -1012,7 +1069,7 @@ window.loadDocItem = async function (id) {
     }
 
     // Associated Kanban Tasks in this Contract
-    const linkedTasks = currentTasks.filter((t) => t.contractId === id);
+    const linkedTasks = currentTasks.filter((t) => t.contractId === id || t.contract === `knowledge/contracts/${data.item.filename}`);
     const linkedTasksHtml = `
       <div class="report-section" style="margin-bottom:1.5rem;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
@@ -1084,7 +1141,9 @@ window.goToTask = function (taskId) {
 window.createTaskForContract = function (contractId) {
   openModal(modalNewTask);
   const sel = document.getElementById('task-contract');
-  if (sel) sel.value = contractId;
+  const doc = docsCatalog.find(item=>item.id === contractId);
+  if (sel) sel.value = window.KddGitBoard?.mode === 'git' && doc
+    ? `knowledge/contracts/${doc.filename}` : contractId;
 };
 
 window.linkTaskContract = async function (taskId) {

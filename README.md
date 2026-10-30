@@ -12,6 +12,10 @@
 
 🌐 **[Landing page](https://mauricioperera.github.io/KDD/)** — a visual walkthrough of the methodology (EN/ES toggle).
 
+For the dated implementation status and evidence, see [verified KDD status](knowledge/estado-actual-kdd.md).
+The [Pages guide](site/README.md) explains PR builds, local previews and deployment
+from the exact CI inventory; the counter measures test IDs, including declared skips.
+
 This is a template repository for projects that implement the **Knowledge-Driven Development (KDD)** methodology, which unifies:
   * **Behavior contracts (optional):** Versioned `behavior/v1` properties, checked deterministically before any candidate code is run. The [behavior contract specification](knowledge/behavior-contract-spec.md) defines the schema, evidence boundary, and limits.
 - **OKF (Open Knowledge Format):** A minimalist format for structuring knowledge, design, and architecture as markdown files with YAML frontmatter. The normative spec for OKF nodes lives in [`knowledge/OKF-SPEC.md`](knowledge/OKF-SPEC.md).
@@ -42,11 +46,23 @@ This is a template repository for projects that implement the **Knowledge-Driven
   `examples/rules/`).
 - `scripts/run_board.sh` / `scripts/run_board.ps1`: launcher for **KDD-Board** (interactive Kanban UI, WebMCP bridge, Blind Secrets Vault, and live contract/test runner).
 
+### Git-backed tasks (MVP)
+
+`python scripts/tasks.py --help` manages OKF Task nodes committed on `main`,
+with one implementation branch per task. The CLI supports creation, explicit
+contract approval, start/block/resume, verified completion, listing and history.
+Completion requires an integrated branch and a real passing sealed oracle;
+the evidence is stored in Git. See the [workflow and commands](knowledge/git-tasks.md).
+`python scripts/validate_tasks.py --base-ref <BASE_SHA> --head-ref <HEAD_SHA>`
+audits every mainline transition. KDD-Board uses this same CLI in Git projects:
+it reads committed OKF tasks from `main` and records every state change as a
+commit. See [the integration contract](knowledge/board-git.md).
+
 ### Visual Companion: KDD-Board (WebMCP & Blind Vault)
 
 For teams and developers who prefer a visual, real-time workflow, the repository includes **KDD-Board**:
 - **Interactive Kanban**: Manage backlog, agent-assigned tasks, and human gates across 5 stages (`backlog` -> `ready` -> `in_progress` -> `needs_human_input` -> `done`).
-- **Blind Secrets Vault**: Stores credentials in the project `.env.local` and injects them into the test subprocess. Listings are masked and known raw values are redacted from output. Executed code can read them: this is not isolation from an untrusted agent.
+- **Blind Secrets Vault**: Stores credentials in `.kdd-board/vault.env` and injects them into the legacy test subprocess. Recognized earlier Board vaults migrate on first change without modifying the project's `.env.local`. Listings are masked and known raw values are redacted from output. Executed code can read them: this is not isolation from an untrusted agent.
 - **WebMCP Bridge (`fastwebmcp`)**: Exposes 8 declarative MCP tools directly into browser sessions for autonomous agent collaboration.
 - **Project Definition & Contracts Explorer**: Live viewer for `DEFINITION.md`, OKF specs, and CCDD contracts with 1-click bidirectional navigation.
 - **Automated Evidence Generation**: Generates verified reports (`.agents/logs/<task>-REPORT.md`) capturing raw test execution to complete the KDD lifecycle.
@@ -67,6 +83,8 @@ For a non-technical introduction to the workflow, see [`docs/KDD-PARA-PERSONAS.m
 2. Explore `knowledge/index.md` to see how concepts are structured.
 3. When delegating work to an agent (e.g. an AI coding agent), the agent will read `.agents/AGENTS.md` and immediately understand that it must respect the CCDD contracts of this repository. Cursor, GitHub Copilot, Cline and Windsurf each have their own convention file (`.cursorrules`, `.github/copilot-instructions.md`, `.clinerules`, `.windsurfrules`) — all four are thin pointers to `.agents/AGENTS.md`, so any of those tools picks up the same rules automatically. For a human reviewing what an agent produced, see [`knowledge/supervision-humana.md`](knowledge/supervision-humana.md). **[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) users** can skip the convention-file route entirely: [kdd-gates](https://github.com/MauricioPerera/kdd-gates) exposes these gates as native model Tools (`kdd_validate`, `kdd_seal`, `kdd_perimeter`, `kdd_preflight`), and [kdd-scaffold](https://github.com/MauricioPerera/kdd-scaffold) generates a new task contract from an existing oracle test file instead of copying `TEMPLATE-task-contract.md` by hand.
 4. Initialize with `python scripts/init_project.py --apply --name "<Your Project>" --repository OWNER/REPO`. It removes the explicit example artifacts and KDD's historical specs/reports, resets the project changelog and completion policy, and rewires `knowledge/index.md`. Without `--apply` it only prints the plan. Use the exact GitHub `OWNER/REPO` that CI will see.
+
+Both initialization commands configure mandatory product CI using `quality/product.json`. Define your own policy and oracles, then have a reviewer record the approved references in `KDD_APPROVAL_REGISTRY`, indexed by the exact candidate Git tree, before publishing. Missing configuration fails CI. Follow the [external approval registry](knowledge/approval-registry.md) and [product quality at bootstrap](knowledge/bootstrap-product-quality-ci.md).
 
 #### Consuming the gates without a full clone (EN-only addition)
 
@@ -120,7 +138,7 @@ There are two complementary ways to run the KDD gates against your repo without 
 This template's KDD tooling is Python and stays Python even if your project is not — these are two separate planes (template tooling vs. your project's code).
 
 - **Kept unchanged:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/lint_ascii.py`, `scripts/rule_engine.py`, `scripts/validate_rules.py`, `scripts/validate_skills.py`, `scripts/validate_changelog.py`, `scripts/validate_perimeter.py`, `scripts/benchmark_gates.py`, `scripts/validate_ux_page.py`, `scripts/validate_diagrams.py`, `scripts/validate_commit_message.py`, `scripts/rule_hints.py`, `scripts/export_gate_contract.py`, and `scripts/init_project.py` remain Python; they validate contracts and produce the gate export regardless of your project's language.
-- **Adapted:** each contract's `test_command` must use your language's runner (`node --test ...`, `cargo test ...`, etc. — see the multi-language gate in [`knowledge/validacion.md`](knowledge/validacion.md)). The CI workflow `.github/workflows/validate.yml` runs on an OS matrix (`ubuntu-latest` + `windows-latest`), installs Python and runs the template's validators, the ASCII lint and the Python suite twice (`python -m unittest discover -s tests -p "test_*.py"`, anti-flaky); the workflow already runs every contract's `test_command`, including non-Python runners. If your project also needs a project-wide suite, add a new step with its runner (`npm test`, `cargo test`, `go test ./...`, ...) after the matching `actions/setup-*` step. Keep the two inherited "Run unit tests" steps: they validate the KDD tooling itself.
+- **Adapted:** each contract's `test_command` must use your language's runner (`node --test ...`, `cargo test ...`, etc.; see [validation](knowledge/validacion.md)). CI retains Ubuntu/Windows and two consecutive full Python suite passes. A reviewed runtime extracted outside the checkout launches `run_test_suite.py` through `trusted_ci.py`, with JSON reports that account for every discovered ID and fixture omission. The workflow also runs each contract's command. Add any project-wide suite after its matching `actions/setup-*` step and keep both inherited "Run unit tests" steps. See [CI execution and trust](knowledge/ci-audit-remediation.md); direct `unittest discover` is useful locally but does not reproduce these CI controls.
 - **Project initialization:** `scripts/init_project.py --apply --repository OWNER/REPO` removes Python-written examples and KDD's own execution history, while keeping the language-independent validators and infrastructure tests. Add your own contracts and tests afterward.
 - **Where YOUR project's tests go (`tests/` belongs to the tooling):** the inherited Python suite lives in `tests/` and is **not practically relocatable** — its files resolve `scripts/` assuming they sit exactly one level below the repo root, so moving them means editing and re-sealing every frozen oracle. If your language also uses `tests/` by convention (Rust is the clear case: cargo auto-discovers `tests/*.rs`), both planes end up in one directory. Nothing breaks — `unittest` discovers `test_*.py` and cargo only looks at `.rs` — but it becomes unreadable. **Recommendation: move your project's tests, not the tooling's**, using your language's own mechanism. In Rust it's three lines in `Cargo.toml` and the target name is unchanged, so the contract's `test_command` stays the same:
   ```toml
@@ -144,6 +162,11 @@ KDD upstream uses **semantic versioning**; its releases are in [`CHANGELOG.md`](
 <a id="español"></a>
 
 ## Español
+
+El [estado verificable de KDD](knowledge/estado-actual-kdd.md) reúne el alcance y
+la evidencia por fecha. La [guía de Pages](site/README.md) explica los builds de
+PR, el preview local y el despliegue con el inventario exacto del CI; el contador
+representa IDs de pruebas, incluidas las omisiones declaradas.
 
 Para una explicación de KDD sin tecnicismos, consulta [`docs/KDD-PARA-PERSONAS.md`](docs/KDD-PARA-PERSONAS.md).
 
@@ -181,9 +204,14 @@ Este repositorio plantilla es para proyectos que implementan la metodología **K
 
 ### Entorno Visual: KDD-Board (WebMCP & Blind Vault)
 
+En proyectos Git, el tablero lee tareas OKF confirmadas en `main` y registra
+las transiciones con la misma CLI del MVP. Preparar requiere un SHA aprobado
+explicito; cerrar exige integrar la rama y superar el oraculo. El detalle muestra
+historial y evidencia. Ver [contratos de integracion](knowledge/board-git.md).
+
 Para desarrolladores y equipos que buscan una experiencia visual en tiempo real, la plantilla incluye **KDD-Board**:
 - **Tablero Kanban Interactivo**: Gestiona el flujo colaborativo en 5 estados (`backlog` -> `ready` -> `in_progress` -> `needs_human_input` -> `done`).
-- **Blind Secrets Vault**: Guarda credenciales en `.env.local` del proyecto y las inyecta al subproceso de tests. Enmascara listados y redacta valores conocidos en la salida; el código ejecutado puede leerlos. No aísla a un agente no confiable.
+- **Blind Secrets Vault**: Guarda credenciales en `.kdd-board/vault.env` y las inyecta al subproceso de tests legacy. Un vault anterior reconocido se migra al primer cambio sin modificar `.env.local` del proyecto. Enmascara listados y redacta valores conocidos en la salida; el código ejecutado puede leerlos. No aísla a un agente no confiable.
 - **Puente WebMCP (`fastwebmcp`)**: Expone 8 herramientas MCP declarativas directamente en el navegador para que agentes autónomos operen el tablero.
 - **Explorador de Contratos y `DEFINITION.md`**: Navegación en 1 clic entre tareas y contratos formales con validador determinista en vivo.
 - **Evidencia Automatizada KDD**: Genera reportes de auditoría (`.agents/logs/<task>-REPORT.md`) con la salida real de los tests para certificar el estado `verified`.
@@ -201,12 +229,14 @@ pwsh scripts/run_board.ps1  # Windows
 3. Al delegar trabajo a un agente (ej. un agente de IA), el agente leerá `.agents/AGENTS.md` y entenderá inmediatamente que debe respetar los contratos CCDD de este repositorio. Cursor, GitHub Copilot, Cline y Windsurf tienen cada uno su propio archivo de convención (`.cursorrules`, `.github/copilot-instructions.md`, `.clinerules`, `.windsurfrules`) — los cuatro son punteros delgados a `.agents/AGENTS.md`, así que cualquiera de esas herramientas recibe las mismas reglas automáticamente. Para un humano que revisa lo que produjo un agente, ver [`knowledge/supervision-humana.md`](knowledge/supervision-humana.md). **Usuarios de [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)** pueden saltarse el archivo de convención: [kdd-gates](https://github.com/MauricioPerera/kdd-gates) expone estos gates como Tools nativas del modelo (`kdd_validate`, `kdd_seal`, `kdd_perimeter`, `kdd_preflight`), y [kdd-scaffold](https://github.com/MauricioPerera/kdd-scaffold) genera un contrato de tarea nuevo a partir de un archivo de tests del oráculo ya existente, en vez de copiar `TEMPLATE-task-contract.md` a mano.
 4. Inicializa con `python scripts/init_project.py --apply --name "<Tu Proyecto>" --repository OWNER/REPO`. Elimina los ejemplos y el historial de specs/reportes de KDD, reinicia el changelog y la política de cierre, y reescribe `knowledge/index.md`. Sin `--apply` solo imprime el plan. Usa el mismo `OWNER/REPO` que verá CI.
 
+Ambas entradas configuran calidad de producto obligatoria con `quality/product.json`. Define la política y los oráculos propios; el revisor registra las referencias aprobadas en `KDD_APPROVAL_REGISTRY`, bajo el árbol Git exacto del candidato, antes de publicar. Sin configuración, CI falla. Sigue el [registro externo de aprobaciones](knowledge/approval-registry.md) y la [calidad desde el arranque](knowledge/bootstrap-product-quality-ci.md).
+
 #### Instanciar para un proyecto no-Python
 
 El tooling KDD de esta plantilla es Python y sigue siéndolo aunque tu proyecto no lo sea — son dos planos distintos (tooling de la plantilla vs. código de tu proyecto).
 
 - **Se conserva sin cambios:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/lint_ascii.py`, `scripts/rule_engine.py`, `scripts/validate_rules.py`, `scripts/validate_skills.py`, `scripts/validate_changelog.py`, `scripts/validate_perimeter.py`, `scripts/benchmark_gates.py`, `scripts/validate_ux_page.py`, `scripts/validate_diagrams.py`, `scripts/rule_hints.py`, `scripts/export_gate_contract.py` y `scripts/init_project.py` siguen siendo Python; validan contratos y generan el export del gate sin importar el lenguaje de tu proyecto.
-- **Se adapta:** el `test_command` de cada contrato debe usar el runner de tu lenguaje (`node --test ...`, `cargo test ...`, etc. — ver el gate multi-lenguaje en [`knowledge/validacion.md`](knowledge/validacion.md)). El workflow de CI `.github/workflows/validate.yml` corre en una matriz de OS (`ubuntu-latest` + `windows-latest`), instala Python y corre los validadores de la plantilla, el lint ASCII y la suite Python dos veces (`python -m unittest discover -s tests -p "test_*.py"`, anti-flaky); el workflow ya ejecuta el `test_command` de cada contrato, incluso con runners no Python. Si tu proyecto necesita además una suite general, agrega un paso nuevo con su runner (`npm test`, `cargo test`, `go test ./...`, ...) después del `actions/setup-*` correspondiente. Conserva los dos pasos heredados "Run unit tests": validan el tooling KDD.
+- **Se adapta:** el `test_command` de cada contrato usa el runner de tu lenguaje (`node --test ...`, `cargo test ...`, etc.; ver [validación](knowledge/validacion.md)). CI conserva Ubuntu/Windows y dos pasadas completas consecutivas de la suite Python. Un runtime revisado, extraído fuera del checkout, lanza `run_test_suite.py` mediante `trusted_ci.py` y genera reportes JSON que explican cada ID descubierto y cada omisión por fixture. El workflow también ejecuta los comandos de cada contrato. Agrega cualquier suite general de producto tras su `actions/setup-*` y conserva los dos pasos heredados "Run unit tests". Ver [ejecución y confianza del CI](knowledge/ci-audit-remediation.md); `unittest discover` directo sirve como diagnóstico local, pero no reproduce esos controles del CI.
 - **Inicialización del proyecto:** `scripts/init_project.py --apply --repository OWNER/REPO` borra ejemplos escritos en Python y el historial de ejecución de KDD. Conserva validadores y pruebas de infraestructura para cualquier lenguaje; después agregas tus propios contratos y tests.
 - **Dónde poner los tests de TU proyecto (`tests/` es del tooling):** la suite Python heredada vive en `tests/` y **no es reubicable en la práctica** — sus archivos resuelven `scripts/` asumiendo estar exactamente un nivel debajo de la raíz, así que moverlos obliga a editar y re-sellar cada oráculo congelado. Si tu lenguaje también usa `tests/` por convención (Rust es el caso claro: cargo autodescubre `tests/*.rs`), los dos planos terminan mezclados en un mismo directorio. No se rompe nada — `unittest` descubre `test_*.py` y cargo solo mira `.rs` — pero se vuelve ilegible. **Recomendación: mové los tests de tu proyecto, no los del tooling**, usando el mecanismo de tu lenguaje. En Rust son tres líneas en `Cargo.toml` y el nombre del target no cambia, así que el `test_command` del contrato queda igual:
   ```toml
@@ -233,6 +263,11 @@ KDD upstream usa **versionado semántico**; sus releases están en [`CHANGELOG.m
 <a id="português"></a>
 
 ## Português
+
+O [estado verificável do KDD](knowledge/estado-actual-kdd.md) reúne o escopo e a
+evidência por data. O [guia de Pages](site/README.md) explica builds de PR,
+preview local e publicação com o inventário exato do CI; o contador representa
+IDs de testes, incluindo as omissões declaradas.
 
 🌐 **[Landing page](https://mauricioperera.github.io/KDD/)** — um passeio visual pela metodologia (alternância EN/ES/PT).
 
@@ -272,12 +307,14 @@ Este é um repositório-modelo para projetos que implementam a metodologia **Kno
 3. Ao delegar trabalho a um agente (ex.: um agente de codificação de IA), o agente lerá `.agents/AGENTS.md` e entenderá imediatamente que deve respeitar os contratos CCDD deste repositório. **Usuários do [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)** podem pular o arquivo de convenção: [kdd-gates](https://github.com/MauricioPerera/kdd-gates) expõe esses gates como Tools nativas do modelo, e [kdd-scaffold](https://github.com/MauricioPerera/kdd-scaffold) gera um contrato de tarefa novo a partir de um arquivo de testes do oráculo já existente.
 4. Inicialize com `python scripts/init_project.py --apply --name "<Seu Projeto>" --repository OWNER/REPO`. Remove exemplos e o histórico de specs/relatórios do KDD, reinicia o changelog e a política de conclusão, e reescreve `knowledge/index.md`. Sem `--apply`, apenas imprime o plano. Use o mesmo `OWNER/REPO` visto pelo CI.
 
+Ambas as entradas configuram qualidade de produto obrigatória com `quality/product.json`. Defina a política e os oráculos próprios; o revisor registra as referências aprovadas em `KDD_APPROVAL_REGISTRY`, pela árvore Git exata do candidato, antes de publicar. Sem configuração, o CI falha. Siga o [registro externo de aprovações](knowledge/approval-registry.md) e a [qualidade desde a inicialização](knowledge/bootstrap-product-quality-ci.md).
+
 #### Instanciando para um projeto não-Python
 
 O tooling KDD deste modelo é Python e continua sendo Python mesmo que seu projeto não seja — são dois planos separados (tooling do modelo vs. código do seu projeto).
 
 - **Mantido sem alterações:** `scripts/validate_contracts.py`, `scripts/validate_okf.py`, `scripts/validate_specs.py`, `scripts/lint_ascii.py`, `scripts/rule_engine.py`, `scripts/validate_rules.py`, `scripts/validate_skills.py`, `scripts/validate_changelog.py`, `scripts/validate_perimeter.py`, `scripts/benchmark_gates.py`, `scripts/validate_ux_page.py`, `scripts/validate_diagrams.py`, `scripts/validate_commit_message.py`, `scripts/rule_hints.py`, `scripts/export_gate_contract.py` e `scripts/init_project.py` continuam sendo Python; eles validam contratos e produzem o export do gate independentemente do idioma do seu projeto.
-- **Adaptado:** o `test_command` de cada contrato deve usar o executor do seu idioma (`node --test ...`, `cargo test ...`, etc. — veja o gate multilíngue em [`knowledge/validacion.md`](knowledge/validacion.md)). O workflow de CI `.github/workflows/validate.yml` roda em uma matriz de SO (`ubuntu-latest` + `windows-latest`), instala Python e executa os validadores do modelo, o lint ASCII e a suíte Python duas vezes (`python -m unittest discover -s tests -p "test_*.py"`, anti-flaky); o workflow já executa o `test_command` de cada contrato, inclusive com executores não Python. Se o seu projeto também precisar de uma suíte geral, adicione uma nova etapa com o executor (`npm test`, `cargo test`, `go test ./...`, ...) após o `actions/setup-*` correspondente. Mantenha as duas etapas herdadas "Run unit tests": elas validam o tooling KDD.
+- **Adaptado:** o `test_command` de cada contrato usa o executor do seu idioma (`node --test ...`, `cargo test ...`, etc.; veja [validação](knowledge/validacion.md)). O CI mantém Ubuntu/Windows e duas passagens completas consecutivas da suíte Python. Um runtime revisado, extraído fora do checkout, executa `run_test_suite.py` por meio de `trusted_ci.py`, com relatórios JSON que explicam cada ID descoberto e cada omissão por fixture. O workflow também executa os comandos de cada contrato. Adicione qualquer suíte geral do produto após seu `actions/setup-*` e mantenha as duas etapas herdadas "Run unit tests". Veja [execução e confiança do CI](knowledge/ci-audit-remediation.md); `unittest discover` direto serve como diagnóstico local, mas não reproduz esses controles do CI.
 - **Inicialização do projeto:** `scripts/init_project.py --apply --repository OWNER/REPO` remove exemplos em Python e o histórico de execução do KDD. Preserva validadores e testes de infraestrutura para qualquer linguagem; depois você adiciona seus próprios contratos e testes.
 
 ### Validação de Contratos, Precedência de Budget e Ciclo de Vida

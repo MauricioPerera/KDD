@@ -37,7 +37,7 @@ El piloto de [autoridad local](./data_models/local-authority.md) aplica permisos
 de operaciones cerradas y limita ambitos delegados. Es independiente del runner del
 tablero: no convierte sus comandos arbitrarios en operaciones aisladas.
 
-El archivo .env.local del proyecto guarda valores en texto. Se inyectan solo al subproceso; no se exportan globalmente desde el flujo HTTP/MCP. Se redactan coincidencias exactas de valores conocidos en stdout/stderr antes de devolver o almacenar la salida. Esto no protege valores codificados, fragmentados o enviados por red. El codigo ejecutado y quien pueda leer el archivo pueden obtener los secretos. Para acceso ciego real se necesita un proxy de operaciones delimitadas con credenciales fuera del proceso controlado por el agente.
+El vault de Board guarda valores en texto en `.kdd-board/vault.env`, separado del `.env.local` de la aplicacion. Se inyectan solo al subproceso de pruebas legacy; no se exportan globalmente desde el flujo HTTP/MCP. Se redactan coincidencias exactas de valores conocidos en stdout/stderr antes de devolver o almacenar la salida. Esto no protege valores codificados, fragmentados o enviados por red. El codigo ejecutado y quien pueda leer el archivo pueden obtener los secretos. Para acceso ciego real se necesita un proxy de operaciones delimitadas con credenciales fuera del proceso controlado por el agente. La [guia de Board](board-git.md) describe la compatibilidad con el vault anterior.
 
 ## Referencia aprobada
 
@@ -53,11 +53,16 @@ La referencia es obligatoria, sin default HEAD en `standard`/`strict`. Se
 comparan contrato y archivo tests declarado en el contrato aprobado,
 normalizando LF. La herramienta no modifica ni re-sella archivos. El commit
 aprobado debe existir localmente; en CI se usa checkout con historial completo.
-El CI de pull requests y de `push` a `main` exige
-`KDD_APPROVED_BASELINE_REF` como variable del repositorio o el input
-`approved_baseline_ref` del workflow reutilizable; si faltan ambos, falla.
+El CI nativo de pull requests y de `push` a `main` exige una entrada revisada
+para el árbol Git exacto del candidato en `KDD_APPROVAL_REGISTRY`; el
+[registro externo](approval-registry.md) define su formato y operación.
+El workflow reutilizable acepta `approval_registry` o los inputs explícitos
+`approved_baseline_ref` y `quality_approved_ref`, sin mezclar ambos modos.
+El selector exporta las referencias seleccionadas como
+`KDD_APPROVED_BASELINE_REF` y `KDD_QUALITY_APPROVED_REF`; las variables globales
+antiguas no sustituyen una entrada ausente. Sin aprobación aplicable falla.
 No usa el SHA de la rama base ni el commit que está validando como aprobación
-automática. El workflow comprueba esa referencia antes de ejecutar los
+automática. El workflow comprueba las referencias antes de ejecutar los
 `test_command` y la suite del PR. Usa `contents: read` y el checkout no
 persiste credenciales.
 
@@ -70,6 +75,23 @@ la plantilla, la configuración de protección de GitHub no se hereda: hay que
 exigir este check explícitamente para obtener esa garantía. La herramienta
 no autentica por sí sola la aprobación humana; quien administra la variable
 y la protección de rama sigue siendo parte de la raíz de confianza.
+
+## Inventario publicado en Pages
+
+El [protocolo de inventario](./pages-ci-inventory.md) vincula el contador a
+los reportes reales de dos pasadas por SO. El despliegue exige igualdad de
+IDs entre Ubuntu/Windows y discovery local, con el mismo run, intento, SHA y
+runtime revisado. Un import fallido, inventario incompleto o manifest
+incompatible aborta antes de crear el bundle. Un preview de PR solo acredita
+discovery y build; las suites posteriores conservan su veredicto independiente.
+
+El conteo incluye IDs omitidos con motivo; no equivale a pruebas pasadas ni
+a cobertura de codigo. El JSON no autentica la aprobacion humana: su
+procedencia depende del workflow, evento y transporte de artifacts revisados.
+El bundle HTML del PR no se reutiliza para desplegar. La
+[guia operativa](../site/README.md) explica los modos y diagnosticos; el
+[estado fechado](./estado-actual-kdd.md) distingue implementacion local y
+publicacion comprobada.
 
 ## Cierre de contratos de proyecto
 

@@ -16,6 +16,42 @@
   --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, monospace;
 }
 
+/* Canonical Git task workspace */
+.git-task {
+  max-width: 960px;
+  margin: 0 auto;
+  display: grid;
+  gap: 1.25rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.git-task dl {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(0, 3fr);
+  gap: 0.5rem 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-card);
+}
+.git-task dt { color: var(--text-muted); }
+.git-task code { font-family: var(--font-mono); font-size: 0.85rem; }
+.git-task form, .git-task #git-reason-field { display: grid; gap: 0.6rem; }
+.git-task input, .git-task select {
+  width: 100%;
+  padding: 0.7rem;
+  background: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  font: inherit;
+}
+.git-task input:focus, .git-task select:focus { outline: 2px solid var(--accent-cyan); }
+.git-task [hidden] { display: none !important; }
+.git-task ol { padding-left: 1.5rem; }
+.git-task li { margin: 0.6rem 0; }
+.git-task button:disabled { opacity: 0.5; cursor: wait; }
+
 * {
   box-sizing: border-box;
   margin: 0;

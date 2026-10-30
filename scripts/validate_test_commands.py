@@ -10,18 +10,23 @@ API publica (fijada por ``tests/test_validate_test_commands.py``):
     extract_test_command(text) -> str|None
     collect_contracts(directory) -> list[dict]
     run_test_command(cmd, cwd, timeout, capture=False) -> dict
-    run_all(contracts_dir, repo_root, timeout=120) -> list[dict]
+    run_all(contracts_dir, repo_root, timeout=600, deduplicate=False, workers=1) -> list[dict]
     main(argv) -> int
 """
 
 import os
 import json
 import time
+from pathlib import Path
+import re
 import shlex
 import subprocess
 import sys
+import time
+import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from validate_contracts import parse_frontmatter
-from validation_runtime import prepare_runtime
+from process_tree import run as run_process
 
 
 def extract_test_command(text):
@@ -103,7 +108,24 @@ def _strip_quotes(token):
     return token
 
 
-def run_test_command(cmd, cwd, timeout, capture=False):
+def _command_tokens(cmd):
+    posix = os.name != 'nt'
+    tokens = shlex.split(cmd, posix=posix)
+    return tokens if posix else [_strip_quotes(token) for token in tokens]
+
+
+def _trusted_suite_command(tokens, cwd, trusted_bundle, temporary):
+    if (trusted_bundle is not None and len(tokens) >= 2
+            and re.fullmatch(r'python(?:3(?:\.\d+)?)?(?:\.exe)?', Path(tokens[0]).name.lower())
+            and (Path(cwd) / tokens[1]).resolve() == (Path(cwd) / 'scripts/run_test_suite.py').resolve()):
+        report_path = Path(temporary) / 'suite.json'
+        return [sys.executable, '-I', '-X', 'utf8',
+                str(Path(trusted_bundle) / 'run_test_suite.py'), *tokens[2:],
+                '--report-json', str(report_path)], report_path
+    return tokens, None
+
+
+def run_test_command(cmd, cwd, timeout, capture=False, *, trusted_bundle=None):
     """Ejecuta ``cmd`` (string) partido con ``shlex.split`` via subprocess.run.
 
     Devuelve ``{'exit_code','ok','error'}``:
@@ -117,20 +139,28 @@ def run_test_command(cmd, cwd, timeout, capture=False):
     por shlex; luego se quita una capa de comillas envolventes por token para
     replicar el descascarado que ``posix=True`` haria en POSIX.
     """
-    posix = os.name != 'nt'
     try:
-        tokens = shlex.split(cmd, posix=posix)
+        tokens = _command_tokens(cmd)
     except ValueError:
         return {'exit_code': None, 'ok': False, 'error': 'not_found'}
-    if not posix:
-        tokens = [_strip_quotes(t) for t in tokens]
     try:
-        proc = subprocess.run(tokens, cwd=cwd, timeout=timeout,
-                              capture_output=capture, text=True)
+        with tempfile.TemporaryDirectory(prefix='kdd-command-evidence-') as temporary:
+            tokens, report_path = _trusted_suite_command(tokens, cwd, trusted_bundle, temporary)
+            proc = run_process(tokens, cwd=cwd, timeout=timeout,
+                               capture_output=capture, text=True, encoding='utf-8', errors='replace',
+                               env=dict(os.environ, PYTHONUTF8='1'))
+            if report_path is not None:
+                import run_test_suite as suite
+                report = json.loads(report_path.read_text(encoding='utf-8'))
+                if not report.get('expected_ids') or suite.validate_report(report['expected_ids'], report) or not report.get('ok'):
+                    return {'exit_code': proc.returncode or 1, 'ok': False, 'error': None,
+                            'stdout': proc.stdout or '', 'stderr': proc.stderr or ''}
     except FileNotFoundError:
         return {'exit_code': None, 'ok': False, 'error': 'not_found'}
     except subprocess.TimeoutExpired:
         return {'exit_code': None, 'ok': False, 'error': 'timeout'}
+    except (OSError, ValueError) as exc:
+        return {'exit_code': None, 'ok': False, 'error': 'not_found', 'stderr': str(exc)}
     result = {'exit_code': proc.returncode, 'ok': proc.returncode == 0, 'error': None}
     if capture:
         result['stdout'] = proc.stdout or ''
@@ -138,7 +168,7 @@ def run_test_command(cmd, cwd, timeout, capture=False):
     return result
 
 
-def _run_item(item, repo_root, timeout):
+def _run_item(item, repo_root, timeout, *, trusted_bundle=None):
     try:
         if 'test_timeout' in item:
             from oracle_execution import declared_timeout
@@ -146,19 +176,81 @@ def _run_item(item, repo_root, timeout):
         if 'oracle_metadata' in item:
             from oracle_execution import execute_oracle
             return execute_oracle(item['oracle_metadata'], repo_root, timeout)
-        return run_test_command(item['test_command'], cwd=repo_root, timeout=timeout, capture=True)
-    except ValueError as exc:
+        options = {'trusted_bundle': trusted_bundle} if trusted_bundle is not None else {}
+        return run_test_command(item['test_command'], cwd=repo_root, timeout=timeout, capture=True, **options)
+    except (ValueError, ImportError) as exc:
         return {'exit_code': 1, 'ok': False, 'error': str(exc), 'executed_tests': 0}
 
 
-def run_all(contracts_dir, repo_root, timeout=180, progress=None):
-    """Corre ``run_test_command`` para cada contrato, desde ``repo_root``."""
-    results = []
-    for item in collect_contracts(contracts_dir):
-        if progress:
-            progress('RUN', item)
+def parse_exclusive_commands(raw):
+    """Decode only the JSON transport; inventory validation precedes execution."""
+    try:
+        return json.loads(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError('exclusive commands must be valid JSON') from exc
+
+
+def _exclusive_commands(value, items):
+    if type(value) not in (list, tuple):
+        raise ValueError('exclusive commands must be a list or tuple')
+    if any(not isinstance(item, str) or not item for item in value):
+        raise ValueError('exclusive commands must contain nonempty strings')
+    selected = set(value)
+    if len(selected) != len(value):
+        raise ValueError('exclusive commands must not contain duplicates')
+    if selected - {item['test_command'] for item in items}:
+        raise ValueError('exclusive command is absent from the inventory')
+    return selected
+
+
+def _schedule(scheduled, exclusive, execute, workers):
+    outcomes = {index: execute(index) for index in scheduled if index in exclusive}
+    remaining = [index for index in scheduled if index not in exclusive]
+    if workers == 1:
+        outcomes.update({index: execute(index) for index in remaining})
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {index: pool.submit(execute, index) for index in remaining}
+            outcomes.update({index: future.result() for index, future in futures.items()})
+    return outcomes
+
+
+
+def _item_key(item, index, deduplicate):
+    if not deduplicate:
+        return index
+    if 'oracle_metadata' in item:
+        return json.dumps(item['oracle_metadata'], sort_keys=True, default=str)
+    return item['test_command'], item.get('test_timeout')
+
+
+def run_all(contracts_dir, repo_root, timeout=600, deduplicate=False, workers=1, *, trusted_bundle=None, exclusive_commands=()):
+    """Run every command with opt-in concurrency and per-call exact grouping."""
+    if type(workers) is not int or not 1 <= workers <= 8:
+        raise ValueError('workers must be an integer between 1 and 8')
+    items = collect_contracts(contracts_dir)
+    exclusive = _exclusive_commands(exclusive_commands, items)
+    representatives = {}
+    scheduled = []
+    for index, item in enumerate(items):
+        key = _item_key(item, index, deduplicate)
+        if key not in representatives:
+            representatives[key] = index
+            scheduled.append(index)
+
+    def execute(index):
         started = time.perf_counter()
-        ran = _run_item(item, repo_root, timeout)
+        outcome = _run_item(items[index], repo_root, timeout, trusted_bundle=trusted_bundle)
+        return outcome, time.perf_counter() - started
+
+    exclusive_indices = {index for index in scheduled if items[index]['test_command'] in exclusive}
+    outcomes = _schedule(scheduled, exclusive_indices, execute, workers)
+    results = []
+    for index, item in enumerate(items):
+        key = _item_key(item, index, deduplicate)
+        first = representatives[key]
+        ran, elapsed = outcomes[first]
+        shared = items[first]['path'] if first != index else None
         results.append({
             'path': item['path'],
             'scope': item['scope'],
@@ -168,14 +260,13 @@ def run_all(contracts_dir, repo_root, timeout=180, progress=None):
             'error': ran['error'],
             'stdout': ran.get('stdout', ''),
             'stderr': ran.get('stderr', ''),
-            'duration_seconds': time.perf_counter() - started,
+            'shared_from': shared,
+            'duration_seconds': 0 if shared else elapsed,
         })
         if 'oracle_metadata' in item:
             results[-1].update(executed_tests=ran['executed_tests'],
                                runner=item['oracle_metadata'].get('test_runner'),
                                runner_evidence=ran.get('evidence'))
-        if progress:
-            progress('RESULT', results[-1])
     return results
 
 
@@ -198,7 +289,9 @@ def _print_results(results):
                 detail = 'exit_code={}'.format(item['exit_code'])
             print('{} [{}] {}: {}'.format(status, item['scope'], item['path'], detail))
         output = (item.get('stdout', '') + item.get('stderr', '')).strip()
-        if output:
+        if item.get('shared_from'):
+            print('  SHARED {}'.format(item['shared_from']))
+        elif output:
             label = ('salida capturada; se exigen exit y evidencia del runner' if 'runner' in item else
                      'informativo; el exit code es el veredicto')
             print('  TEST_OUTPUT ({}):'.format(label))
@@ -210,6 +303,10 @@ def _print_results(results):
             print('SKIP [{}] no contracts with test_command'.format(scope))
         print('Summary: {} PASS={} FAIL={} SKIP={}'.format(
             scope, group['PASS'], group['FAIL'], int(not any(group.values()))))
+    shared_count = sum(item.get('shared_from') is not None for item in results)
+    print('Executions: contracts={} commands={} shared={} seconds={:.3f}'.format(
+        len(results), len(results) - shared_count, shared_count,
+        sum(item.get('duration_seconds', 0) for item in results)))
     return 1 if any(not item['ok'] for item in results) else 0
 
 
@@ -235,40 +332,72 @@ def _write_timings(path, results):
         json.dump(data, file, indent=2)
 
 
+def _save_timings(argv, results):
+    if '--timings-json' not in argv:
+        return True
+    index = argv.index('--timings-json')
+    if index + 1 >= len(argv):
+        print('FAIL: --timings-json requires a file path')
+        return False
+    try:
+        _write_timings(argv[index + 1], results)
+        return True
+    except OSError as exc:
+        print('FAIL: cannot write timings: ' + str(exc))
+        return False
+
+
 def main(argv):
     """Entry point CLI. Devuelve 0 si todos PASS, 1 si alguno FAIL o no hay."""
+    from validation_runtime import prepare_runtime
     prepare_runtime()
     contracts_dir = argv[1] if len(argv) > 1 else 'knowledge/contracts'
     repo_root = argv[2] if len(argv) > 2 else '.'
-    timeout = 180
+    timeout = 600
+    workers = 1
+    if '--workers' in argv:
+        index = argv.index('--workers')
+        try:
+            workers = int(argv[index + 1])
+            if not 1 <= workers <= 8:
+                raise ValueError('workers out of range')
+        except (IndexError, ValueError):
+            print('FAIL: --workers requires an integer between 1 and 8')
+            return 1
     if '--timeout' in argv:
         index = argv.index('--timeout')
         if index + 1 >= len(argv):
             print('FAIL: --timeout requiere segundos')
             return 1
         try:
-            timeout = int(argv[index + 1])
+            timeout = float(argv[index + 1])
         except ValueError:
             print('FAIL: --timeout debe ser un entero')
             return 1
         if timeout <= 0:
             print('FAIL: --timeout debe ser positivo')
             return 1
-    results = run_all(contracts_dir, repo_root, timeout=timeout, progress=_progress)
+    started = time.perf_counter()
+    try:
+        exclusive = ()
+        if '--exclusive-commands-json' in argv:
+            index = argv.index('--exclusive-commands-json')
+            if index + 1 >= len(argv):
+                raise ValueError('exclusive commands JSON argument is missing')
+            exclusive = parse_exclusive_commands(argv[index + 1])
+        results = run_all(contracts_dir, repo_root, timeout=timeout,
+                         deduplicate='--deduplicate' in argv, workers=workers,
+                         exclusive_commands=exclusive)
+    except ValueError as exc:
+        print('FAIL: ' + str(exc))
+        return 1
     if not results:
         print('FAIL: no contracts with test_command found in {}'.format(contracts_dir))
         return 1
-    if '--timings-json' in argv:
-        index = argv.index('--timings-json')
-        if index + 1 >= len(argv):
-            print('FAIL: --timings-json requires a file path')
-            return 1
-        try:
-            _write_timings(argv[index + 1], results)
-        except OSError as exc:
-            print('FAIL: cannot write timings: ' + str(exc))
-            return 1
-    return _print_results(results)
+    status = _print_results(results)
+    print('Scheduling: workers={} wall_seconds={:.3f}'.format(
+        workers, time.perf_counter() - started))
+    return max(status, int(not _save_timings(argv, results)))
 
 
 if __name__ == '__main__':

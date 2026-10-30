@@ -6,6 +6,67 @@ All notable changes to the KDD Template are documented here.
 
 - Metodologia: inventario aprobado de oraculos, ejecucion instrumentada, aceptacion por obligacion y onboarding verificable. Board: bloqueo de resúmenes Python inventados y caducidad de evidencias anteriores. [Revision y limites](docs/reports/METHODOLOGY-REVIEW-REPORT.md).
 - Se documentan 49 excesos de presupuesto heredados del arbol revisado, sin ampliacion del alcance ni nuevos excesos en esa medicion. [Deuda historica](knowledge/deuda-presupuestos-heredada.md).
+- Native contract commands can reserve an exclusive phase for init-project's
+  nested suite, retaining its 600-second limit, every contract result, exact
+  deduplication and the existing worker defaults for reusable callers. Native
+  validation also requires eight real MCP protocol cases with a pinned SDK in
+  an external environment; missing SDK, skipped cases and stale evidence fail.
+  See [command resources](knowledge/windows-contract-resources.md) and
+  [the SDK profile](knowledge/mcp-sdk-ci.md).
+
+- Native CI selects reviewed baseline and quality commits from an external
+  registry keyed by the candidate Git tree. Main and concurrent proposals retain
+  independent entries; unknown trees and missing required quality fail without
+  falling back to legacy globals. Bootstrap keeps product checks mandatory.
+  See [approval routing](knowledge/approval-registry.md).
+
+- Pages deployment requires matching manifests from both Ubuntu/Windows passes
+  in the exact run, attempt, commit and reviewed runtime. Strict discovery
+  rejects import failures, empty inventories and duplicate IDs before creating
+  the bundle. The counter reports inventory IDs, including declared skips.
+  See [the protocol](knowledge/pages-ci-inventory.md) and [operating guide](site/README.md).
+
+- Native PRs build Pages with the real publisher on Ubuntu/Windows before the
+  long suites, including package-import integration coverage. Deployment
+  rebuilds the exact main commit whose CI passed. Process fixtures wait for observable
+  descendant startup while retaining cancellation and late-write assertions.
+  See [PR validation](knowledge/pages-pr-validation.md) and
+  [fixture readiness](knowledge/process-fixture-readiness.md).
+
+- CI uses an isolated, reviewed runtime, bounded process-tree cancellation
+  and complete ID reports, including fixture omissions and `load_tests` hooks.
+  Bounded concurrency preserves the 19 gates, both platforms and two full
+  passes. The PR #123 measurement reduced median critical time from 33m53s
+  to 14m45s; later security and Pages changes are outside that comparison.
+  See [CI guarantees](knowledge/ci-audit-remediation.md) and
+  [the dated evidence](knowledge/estado-actual-kdd.md).
+
+- New projects require `quality/product.json` in CI with explicitly reviewed
+  policy/oracle references. Bootstrap removes known sample scan evidence;
+  optional sample scans report SKIP and required sample scans fail. Task
+  evidence can be admitted by an exact reviewed policy. Board reports
+  dependency errors with structured details; Git reads are batched within
+  each operation. See [bootstrap quality](knowledge/bootstrap-product-quality-ci.md)
+  and [the seven improvements](knowledge/pending-improvements.md).
+
+- Project bootstrap forwards an explicit `--repository OWNER/REPO` to the
+  initializer. Initialization removes both demo task journals and their evidence;
+  real integration tests exercise a fresh Git history and a complete first task.
+
+- Git task publication preserves original state commits and closure evidence
+  through PR merge commits. Imported journals are audited from their fork;
+  conflicting task edits and fabricated or squashed histories are rejected.
+
+- KDD-Board now reads canonical OKF tasks from main in Git projects. HTTP,
+  browser WebMCP and the task workspace delegate transitions to the same CLI,
+  preserving explicit approval, task branches, real test evidence and commit
+  history. Git errors never fall back to JSON; non-Git projects retain legacy mode.
+
+- Git task MVP: OKF Task nodes on main, one implementation branch per task,
+  state changes recorded as scoped commits, a read-only transition validator
+  and a local CLI. Completion runs the approved sealed oracle after integration
+  and stores evidence bound to the tested commit. Existing contract/oracle
+  baselines and KDD-Board persistence remain independent.
 
 - Correccion de tres hallazgos del review multilenguaje: el auditor revisa manifiestos aunque no cambie el target, el gate confiable protege las versiones de parsers y los presupuestos cuentan ramas switch/select de Go y bucles de Rust.
 - El manifiesto efectivo se resuelve por commit para evitar bloquear cambios de un manifiesto padre no usado; los casos de un switch/select Go cuentan una vez para nesting.

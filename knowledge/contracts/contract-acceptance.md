@@ -7,7 +7,7 @@ task: contract-acceptance
 intent: 'Bloquear la aceptacion cuando falte evidencia ejecutada de una obligacion requerida.'
 target: scripts/verify_acceptance.py
 signature: 'def verify_acceptance(repo_root, policy_path, approved_ref) -> dict'
-test_command: 'python -m unittest tests.test_contract_acceptance tests.test_acceptance_integration tests.test_acceptance_missing_matrix tests.test_acceptance_workflow tests.test_quality_budget_review'
+test_command: 'python -m unittest tests.test_contract_acceptance tests.test_acceptance_integration tests.test_acceptance_missing_matrix tests.test_acceptance_workflow tests.test_quality_budget_review tests.test_methodology_remote_integration'
 test_runner: python-unittest
 budget:
   cyclomatic_max: 14
@@ -16,8 +16,8 @@ budget:
   params_max: 6
 tests: tests/test_contract_acceptance.py
 tests_sha256: 527490867a309f5ac4108b4ac7f1f26bb8c45f36a7378a907fd29a6818d00295
-oracle_files: ['tests/test_contract_acceptance.py', 'tests/test_acceptance_integration.py', 'tests/test_acceptance_missing_matrix.py', 'tests/test_acceptance_workflow.py', 'tests/test_quality_budget_review.py', 'scripts/validate_budgets.py', 'knowledge/contracts/verify-quality.md', 'knowledge/contracts/run-profile.md', 'knowledge/contracts/test-command-gate.md', 'tests/__init__.py']
-touch_only: ['scripts/verify_acceptance.py', 'scripts/verify_quality.py', 'scripts/run_profile.py', 'scripts/guard_pr_baseline.py', '.github/workflows/validate.yml']
+oracle_files: ['tests/test_contract_acceptance.py', 'tests/test_acceptance_integration.py', 'tests/test_acceptance_missing_matrix.py', 'tests/test_acceptance_workflow.py', 'tests/test_quality_budget_review.py', 'tests/fixtures/methodology-budget-baseline.json', 'scripts/validate_budgets.py', 'knowledge/contracts/verify-quality.md', 'knowledge/contracts/run-profile.md', 'knowledge/contracts/test-command-gate.md', 'tests/test_methodology_remote_integration.py', 'tests/test_ci_trusted_execution.py', 'tests/__init__.py']
+touch_only: ['scripts/verify_acceptance.py', 'scripts/verify_quality.py', 'scripts/run_profile.py', 'scripts/guard_pr_baseline.py', '.github/workflows/validate.yml', 'scripts/trusted_ci.py', 'scripts/validate_test_commands.py']
 deps_allowed: []
 forbids: ['network', 'llm']
 ---

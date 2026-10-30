@@ -18,6 +18,8 @@ llegar a tu primer contrato en verde.
 - Node.js 24 y npm para los contratos JavaScript/TypeScript y el tablero.
 - Los parsers fijados en `requirements-change-audit.txt` para la suite completa.
 - Git.
+- Node 24 y npm para KDD-Board y sus integraciones. Pages tiene su propia
+  instalacion y [guia de construccion](../site/README.md).
 - Vocabulario minimo (definiciones completas en
   [OKF-SPEC](./OKF-SPEC.md) y [validacion.md](./validacion.md)):
   - **Task contract**: un `.md` en `knowledge/contracts/` que define UNA
@@ -36,6 +38,7 @@ git clone <tu-fork-o-el-template> mi-proyecto
 cd mi-proyecto
 python -m pip install --only-binary=:all: -r requirements-change-audit.txt
 npm ci --ignore-scripts --prefix tools/kdd-board
+python scripts/validate_workflows.py install
 python scripts/validation_runtime.py suite
 ```
 
@@ -46,9 +49,20 @@ La invocacion equivalente de unittest, con el entorno preparado, es:
 python -m unittest discover -s tests -p "test_*.py"
 ```
 
+El instalador prepara actionlint con la version y los hashes fijados en
+`tools/workflow-syntax/actionlint.json`; el cache queda fuera del proyecto.
+Si falla, corrige la causa antes de ejecutar la suite o un perfil. Sin red,
+usa `python scripts/validate_workflows.py install --archive <RUTA_ARCHIVO_OFICIAL>`
+con el archivo oficial de tu plataforma: se verifican los mismos hashes.
+El bootstrap solo genera instrucciones; no descarga ni instala herramientas.
+
 Esperado: la suite completa termina en `OK` (el template trae ejemplos
-funcionando). Si falla, inspecciona la salida: puede ser un requisito de entorno
-o una regresion del proyecto. Conserva esa evidencia y resuelve la causa antes de seguir.
+funcionando). Este comando es un diagnostico local; un fallo requiere revisar
+su causa, que puede estar en el entorno, un import o el producto. Discovery
+debe terminar sin errores de carga; un conteo por si solo no lo demuestra.
+El [CI](./ci-audit-remediation.md) usa un runtime revisado fuera del checkout,
+reportes completos por ID y dos pasadas por SO. Conserva esos pasos heredados
+al adaptar el proyecto; este diagnostico no los sustituye.
 
 ## 2. Correr los gates de Nivel 1 tal cual vienen
 
@@ -81,6 +95,19 @@ repositorio indicado con `legacy_pairs: {}`. Conserva los validadores,
 contratos de infraestructura y templates. `knowledge/contracts/TEMPLATE-task-contract.md`
 es tu punto de partida para el paso siguiente.
 
+El arranque guiado aplica esa misma limpieza a una copia intacta y genera
+ademas `KDD-START-HERE.md` con los pasos del perfil elegido:
+
+```
+python scripts/bootstrap_project.py --apply --name "Mi Proyecto" --repository TU_USUARIO/mi-proyecto --profile standard
+```
+
+Ambas entradas retiran las tareas de demostracion TASK-001 y TASK-002 y sus
+evidencias; las tareas del proyecto nuevo empiezan con su propio historial Git.
+Tambien preparan el workflow para exigir quality/product.json y su SHA
+revisado. El bootstrap conserva una politica existente; el equipo define
+los checks de su producto. Ver [calidad desde el arranque](./bootstrap-product-quality-ci.md).
+
 Verificar que el repo sigue verde despues de limpiar:
 
 ```
@@ -94,8 +121,11 @@ proyecto. Al crear el repositorio en GitHub, usa exactamente el mismo
 `OWNER/REPO` que declaraste en `--repository`; CI lo compara con
 `github.repository` y rechaza una identidad distinta.
 
-**Antes de publicar `main`**, registra el estado inicializado en un commit y
-obtiene su SHA completo:
+**Antes de publicar `main`**, completa los contratos y oraculos propios
+del paso 4 y redacta quality/product.json segun
+[quality-approval](./quality-approval.md). Incluye el workflow generado y
+el runner entre los archivos protegidos. El CI falla si falta esta
+preparacion. Registra el estado revisable en un commit y obtiene su SHA completo:
 
 ```
 git add -A
@@ -111,12 +141,21 @@ verifica localmente los contratos y oraculos restantes:
 
 ```
 gh variable set KDD_APPROVED_BASELINE_REF --repo TU_USUARIO/mi-proyecto --body SHA_APROBADO
+gh variable set KDD_QUALITY_APPROVED_REF --repo TU_USUARIO/mi-proyecto --body SHA_APROBADO
 python scripts/validate_baseline.py --all --approved-ref SHA_APROBADO
+python scripts/verify_quality.py --policy quality/product.json --approved-ref SHA_APROBADO
 ```
 
-El repositorio de GitHub debe existir antes de configurar la variable. CI exige
-esta referencia incluso en el primer push; no toma `HEAD` como aprobacion
-implicita. Si no usas `gh`, configura la misma variable de Actions en GitHub.
+El repositorio de GitHub debe existir antes de configurar las variables. El
+revisor registra cada referencia, que puede coincidir cuando el commit
+aprobado contiene politica, workflow, contratos y oraculos. CI exige ambas
+incluso en el primer push; no toma `HEAD` como aprobacion implicita.
+El runtime de CI tiene una referencia separada: el PR nativo usa por defecto
+su base SHA y el push su SHA. Si la primera migracion necesita un override,
+el revisor aprueba el bundle y registra `KDD_TRUSTED_RUNTIME_REF`; no lo
+deduzcas del candidato ni copies una referencia de KDD ausente en tu historial.
+Ver [frontera de confianza](./ci-audit-remediation.md).
+Si no usas `gh`, configura las mismas variables de Actions en GitHub.
 El procedimiento normativo esta en [validacion.md](./validacion.md). La
 inicializacion limpia se verifico en el [PR #110 de KDD](https://github.com/MauricioPerera/KDD/pull/110).
 

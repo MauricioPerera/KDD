@@ -8,7 +8,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-from verify_quality import Rejected, safe_path, unique_object, validate_policy
+from verify_quality import Rejected, approved_commit, safe_path, unique_object, validate_policy
 
 
 def _git(root, *args):
@@ -25,10 +25,8 @@ def _sha256(data):
 
 def build_baseline(repo_root, policy_path, approved_ref):
     root = Path(repo_root).resolve(strict=True)
-    if not approved_ref or approved_ref.upper() == "HEAD":
-        raise Rejected("approved_ref must be an explicit reviewed commit, not HEAD")
     safe_path(root, policy_path)
-    commit = _git(root, "rev-parse", "--verify", "--end-of-options", approved_ref + "^{commit}").decode().strip()
+    commit = approved_commit(root, approved_ref)
     raw_policy = _git(root, "show", commit + ":" + policy_path)
     policy = validate_policy(root, json.loads(raw_policy, object_pairs_hook=unique_object))
     protected = {}

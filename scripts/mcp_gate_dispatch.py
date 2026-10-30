@@ -24,10 +24,11 @@ cero drift entre el CLI y la tool MCP.
       expande a multiples argv (uno por elemento, EN ORDEN, sin unirlos con
       espacios -- subprocess.run recibe una lista, no pasa por shell).
       ``KeyError`` si ``tool_name`` no esta en ``GATE_SPECS``.
-    ``run_gate(tool_name, params, repo_root='.', timeout=120) ->
+    ``run_gate(tool_name, params, repo_root='.', timeout=None) ->
       {'exit_code','stdout','stderr'}`` -- corre ``build_argv(...)`` via
       ``subprocess.run(cwd=repo_root, capture_output=True, text=True,
-      timeout=timeout)``. Nunca lanza excepcion: un exit code !=0 es
+      timeout=timeout)``. The command gate selects the shared profile deadline;
+      simple gates default to 120 seconds. Nunca lanza excepcion: un exit code !=0 es
       informacion, no un error; un timeout se traduce a
       ``{'exit_code': None, 'stdout': '', 'stderr': 'timeout after Ns'}``.
     ``run_all_level1(repo_root='.') -> {'overall_ok': bool, 'results':
@@ -47,6 +48,12 @@ import os
 import re
 import subprocess
 import sys
+if __package__:
+    from .execution_profile import resolve_profile
+    from .process_tree import run as run_process
+else:
+    from execution_profile import resolve_profile
+    from process_tree import run as run_process
 
 # {tool_name: {'script', 'params', 'defaults'}}
 # ``script``: ruta relativa al repo_root (la usa como argv[1]; run_gate la
@@ -215,6 +222,10 @@ def build_argv(tool_name, params):
     otro valor se appenda tal cual. ``KeyError`` si ``tool_name`` no existe.
     """
     spec = GATE_SPECS[tool_name]  # KeyError si no existe -- intencional
+    extra = set(params) - set(spec['params'])
+    profile_keys = {'command_timeout', 'gate_timeout', 'workers', 'deduplicate'}
+    if extra - (profile_keys if tool_name == 'validate_test_commands' else set()):
+        raise ValueError('rejected: unknown gate parameters')
     argv = [sys.executable, spec['script']]
     for name in spec['params']:
         value = params.get(name, spec['defaults'].get(name))
@@ -224,27 +235,45 @@ def build_argv(tool_name, params):
             argv.extend(str(v) for v in value)
         else:
             argv.append(str(value))
+    if tool_name == 'validate_test_commands':
+        profile = resolve_profile(**{key: params[key] for key in profile_keys if key in params})
+        argv += ['--timeout', format(profile['command_timeout'], 'g'),
+                 '--workers', str(profile['workers'])]
+        if profile['deduplicate']:
+            argv.append('--deduplicate')
     return argv
 
 
-def run_gate(tool_name, params, repo_root='.', timeout=120):
+def run_gate(tool_name, params, repo_root='.', timeout=None):
     """Corre el gate ``tool_name`` via subprocess y devuelve su resultado.
 
     Nunca lanza: exit code !=0 se devuelve como informacion; un timeout se
     traduce a ``{'exit_code': None, 'stdout': '', 'stderr': 'timeout after Ns'}``.
     """
-    argv = build_argv(tool_name, params)
+    try:
+        argv = build_argv(tool_name, params)
+        profile_keys = {'command_timeout', 'gate_timeout', 'workers', 'deduplicate'}
+        if tool_name == 'validate_test_commands':
+            profile = resolve_profile(**{key: params[key] for key in profile_keys if key in params})
+            paths = {key: value for key, value in params.items() if key not in profile_keys}
+            selected_timeout = profile['gate_timeout']
+        else:
+            paths, selected_timeout = params, 120
+        if timeout is None:
+            timeout = selected_timeout
+    except (ValueError, TypeError, KeyError) as exc:
+        return {'exit_code': 2, 'stdout': '', 'stderr': 'rejected: ' + str(exc)}
     # Confinamiento de frontera (defensa en profundidad): todo path que llega
     # en `params` debe resolver dentro de `repo_root` antes de tocar
     # subprocess.run. Si escapa, se rechaza con un dict de error (exit_code 2)
     # sin correr nada -- preserva el invariante "nunca lanza". El wiring MCP
     # (mcp_server.py) confina contra el repo_root real ANTES de llegar aqui;
     # este check protege a cualquier otro caller directo de este modulo.
-    rejected = _confine_params(params, repo_root)
+    rejected = _confine_params(paths, repo_root)
     if rejected is not None:
         return rejected
     try:
-        proc = subprocess.run(
+        proc = run_process(
             argv,
             cwd=repo_root,
             capture_output=True,
@@ -257,7 +286,7 @@ def run_gate(tool_name, params, repo_root='.', timeout=120):
             'stdout': '',
             'stderr': 'timeout after {}s'.format(timeout),
         }
-    except OSError as exc:
+    except (OSError, ValueError) as exc:
         # repo_root/cwd inexistente (NotADirectoryError/FileNotFoundError):
         # "Nunca lanza" cubre el OSError del propio subprocess, no solo el
         # exit code del gate. AUDIT-05 H-2.

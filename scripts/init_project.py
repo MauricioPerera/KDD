@@ -18,11 +18,23 @@ Spec: ``specs/CONTRACT-06-init-project.md``.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import re
 import sys
 from pathlib import Path
+
+if __package__:
+    from .bootstrap_transaction import filesystem_transaction
+else:
+    try:
+        from bootstrap_transaction import filesystem_transaction
+    except ModuleNotFoundError as error:
+        if error.name != 'bootstrap_transaction':
+            raise
+        # A file loader can expose the repository root instead of scripts/.
+        from scripts.bootstrap_transaction import filesystem_transaction
 
 # ---------------------------------------------------------------------------
 # Manifiesto explicito de artefactos de EJEMPLO (sin heuristicas).
@@ -39,6 +51,10 @@ MANIFEST = (
     "knowledge/data_models/users_table.md",
     "knowledge/architecture/overview.md",
     "knowledge/contracts/sample_task.md",
+    "knowledge/tasks/TASK-001.md",
+    "docs/task-evidence/TASK-001-b9654fbcb1f759c9196edfd64819f8dd1cde435f.json",
+    "knowledge/tasks/TASK-002.md",
+    "docs/task-evidence/TASK-002-e42db61052d94c249ae48c08f0f4ea052c2b4e73.json",
     "knowledge/contracts/validate-user-record.md",
     "src/payment_limit.py",
     "tests/test_payment_limit.py",
@@ -161,9 +177,31 @@ REQUIRED_AFTER_DELETE = (
     "README.md",
     "CHANGELOG.md",
     "completion-legacy.json",
+    ".github/workflows/validate.yml",
 )
 
 _REPOSITORY_RE = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
+
+# Canonical template samples only; a project report at these paths is preserved.
+EXAMPLE_SCAN_DIGESTS = {
+    "compliance/scan/findings.json": "76d1a52ab6354e8645cfa8c774d689a1d52d9ae9603c564fcd025485e643f35a",
+    "privacy/scan/findings.json": "0f05d13c960b29dc69b0e7ab29764e63ce85bdb4317efd8a5513a5d9fe0d6f8c",
+    "accessibility/scan/findings.json": "52e9c16225dbfdeb3768e9ec299399da952262909897a5bf4073ea0d86b7640a",
+    "dependency-eol/scan/findings.json": "37920be138c07c4c1da4e894b282d46c5a0a0faaa6dd0af1767976507439db09",
+    "observability/scan/findings.json": "3d8bc62079568631e052696642b0452befd9480e1b125bc82238bf5fc5108d89",
+    "test-coverage/scan/findings.json": "734fc909febb50f6359db5377b34adff7c41782b250bedd7bd06a895a99a07da",
+}
+
+
+def _example_scan_paths(repo):
+    result = []
+    for relative, expected in EXAMPLE_SCAN_DIGESTS.items():
+        path = repo / relative
+        if path.is_file() and not path.is_symlink():
+            raw = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+            if hashlib.sha256(raw).hexdigest() == expected:
+                result.append(relative)
+    return result
 
 
 def _rel_posix(path, base):
@@ -265,6 +303,106 @@ def _reset_completion(repo, repository):
     }, indent=2) + "\n", encoding="utf-8")
 
 
+# Reviewed quality-only adaptations; all other workflow regions are preserved.
+_PRODUCT_CI_REPLACEMENTS = (
+    (
+        """      quality_policy_path:
+        type: string
+        default: 'quality.json'
+""",
+        """      quality_policy_path:
+        type: string
+        default: 'quality/product.json'
+""",
+    ),
+    (
+        """      required_evidence:
+        type: string
+        default: ''
+""",
+        """      required_evidence:
+        type: string
+        default: 'quality'
+""",
+    ),
+    (
+        """      KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
+      KDD_REQUIRED_EVIDENCE: ${{ inputs.required_evidence || '' }}
+""",
+        """      KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality/product.json' }}
+      KDD_REQUIRED_EVIDENCE: ${{ inputs.required_evidence || 'quality' }}
+""",
+    ),
+    (
+        """      - name: Check required optional evidence
+""",
+        """      - name: Check product quality approval configuration
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          policy = os.environ['KDD_QUALITY_POLICY']
+          approved = os.environ['KDD_QUALITY_APPROVED_REF']
+          if not Path(policy).is_file():
+              raise SystemExit('FAIL: the product quality policy is required: ' + policy)
+          if not re.fullmatch(r'[0-9a-fA-F]{40}', approved):
+              raise SystemExit('FAIL: product quality requires an explicitly approved reference (full commit SHA)')
+          if subprocess.call(['git', 'merge-base', '--is-ancestor', approved, 'HEAD']):
+              raise SystemExit('FAIL: the approved product reference must exist and be an ancestor of this checkout')
+
+      - name: Check required optional evidence
+""",
+    ),
+    (
+        """          KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
+""",
+        """          KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality/product.json' }}
+""",
+    ),
+    (
+        """          import sys
+          policy = os.environ['KDD_QUALITY_POLICY']
+""",
+        """          import sys
+          import tempfile
+          policy = os.environ['KDD_QUALITY_POLICY']
+""",
+    ),
+    (
+        """              raise SystemExit(subprocess.call([sys.executable, 'scripts/verify_quality.py', '--policy', policy, '--approved-ref', approved]))
+""",
+        """              # The approved runner is stdlib-only; apply it to the current checkout.
+              with tempfile.TemporaryDirectory(prefix='kdd-approved-quality-') as directory:
+                  runner = Path(directory) / 'verify_quality.py'
+                  if runner.resolve().is_relative_to(Path.cwd().resolve()):
+                      raise SystemExit('FAIL: the trusted runner must be outside the checkout')
+                  runner.write_bytes(subprocess.check_output([
+                      'git', 'show', approved + ':scripts/verify_quality.py']))
+                  raise SystemExit(subprocess.call([
+                      sys.executable, str(runner), '--repo-root', '.',
+                      '--policy', policy, '--approved-ref', approved]))
+""",
+    ),
+)
+
+
+def _product_quality_ci(repo):
+    """Prepare the new project's workflow without writing before preflight."""
+    raw = (repo / ".github/workflows/validate.yml").read_bytes()
+    text = raw.decode("utf-8").replace("\r\n", "\n")
+    marker = "      - name: Approve project quality (when configured)\n"
+    if text.count(marker) != 1 or "- name: Check product quality approval configuration" in text:
+        raise ValueError("workflow de calidad incompatible o ambiguo")
+    for before, after in _PRODUCT_CI_REPLACEMENTS:
+        if text.count(before) != 1:
+            raise ValueError("workflow de calidad incompatible o ambiguo")
+        text = text.replace(before, after, 1)
+    newline = "\r\n" if b"\r\n" in raw else "\n"
+    return text.replace("\n", newline).encode("utf-8")
+
+
 def init_project(repo_dir, apply, name, repository=None) -> dict:
     """Plan/aplicacion de la instanciacion. Ver task contract para el dict."""
     repo = Path(repo_dir).resolve()
@@ -272,6 +410,12 @@ def init_project(repo_dir, apply, name, repository=None) -> dict:
         raise ValueError("--repository debe tener formato OWNER/REPO")
     if apply and not repository:
         raise ValueError("--apply requiere --repository OWNER/REPO")
+    with filesystem_transaction(repo, (*MANIFEST, *REQUIRED_AFTER_DELETE)):
+        return _initialize(repo, apply, name, repository)
+
+
+def _initialize(repo, apply, name, repository):
+    """Register the complete cleanup plan before applying any changes."""
     missing = _missing(repo)
     # Pre-check de atomicidad: incluye lo que apply lee tras el borrado.
     missing += [rel for rel in REQUIRED_AFTER_DELETE
@@ -280,25 +424,31 @@ def init_project(repo_dir, apply, name, repository=None) -> dict:
         raise ValueError(
             "manifiesto incompleto, faltan: {}".format(", ".join(missing)))
 
+    quality_ci = _product_quality_ci(repo)
+    example_evidence = _example_scan_paths(repo)
     removed = list(MANIFEST)
     index_rewritten = False
     readme_renamed = False
 
-    if apply:
-        for rel in MANIFEST:
-            (repo / rel).unlink()
-        _rewrite_index(repo)
-        index_rewritten = True
-        _reset_changelog(repo)
-        _reset_completion(repo, repository)
-        if name:
-            readme_renamed = _rename_readme(repo, name)
+    with filesystem_transaction(repo, example_evidence):
+        if apply:
+            for rel in (*MANIFEST, *example_evidence):
+                (repo / rel).unlink()
+            _rewrite_index(repo)
+            index_rewritten = True
+            _reset_changelog(repo)
+            _reset_completion(repo, repository)
+            (repo / ".github/workflows/validate.yml").write_bytes(quality_ci)
+            if name:
+                readme_renamed = _rename_readme(repo, name)
 
     return {
         "removed": removed,
+        "removed_example_evidence": example_evidence,
         "index_rewritten": index_rewritten,
         "readme_renamed": readme_renamed,
         "applied": bool(apply),
+        "quality_ci_configured": bool(apply),
     }
 
 
@@ -307,8 +457,12 @@ def _print_plan(result, name):
     print("  Artefactos de ejemplo e historia KDD a eliminar ({}):".format(len(result["removed"])))
     for rel in result["removed"]:
         print("    - {}".format(rel))
+    print("  Informes de ejemplo conocidos a retirar ({}):".format(len(result["removed_example_evidence"])))
+    for relative in result["removed_example_evidence"]:
+        print("    - {}".format(relative))
     print("  Reescribir knowledge/index.md (quitar enlaces a nodos eliminados).")
     print("  Reiniciar CHANGELOG.md y completion-legacy.json para el repositorio nuevo.")
+    print("  Configurar CI obligatorio: quality/product.json y SHA aprobado explicito.")
     if name:
         print("  Reemplazar el titulo H1 del README por: {}".format(name))
     if result["applied"]:

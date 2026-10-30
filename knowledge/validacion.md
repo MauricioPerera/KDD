@@ -11,6 +11,18 @@ tags: ['ccdd', 'validacion', 'gate', 'reference']
 
 ## Nivel 1 — Incluido y obligatorio (local + CI)
 
+La [extension de tiempo total del CI](ci-runtime.md) conserva los19 gates,
+Ubuntu/Windows y las dos pasadas completas. Sustituye el mecanismo serial
+de suite por un runner auditable por IDs, con procesos acotados solo bajo
+opt-in y default serial para consumidores. Sus contratos y oraculos deben
+tener baseline revisado antes de activar ese mecanismo.
+
+La [ejecucion confiable](ci-audit-remediation.md) extrae el runtime revisado
+fuera del checkout y conserva reportes nuevos por pasada. La publicacion de
+[Pages](pages-ci-inventory.md) consume sus inventarios y los compara con un
+discovery estricto del mismo SHA. Es una comprobacion de publicacion;
+el catalogo de Nivel 1 sigue teniendo 19 gates.
+
 La migracion de behavior agrega `validate_behavior` al catalogo compartido: 19
 gates de Nivel 1 y 20 en preflight contando la atestacion local. Se actualizaron
 los oraculos de MCP/preflight y sus sellos como cambio de contrato revisable.
@@ -50,6 +62,9 @@ candidatos; la ejecucion sigue siendo opt-in. Ver [behavior](behavior-contract-s
   entonces la ausencia falla antes de ejecutar validadores. La accion
   compuesta acepta `required-evidence` para los siete scans y quality;
   `quality-approved-ref` debe ser un SHA completo cuando exista la politica.
+  Al inicializar un proyecto, ambas entradas adaptan su workflow para
+  exigir quality/product.json y una referencia revisada; la ausencia falla.
+  Ver [calidad desde el arranque](./bootstrap-product-quality-ci.md).
 - `python scripts/validate_compliance_findings.py <dir>` (default `compliance/scan`) — gate de la Capa 3 de compliance/licencias: valida un `findings.json` de compatibilidad de licencias de dependencias (nativo, sin vendoring) contra `examples/rules/compliance-findings.rules.json` via el mismo motor declarativo. Ver [compliance_findings.md](./data_models/compliance_findings.md). Capa opcional: sin `findings.json`, INFO.
 - **Diagnóstico opcional (no gate):** `python scripts/benchmark_gates.py` mide los 19 gates de nivel 1 + la suite (min/mediana/max por gate, 2 pasadas crudas de la suite) para saber si el CI se está volviendo lento a medida que crecen los contratos. No corre en `.github/workflows/validate.yml` — es herramienta de mantenimiento, no un check de corrección.
 - La clave **`touch_only`** del frontmatter (obligatoria) declara el perímetro de la delegación como DATO — lista de rutas/patrones `fnmatch` repo-relativos. `validate_contracts` la exige y verifica que el `target` esté cubierto y que el oráculo (`tests`) quede FUERA (salvo `tests == target`). En verificación, el PM corre `git diff --name-only ... | python scripts/validate_perimeter.py <contrato>`: cualquier archivo del dev fuera del perímetro rompe con `OUT_OF_PERIMETER` (y tocar el oráculo, con `TESTS_TOUCHED`). El gate de perímetro NO es paso de CI del repo (un commit mergeado mezcla legítimamente archivos del PM); su oráculo corre en la suite y los checks estructurales corren vía `validate_contracts`.
@@ -61,10 +76,16 @@ validan primero los contratos y comparan todos los contratos/oráculos con
 `--approved-ref <SHA>` antes de ejecutar la suite heredada o los
 `test_command` de cada contrato. La referencia se exige como SHA completo;
 no se deduce de `HEAD`. En el CI de este repositorio, `.github/workflows/validate.yml`
-comprueba la referencia antes de ejecutar los `test_command` y la suite del PR: toma el input
-`approved_baseline_ref` del workflow reutilizable o la variable
-`KDD_APPROVED_BASELINE_REF`, y falla si no se configuró ninguno. No usa el SHA
-de la rama base como aprobación implícita. El check independiente
+comprueba la referencia antes de ejecutar los `test_command` y la suite del PR.
+El modo nativo selecciona las referencias revisadas desde
+`KDD_APPROVAL_REGISTRY`, bajo el árbol Git exacto del candidato; sigue el
+[registro externo](approval-registry.md). El workflow reutilizable admite
+el input `approval_registry` o referencias explícitas mediante
+`approved_baseline_ref` y `quality_approved_ref`, sin mezclar ambos modos.
+El selector exporta `KDD_APPROVED_BASELINE_REF` y `KDD_QUALITY_APPROVED_REF`
+para los pasos posteriores; las variables globales antiguas no son un fallback.
+Sin una aprobación aplicable falla. No usa el SHA de la rama base ni HEAD
+como aprobación implícita. El check independiente
 `trusted-pr-gate` lee el merge propuesto desde el código de `main` y bloquea
 cambios a los workflows o validadores protegidos; debe configurarse como
 obligatorio en la protección de rama de cada repositorio que adopte este

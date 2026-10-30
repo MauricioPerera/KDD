@@ -11,6 +11,12 @@ La revision metodologica conservaba **49 excesos Python en 22 contratos**, frent
 
 Es una medicion historica del arbol revisado en septiembre de 2026. El main remoto avanzo desde entonces: estos 49 hallazgos no son una afirmacion sobre el total actual. La publicacion autorizada el 2026-10-29 conserva la evidencia y registra la integracion por separado.
 
+## Corte de integracion del 2026-10-29
+
+La integracion con main `1df365d2307a7058876bc609e09fb4af8c9c9ca9` compara 100 excesos heredados contra 98 actuales: cero hallazgos nuevos o agravados, dos resueltos y tres reducidos que todavia superan el tope. Los 49 anteriores se conservan como historia, no se suman a este total. El JSON completo de este corte esta en docs/reports/methodology-review-2026-10-29/integration-budget-comparison.json.
+
+La regresion suplementaria de presupuestos compara funcion, medicion y tope contra el inventario de ese main, protegido en oracle_files. Permite conservar o reducir la deuda entrante; no permite hallazgos nuevos, mediciones peores ni topes elevados. No modifica los oraculos primarios congelados ni declara verde la comprobacion global estricta.
+
 ## Tratamiento posterior
 
 1. Reproducir la medicion sobre el SHA que vaya a corregirse: `python scripts/validate_budgets.py`.

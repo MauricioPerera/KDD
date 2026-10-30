@@ -9,20 +9,26 @@ intent: "Instanciar KDD en un repositorio nuevo sin arrastrar ejemplos, specs/re
 target: scripts/init_project.py
 signature: "def init_project(repo_dir: str, apply: bool, name: str, repository: str = None) -> dict:"
 test_command: "python -m unittest tests/test_init_project.py"
-test_timeout: 300
+test_timeout: 600
 budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tests/test_init_project.py"
-tests_sha256: "5125d126939696be8ab2add1fa5a97cc676aef53fd05cb062151e4f52530b9d3"
-touch_only: ['scripts/init_project.py']
-deps_allowed: []
+tests_sha256: '4c9090d9dd508ccad3e02d181075284525da4188a21a01e7188b5c9a53065ef9'
+touch_only: ['scripts/init_project.py', 'scripts/bootstrap_transaction.py']
+deps_allowed: ['stdlib', 'bootstrap_transaction']
 forbids: ['network', 'subprocess']
 ---
 
 # Contract: init-project
 
 ## Intent
+
+La extension revisada de [procedencia de scans](bootstrap-scan-provenance.md)
+agrega un manifiesto de muestras conocidas por ruta y digest. Se planifican en
+dry-run y se retiran de la copia solo si conservan exactamente ese contenido;
+un informe propio se preserva. Esta es la unica excepcion nueva al manifiesto
+de eliminacion historico y conserva el precheck antes de escribir o borrar.
 Última milla de la plantilla: estrenarla en un repositorio real sin ejemplos ni
 historia de cierre ajena. El caso de campo documentado en
 [validacion](../validacion.md) encontro que la politica heredada de KDD
@@ -43,11 +49,26 @@ CLI: `python scripts/init_project.py [--apply --repository OWNER/REPO] [--name <
 dry-run por default; exit 0 ok · 1 I/O · 2 manifiesto/identidad incompletos.
 
 ## Invariants
+- El [protocolo de seguridad y recuperacion](../bootstrap-safety.md) agrega
+  preflight fisico y transaccion compartida, sin cambiar firmas o manifiestos.
+  Un fallo recuperable conserva la copia; los aliases gestionados se rechazan
+  antes de borrar. El helper nuevo es stdlib, sin red ni subprocess.
+- Al aplicar, adaptar las regiones de calidad del workflow segun
+  [calidad desde el arranque](./bootstrap-product-quality-ci.md). Comprobar
+  previamente archivo y estructura; un error aborta antes de la limpieza.
+  El resultado agrega quality_ci_configured, false en dry-run y true en apply.
+  La politica propia se conserva y su aprobacion sigue siendo externa.
 - MANIFIESTO explicito (constante en el script): ejemplos de producto,
   los 33 pares historicos `specs/CONTRACT-NN-*` y
   `docs/reports/CONTRACT-NN-REPORT.md`, y reportes exclusivos de KDD.
   Los templates y validadores no se eliminan; nada fuera del manifiesto
   se borra.
+- El manifiesto incluye las tareas de demostracion TASK-001 y TASK-002 y
+  sus dos evidencias historicas, por rutas exactas. No descubre tareas con
+  glob ni elimina tareas o evidencias propias fuera de ese inventario.
+- Una copia inicializada puede estrenar su propio historial Git sin
+  referencias a aprobaciones o commits de tareas de KDD. El snapshot vacio
+  de tareas pasa `validate_tasks.py` y admite el primer ciclo propio.
 - `completion-legacy.json` se reescribe con el OWNER/REPO declarado y
   `legacy_pairs: {}`. CI ya no hereda los 33 SKIP ni la identidad upstream.
 - `CHANGELOG.md` inicia la historia propia del proyecto en v0.1.0.
@@ -62,6 +83,9 @@ dry-run por default; exit 0 ok · 1 I/O · 2 manifiesto/identidad incompletos.
 - En CI, el `test_command` de este contrato ejecuta la integración post-apply
   completa una vez. Las dos pasadas posteriores de la suite omiten solo ese
   caso mediante `KDD_SKIP_INIT_POST_APPLY_SUITE=1`; el resto corre dos veces.
+- La [extension de tiempo total](../ci-runtime.md) ejecuta esa misma suite
+  post-apply con scripts/run_test_suite.py y cuatro procesos explicitamente.
+  Conserva todos los casos y asserts; no reduce la integracion a un smoke.
 - Intocables presentes post-apply: validadores, assemble_context.py + ccdd/context.json,
   export_gate_contract.py, .agents/ (reglas+skill), templates de specs/reportes,
   OKF-SPEC.md, metodologia-ejecucion.md, contratos de infra, CI.
@@ -85,6 +109,10 @@ dry-run por default; exit 0 ok · 1 I/O · 2 manifiesto/identidad incompletos.
 (Los tests están en `tests/test_init_project.py`: dry-run inocuo, apply exacto al
 manifiesto, gates verdes post-apply en la copia, intocables presentes, --name solo título,
 manifiesto incompleto aborta, exit codes CLI.)
+
+La [integracion de proyecto nuevo](./project-initialization.md) comprueba
+ademas la ausencia de ambas tareas y evidencias de demostracion, preservacion
+de archivos propios, validadores sobre un Git nuevo y un ciclo de tarea real.
 
 Migracion aprobada del fixture: la copia excluye solamente las dependencias locales
 en `tools/kdd-board/node_modules`, conservando fuente y lockfile. El oraculo verifica

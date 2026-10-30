@@ -31,6 +31,9 @@ export class TaskStore {
       if (!Array.isArray(list)) throw new Error('Expected task array');
       const loaded = new Map<string, Task>();
       for (const t of list) {
+        if (!t || typeof t.id !== 'string' || !t.id || loaded.has(t.id)) {
+          throw new Error('Duplicate or invalid task ID');
+        }
         for (const r of t.requirements) {
           if (r.isSatisfied && (r.isSecret ? !this.secretAvailable(r.fieldKey) : !r.value?.trim())) {
             r.isSatisfied = false;
