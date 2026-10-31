@@ -230,3 +230,10 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Controles requeridos de producto](contracts/quality-required-controls.md)
 - [Perimetro obligatorio del cierre de tareas](contracts/task-finish-perimeter.md)
 - [Auditoria historica del perimetro de tareas](contracts/task-perimeter-history.md)
+
+- [Contexto entregado y aprendizaje versionado](context-learning-provenance.md)
+- [Contrato de identidad y entrega de contexto](contracts/context-delivery-manifest.md)
+- [Contrato de aprendizaje trazable](contracts/learning-traceability.md)
+- [Contrato de compatibilidad del reporte de gobierno](contracts/governance-report-initialization.md)
+- [Hallazgo de perimetro](learning/kg1-finding.md)
+- [Hallazgo de controles por operacion](learning/kg2-finding.md)
