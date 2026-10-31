@@ -38,6 +38,25 @@ def approved_commit(root, reference):
     return reference
 
 
+def _object_header(output, offset, spec, allow_missing):
+    end = output.find(b'\n', offset)
+    if end < 0:
+        raise Rejected('Truncated Git batch header')
+    header = output[offset:end].split()
+    offset = end + 1
+    if header and header[-1] == b'missing' and allow_missing:
+        return None, offset
+    if (len(header) != 3 or header[1] != b'blob'
+            or not re.fullmatch(rb'[0-9a-f]{40}|[0-9a-f]{64}', header[0])):
+        raise Rejected('Missing or invalid Git blob: ' + spec)
+    if not re.fullmatch(rb'[0-9]+', header[2]):
+        raise Rejected('Missing or invalid Git blob: ' + spec)
+    size = int(header[2])
+    if output[offset + size:offset + size + 1] != b'\n':
+        raise Rejected('Truncated Git batch body')
+    return output[offset:offset + size], offset + size + 1
+
+
 def _objects(root, specifications, allow_missing=False):
     specs = list(dict.fromkeys(specifications))
     if not specs:
@@ -51,23 +70,7 @@ def _objects(root, specifications, allow_missing=False):
         raise Rejected('Git batch could not complete')
     values, offset = {}, 0
     for spec in specs:
-        end = result.stdout.find(b'\n', offset)
-        if end < 0:
-            raise Rejected('Truncated Git batch header')
-        header = result.stdout[offset:end].split()
-        offset = end + 1
-        if header and header[-1] == b'missing' and allow_missing:
-            values[spec] = None
-            continue
-        if (len(header) != 3 or header[1] != b'blob'
-                or not re.fullmatch(rb'[0-9a-f]{40}|[0-9a-f]{64}', header[0])
-                or not re.fullmatch(rb'[0-9]+', header[2])):
-            raise Rejected('Missing or invalid Git blob: ' + spec)
-        size = int(header[2])
-        if result.stdout[offset + size:offset + size + 1] != b'\n':
-            raise Rejected('Truncated Git batch body')
-        values[spec] = result.stdout[offset:offset + size]
-        offset += size + 1
+        values[spec], offset = _object_header(result.stdout, offset, spec, allow_missing)
     if offset != len(result.stdout):
         raise Rejected('Unexpected Git batch output')
     return values
@@ -106,6 +109,21 @@ TASK_MODULES = ('validate_tasks.py', 'task_git.py', 'task_model.py',
                 'task_evidence.py', 'validate_contracts.py')
 
 
+def _generated_entry(entry, identifiers, protected):
+    if not isinstance(entry, dict) or set(entry) != {'task_id', 'contract'}:
+        raise Rejected('Invalid generated task evidence entry')
+    identifier, contract = entry['task_id'], entry['contract']
+    if not isinstance(identifier, str) or not re.fullmatch(r'TASK-[0-9]{3,}', identifier):
+        raise Rejected('Invalid generated task ID')
+    if identifier in identifiers:
+        raise Rejected('Duplicate generated task ID')
+    identifiers.add(identifier)
+    if not isinstance(contract, str) or not re.fullmatch(r'knowledge/contracts/[\w.-]+\.md', contract):
+        raise Rejected('Invalid generated task contract')
+    if contract not in protected:
+        raise Rejected('Generated task contract must be protected')
+
+
 def _generated_policy(data):
     if 'generated_task_evidence' not in data:
         return
@@ -114,21 +132,23 @@ def _generated_policy(data):
         raise Rejected('generated_task_evidence must be a nonempty list')
     identifiers = set()
     for entry in entries:
-        if not isinstance(entry, dict) or set(entry) != {'task_id', 'contract'}:
-            raise Rejected('Invalid generated task evidence entry')
-        identifier, contract = entry['task_id'], entry['contract']
-        if not isinstance(identifier, str) or not re.fullmatch(r'TASK-[0-9]{3,}', identifier):
-            raise Rejected('Invalid generated task ID')
-        if identifier in identifiers:
-            raise Rejected('Duplicate generated task ID')
-        identifiers.add(identifier)
-        if not isinstance(contract, str) or not re.fullmatch(r'knowledge/contracts/[\w.-]+\.md', contract):
-            raise Rejected('Invalid generated task contract')
-        if contract not in data['protected']:
-            raise Rejected('Generated task contract must be protected')
+        _generated_entry(entry, identifiers, data['protected'])
     required = {'scripts/' + name for name in TASK_MODULES}
     if not required.issubset(data['protected']):
         raise Rejected('All canonical task validators must be protected')
+
+
+def _check_policy(check, names, kinds):
+    if not isinstance(check, dict) or set(check) != {'name', 'kind', 'argv', 'timeout'}:
+        raise Rejected('Invalid check schema')
+    strings([check['name'], check['kind']], 'check name/kind', True)
+    if check['name'] in names:
+        raise Rejected('Duplicate check name: ' + check['name'])
+    names.add(check['name'])
+    kinds.add(check['kind'])
+    strings(check['argv'], 'argv', True)
+    if type(check['timeout']) is not int or not 0 < check['timeout'] <= 3600:
+        raise Rejected('timeout must be an integer in 1..3600')
 
 
 def validate_policy(root, data):
@@ -145,16 +165,7 @@ def validate_policy(root, data):
         raise Rejected('checks must be a nonempty list')
     names, kinds = set(), set()
     for check in data['checks']:
-        if not isinstance(check, dict) or set(check) != {'name', 'kind', 'argv', 'timeout'}:
-            raise Rejected('Invalid check schema')
-        strings([check['name'], check['kind']], 'check name/kind', True)
-        if check['name'] in names:
-            raise Rejected('Duplicate check name: ' + check['name'])
-        names.add(check['name'])
-        kinds.add(check['kind'])
-        strings(check['argv'], 'argv', True)
-        if type(check['timeout']) is not int or not 0 < check['timeout'] <= 3600:
-            raise Rejected('timeout must be an integer in 1..3600')
+        _check_policy(check, names, kinds)
     if not set(required).issubset(kinds):
         raise Rejected('Required kind has no check')
     _generated_policy(data)
@@ -264,10 +275,7 @@ def _generated_integrity(root, commit, policy, approved, cache):
     return set(artifacts)
 
 
-def integrity(root, commit, policy_path, policy, approved, cache=None):
-    for field in ('protected', 'implementation', 'pm'):
-        for name in policy[field]:
-            safe_path(root, name)
+def _protected_integrity(root, approved):
     indices = _objects(root, [':' + name for name in approved], allow_missing=True)
     for name, content in approved.items():
         path = safe_path(root, name)
@@ -278,6 +286,13 @@ def integrity(root, commit, policy_path, policy, approved, cache=None):
         index = indices[':' + name]
         if index is None or normalized(index) != normalized(content):
             raise Rejected('Protected index changed: ' + name)
+
+
+def integrity(root, commit, policy, approved, cache=None):
+    for field in ('protected', 'implementation', 'pm'):
+        for name in policy[field]:
+            safe_path(root, name)
+    _protected_integrity(root, approved)
     generated = _generated_integrity(root, commit, policy, approved,
                                      cache if cache is not None else {})
     allowed = set(policy['implementation']) | set(policy['pm']) | generated
@@ -307,9 +322,9 @@ def _approved_process_runner(root, commit, content):
         yield module.run
 
 
-def _checks(root, commit, policy_path, policy, approved, run):
+def _checks(root, commit, policy, approved, run):
     cache = {}
-    integrity(root, commit, policy_path, policy, approved, cache)
+    integrity(root, commit, policy, approved, cache)
     for iteration in (1, 2):
         for check in policy['checks']:
             print('RUN %s/2 %s [%s]' % (iteration, check['name'], check['kind']), flush=True)
@@ -317,7 +332,7 @@ def _checks(root, commit, policy_path, policy, approved, run):
                 result = run(check['argv'], cwd=root, timeout=check['timeout'],
                              shell=False)
             finally:
-                integrity(root, commit, policy_path, policy, approved, cache)
+                integrity(root, commit, policy, approved, cache)
             if result.returncode:
                 raise Rejected('Check failed: %s (exit %s)' % (check['name'], result.returncode))
 
@@ -336,7 +351,7 @@ def approve(root, policy_path, reference):
     approved = {name: objects[commit + ':' + name] for name in policy['protected']}
     approved[policy_path] = raw
     with _approved_process_runner(root, commit, objects[helper]) as run:
-        _checks(root, commit, policy_path, policy, approved, run)
+        _checks(root, commit, policy, approved, run)
     print('PASS quality: integrity, perimeter and all checks verified twice', flush=True)
 
 
