@@ -215,3 +215,6 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Reduccion de complejidad del motor de reglas](contracts/rule-engine-complexity.md)
 - [Reduccion de complejidad del diario Git](contracts/task-git-complexity.md)
 - [Reduccion de complejidad del verificador de calidad](contracts/verify-quality-complexity.md)
+- [Objetivo de cierre de las brechas de gobierno](kdd-governance-closure.md)
+- [Perimetro obligatorio del cierre de tareas](contracts/task-finish-perimeter.md)
+- [Auditoria historica del perimetro de tareas](contracts/task-perimeter-history.md)
