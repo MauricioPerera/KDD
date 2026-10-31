@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tests/test_init_project.py"
-tests_sha256: '4c9090d9dd508ccad3e02d181075284525da4188a21a01e7188b5c9a53065ef9'
+tests_sha256: '6cbfbf031c6a00894557e7f1113e37899318dfd6aed804fc351b3ae10df16a4e'
 touch_only: ['scripts/init_project.py', 'scripts/bootstrap_transaction.py']
 deps_allowed: ['stdlib', 'bootstrap_transaction']
 forbids: ['network', 'subprocess']
@@ -22,6 +22,10 @@ forbids: ['network', 'subprocess']
 # Contract: init-project
 
 ## Intent
+
+La [extension de gobierno](../governance-initialization.md) propone agregar
+la spec abierta CONTRACT-34 al inventario exacto, conservando los 33 pares
+cerrados y sus digests. Requiere aprobar el baseline nuevo antes de implementar.
 
 La extension revisada de [procedencia de scans](bootstrap-scan-provenance.md)
 agrega un manifiesto de muestras conocidas por ruta y digest. Se planifican en
@@ -59,7 +63,8 @@ dry-run por default; exit 0 ok · 1 I/O · 2 manifiesto/identidad incompletos.
   La politica propia se conserva y su aprobacion sigue siendo externa.
 - MANIFIESTO explicito (constante en el script): ejemplos de producto,
   los 33 pares historicos `specs/CONTRACT-NN-*` y
-  `docs/reports/CONTRACT-NN-REPORT.md`, y reportes exclusivos de KDD.
+  `docs/reports/CONTRACT-NN-REPORT.md`, la spec de gobierno por ruta exacta
+  (sin un reporte de cierre nuevo), y reportes exclusivos de KDD.
   Los templates y validadores no se eliminan; nada fuera del manifiesto
   se borra.
 - El manifiesto incluye las tareas de demostracion TASK-001 y TASK-002 y
