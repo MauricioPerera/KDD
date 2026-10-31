@@ -5,8 +5,10 @@ import fnmatch
 import json
 import os
 from pathlib import Path, PurePosixPath
+import shutil
 import stat
 import subprocess
+import tempfile
 from typing import NamedTuple
 
 import task_evidence as proof
@@ -377,6 +379,54 @@ def _require_approved_ancestor(root, approved, revision):
         raise TaskError('TASK_APPROVAL: supply an explicit approved ancestor SHA')
 
 
+def _require_valid_contract(root, name):
+    findings = validate_file(str(root / name), repo_root=str(root))
+    if any(f.level == 'ERROR' for f in findings):
+        raise TaskError('TASK_CONTRACT: ' + '; '.join(map(str, findings)))
+
+
+def _approved_contract_schema(root, data, metadata):
+    cache = _OBJECT_CACHE.get()
+    approved = data['approved_ref']
+    key = _key(root, 'contract-schema', approved, data['contract'])
+    if cache is not None and key in cache:
+        return
+    scratch = Path(tempfile.gettempdir()).resolve()
+    if scratch.is_relative_to(Path(root).resolve()):
+        raise TaskError('TASK_PATH: contract validation requires external scratch space')
+    # Target presence/mode was checked against Git. The full validator reads
+    # only its presence; preserve the real contract and sealed oracle bytes.
+    artifacts = {metadata['target']: '',
+                 data['contract']: blob(root, approved, data['contract']),
+                 metadata['tests']: blob(root, approved, metadata['tests'])}
+    with tempfile.TemporaryDirectory(prefix='kdd-contract-schema-', dir=scratch) as directory:
+        destination = Path(directory)
+        for name, content in artifacts.items():
+            path = destination.joinpath(*_relative_parts(name))
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding='utf-8', newline='\n')
+        _require_valid_contract(destination, data['contract'])
+    if cache is not None:
+        cache[key] = True
+
+
+def _live_contract(root, data, metadata):
+    for name in (data['contract'], metadata['tests']):
+        try:
+            content = safe_path(root, name).read_text(encoding='utf-8')
+        except OSError as error:
+            raise TaskError('TASK_CONTRACT: required artifact is unavailable: ' + name) from error
+        if proof.normalized(content) != proof.normalized(blob(root, data['approved_ref'], name)):
+            raise TaskError('TASK_APPROVAL: checkout contract or oracle differs from approval')
+    _require_valid_contract(root, data['contract'])
+
+
+def _require_runner(metadata, live):
+    argv, _ = proof.invocation(metadata)
+    if live and shutil.which(argv[0]) is None:
+        raise TaskError('TASK_RUNNER: required executable is unavailable: ' + argv[0])
+
+
 def contract_metadata(root, data, revision, *, committed_only=False):
     approved = data['approved_ref']
     _require_approved_ancestor(root, approved, revision)
@@ -387,8 +437,7 @@ def contract_metadata(root, data, revision, *, committed_only=False):
     required = ('target', 'tests', 'test_command', 'tests_sha256')
     if not all(isinstance(metadata.get(k), str) and metadata[k] for k in required):
         raise TaskError('TASK_CONTRACT: approved contract has invalid oracle metadata')
-    if committed_only:
-        _metadata_paths(root, data, metadata, revision)
+    _metadata_paths(root, data, metadata, revision)
     for path in (data['contract'], metadata['tests']):
         _artifact_path(root, path, committed_only)
         if proof.normalized(blob(root, revision, path)) != proof.normalized(blob(root, approved, path)):
@@ -396,15 +445,16 @@ def contract_metadata(root, data, revision, *, committed_only=False):
     if proof.digest(proof.normalized(blob(root, revision, metadata['tests']))) != metadata.get('tests_sha256'):
         raise TaskError('TASK_ORACLE: approved oracle seal is invalid')
     _artifact_path(root, metadata['target'], committed_only)
+    _approved_contract_schema(root, data, metadata)
+    if not committed_only:
+        _live_contract(root, data, metadata)
+    _require_runner(metadata, not committed_only)
     return metadata
 
 
 def _ready(root, task, options, head):
     task['approved_ref'] = options.get('approved_ref', '')
     contract_metadata(root, task, head)
-    findings = validate_file(str(root / task['contract']), repo_root=str(root))
-    if any(f.level == 'ERROR' for f in findings):
-        raise TaskError('TASK_CONTRACT: ' + '; '.join(map(str, findings)))
 
 
 def _start(root, task, options, head):

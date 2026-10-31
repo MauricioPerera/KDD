@@ -30,6 +30,9 @@ agrega una asercion de pertenencia de la ruta exacta. Conserva todas las
 demas aserciones y agrega cinco contramuestras de copias reales en el
 [contrato de compatibilidad](contracts/governance-initialization.md).
 
-Estado: baseline propuesto; produccion del inicializador sin modificar.
-La aprobacion anterior cubre los dos modulos de tareas, no esta extension.
-Aplicar [aprobacion de calidad](quality-approval.md) antes de implementar.
+Baseline aprobado: 4e698f52f27a970a0be83c7db9854a687bf0f803, posterior a la
+aprobacion de los dos modulos de tareas. El inventario se implemento en
+4d968eafd33cf76f28f97f1d7d78bddf62b758a4 y paso el
+[CI dual-OS 41239179528](https://github.com/MauricioPerera/KDD/actions/runs/41239179528)
+con dos pasadas completas. Se conserva la
+[aprobacion de calidad](quality-approval.md) y el historial de la fase roja.
