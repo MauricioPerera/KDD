@@ -15,7 +15,7 @@ budget:
   lines_max: 100
   params_max: 5
 tests: tools/kdd-board/tests/perimeter-interface.test.ts
-tests_sha256: 'a39ce8ad5ab0d7293d320ffd0d2517cbea9364ae00db0ca33b6223b3f468c311'
+tests_sha256: '8d5269c920649658dc500268a69ecbcee3ba2be1285e0e4737b44627e14f47bf'
 touch_only: ['tools/kdd-board/src/git-task-store.ts']
 deps_allowed: ['node', 'zod', 'fastwebmcp']
 forbids: ['llm', 'network']

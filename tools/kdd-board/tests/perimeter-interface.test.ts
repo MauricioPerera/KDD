@@ -76,8 +76,9 @@ function unchanged(f:any, before:any) {
 
 function safeError(value:any,f:any) {
   const output=JSON.stringify(value);
-  for(const canary of [f.project,'outside-secret-canary.txt','Traceback','INTERNAL_CONTROL_SECRET'])
-    assert.equal(output.includes(canary),false);
+  for(const canary of [f.project,'outside-secret-canary.txt','Traceback','INTERNAL_CONTROL_SECRET',
+                      'synthetic-perimeter-interface-token'])
+    assert.equal(output.includes(JSON.stringify(canary).slice(1,-1)),false);
 }
 
 async function http(t:any,f:any) {

@@ -34,7 +34,8 @@ Conservar validate_snapshot, validate_range y CLI. Usar el helper del
 ## Invariants
 
 - Un contrato incompleto no se vuelve valido por un checkout actual corregido.
-- Recomprobar estructura e invocacion reconocida en snapshots y rangos.
+- Recomprobar estructura e invocacion reconocida de estados distintos de
+  backlog en snapshots y rangos; backlog conserva contratos en preparacion.
 - Usar objetos Git; conservar refs, indice, checkout y recibos sin reescribirlos.
 - No requerir que un ejecutable del pasado este instalado para auditarlo hoy.
 - No afirmar que la reconstruccion prueba la disponibilidad o ejecucion pasada.

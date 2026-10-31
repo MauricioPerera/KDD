@@ -33,6 +33,7 @@ en una violacion de perimetro ni aceptar el cambio por error.
 
 Snapshot y rango leen el contrato y sus artefactos como objetos Git de la revision
 auditada, sin ejecutar candidatos ni consultar el checkout como autoridad.
+Los controles de contrato aprobado empiezan en ready; backlog admite preparacion.
 Recomprueban la estructura completa y la invocacion reconocida. Un checkout
 actual corregido no debe ocultar un contrato historico incompleto.
 
