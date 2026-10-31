@@ -21,7 +21,7 @@ Este documento no declara la implementacion terminada.
 
 ## Entregas y criterio de cierre
 
-- [ ] **KG-1: perimetro obligatorio de tareas.** El coordinador y el auditor
+- [x] **KG-1: perimetro obligatorio de tareas.** El coordinador y el auditor
   historico rechazan el mismo cambio ajeno, sin ejecutar el oraculo ni publicar
   un cierre cuando el rechazo es previo. Incluye evidencia reconstruible,
   atribucion de integracion y lectura honesta del legado. Contratos:
@@ -44,6 +44,14 @@ Este documento no declara la implementacion terminada.
 
 KG-2 a KG-5 requieren sus propios contratos y oraculos antes de implementar.
 Definirlos no cierra el objetivo: cada entrega debe conservar evidencia real.
+
+KG-1 esta verificado en el candidato 4d968eafd33cf76f28f97f1d7d78bddf62b758a4
+del [PR 148](https://github.com/MauricioPerera/KDD/pull/148), sin fusionar a main.
+El [CI 41239179528](https://github.com/MauricioPerera/KDD/actions/runs/41239179528)
+paso los 136 contratos y dos suites de 1721 casos en cada sistema, sin fallos,
+errores ni omisiones de fixture. Conserva 10 SKIP declarados en Ubuntu y 9 en
+Windows por pasada. La extension de inventario se reviso por separado en
+4e698f52f27a970a0be83c7db9854a687bf0f803; no agrega un cierre historico.
 
 ## Primera entrega: alcance aprobado frente a cambios propios
 
