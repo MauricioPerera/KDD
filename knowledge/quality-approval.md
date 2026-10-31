@@ -50,6 +50,10 @@ Ejemplo adaptable: [política y guía](../examples/quality-approval/README.md). 
 
 ## Pruebas adversariales y de interfaz
 
+La [propuesta KG-4](required-controls.md) define required_controls para exigir
+un mecanismo y cobertura efectivos. Mantiene las omisiones del diagnostico
+legacy sin atribuirles enforcement. Requiere baseline propio antes de implementar.
+
 La [propuesta KG-3](oracle-assurance.md) define `oracle_reviews` para exigir
 estructura soportada y contramuestras exactas desde la politica aprobada.
 Requiere su baseline propio antes de implementar. Una politica antigua sin
