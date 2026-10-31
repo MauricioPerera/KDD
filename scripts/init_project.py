@@ -156,7 +156,8 @@ SPRINT_EXAMPLES = (
     "specs/sprints/SPRINT-03-authority.md",
     "specs/sprints/SPRINT-04-native-level2.md",
 )
-MANIFEST += HISTORY_SPECS + HISTORY_REPORTS + KDD_ONLY_REPORTS + SPRINT_EXAMPLES
+KDD_ONLY_SPECS = ("specs/CONTRACT-34-kdd-governance-closure.md",)
+MANIFEST += HISTORY_SPECS + HISTORY_REPORTS + KDD_ONLY_REPORTS + SPRINT_EXAMPLES + KDD_ONLY_SPECS
 
 _LINK_RE = re.compile(r"\]\(([^)]+)\)")
 _LIST_RE = re.compile(r"^\s*[-+*]\s+")
