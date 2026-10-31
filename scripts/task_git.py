@@ -6,6 +6,7 @@ import os
 from pathlib import Path, PurePosixPath
 import stat
 import subprocess
+from typing import NamedTuple
 
 import task_evidence as proof
 from task_model import TaskError, new_task, parse_task, render_task, task_path, valid_sha, validate_transition
@@ -13,6 +14,11 @@ from validate_contracts import parse_frontmatter, validate_file
 
 
 _OBJECT_CACHE = ContextVar('kdd_git_objects', default=None)
+
+
+class _MutationContext(NamedTuple):
+    head: str
+    options: dict
 
 
 @contextmanager
@@ -63,25 +69,29 @@ def _native_oid(root, ref):
     return len(ref) == {'sha1': 40, 'sha256': 64}.get(algorithm)
 
 
+def _commit_with_uninitialized_format(root, ref, cache, key):
+    format_key = _key(root, 'object-format', '')
+    try:
+        fields = git(root, 'rev-parse', '--show-object-format', '--verify',
+                     '--end-of-options', ref + '^{commit}').splitlines()
+    except TaskError:
+        fields = []
+    if (len(fields) == 2 and valid_sha(fields[1])
+            and len(fields[1]) == {'sha1': 40, 'sha256': 64}.get(fields[0])):
+        cache[format_key] = fields[0]
+        if valid_sha(ref) and len(ref) == len(fields[1]):
+            cache[key] = fields[1]
+        return fields[1]
+    return git(root, 'rev-parse', '--verify', '--end-of-options', ref + '^{commit}')
+
+
 def commit_sha(root, ref):
     cache = _OBJECT_CACHE.get()
     if cache is None:
         return git(root, 'rev-parse', '--verify', '--end-of-options', ref + '^{commit}')
     key = _key(root, 'commit', ref)
-    format_key = _key(root, 'object-format', '')
-    if format_key not in cache:
-        try:
-            fields = git(root, 'rev-parse', '--show-object-format', '--verify',
-                         '--end-of-options', ref + '^{commit}').splitlines()
-        except TaskError:
-            fields = []
-        if (len(fields) == 2 and valid_sha(fields[1])
-                and len(fields[1]) == {'sha1': 40, 'sha256': 64}.get(fields[0])):
-            cache[format_key] = fields[0]
-            if valid_sha(ref) and len(ref) == len(fields[1]):
-                cache[key] = fields[1]
-            return fields[1]
-        return git(root, 'rev-parse', '--verify', '--end-of-options', ref + '^{commit}')
+    if _key(root, 'object-format', '') not in cache:
+        return _commit_with_uninitialized_format(root, ref, cache, key)
     immutable = _native_oid(root, ref)
     if cache is not None and immutable and key in cache:
         return cache[key]
@@ -125,6 +135,23 @@ def _batch_blobs(root, revision, names):
         raise TaskError('TASK_GIT: ' + str(exc)) from exc
 
 
+def _reuse_cached_blob_objects(root, revision, names, cache):
+    for name in names:
+        key = _key(root, 'blob', revision, name)
+        oid = cache.get(_key(root, 'regular-path', revision, name))
+        content_key = _key(root, 'blob-object', oid)
+        if key not in cache and oid and content_key in cache:
+            cache[key] = cache[content_key]
+
+
+def _remember_blob_objects(root, revision, values, cache):
+    for name, value in values.items():
+        cache[_key(root, 'blob', revision, name)] = value
+        oid = cache.get(_key(root, 'regular-path', revision, name))
+        if oid:
+            cache[_key(root, 'blob-object', oid)] = value
+
+
 def blobs(root, ref, names):
     if not names:
         return {}
@@ -132,20 +159,11 @@ def blobs(root, ref, names):
     cache = _OBJECT_CACHE.get()
     names = list(dict.fromkeys(names))
     if cache is not None:
-        for name in names:
-            key = _key(root, 'blob', revision, name)
-            oid = cache.get(_key(root, 'regular-path', revision, name))
-            content_key = _key(root, 'blob-object', oid)
-            if key not in cache and oid and content_key in cache:
-                cache[key] = cache[content_key]
+        _reuse_cached_blob_objects(root, revision, names, cache)
     missing = [name for name in names if cache is None or _key(root, 'blob', revision, name) not in cache]
     values = _batch_blobs(root, revision, missing) if missing else {}
     if cache is not None:
-        for name, value in values.items():
-            cache[_key(root, 'blob', revision, name)] = value
-            oid = cache.get(_key(root, 'regular-path', revision, name))
-            if oid:
-                cache[_key(root, 'blob-object', oid)] = value
+        _remember_blob_objects(root, revision, values, cache)
         return {name: cache[_key(root, 'blob', revision, name)] for name in names}
     return values
 
@@ -248,13 +266,12 @@ def _committed_paths(root, revision, names):
                 cache[_key(root, 'blob-object', oid)] = cache[content_key]
 
 
-def _metadata_paths(root, data, metadata, revision, committed_only):
-    if committed_only:
-        names = (data['contract'], metadata['tests'], metadata['target'])
-        for ref in (data['approved_ref'], revision):
-            _committed_paths(root, ref, names)
-            if _OBJECT_CACHE.get() is not None:
-                blobs(root, ref, names[:2])
+def _metadata_paths(root, data, metadata, revision):
+    names = (data['contract'], metadata['tests'], metadata['target'])
+    for ref in (data['approved_ref'], revision):
+        _committed_paths(root, ref, names)
+        if _OBJECT_CACHE.get() is not None:
+            blobs(root, ref, names[:2])
 
 
 def _artifact_path(root, relative, committed_only):
@@ -344,14 +361,18 @@ def _lock(root):
         lock.unlink()
 
 
-def contract_metadata(root, data, revision, *, committed_only=False):
-    approved = data['approved_ref']
+def _require_approved_ancestor(root, approved, revision):
     try:
         identity = commit_sha(root, approved) if valid_sha(approved) else None
     except TaskError:
         identity = None
     if not valid_sha(approved) or identity != approved or not ancestor(root, approved, revision):
         raise TaskError('TASK_APPROVAL: supply an explicit approved ancestor SHA')
+
+
+def contract_metadata(root, data, revision, *, committed_only=False):
+    approved = data['approved_ref']
+    _require_approved_ancestor(root, approved, revision)
     original = blob(root, approved, data['contract'])
     metadata, _ = parse_frontmatter(original)
     if not isinstance(metadata, dict) or metadata.get('type') != 'Task Contract':
@@ -359,7 +380,8 @@ def contract_metadata(root, data, revision, *, committed_only=False):
     required = ('target', 'tests', 'test_command', 'tests_sha256')
     if not all(isinstance(metadata.get(k), str) and metadata[k] for k in required):
         raise TaskError('TASK_CONTRACT: approved contract has invalid oracle metadata')
-    _metadata_paths(root, data, metadata, revision, committed_only)
+    if committed_only:
+        _metadata_paths(root, data, metadata, revision)
     for path in (data['contract'], metadata['tests']):
         _artifact_path(root, path, committed_only)
         if proof.normalized(blob(root, revision, path)) != proof.normalized(blob(root, approved, path)):
@@ -436,7 +458,8 @@ def _prepare(root, operation, task_id, options):
     return head, nodes, before, dict(before), body
 
 
-def _changes(root, operation, task, options, head):
+def _changes(root, operation, task, context):
+    options, head = context.options, context.head
     statuses = {'ready': 'ready', 'start': 'in_progress', 'block': 'needs_human_input',
                 'resume': 'ready', 'finish': 'done'}
     task['status'] = statuses.get(operation, 'backlog')
@@ -463,7 +486,8 @@ def _restore(root, backups):
             path.write_bytes(content)
 
 
-def _publish(root, head, changes, branch, message):
+def _publish(root, head, changes, publication):
+    branch, message = publication
     paths = {name: safe_path(root, name) for name in changes}
     backups = {name: path.read_bytes() if path.exists() else None for name, path in paths.items()}
     created = False
@@ -501,7 +525,7 @@ def mutate(repo_root, operation, task_id, options):
         safe_path(root, task_path(task_id))
         if operation == 'create':
             safe_path(root, 'knowledge/index.md')
-        extra, branch = _changes(root, operation, task, options, head)
+        extra, branch = _changes(root, operation, task, _MutationContext(head, options))
         completed = {key for key, pair in nodes.items() if pair[0]['status'] == 'done'}
         errors = validate_transition(before, task, completed)
         if any(dep not in nodes for dep in task['depends_on']):
@@ -514,5 +538,6 @@ def mutate(repo_root, operation, task_id, options):
             content = index.read_text(encoding='utf-8')
             if '(./tasks/)' not in content and '(tasks/)' not in content:
                 changes['knowledge/index.md'] = (content.rstrip() + '\n\n- [Tasks](./tasks/)\n').encode('utf-8')
-        revision = _publish(root, head, changes, branch, 'chore({}): {}'.format(task_id.lower(), operation))
+        publication = (branch, 'chore({}): {}'.format(task_id.lower(), operation))
+        revision = _publish(root, head, changes, publication)
         return {'commit': revision, 'task': task}
