@@ -123,3 +123,14 @@ limites o cambio de workflow/protecciones necesita una nueva propuesta.
 La revision humana decide obligatoriedad y pertinencia del contexto, coherencia
 de hallazgos/decisiones/tests, riesgos, comprension y generalizacion. El codigo
 solo demuestra las identidades, relaciones y comportamientos que observa.
+
+## Extension separada: JSON companero de cierre
+
+La revision del contrato completion-evidence confirmo que el cierre nuevo exige
+ademas docs/reports/CONTRACT-34-EVIDENCE.json. Un probe real en copia temporal
+mostro que ese archivo conserva la identidad KDD despues de inicializar otro
+repositorio. El baseline d10ae37136da409df99c5010986efad78f878df6 aprobo solo
+el reporte Markdown. El [contrato de extension](contracts/governance-evidence-initialization.md)
+propone esta segunda ruta exacta opcional con seis oraculos nuevos, sin tocar
+ningun test previo ni ampliar otra fuente. Necesita revision propia antes de
+implementar; todas las aprobaciones anteriores siguen vigentes.

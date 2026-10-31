@@ -237,3 +237,5 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contrato de compatibilidad del reporte de gobierno](contracts/governance-report-initialization.md)
 - [Hallazgo de perimetro](learning/kg1-finding.md)
 - [Hallazgo de controles por operacion](learning/kg2-finding.md)
+
+- [Compatibilidad de la evidencia JSON del cierre de gobierno](contracts/governance-evidence-initialization.md)

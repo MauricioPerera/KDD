@@ -33,6 +33,10 @@ Conservar API/CLI y manifiestos previos. Extender solo la limpieza opcional de
 la ruta exacta docs/reports/CONTRACT-34-REPORT.md, cuando exista. No exigirla
 antes del cierre real ni descubrir permisos por glob.
 
+La extension separada de [evidencia companera](governance-evidence-initialization.md)
+propone una segunda ruta exacta opcional, sin modificar este oraculo. Necesita
+su propia aprobacion antes de ampliar la limpieza mas alla del reporte.
+
 ## Invariants
 
 - Presente regular -> plan una sola vez y retiro con la spec 34, dentro de transaccion.
