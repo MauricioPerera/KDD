@@ -249,3 +249,4 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Compatibilidad de la evidencia JSON del cierre de gobierno](contracts/governance-evidence-initialization.md)
 
 - [Discovery de Pages en PR con dependencias del despliegue](./pages-pr-deploy-parity.md)
+- [Reduccion de complejidad del validador OKF](contracts/validate-okf-complexity.md)
