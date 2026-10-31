@@ -212,3 +212,4 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contrato de escrituras del diario](contracts/task-write-boundary.md)
 - [Contrato de referencias locales canonicas](contracts/quality-ref-canonical.md)
 - [Contrato de mantenimiento de fixtures](contracts/fixture-maintenance-budget.md)
+- [Reduccion de complejidad del motor de reglas](contracts/rule-engine-complexity.md)
