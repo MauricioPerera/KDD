@@ -1,4 +1,5 @@
 """Real-Git oracle for scope reconstructed independently of closure claims."""
+import sys
 from tests.test_task_finish_perimeter import PerimeterCase
 
 
@@ -103,6 +104,22 @@ class HistoricalPerimeterTests(PerimeterCase):
         self.legacy_close()
         self.p.git('branch', '-D', 'task/TASK-001')
         self.assertEqual(self.audit().returncode, 0)
+
+    def test_public_snapshot_api_rejects_an_outside_historical_implementation(self):
+        self.p.write('outside-api.txt', 'outside change in a historical closure\n')
+        self.integrate()
+        self.legacy_close()
+        self.marker.unlink(missing_ok=True)
+        before = self.p.snapshot()
+        code = ("import sys; sys.path.insert(0, 'scripts'); import validate_tasks; "
+                "findings = validate_tasks.validate_snapshot('.', 'HEAD'); "
+                "print('\\n'.join(findings)); raise SystemExit(bool(findings))")
+        result = self.p.command([sys.executable, '-c', code], check=False)
+        self.assertNotEqual(result.returncode, 0, 'public snapshot API bypassed scope')
+        self.assertIn('TASK_PERIMETER', result.stdout + result.stderr)
+        self.assertIn('outside-api.txt', result.stdout + result.stderr)
+        self.assertFalse(self.marker.exists())
+        self.assertEqual(self.p.snapshot(), before)
 
 
 if __name__ == '__main__':

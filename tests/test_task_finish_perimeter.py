@@ -219,6 +219,19 @@ class FinishPerimeterTests(PerimeterCase):
         self.assertEqual(self.p.act('show', 1)['status'], 'in_progress')
         self.assertEqual(list((self.p.root / 'docs/task-evidence').glob('*.json')), [])
 
+    def test_public_python_api_cannot_close_an_outside_implementation(self):
+        self.p.write('outside-api.txt', 'outside change through the public API\n')
+        self.integrate()
+        before = self.p.snapshot()
+        code = ("import sys; sys.path.insert(0, 'scripts'); import task_git; "
+                "task_git.mutate('.', 'finish', 'TASK-001', {})")
+        result = self.p.command([sys.executable, '-c', code], check=False)
+        self.assertNotEqual(result.returncode, 0, 'public mutate API bypassed scope')
+        self.assertIn('TASK_PERIMETER', result.stdout + result.stderr)
+        self.assertIn('outside-api.txt', result.stdout + result.stderr)
+        self.assertFalse(self.marker.exists())
+        self.assertEqual(self.p.snapshot(), before)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -14,7 +14,7 @@ budget:
   lines_max: 100
   params_max: 4
 tests: tests/test_task_finish_perimeter.py
-tests_sha256: 'ac7c5911a1fd1572a790746c39c44b423f14d4d766cec6760cc66396ba51d0ad'
+tests_sha256: 'feb77a95536b0704f72660620cc6eb2920fdbd3f73be53afe75c7bc7718631ee'
 touch_only: ['scripts/task_git.py']
 deps_allowed: ['stdlib', 'task_evidence', 'task_model', 'validate_contracts', 'validate_tasks']
 forbids: ['network', 'llm']

@@ -14,7 +14,7 @@ budget:
   lines_max: 100
   params_max: 5
 tests: tests/test_task_perimeter_history.py
-tests_sha256: '15bcc1cf37ea4ba5d2ed2a5a8cbf753cfbdef6fb2666eebc3fb835e58b12fcc9'
+tests_sha256: '6f8708cdda9e2fb95d78f8aa4c3a0c35b1c3d4d6294ba0f628409eb7f4fc3bda'
 touch_only: ['scripts/validate_tasks.py']
 deps_allowed: ['stdlib', 'task_evidence', 'task_git', 'task_model', 'validate_contracts']
 forbids: ['network', 'llm']
