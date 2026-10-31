@@ -29,6 +29,8 @@ Eliminar los doce hallazgos actuales de [diario Git](task-journal.md),
 Conservar las interfaces publicas, firmas y resultados de `mutate`, `commit_sha`,
 `blob`, `blobs`, `read_nodes`, `read_tasks`, `history` y `contract_metadata`.
 Helpers privados pueden cambiar si se preservan los contratos y sus llamadores.
+`_publish` agrupa rama y mensaje en un solo par `(branch, message)`; el unico
+llamador externo a produccion es el oraculo de frontera, adaptado para revision.
 
 ## Invariants
 - Cumplir para todo `scripts/task_git.py` los limites mas estrictos existentes:
@@ -39,7 +41,10 @@ Helpers privados pueden cambiar si se preservan los contratos y sus llamadores.
   inmutables, modos Git regulares y rechazo de enlaces en consultas historicas.
 - Mantener comprobaciones frescas de main con hasta dos procesos Git por llamada,
   sin modificar producto, indice o ramas ajenas ante un rechazo.
-- Mantener los oraculos existentes y su cobertura, Ubuntu/Windows y dos pasadas.
+- Mantener los oraculos existentes y su cobertura; solo el argumento de la
+  llamada directa a `_publish` en `test_task_write_boundary.py` se adapta al
+  par de publicacion, sin retirar pruebas ni aserciones. Conservar Ubuntu,
+  Windows y dos pasadas completas.
 
 ## Examples
 - Un hook Git real que rechaza un commit restaura el archivo y la rama creada.
@@ -56,5 +61,6 @@ flujo CLI hasta evidencia y auditoria, objetos y refs SHA-1/SHA-256, enlace Git,
 rollback con hook real y Trace2. Sus fixtures heredados permanecen congelados.
 
 ## Constraints
-PARAR y reportar si el arreglo exige cambiar oraculos previos, modificar runtime,
-workflows o protecciones, o si la comparacion revela hallazgos nuevos o agravados.
+PARAR y reportar si el arreglo exige cambiar otro oraculo previo no revisado,
+modificar runtime, workflows o protecciones, o si la comparacion revela
+hallazgos nuevos o agravados.
