@@ -213,3 +213,4 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contrato de referencias locales canonicas](contracts/quality-ref-canonical.md)
 - [Contrato de mantenimiento de fixtures](contracts/fixture-maintenance-budget.md)
 - [Reduccion de complejidad del motor de reglas](contracts/rule-engine-complexity.md)
+- [Reduccion de complejidad del diario Git](contracts/task-git-complexity.md)
