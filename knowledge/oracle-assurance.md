@@ -5,7 +5,7 @@ description: 'Estructura soportada, contramuestras exactas, controles sanos y ev
 tags: ['governance', 'quality', 'oracles', 'mutation']
 ---
 
-# KG-3: propuesta para revision previa
+# KG-3: baseline aprobado e implementacion candidata
 
 El [objetivo de gobierno](kdd-governance-closure.md) exige que los controles
 aplicables se ejecuten. La [matriz de operaciones](operation-controls.md)
@@ -13,7 +13,9 @@ distingue preparar una tarea de aprobar un producto. Esta propuesta agrega
 la revision requerida del oraculo al punto de aprobacion del producto; no
 ejecuta mutaciones al preparar o iniciar una tarea ni al leer historia.
 
-No declara KG-3 implementado. Produccion y oraculos anteriores siguen intactos.
+Baseline humano aprobado: 44695e90e0e55ec0b1549c8c58d31ad8d6a5d623.
+La implementacion candidata conserva todos los oraculos anteriores y los nuevos
+congelados. Su verificacion completa sigue pendiente del CI dual-OS 2x.
 Contratos: [atribucion](contracts/mutation-attribution.md) y
 [revision obligatoria de producto](contracts/quality-oracle-reviews.md).
 
@@ -95,6 +97,11 @@ hashes de target/oraculo/mutante, comando, exit, timeout, stdout/stderr,
 hash de salida, casos fallidos y motivo de clasificacion. El auditor automatico
 anterior recibe la misma mejora de atribucion y datos; conserva sus operadores
 y SKIP advisory. La revision requerida nunca acepta un SKIP como deteccion.
+
+Los hashes de fuente normalizan LF; los campos raw identifican tambien los
+bytes originales. El hash de salida usa el stdout/stderr capturado como texto
+UTF-8. Las copias y fuentes se recomprueban durante el experimento; los targets
+revisados deben conservar sus bytes tras los checks y entre ambas pasadas.
 
 Los procesos usan la contencion existente; no son un sandbox. Se bloquea
 la aprobacion ante efectos observados sobre archivos protegidos, sin prometer
