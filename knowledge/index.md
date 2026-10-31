@@ -222,5 +222,8 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contrato de errores de perimetro del tablero](contracts/board-perimeter-errors.md)
 - [Inventario de inicializacion para gobierno](governance-initialization.md)
 - [Contrato de inicializacion para gobierno](contracts/governance-initialization.md)
+- [Garantia de oraculos requerida por politica](oracle-assurance.md)
+- [Atribucion de fallos de mutacion](contracts/mutation-attribution.md)
+- [Revisiones obligatorias de oraculos de producto](contracts/quality-oracle-reviews.md)
 - [Perimetro obligatorio del cierre de tareas](contracts/task-finish-perimeter.md)
 - [Auditoria historica del perimetro de tareas](contracts/task-perimeter-history.md)

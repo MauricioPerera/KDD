@@ -27,7 +27,7 @@ Este documento no declara la implementacion terminada.
   atribucion de integracion y lectura honesta del legado. Contratos:
   [cierre](contracts/task-finish-perimeter.md) e
   [historial](contracts/task-perimeter-history.md).
-- [ ] **KG-2: controles coherentes por operacion.** Documentar y ejecutar una
+- [x] **KG-2: controles coherentes por operacion.** Documentar y ejecutar una
   matriz obligatoria para ready, start, finish y aprobacion de producto.
   Las interfaces que realizan la misma operacion deben exigir los mismos
   controles; un control requerido ausente o no soportado bloquea esa operacion.
@@ -52,6 +52,15 @@ paso los 136 contratos y dos suites de 1721 casos en cada sistema, sin fallos,
 errores ni omisiones de fixture. Conserva 10 SKIP declarados en Ubuntu y 9 en
 Windows por pasada. La extension de inventario se reviso por separado en
 4e698f52f27a970a0be83c7db9854a687bf0f803; no agrega un cierre historico.
+
+KG-2 esta verificado en c5b309bd3084af9f921d32d4af92b413eeb586e4 del
+[PR 150](https://github.com/MauricioPerera/KDD/pull/150), dependiente del PR 148
+sin fusionar. El [CI 41243512201](https://github.com/MauricioPerera/KDD/actions/runs/41243512201)
+pasa los 139 contratos y dos suites de 1743 casos por sistema, con el mismo
+inventario, sin fallos, errores u omisiones de fixture; conserva 10 SKIP en
+Ubuntu y 9 en Windows por pasada. El primer intento Windows agoto 600s en
+init-project y se conserva; la repeticion paso sin cambiar codigo, oraculos,
+workflows o limites. La investigacion aislada de rendimiento no se integro.
 
 ## Primera entrega: alcance aprobado frente a cambios propios
 
