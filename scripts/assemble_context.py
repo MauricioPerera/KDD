@@ -118,11 +118,14 @@ _PROVIDERS = ("okf_index", "okf_nodes")
 _COMPACTIONS = ("none", "truncate", "summarize")
 
 
-def _validate_contract(contract):
-    """Lanza ValueError con causa exacta ante contrato invalido."""
-    if not isinstance(contract, dict):
-        raise ValueError("contract debe ser un objeto (dict)")
-    budget = contract.get("budget")
+def _validate_chars_per_token(budget):
+    if "chars_per_token" in budget:
+        cpt = budget.get("chars_per_token")
+        if not isinstance(cpt, int) or isinstance(cpt, bool) or cpt < 1:
+            raise ValueError("budget.chars_per_token debe ser entero >= 1")
+
+
+def _validate_budget(budget):
     if not isinstance(budget, dict):
         raise ValueError("budget ausente o no es objeto")
     max_tokens = budget.get("max_tokens")
@@ -136,54 +139,60 @@ def _validate_contract(contract):
     if max_tokens - output_reserve <= 0:
         raise ValueError(
             "budget: max_tokens - output_reserve debe ser > 0")
-    if "chars_per_token" in budget:
-        cpt = budget.get("chars_per_token")
-        if not isinstance(cpt, int) or isinstance(cpt, bool) or cpt < 1:
-            raise ValueError("budget.chars_per_token debe ser entero >= 1")
+    _validate_chars_per_token(budget)
 
+
+def _validate_slot_identity(s, seen_ids):
+    if not isinstance(s, dict):
+        raise ValueError("slot debe ser objeto")
+    if "id" not in s or not s["id"]:
+        raise ValueError("slot sin id (o id vacio)")
+    sid = s["id"]
+    if sid in seen_ids:
+        raise ValueError("id de slot duplicado: {}".format(sid))
+    seen_ids.add(sid)
+    if "source" not in s:
+        raise ValueError("slot {} sin source".format(sid))
+    if s["source"] not in _SOURCES:
+        raise ValueError("slot {} source invalido: {!r}".format(sid, s["source"]))
+    if "priority" not in s or not isinstance(s["priority"], int) \
+            or isinstance(s["priority"], bool):
+        raise ValueError("slot {} requiere priority entera".format(sid))
+
+
+def _validate_slot_source(s):
+    sid = s["id"]
+    if s["source"] == "static" and not s.get("path"):
+        raise ValueError("slot static {} requiere path".format(sid))
+    if s["source"] == "dynamic":
+        if s.get("provider") not in _PROVIDERS:
+            raise ValueError("slot dynamic {} provider invalido: {!r}"
+                             .format(sid, s.get("provider")))
+    comp = s.get("compaction", "none")
+    if comp not in _COMPACTIONS:
+        raise ValueError("slot {} compaction invalida: {!r}".format(sid, comp))
+
+
+def _validate_slot_limits(s):
+    for key in ("max_tokens", "min_tokens"):
+        if key in s and (not isinstance(s[key], int)
+                         or isinstance(s[key], bool) or s[key] < 0):
+            raise ValueError("slot {} {} debe ser entero >= 0".format(s["id"], key))
+
+
+def _validate_contract(contract):
+    """Lanza ValueError con causa exacta ante contrato invalido."""
+    if not isinstance(contract, dict):
+        raise ValueError("contract debe ser un objeto (dict)")
+    _validate_budget(contract.get("budget"))
     slots = contract.get("slots")
     if not isinstance(slots, list) or not slots:
         raise ValueError("slots debe ser lista no vacia")
     seen_ids = set()
     for s in slots:
-        if not isinstance(s, dict):
-            raise ValueError("slot debe ser objeto")
-        if "id" not in s or not s["id"]:
-            raise ValueError("slot sin id (o id vacio)")
-        sid = s["id"]
-        if sid in seen_ids:
-            raise ValueError("id de slot duplicado: {}".format(sid))
-        seen_ids.add(sid)
-        if "source" not in s:
-            raise ValueError("slot {} sin source".format(sid))
-        if s["source"] not in _SOURCES:
-            raise ValueError(
-                "slot {} source invalido: {!r}".format(sid, s["source"]))
-        if "priority" not in s or not isinstance(s["priority"], int) \
-                or isinstance(s["priority"], bool):
-            raise ValueError(
-                "slot {} requiere priority entera".format(sid))
-        if s["source"] == "static" and not s.get("path"):
-            raise ValueError("slot static {} requiere path".format(sid))
-        if s["source"] == "dynamic":
-            if s.get("provider") not in _PROVIDERS:
-                raise ValueError(
-                    "slot dynamic {} provider invalido: {!r}"
-                    .format(sid, s.get("provider")))
-        comp = s.get("compaction", "none")
-        if comp not in _COMPACTIONS:
-            raise ValueError(
-                "slot {} compaction invalida: {!r}".format(sid, comp))
-        if "max_tokens" in s and (not isinstance(s["max_tokens"], int)
-                                  or isinstance(s["max_tokens"], bool)
-                                  or s["max_tokens"] < 0):
-            raise ValueError(
-                "slot {} max_tokens debe ser entero >= 0".format(sid))
-        if "min_tokens" in s and (not isinstance(s["min_tokens"], int)
-                                  or isinstance(s["min_tokens"], bool)
-                                  or s["min_tokens"] < 0):
-            raise ValueError(
-                "slot {} min_tokens debe ser entero >= 0".format(sid))
+        _validate_slot_identity(s, seen_ids)
+        _validate_slot_source(s)
+        _validate_slot_limits(s)
 
 
 # ---------------------------------------------------------------------------
@@ -274,15 +283,11 @@ def _assemble_okf_nodes(base_dir, task, cap, comp, chars_per_token):
                 parts.append(compacted)
                 used += separator_tokens + _tokens(compacted, chars_per_token)
                 cut_id = node_id
-                for _, _, rest_rel in scored_rels[idx + 1:]:
-                    omitted_ids.append(
-                        os.path.splitext(os.path.basename(rest_rel))[0])
             else:
                 # Sin compaction o sin presupuesto: este y el resto se omiten
                 omitted_ids.append(node_id)
-                for _, _, rest_rel in scored_rels[idx + 1:]:
-                    omitted_ids.append(
-                        os.path.splitext(os.path.basename(rest_rel))[0])
+            for _, _, rest_rel in scored_rels[idx + 1:]:
+                omitted_ids.append(os.path.splitext(os.path.basename(rest_rel))[0])
             break
 
     raw = "\n\n".join(parts) if parts else ""
@@ -415,6 +420,102 @@ def _regex_deny(context, patterns):
 # assemble
 # ---------------------------------------------------------------------------
 
+def _dynamic_slot(slot, base_dir, task, cap, chars_per_token):
+    if slot["provider"] == "okf_index":
+        return _read_file(base_dir, "knowledge/index.md"), {}
+    if slot["provider"] == "okf_nodes":
+        result = _assemble_okf_nodes(base_dir, task, cap,
+                                     slot.get("compaction", "none"), chars_per_token)
+        metadata = {key: result[key] for key in ("selected", "cut", "omitted_nodes")
+                    if result[key] is not None}
+        return result["raw"], metadata
+    return "", {}
+
+
+def _slot_raw(slot, base_dir, task, cap, chars_per_token):
+    raw, metadata = "", {}
+    try:
+        if slot["source"] == "static":
+            raw = _read_file(base_dir, slot["path"])
+        elif slot["source"] == "dynamic":
+            raw, metadata = _dynamic_slot(slot, base_dir, task, cap, chars_per_token)
+        elif slot["source"] == "runtime":
+            raw = task
+    except OSError as e:
+        raise OSError("slot {} no se pudo leer: {}".format(slot["id"], e)) from e
+    return raw, metadata
+
+
+def _slot_content(raw, cap, min_tokens, comp, chars_per_token):
+    if cap <= 0 or (min_tokens and cap < min_tokens):
+        return None
+    if _tokens(raw, chars_per_token) <= cap:
+        return raw
+    if comp == "none":
+        return None
+    return _compact(raw, cap, comp, chars_per_token)
+
+
+def _assemble_slot(slot, task, base_dir, cap, chars_per_token):
+    sid = slot["id"]
+    comp = slot.get("compaction", "none")
+    min_tokens = slot.get("min_tokens", 0)
+    do_sign = bool(slot.get("sign"))
+    report = {"id": sid, "priority": slot["priority"], "status": "omitted",
+              "tokens": 0, "compaction": comp}
+    raw, metadata = _slot_raw(slot, base_dir, task, cap, chars_per_token)
+    report.update(metadata)
+    content = _slot_content(raw, cap, min_tokens, comp, chars_per_token)
+    if content is not None:
+        report["status"] = "included"
+        report["tokens"] = _tokens(content, chars_per_token)
+        if do_sign:
+            report["sign"] = _sha12(content)
+    return report, content
+
+
+def _assemble_slots(slots, task, base_dir, available, chars_per_token):
+    used, slot_reports, sections = 0, [], []
+    for slot in slots:
+        slot_max = slot.get("max_tokens")
+        slot_cap = slot_max if isinstance(slot_max, int) else available
+        cap = min(slot_cap, available - used)
+        report, content = _assemble_slot(slot, task, base_dir, cap, chars_per_token)
+        if content is not None:
+            used += report["tokens"]
+            sections.append("### slot: {}\n{}".format(slot["id"], content))
+        slot_reports.append(report)
+    return slot_reports, "\n\n".join(sections), used
+
+
+def _guardrail_config(contract):
+    cfg = contract.get("guardrails", {}) or {}
+    regex_cfg, ref_cfg = cfg.get("regex_deny"), cfg.get("reference_check")
+    configured = []
+    if regex_cfg is not None:
+        configured.append("regex_deny")
+    if ref_cfg is not None:
+        configured.append("reference_check")
+    return regex_cfg, ref_cfg, configured
+
+
+def _guardrail_findings(regex_cfg, ref_cfg, base_dir, task, context):
+    findings = []
+    if ref_cfg is not None:
+        for finding in _reference_check(base_dir, task):
+            findings.append("reference_check: " + finding)
+    if regex_cfg is not None:
+        patterns = regex_cfg.get("patterns", [])
+        on_fail = regex_cfg.get("on_fail", "abort")
+        hit = _regex_deny(context, patterns) if patterns else None
+        if hit is not None:
+            finding = "regex_deny: patron matcheado: {!r}".format(hit)
+            findings.append(finding)
+            if on_fail == "abort":
+                return findings, finding
+    return findings, None
+
+
 def assemble(contract, task, base_dir):
     """Ensambla el contexto.
 
@@ -439,126 +540,16 @@ def assemble(contract, task, base_dir):
                    key=lambda kv: (kv[1]["priority"], kv[0]))
     slots = [kv[1] for kv in slots]
 
-    guardrails_cfg = contract.get("guardrails", {}) or {}
-    regex_cfg = guardrails_cfg.get("regex_deny")
-    ref_cfg = guardrails_cfg.get("reference_check")
-
-    # guardrails configurados, en orden fijo (regex_deny, reference_check).
-    # El reporte lista SOLO estos: un guardrail ausente del contrato no se
-    # menciona en el reporte.
-    configured = []
-    if regex_cfg is not None:
-        configured.append("regex_deny")
-    if ref_cfg is not None:
-        configured.append("reference_check")
-
-    used = 0
-    slot_reports = []
-    sections = []
-
-    for s in slots:
-        sid = s["id"]
-        comp = s.get("compaction", "none")
-        slot_max = s.get("max_tokens")
-        min_tokens = s.get("min_tokens", 0)
-        do_sign = bool(s.get("sign"))
-        report = {
-            "id": sid,
-            "priority": s["priority"],
-            "status": "omitted",
-            "tokens": 0,
-            "compaction": comp,
-        }
-
-        # tope de tokens para este slot
-        slot_cap = slot_max if isinstance(slot_max, int) else available
-        remaining = available - used
-        cap = min(slot_cap, remaining)
-
-        # obtener contenido crudo segun source
-        raw = ""
-        selected = None
-        cut_node = None
-        omitted_nodes = None
-        try:
-            if s["source"] == "static":
-                raw = _read_file(base_dir, s["path"])
-            elif s["source"] == "dynamic":
-                if s["provider"] == "okf_index":
-                    raw = _read_file(base_dir, "knowledge/index.md")
-                elif s["provider"] == "okf_nodes":
-                    result = _assemble_okf_nodes(base_dir, task, cap, comp,
-                                                 chars_per_token)
-                    raw = result["raw"]
-                    selected = result["selected"]
-                    cut_node = result["cut"]
-                    omitted_nodes = result["omitted_nodes"]
-            elif s["source"] == "runtime":
-                raw = task
-        except OSError as e:
-            raise OSError("slot {} no se pudo leer: {}".format(sid, e)) \
-                from e
-
-        if selected is not None:
-            report["selected"] = selected
-        if cut_node is not None:
-            report["cut"] = cut_node
-        if omitted_nodes is not None:
-            report["omitted_nodes"] = omitted_nodes
-
-        # decidir inclusion
-        if cap <= 0:
-            pass  # omitido
-        elif min_tokens and cap < min_tokens:
-            pass  # por debajo del piso
-        else:
-            raw_tokens = _tokens(raw, chars_per_token)
-            if raw_tokens <= cap:
-                content = raw
-            else:
-                if comp == "none":
-                    content = None  # no se recorta -> no cabe
-                else:
-                    content = _compact(raw, cap, comp, chars_per_token)
-            if content is not None:
-                report["status"] = "included"
-                report["tokens"] = _tokens(content, chars_per_token)
-                if do_sign:
-                    report["sign"] = _sha12(content)
-                used += report["tokens"]
-                sections.append("### slot: {}\n{}".format(sid, content))
-
-        slot_reports.append(report)
-
-    # contexto final
-    context = "\n\n".join(sections)
-
-    # guardrails
-    findings = []
-    # reference_check (report, no aborta)
-    if ref_cfg is not None:
-        for f in _reference_check(base_dir, task):
-            findings.append("reference_check: " + f)
-
-    # regex_deny sobre el contexto ensamblado
-    if regex_cfg is not None:
-        patterns = regex_cfg.get("patterns", [])
-        on_fail = regex_cfg.get("on_fail", "abort")
-        hit = _regex_deny(context, patterns) if patterns else None
-        if hit is not None:
-            finding = "regex_deny: patron matcheado: {!r}".format(hit)
-            findings.append(finding)
-            if on_fail == "abort":
-                result = _build_result(slot_reports, context, used, available,
-                                       max_tokens, output_reserve,
-                                       findings, abort=True,
-                                       configured=configured)
-                raise GuardrailAbort(result, finding)
-            # on_fail != abort: solo reporta (no aborta)
-
-    return _build_result(slot_reports, context, used, available,
-                         max_tokens, output_reserve, findings, abort=False,
-                         configured=configured)
+    regex_cfg, ref_cfg, configured = _guardrail_config(contract)
+    slot_reports, context, used = _assemble_slots(slots, task, base_dir, available,
+                                                  chars_per_token)
+    findings, abort_finding = _guardrail_findings(regex_cfg, ref_cfg, base_dir, task, context)
+    result = _build_result(slot_reports, context, used, available, max_tokens,
+                           output_reserve, findings, abort=abort_finding is not None,
+                           configured=configured)
+    if abort_finding is not None:
+        raise GuardrailAbort(result, abort_finding)
+    return result
 
 
 def _build_result(slot_reports, context, used, available, max_tokens,
