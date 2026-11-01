@@ -201,16 +201,20 @@ class TestInitProject(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         after = _files(self.repo)
         self.assertEqual(sentinel.read_bytes(), b"preserve dependency content\n")
-        self.assertEqual(before - after, set(MANIFEST),
+        optional_report = {"docs/reports/CONTRACT-34-REPORT.md"} & before
+        self.assertEqual(before - after, set(MANIFEST) | optional_report,
                          "se elimino algo distinto al manifiesto: {}".format(
                              before - after))
         self.assertEqual(after - before, set(),
                          "apply creo archivos: {}".format(after - before))
         self.assertEqual(len([p for p in HISTORICAL_ARTIFACTS
-                              if p.startswith("specs/")]), 33)
+                              if p.startswith("specs/")]), 34)
+        self.assertIn("specs/CONTRACT-34-kdd-governance-closure.md", MANIFEST)
         self.assertEqual(len([p for p in HISTORICAL_ARTIFACTS
-                              if p.startswith("docs/reports/")]), 33)
-        self.assertTrue(set(HISTORICAL_ARTIFACTS).issubset(MANIFEST))
+                              if p.startswith("docs/reports/")]),
+                         33 + int((Path(ROOT) / "docs/reports/CONTRACT-34-REPORT.md").is_file()))
+        self.assertTrue(set(HISTORICAL_ARTIFACTS).issubset(
+            set(MANIFEST) | {"docs/reports/CONTRACT-34-REPORT.md"}))
         self.assertTrue(set(KDD_ONLY_REPORTS).issubset(MANIFEST))
         for rel in MANIFEST:
             self.assertFalse(os.path.isfile(os.path.join(self.repo, rel)),
