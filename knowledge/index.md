@@ -262,3 +262,5 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Fixture de perimetro con base aislada](contracts/perimeter-fixture-snapshot.md)
 
 - [Auditoria de importaciones con base integrada](contracts/task-import-ancestry.md)
+
+- [Lecturas agrupadas del baseline](contracts/baseline-git-batch.md)
