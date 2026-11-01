@@ -253,6 +253,153 @@ def _remember_git_commits(root, revisions):
             cache[_key(root, 'commit', revision)] = revision
 
 
+def _raw_object_record(output, offset, specification):
+    end = output.find(b'\n', offset)
+    if end < 0:
+        raise TaskError('TASK_GIT: truncated object header')
+    header = output[offset:end]
+    if header == (specification + ' missing').encode('utf-8'):
+        return None, end + 1
+    fields = header.split()
+    if (len(fields) != 3 or not valid_sha(fields[0].decode('ascii'))
+            or not fields[2].isdigit()):
+        raise TaskError('TASK_GIT: invalid object header')
+    start, size = end + 1, int(fields[2])
+    if output[start + size:start + size + 1] != b'\n':
+        raise TaskError('TASK_GIT: truncated object content')
+    record = fields[1], fields[0].decode('ascii'), output[start:start + size]
+    return record, start + size + 1
+
+
+def _raw_objects(root, specifications):
+    if not specifications:
+        return {}
+    try:
+        result = subprocess.run(['git', '-C', str(root), 'cat-file', '--batch'],
+            input=('\n'.join(specifications) + '\n').encode('utf-8'),
+            capture_output=True, timeout=30, check=False)
+        if result.returncode:
+            raise TaskError('TASK_GIT: object batch failed')
+        offset, records = 0, {}
+        for specification in specifications:
+            record, offset = _raw_object_record(result.stdout, offset, specification)
+            records[specification] = record
+        if offset != len(result.stdout):
+            raise TaskError('TASK_GIT: unexpected object batch output')
+        return records
+    except (OSError, UnicodeError, subprocess.SubprocessError) as error:
+        raise TaskError('TASK_GIT: ' + str(error)) from error
+
+
+def _flat_task_tree(record, width):
+    if record is None:
+        return {}
+    kind, _, content = record
+    if kind != b'tree':
+        raise ValueError('task inventory is not a tree')
+    offset, entries = 0, {}
+    while offset < len(content):
+        end = content.find(b'\0', offset)
+        if end < 0 or end + 1 + width > len(content):
+            raise ValueError('truncated tree entry')
+        mode, separator, raw_name = content[offset:end].partition(b' ')
+        name = raw_name.decode('utf-8')
+        if (not separator or mode not in (b'100644', b'100755', b'120000')
+                or '/' in name or not _cacheable_git_path(name) or name in entries):
+            raise ValueError('unsupported task tree entry')
+        entries[name] = content[end + 1:end + 1 + width].hex()
+        offset = end + 1 + width
+    return {'knowledge/tasks/' + name: oid for name, oid in entries.items()}
+
+
+def _task_inventory_values(root, inventories, cache):
+    wanted = {oid for entries in inventories.values() for name, oid in entries.items()
+              if name.endswith('.md') and PurePosixPath(name).name != 'index.md'}
+    missing = sorted(oid for oid in wanted if _key(root, 'blob-object', oid) not in cache)
+    records = _raw_objects(root, missing)
+    values = {}
+    for oid in wanted:
+        key = _key(root, 'blob-object', oid)
+        if key in cache:
+            values[oid] = cache[key]
+            continue
+        record = records[oid]
+        if record is None or record[:2] != (b'blob', oid):
+            raise ValueError('task entry is not an available blob')
+        values[oid] = record[2].decode('utf-8').replace('\r\n', '\n').replace('\r', '\n')
+    return values
+
+
+def _store_task_inventories(root, inventories, values, cache):
+    for oid, value in values.items():
+        cache[_key(root, 'blob-object', oid)] = value
+    for revision, entries in inventories.items():
+        cache[_key(root, 'paths', revision, 'knowledge/tasks')] = tuple(sorted(entries))
+        for name, oid in entries.items():
+            cache[_key(root, 'blob-path', revision, name)] = oid
+
+
+def _prefetch_task_nodes(root, revisions):
+    cache = _OBJECT_CACHE.get()
+    if cache is None:
+        return False
+    width = {'sha1': 20, 'sha256': 32}.get(cache.get(_key(root, 'object-format', '')))
+    if width is None or any(cache.get(_key(root, 'commit', ref)) != ref for ref in revisions):
+        return False
+    pending = list(dict.fromkeys(ref for ref in revisions
+                   if _key(root, 'paths', ref, 'knowledge/tasks') not in cache))
+    if not pending:
+        return True
+    try:
+        specifications = [ref + ':knowledge/tasks' for ref in pending]
+        records = _raw_objects(root, specifications)
+        inventories = {ref: _flat_task_tree(records[spec], width)
+                       for ref, spec in zip(pending, specifications)}
+        values = _task_inventory_values(root, inventories, cache)
+    except (TaskError, ValueError, UnicodeError):
+        # Unsupported or invalid batches leave every original serial check intact.
+        return False
+    _store_task_inventories(root, inventories, values, cache)
+    return True
+
+
+def _history_metadata_groups(root, revisions):
+    groups = {}
+    for revision in revisions:
+        try:
+            tasks = read_tasks(root, revision)
+        except (TaskError, ValueError, KeyError):
+            continue
+        for task in tasks.values():
+            if task['status'] == 'backlog':
+                continue
+            tested = task['verified_ref'] if task['status'] == 'done' else revision
+            identity = task['approved_ref'], task['contract']
+            groups.setdefault(identity, set()).add(tested)
+    return groups
+
+
+def _prefetch_history_contract(root, identity, revisions):
+    approved, contract = identity
+    references = list(dict.fromkeys([approved, *sorted(revisions)]))
+    if not all(_native_oid(root, ref) for ref in references):
+        return False
+    if any(commit_sha(root, ref) != ref for ref in references):
+        return False
+    metadata, _ = parse_frontmatter(blob(root, approved, contract))
+    names = contract, metadata['tests'], metadata['target']
+    return _prefetch_metadata(root, references, names)
+
+
+def _prefetch_history_metadata(root, revisions):
+    for identity, tested in _history_metadata_groups(root, revisions).items():
+        try:
+            _prefetch_history_contract(root, identity, tested)
+        except (TaskError, ValueError, TypeError, KeyError):
+            # Fetching bytes never approves a contract or replaces its validation.
+            continue
+
+
 def ancestor(root, before, after):
     cache = _OBJECT_CACHE.get()
     key = _ancestor_key(root, before, after, cache)
