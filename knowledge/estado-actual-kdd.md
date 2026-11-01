@@ -13,6 +13,16 @@ Actualmente dispone de una plantilla inicializable, validadores, una CLI de
 tareas y KDD-Board integrados con Git. El flujo se ha comprobado desde un
 proyecto vacío hasta su calidad de producto en CI.
 
+## Actualizacion posterior del 1 de noviembre de 2026
+
+El [PR 158](https://github.com/MauricioPerera/KDD/pull/158) se integro en
+`main` mediante `292f0e53aa50c7836300fafb389baa45dc176f08`, con KG-1 a KG-5
+y sus artefactos de cierre. Al preparar esta actualizacion, el
+[CI de main](https://github.com/MauricioPerera/KDD/actions/runs/41330505969)
+estaba en curso; ese enlace no afirma un resultado futuro. La remediacion de
+bootstrap, guard y complejidad aun vive en una rama de trabajo independiente.
+La evidencia del corte anterior conserva su SHA y sus resultados originales.
+
 ## Corte verificado del 1 de noviembre de 2026
 
 El `main` auditado `f1faf516b0622bd5d91ffb7321580127530aa948` integra
@@ -24,9 +34,8 @@ de Pages paso y el sitio publico se comprobo. El total incluye los SKIP y no
 mide cobertura de codigo.
 
 La integracion de gobernanza [PR 158](https://github.com/MauricioPerera/KDD/pull/158)
-y la remediacion [de auditoria](audit-p1-p2-remediation.md) son candidatos:
-no se consideran parte de main ni validados por su CI hasta que se integren
-con evidencia propia. El corte siguiente conserva su contexto historico.
+y la remediacion [de auditoria](audit-p1-p2-remediation.md) eran candidatos
+en ese corte; el PR 158 se integro despues, segun la actualizacion superior. El corte siguiente conserva su contexto historico.
 
 ## Corte verificado del 31 de octubre de 2026
 
