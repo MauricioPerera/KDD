@@ -158,6 +158,10 @@ SPRINT_EXAMPLES = (
 )
 KDD_ONLY_SPECS = ("specs/CONTRACT-34-kdd-governance-closure.md",)
 MANIFEST += HISTORY_SPECS + HISTORY_REPORTS + KDD_ONLY_REPORTS + SPRINT_EXAMPLES + KDD_ONLY_SPECS
+OPTIONAL_KDD_CLOSURE = (
+    "docs/reports/CONTRACT-34-REPORT.md",
+    "docs/reports/CONTRACT-34-EVIDENCE.json",
+)
 
 _LINK_RE = re.compile(r"\]\(([^)]+)\)")
 _LIST_RE = re.compile(r"^\s*[-+*]\s+")
@@ -411,7 +415,7 @@ def init_project(repo_dir, apply, name, repository=None) -> dict:
         raise ValueError("--repository debe tener formato OWNER/REPO")
     if apply and not repository:
         raise ValueError("--apply requiere --repository OWNER/REPO")
-    with filesystem_transaction(repo, (*MANIFEST, *REQUIRED_AFTER_DELETE)):
+    with filesystem_transaction(repo, (*MANIFEST, *REQUIRED_AFTER_DELETE, *OPTIONAL_KDD_CLOSURE)):
         return _initialize(repo, apply, name, repository)
 
 
@@ -427,13 +431,14 @@ def _initialize(repo, apply, name, repository):
 
     quality_ci = _product_quality_ci(repo)
     example_evidence = _example_scan_paths(repo)
-    removed = list(MANIFEST)
+    removed = list(MANIFEST) + [rel for rel in OPTIONAL_KDD_CLOSURE
+                                if (repo / rel).is_file()]
     index_rewritten = False
     readme_renamed = False
 
     with filesystem_transaction(repo, example_evidence):
         if apply:
-            for rel in (*MANIFEST, *example_evidence):
+            for rel in (*removed, *example_evidence):
                 (repo / rel).unlink()
             _rewrite_index(repo)
             index_rewritten = True

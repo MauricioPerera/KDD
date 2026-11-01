@@ -35,7 +35,7 @@ Este documento no declara la implementacion terminada.
   aplicables y contramuestras aprobadas segun riesgo, con controles sanos,
   defectos exactos y estados detectado/superviviente/inconcluso separados.
   La fuerza semantica del conjunto conserva revision humana.
-- [ ] **KG-4: restricciones con alcance declarado.** Cada restriccion y budget
+- [x] **KG-4: restricciones con alcance declarado.** Cada restriccion y budget
   requerido identifica un mecanismo efectivo y evidencia, o bloquea por falta
   de soporte. Deteccion de cambios Git no se presenta como aislamiento.
 - [ ] **KG-5: contexto y aprendizaje trazables.** Registrar identidades y hashes
@@ -70,6 +70,20 @@ pasa 141 contratos y dos suites de 1771 casos en cada sistema, con el mismo
 inventario, cero fallos, errores u omisiones de fixture. Conserva 10 SKIP
 normales en Ubuntu y 9 en Windows por pasada. El board pasa en ambos sistemas.
 La evaluacion independiente sigue pendiente; no se afirma generalizacion.
+
+KG-4 esta verificado en e202760c01b7d5d1978f1419859f2919f586a838 del
+[PR 152](https://github.com/MauricioPerera/KDD/pull/152), apilado sobre KG-3 sin
+fusionar. El [CI 41256786660](https://github.com/MauricioPerera/KDD/actions/runs/41256786660)
+pasa 143 contratos y dos suites de 1796 casos por sistema, con inventario
+identico, cero fallos, errores u omisiones de fixture. Conserva 10 SKIP normales
+en Ubuntu y 9 en Windows por pasada; el board pasa en ambos sistemas. Esta
+condicion se comprobo antes de modificar las tres fuentes autorizadas de KG-5.
+
+KG-5 tiene un borrador de implementacion autorizado por d10ae37136da409df99c5010986efad78f878df6
+y su extension exacta 2eb28774b7043ff043ea33d141254604603a66db. No esta verificado:
+la correccion exacta del fixture de fallback fue aprobada en
+8dad3baf4a1ba1ad92fd11e5705b3d2ef36394bb; falta completar el CI propio dual-OS 2x. Los hashes y enlaces mecanicos no acreditan comprension ni
+ejecucion de los tests del ledger.
 
 ## Primera entrega: alcance aprobado frente a cambios propios
 
