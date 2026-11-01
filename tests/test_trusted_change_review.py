@@ -106,6 +106,18 @@ class TrustedChangeReview(unittest.TestCase):
         result = self.check(json.dumps(self.review()))
         self.assertTrue(any('oracle differs' in item for item in result), result)
 
+    def test_unrelated_candidate_does_not_consume_another_reviews_approval(self):
+        review = json.dumps(self.review())
+        self.git('checkout', '--detach', self.base)
+        self.write('unrelated.txt', 'ordinary project change\n')
+        other = self.commit()
+        self.assertEqual(guard.check(self.base, other, self.base), [])
+        self.assertEqual(self.check(review, other), [])
+        self.write('.github/workflows/another.yml', 'name: not reviewed\n')
+        protected = self.commit()
+        findings = self.check(review, protected)
+        self.assertTrue(any('trusted gate file changed' in item for item in findings), findings)
+
     def test_review_can_cover_a_real_deletion_without_allowing_extra_paths(self):
         (self.root / '.github/workflows/validate.yml').unlink()
         self.candidate = self.commit()

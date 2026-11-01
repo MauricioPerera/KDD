@@ -12,7 +12,7 @@ budget:
   cyclomatic_max: 20
   nesting_max: 4
 tests: tests/test_trusted_change_review.py
-tests_sha256: '1593f0a9721183a1cb96d26e202fd1ac11141538ec52aa135bc9f29171306ae1'
+tests_sha256: '69636e627c3c4f4e39084796863342dbee5de16558d51c789f074e3879317309'
 touch_only: ['scripts/guard_pr_baseline.py', '.github/workflows/trusted-pr-gate.yml']
 deps_allowed: ['stdlib']
 forbids: ['llm']
@@ -27,12 +27,15 @@ El guard acepta JSON externo opcional `reviewed_changes`; el workflow de base
 lo recibe de `KDD_TRUSTED_CHANGE_REVIEW`, una variable administrada fuera del PR. La revision incluye
 schema_version 1, base_commit, candidate_tree y files con path, before y after;
 cada lado es null o un objeto mode/oid Git. La API devuelve hallazgos; la CLI
-falla ante datos invalidos. Ausencia equivale a la politica estricta anterior.
+falla ante datos invalidos aplicables. Ausencia equivale a la politica estricta anterior.
 
 ## Invariants
 - La revision identifica base y arbol candidato exactos, asi como el conjunto
   completo de rutas protegidas y sus modos y blobs antes/despues. Rechazar
   duplicados JSON, campos extra, entradas repetidas, aliases y OIDs invalidos.
+- Si un candidato no cambia rutas protegidas, ignorar la revision de otro
+  candidato; si cambia rutas protegidas, ausencia, datos invalidos o revision
+  ajena bloquean. La aprobacion externa no interfiere con PR ordinarios.
 - El guard usa solo el codigo de base y objetos Git; no ejecuta ni hace checkout
   del candidato. No aceptar revisiones provenientes del arbol del PR.
 - La seleccion del baseline de contratos y oraculos sigue siendo independiente;
