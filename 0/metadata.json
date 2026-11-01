@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.12.2",
+  "checkpoint_id": "01M6CAYJEPMVG9485445DHY1YS",
+  "session_id": "01a180ab-69ad-7543-badc-3db1a8c05e2f",
+  "strategy": "manual-commit",
+  "created_at": "2026-11-01T19:56:36.8651064Z",
+  "branch": "codex/traceability-batch",
+  "checkpoints_count": 12,
+  "save_step_count": 13,
+  "files_touched": [
+    "knowledge/estado-actual-kdd.md",
+    "knowledge/index.md"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6.1-sol",
+  "turn_id": "aacd89eef78f",
+  "checkpoint_transcript_start": 4362,
+  "transcript_lines_at_start": 4362,
+  "compact_transcript_start": 509,
+  "redaction": {
+    "replacements": 7712,
+    "layers": {
+      "betterleaks": 3,
+      "connection_string": 0,
+      "credential_key": 0,
+      "credential_value": 30,
+      "credentialed_uri": 3,
+      "entropy": 7698,
+      "key_context": 0,
+      "provider_token": 0,
+      "shell_stdin": 0
+    }
+  },
+  "session_metrics": {
+    "turn_count": 22
+  }
+}
