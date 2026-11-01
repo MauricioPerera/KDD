@@ -35,17 +35,17 @@ la coherencia del conocimiento y la pertinencia de reglas siguen en revision.
 
 ## Criterios de aceptación
 
-- [ ] [AC-1] `python -m unittest tests.test_task_finish_perimeter` exit 0; un cambio
+- [x] [AC-1] `python -m unittest tests.test_task_finish_perimeter` exit 0; un cambio
   ajeno se rechaza antes del oraculo sin commit de cierre, con Git real.
-- [ ] [AC-2] `python -m unittest tests.test_task_perimeter_history` exit 0; se rechazan
+- [x] [AC-2] `python -m unittest tests.test_task_perimeter_history` exit 0; se rechazan
   cierres ajenos aun con recibos omitidos o falsificados, y se preservan los validos.
-- [ ] [AC-3] `python scripts/validate_contracts.py knowledge/contracts` y
+- [x] [AC-3] `python scripts/validate_contracts.py knowledge/contracts` y
   `python scripts/validate_okf.py knowledge` exit 0, con nuevos sellos y enlaces.
-- [ ] [AC-4] Cada criterio KG-2 a KG-5 tiene contratos, oraculos aprobados y comando
+- [x] [AC-4] Cada criterio KG-2 a KG-5 tiene contratos, oraculos aprobados y comando
   real exitoso antes de marcar esta casilla; definir el plan no satisface el criterio.
-- [ ] [AC-5] `python scripts/validate_budgets.py knowledge/contracts --contract task-git-complexity`
+- [x] [AC-5] `python scripts/validate_budgets.py knowledge/contracts --contract task-git-complexity`
   exit 0; conservar oraculos anteriores, firmas, presupuestos y fronteras vigentes.
-- [ ] [CI-1] CI del candidato en Ubuntu/Windows con dos pasadas completas, controles
+- [x] [CI-1] CI del candidato en Ubuntu/Windows con dos pasadas completas, controles
   existentes, evidencia por criterio y sin sustitucion de omisiones por PASS.
 
 ## Restricciones
@@ -61,8 +61,8 @@ la coherencia del conocimiento y la pertinencia de reglas siguen en revision.
 
 ## Checklist antes de delegar
 
-- [ ] RECON de los comandos y contratos relevantes ejecutado y conservado.
-- [ ] Oraculos nuevos sellados, fase roja y controles positivos conservados.
-- [ ] Baseline concreto revisado por una persona antes de implementar.
-- [ ] Perimetros y condiciones de aborto fijados por contrato.
-- [ ] Contexto y restricciones proporcionados con identidades auditables.
+- [x] RECON de los comandos y contratos relevantes ejecutado y conservado.
+- [x] Oraculos nuevos sellados, fase roja y controles positivos conservados.
+- [x] Baseline concreto revisado por una persona antes de implementar.
+- [x] Perimetros y condiciones de aborto fijados por contrato.
+- [x] Contexto y restricciones proporcionados con identidades auditables.
