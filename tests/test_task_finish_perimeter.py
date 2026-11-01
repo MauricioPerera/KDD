@@ -8,16 +8,52 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+import threading
 import unittest
 
+from tests.test_fixture_preparation import configure_git
 from tests.test_generated_task_evidence import TaskProject
 
 
 class PerimeterProject(TaskProject):
+    _fixture_lock = threading.Lock()
+
+    @classmethod
+    def _fixture(cls):
+        with PerimeterProject._fixture_lock:
+            cached = cls.__dict__.get('_fixture_template')
+            if cached is not None:
+                return cached
+            area = tempfile.TemporaryDirectory(prefix='kdd-perimeter-base-')
+            try:
+                seed = object.__new__(cls)
+                TaskProject.__init__(seed, Path(area.name) / 'product')
+                seed.write('auxiliary.txt', 'existing unrelated product file\n')
+                seed.ref = seed.commit('Synthetic reviewed baseline with auxiliary file')
+                cached = (area, seed.root, seed.ref)
+                cls._fixture_template = cached
+                return cached
+            except BaseException:
+                area.cleanup()
+                raise
+
     def __init__(self, root):
-        super().__init__(root)
-        self.write('auxiliary.txt', 'existing unrelated product file\n')
-        self.ref = self.commit('Synthetic reviewed baseline with auxiliary file')
+        path = Path(root)
+        if path.exists() and any(path.iterdir()):
+            super().__init__(root)
+            self.write('auxiliary.txt', 'existing unrelated product file\n')
+            self.ref = self.commit('Synthetic reviewed baseline with auxiliary file')
+            return
+        path.parent.mkdir(parents=True, exist_ok=True)
+        _area, source, reference = self._fixture()
+        super().__init__(root, initialize=False)
+        self.command(['git', 'clone', '-q', '--shared', str(source), str(self.root)],
+                     cwd=self.root.parent)
+        configure_git(self.root, {'user.name': 'Simulated fixture reviewer',
+            'user.email': 'fixture@example.invalid', 'maintenance.autoDetach': 'false',
+            'gc.autoDetach': 'false', 'core.autocrlf': 'false', 'commit.gpgsign': 'false'},
+            ephemeral=True)
+        self.ref = reference
 
     @staticmethod
     def oracle(number):

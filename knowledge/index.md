@@ -258,3 +258,5 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Complejidad del validador de skills](contracts/skills-validator-complexity.md)
 
 - [Coste del fixture de trazabilidad](contracts/trace-fixture-setup-cost.md)
+
+- [Fixture de perimetro con base aislada](contracts/perimeter-fixture-snapshot.md)
