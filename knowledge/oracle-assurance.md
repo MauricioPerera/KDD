@@ -5,7 +5,7 @@ description: 'Estructura soportada, contramuestras exactas, controles sanos y ev
 tags: ['governance', 'quality', 'oracles', 'mutation']
 ---
 
-# KG-3: baseline aprobado e implementacion candidata
+# KG-3: candidato verificado en CI
 
 El [objetivo de gobierno](kdd-governance-closure.md) exige que los controles
 aplicables se ejecuten. La [matriz de operaciones](operation-controls.md)
@@ -15,9 +15,13 @@ ejecuta mutaciones al preparar o iniciar una tarea ni al leer historia.
 
 Baseline humano aprobado: 44695e90e0e55ec0b1549c8c58d31ad8d6a5d623.
 La implementacion candidata conserva todos los oraculos anteriores y los nuevos
-congelados. Su verificacion completa sigue pendiente del CI dual-OS 2x.
+congelados. La verificacion dual-OS 2x del candidato concluyo correctamente.
 Contratos: [atribucion](contracts/mutation-attribution.md) y
 [revision obligatoria de producto](contracts/quality-oracle-reviews.md).
+
+El [CI del candidato 9ab5014](https://github.com/MauricioPerera/KDD/actions/runs/41252212507)
+verifica 141 contratos y dos pasadas de 1771 casos por sistema, sin fallos,
+errores ni omisiones de fixture; conserva 10 SKIP Ubuntu y 9 Windows.
 
 ## Autoridad y compatibilidad
 

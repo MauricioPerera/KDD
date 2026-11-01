@@ -31,7 +31,7 @@ Este documento no declara la implementacion terminada.
   matriz obligatoria para ready, start, finish y aprobacion de producto.
   Las interfaces que realizan la misma operacion deben exigir los mismos
   controles; un control requerido ausente o no soportado bloquea esa operacion.
-- [ ] **KG-3: oraculos revisados y adversariales.** Exigir controles estructurales
+- [x] **KG-3: oraculos revisados y adversariales.** Exigir controles estructurales
   aplicables y contramuestras aprobadas segun riesgo, con controles sanos,
   defectos exactos y estados detectado/superviviente/inconcluso separados.
   La fuerza semantica del conjunto conserva revision humana.
@@ -61,6 +61,15 @@ inventario, sin fallos, errores u omisiones de fixture; conserva 10 SKIP en
 Ubuntu y 9 en Windows por pasada. El primer intento Windows agoto 600s en
 init-project y se conserva; la repeticion paso sin cambiar codigo, oraculos,
 workflows o limites. La investigacion aislada de rendimiento no se integro.
+
+
+KG-3 esta verificado en 9ab50143ba3f3a8db768d5e1e4324b523eb02d39 del
+[PR 151](https://github.com/MauricioPerera/KDD/pull/151), apilado sobre KG-2 sin
+fusionar. El [CI 41252212507](https://github.com/MauricioPerera/KDD/actions/runs/41252212507)
+pasa 141 contratos y dos suites de 1771 casos en cada sistema, con el mismo
+inventario, cero fallos, errores u omisiones de fixture. Conserva 10 SKIP
+normales en Ubuntu y 9 en Windows por pasada. El board pasa en ambos sistemas.
+La evaluacion independiente sigue pendiente; no se afirma generalizacion.
 
 ## Primera entrega: alcance aprobado frente a cambios propios
 
