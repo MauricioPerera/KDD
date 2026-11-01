@@ -4,8 +4,6 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
-**Contract 34 — KDD governance closure**: enforce reviewed task perimeters before done and historical audit, coherent operation controls, reviewed counterexamples, required restrictions with real coverage, and traceable context/learning. Scope, adequacy and meaning remain human decisions. See [the verified report](docs/reports/CONTRACT-34-REPORT.md).
-
 - Native contract commands can reserve an exclusive phase for init-project's
   nested suite, retaining its 600-second limit, every contract result, exact
   deduplication and the existing worker defaults for reusable callers. Native
