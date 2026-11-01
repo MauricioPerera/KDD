@@ -152,7 +152,7 @@ class ContextDeliveryManifest(unittest.TestCase):
         texts={'knowledge/a.md':'A'*40,'knowledge/b.md':'B'*100,'knowledge/c.md':'C'*80}
         for name,content in texts.items():(self.root/name).write_text(content,encoding='utf-8')
         self.policy['slots']=[{'id':'nodes','source':'dynamic','provider':'okf_nodes','priority':0,'max_tokens':25,'compaction':'truncate'}]
-        result=self.result()
+        result=ac.assemble(self.policy,'zzzz',str(self.root))
         rows={row['path']:row for row in self.manifest(result)['sources']}
         self.assertEqual(set(rows),set(texts))
         self.assertEqual([rows[name]['status'] for name in texts],['full','truncated','omitted'])
