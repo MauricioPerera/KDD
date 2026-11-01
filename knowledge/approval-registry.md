@@ -79,7 +79,9 @@ El guard con [revision exacta](contracts/trusted-ci-change-review.md) acepta,
 ademas del registro de baseline, JSON en la variable administrativa externa
 `KDD_TRUSTED_CHANGE_REVIEW`. No toma esa aprobacion del checkout ni del PR:
 la administracion de la variable es parte de la raiz de confianza. Sin ella
-mantiene el rechazo anterior. Se revisan base, arbol candidato y conjunto
+mantiene el rechazo anterior. Una revision de otra propuesta se ignora si el
+candidato no cambia archivos protegidos; los cambios protegidos exigen su
+propia revision exacta. Se revisan base, arbol candidato y conjunto
 completo de rutas protegidas con modos y OIDs Git anteriores y posteriores:
 
 ```json

@@ -160,7 +160,7 @@ def _protected_findings(paths, base, candidate, reviewed_changes):
     protected = {path for path in paths
                  if path in PROTECTED_FILES or path.startswith(PROTECTED_PREFIXES)}
     reviewed, findings = set(), []
-    if reviewed_changes:
+    if reviewed_changes and protected:
         try:
             reviewed = _reviewed_protected(reviewed_changes, base, candidate, protected)
         except (ValueError, UnicodeError) as exc:
