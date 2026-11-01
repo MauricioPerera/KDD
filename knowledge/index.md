@@ -254,3 +254,5 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Remediacion de perimetro, controles y CI](audit-p1-p2-remediation.md)
 - [Revision externa de CI confiable](contracts/trusted-ci-change-review.md)
 - [Perfil de suite post inicializacion](contracts/init-post-apply-profile.md)
+
+- [Complejidad del validador de skills](contracts/skills-validator-complexity.md)
