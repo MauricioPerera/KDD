@@ -250,3 +250,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 - [Discovery de Pages en PR con dependencias del despliegue](./pages-pr-deploy-parity.md)
 - [Reduccion de complejidad del validador OKF](contracts/validate-okf-complexity.md)
+
+- [Remediacion de perimetro, controles y CI](audit-p1-p2-remediation.md)
+- [Revision externa de CI confiable](contracts/trusted-ci-change-review.md)
+- [Perfil de suite post inicializacion](contracts/init-post-apply-profile.md)

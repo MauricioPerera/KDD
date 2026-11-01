@@ -24,8 +24,7 @@ la [frontera de procesos](ci-suite-processes.md).
 ## Interface
 Cambiar exclusivamente el default nativo de suite en Windows de cuatro a seis.
 Inputs explicitos prevalecen. Ubuntu conserva cuatro; callers y otros repos uno.
-Contratos conservan cuatro y bootstrap exclusivo con 600 s. La copia post-init
-conserva sus cuatro procesos explicitos. Dos pasos de suite identicos y consecutivos.
+Contratos conservan cuatro y bootstrap exclusivo con 600 s. La copia post-init usa el [perfil revisado](init-post-apply-profile.md). Dos pasos de suite identicos y consecutivos.
 ## Invariants
 Conservar cuatro jobs, nombres, matriz, permisos, pins, SDK, Board, inventarios,
 casos, aserciones y skips historicos. No ampliar limites ni cambiar el runtime.

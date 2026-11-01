@@ -13,6 +13,21 @@ Actualmente dispone de una plantilla inicializable, validadores, una CLI de
 tareas y KDD-Board integrados con Git. El flujo se ha comprobado desde un
 proyecto vacío hasta su calidad de producto en CI.
 
+## Corte verificado del 1 de noviembre de 2026
+
+El `main` auditado `f1faf516b0622bd5d91ffb7321580127530aa948` integra
+la compatibilidad de contexto v0.3, los contratos de grupo y la validacion
+previa de discovery de Pages. El [CI](https://github.com/MauricioPerera/KDD/actions/runs/41291672436)
+paso en Ubuntu y Windows con dos pasadas de 1791 IDs por sistema; cada pasada
+registro 10 SKIP en Ubuntu y 9 en Windows. El [despliegue](https://github.com/MauricioPerera/KDD/actions/runs/41294269554)
+de Pages paso y el sitio publico se comprobo. El total incluye los SKIP y no
+mide cobertura de codigo.
+
+La integracion de gobernanza [PR 158](https://github.com/MauricioPerera/KDD/pull/158)
+y la remediacion [de auditoria](audit-p1-p2-remediation.md) son candidatos:
+no se consideran parte de main ni validados por su CI hasta que se integren
+con evidencia propia. El corte siguiente conserva su contexto historico.
+
 ## Corte verificado del 31 de octubre de 2026
 
 Este corte distingue el resultado publicado de una mejora aun local. Los
