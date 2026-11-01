@@ -3,7 +3,7 @@
   "checkpoint_id": "01M6AXVM2YB89Y330C1DHMJ8TM",
   "strategy": "manual-commit",
   "branch": "codex/governance-main-integration",
-  "checkpoints_count": 13,
+  "checkpoints_count": 14,
   "files_touched": [
     "knowledge/index.md"
   ],
@@ -21,25 +21,31 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 6049674,
+    "input_tokens": 6054946,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 1400308096,
-    "output_tokens": 1130974,
-    "api_call_count": 5297,
-    "subagent_tokens_complete": true
+    "cache_read_tokens": 1401356928,
+    "output_tokens": 1135901,
+    "api_call_count": 5300
   },
   "redaction": {
-    "replacements": 48230,
+    "replacements": 48322,
     "layers": {
       "betterleaks": 49,
       "connection_string": 0,
       "credential_key": 0,
-      "credential_value": 156,
+      "credential_value": 206,
       "credentialed_uri": 3,
-      "entropy": 59936,
+      "entropy": 59978,
       "key_context": 0,
       "provider_token": 8,
       "shell_stdin": 0
