@@ -15,13 +15,16 @@ budget:
   lines_max: 120
   params_max: 5
 tests: tests/test_traceability_model.py
-tests_sha256: '8d884b9a439111f0255a6eb0837945c718e0baaeed03c1af6131f9c953125abe'
+tests_sha256: '4723985887fac0e2c82079813fcee687e65d327826845f02c44ccf9db3975d76'
 touch_only: ['scripts/traceability_model.py']
 deps_allowed: ['stdlib', 'validate_contracts']
 forbids: ['network', 'subprocess', 'llm']
 ---
 
 ## Intent
+
+El [perfil de fixture](trace-fixture-setup-cost.md) conserva el Git real y
+reduce los subprocess de configuracion local tras revision explicita.
 
 Aplicar el [modelo v1](../data_models/requirement-trace.md) a la
 [especificacion breve](../traceability-product-spec.md), sin inferencia semantica.

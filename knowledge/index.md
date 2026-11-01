@@ -256,3 +256,5 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Perfil de suite post inicializacion](contracts/init-post-apply-profile.md)
 
 - [Complejidad del validador de skills](contracts/skills-validator-complexity.md)
+
+- [Coste del fixture de trazabilidad](contracts/trace-fixture-setup-cost.md)
