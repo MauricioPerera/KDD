@@ -239,6 +239,20 @@ def _ancestor_key(root, before, after, cache):
     return None
 
 
+def _remember_git_commits(root, revisions):
+    """Remember only the commit column of successful typed Git walks."""
+    cache = _OBJECT_CACHE.get()
+    if cache is None:
+        return
+    width = {'sha1': 40, 'sha256': 64}.get(cache.get(_key(root, 'object-format', '')))
+    if width is None:
+        return
+    # A parent OID in a header does not certify an existing commit object.
+    for revision in revisions:
+        if valid_sha(revision) and len(revision) == width:
+            cache[_key(root, 'commit', revision)] = revision
+
+
 def ancestor(root, before, after):
     cache = _OBJECT_CACHE.get()
     key = _ancestor_key(root, before, after, cache)
@@ -473,8 +487,10 @@ def _history(root, task_id):
     if task_id not in read_tasks(root):
         raise TaskError('TASK_MISSING: ' + task_id)
     commits = git(root, 'log', '--topo-order', '--reverse', '--format=%H', 'main', '--', path)
+    revisions = commits.splitlines()
+    _remember_git_commits(root, revisions)
     result = []
-    for revision in commits.splitlines():
+    for revision in revisions:
         data, _ = parse_task(blob(root, revision, path), path)
         result.append({'commit': revision, 'status': data['status'], 'reason': data['reason']})
     return result
@@ -642,6 +658,7 @@ def _perimeter_rows(root, bounds, first_parent=False):
     if first_parent:
         args.append('--first-parent')
     rows = tuple(tuple(line.split()) for line in git(root, *args, tip, '^' + base).splitlines())
+    _remember_git_commits(root, (row[0] for row in rows if row))
     if cache is not None:
         cache[key] = rows
     return rows
@@ -772,7 +789,7 @@ def _prepare(root, operation, task_id, options):
     findings = validate_snapshot(root, head)
     if findings:
         raise TaskError('; '.join(findings))
-    nodes = read_nodes(root)
+    nodes = read_nodes(root, head)
     if operation == 'create':
         if task_id in nodes:
             raise TaskError('TASK_EXISTS: ' + task_id)

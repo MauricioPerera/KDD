@@ -173,6 +173,7 @@ def _audit_range(root, base, head, cache):
     chain = [row[0] for row in rows]
     if base not in chain:
         return ['TASK_BASELINE: base must be on the first-parent history of head']
+    journal._remember_git_commits(root, chain)
     errors = validate_snapshot(root, base)
     parent = base
     for revision, *parents in rows[chain.index(base) + 1:]:
