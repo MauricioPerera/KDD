@@ -260,3 +260,5 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Coste del fixture de trazabilidad](contracts/trace-fixture-setup-cost.md)
 
 - [Fixture de perimetro con base aislada](contracts/perimeter-fixture-snapshot.md)
+
+- [Auditoria de importaciones con base integrada](contracts/task-import-ancestry.md)
