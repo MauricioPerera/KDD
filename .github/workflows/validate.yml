@@ -472,6 +472,11 @@ jobs:
         shell: bash
         run: npm ci --prefix site --ignore-scripts --no-audit --no-fund
 
+      - name: Validate Pages discovery with deployment dependencies
+        if: ${{ github.event_name == 'pull_request' && matrix.os == 'ubuntu-latest' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: bash
+        run: python scripts/pages_pr_discovery.py --repo-root . --venv-dir "$RUNNER_TEMP/kdd-pages-discovery-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+
       - name: Build and validate Pages for PR
         if: ${{ github.event_name == 'pull_request' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
         shell: bash
