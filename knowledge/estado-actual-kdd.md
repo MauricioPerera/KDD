@@ -13,7 +13,52 @@ Actualmente dispone de una plantilla inicializable, validadores, una CLI de
 tareas y KDD-Board integrados con Git. El flujo se ha comprobado desde un
 proyecto vacío hasta su calidad de producto en CI.
 
-## Actualizacion verificada del 29 de octubre de 2026
+## Corte verificado del 31 de octubre de 2026
+
+Este corte distingue el resultado publicado de una mejora aun local. Los
+conteos y duraciones son evidencia de las revisiones indicadas, no promesas
+para ejecuciones futuras.
+
+| Revision | Estado y evidencia |
+| --- | --- |
+| `main` publicado: [`925128b8`](https://github.com/MauricioPerera/KDD/commit/925128b8ddaba64b25cf17f4c46f8177fd6830c7) | Integra los contratos de grupo del [PR 153](https://github.com/MauricioPerera/KDD/pull/153). El [CI](https://github.com/MauricioPerera/KDD/actions/runs/41263167862) paso los cuatro jobs Ubuntu/Windows; cada sistema ejecuto dos pasadas de 1724 IDs, con 10 SKIP en Ubuntu y 9 en Windows. El [despliegue de Pages](https://github.com/MauricioPerera/KDD/actions/runs/41265652206) paso para ese SHA. |
+| Rama local `codex/context-v03-compat`: `f933928b41d4dc2005ef7ffecc55bd28c873aa49` | Implementa [compatibilidad de contexto CCDD v0.3](context-v03-compat.md), sobre el baseline aprobado `366275c9c165073f0423cb482f39fe4df37fce5d`. No esta publicada ni integrada en `main`; su CI remoto y el despliegue posterior aun no se han verificado. |
+| Rama local `codex/validate-okf-complexity`: `4eda15e4a64e0aac57ffa3243d2537fe4f797ee4` | Reduccion de complejidad de `validate_okf.py`, con baseline aprobado `369712a82b0ff17292b456cd77a20de56e790aa2`. Conserva dos commits sobre el main anterior `74fcbae`; no tiene PR ni esta integrada en el main de este corte. Su evidencia debe reevaluarse sobre la base de integracion que se elija. |
+
+En la rama local, las cuatro pasadas con el runtime revisado ejecutaron los
+mismos **1777 IDs**, sin fallos ni errores: 485,2 y 482,8 s en Windows y 124,0
+y 121,2 s en Ubuntu. Las omisiones fueron 9 y 10 por pasada, respectivamente:
+ocho casos MCP se ejecutaron aparte con el SDK fijado, `init-project` se
+ejecuto en los comandos de contratos y la omision adicional en Ubuntu es un
+caso especifico de Windows. Los 139 contratos y sus comandos pasaron en ambos
+sistemas; `init-project` tardo 510,7 s en Windows y 113,7 s en Ubuntu, con
+limite de 600 s. Board paso sus 70 pruebas y typecheck en ambos sistemas.
+
+Las 53 pruebas nuevas cubren la compatibilidad; tambien se compararon cuatro
+contratos existentes con el runner original sin publicar su contenido. Hubo
+intentos locales fallidos por la diferencia de PID del lanzador de un venv de
+Windows y por fixtures de `actionlint` y `PATH` ausentes en Ubuntu; las
+repeticiones anteriores usan entornos corregidos. Los informes detallados
+estan en `.agents/logs/context-v03/` y son locales, no evidencia versionada ni
+un run de GitHub Actions.
+
+La rama de complejidad de `validate_okf.py` conservo sus limites y registro
+dos pasadas satisfactorias de 1709 IDs por sistema, pero tambien dos fallos
+anteriores de contencion de procesos en Windows cuya causa no quedo establecida.
+Dos repeticiones verdes no explican esos fallos. La evidencia de esa revision
+esta en `.agents/logs/validate-okf-complexity-REPORT.md`, solo local.
+En cambio, las reducciones del motor de reglas, `task_git.py`,
+`verify_quality.py` y `assemble_context.py` ya forman parte del main citado.
+
+Los contratos de grupo publicados componen contratos atomicos y grupos bajo
+una referencia explicita y ejecutan sus integraciones; no acreditan por si
+solos el Nivel 2 ni la aprobacion de identidad. El adaptador local de contexto
+permite `lint`, `assemble` y `diff` como perfil opt-in; no ejecuta proveedores
+dinamicos ni verifica firmas de quorum. Su salida declara
+`governance_verified: false`. Los detalles y limites estan en
+[grupos](group-contracts.md) y [contexto v0.3](context-v03-compat.md).
+
+## Corte historico del 29 de octubre de 2026
 
 El main [`76603cf8`](https://github.com/MauricioPerera/KDD/commit/76603cf867e004d9b1cfc447fa4bc98b66eaf299)
 integra el [PR141](https://github.com/MauricioPerera/KDD/pull/141) con sus
@@ -79,6 +124,8 @@ no constituye una ejecucion autenticada de GitHub Actions.
 | --- | --- | --- |
 | Conocimiento OKF | Conservar contexto, decisiones y modelos en nodos Markdown enlazados. | [Especificación OKF](OKF-SPEC.md) |
 | Task Contract y oráculo | Definir qué se implementa y cómo se comprueba; conservar la integridad de las pruebas mediante sello y referencia aprobada. | [Validación](validacion.md), [supervisión humana](supervision-humana.md) |
+| Contratos de grupo | Componer y ejecutar contratos atomicos e integraciones bajo una referencia explicita; disponible en el main del corte actual. | [Grupos](group-contracts.md) |
+| Contexto CCDD v0.3 | Validar, ensamblar y comparar contextos como perfil opt-in; implementado y validado localmente en la rama del corte actual. | [Compatibilidad de contexto](context-v03-compat.md) |
 | Task y diario Git | Registrar el avance operativo en nodos de `main`, con una rama de implementación por tarea e historial de transiciones validable. | [Modelo Task](data_models/git-task.md), [tareas con Git](git-tasks.md) |
 | CLI y KDD-Board | Operar el mismo coordinador; leer tareas confirmadas de `main` y devolver el commit real de cada cambio de estado. | [CLI](contracts/task-cli.md), [integración del tablero](board-git.md) |
 | Bootstrap | Adaptar la plantilla a la identidad del proyecto, retirar ejemplos e historial operativo heredado y preparar el CI de producto. | [Inicializador](contracts/init-project.md), [arranque guiado](contracts/bootstrap-project.md) |
@@ -256,10 +303,14 @@ La actualizacion superior enlaza al despliegue ya verificado en main.
 - **Arranque remoto.** Variables, protecciones y disponibilidad de Actions son
   configuración externa. La demo requirió habilitar Actions desde GitHub; el
   bootstrap no automatiza esa administración.
-- **Publicacion de la mejora local en ese corte.** Publicar y revisar la rama del contador,
-  verificar CI en GitHub y comprobar despues el despliegue y la cifra publicada.
-  Los cambios de workflows siguen sujetos a la revision de confianza; este
-  documento no autoriza modificar protecciones.
+- **Compatibilidad de contexto local.** Publicar y revisar la rama cuando se
+  autorice; verificar su CI remoto antes de considerar su integracion y
+  comprobar despues el CI y Pages del `main` resultante. El cambio de workflow
+  requiere los controles de confianza del repositorio; este documento no
+  autoriza modificar protecciones.
+- **Complejidad pendiente.** Revisar la rama local de `validate_okf.py` frente
+  al main vigente y los fallos de procesos Windows antes de decidir como
+  integrarla; su evidencia anterior no es CI remoto del main actual.
 - **Proxima validacion de uso.** Ya hay pilotos CLI de una y cuatro tareas con
   dependencias. Falta medir colaboracion concurrente real, requisitos de interfaz
   y coste de revision en un producto mayor. El piloto HTTP automatizado no
@@ -267,5 +318,4 @@ La actualizacion superior enlaza al despliegue ya verificado en main.
 
 Los límites técnicos completos se mantienen en
 [garantías verificables](verification-guarantees.md). Las ampliaciones de
-alcance necesitaran contratos y evidencia propios; la publicacion del
-contador conserva los contratos y el baseline ya aprobados.
+alcance necesitaran contratos y evidencia propios.
