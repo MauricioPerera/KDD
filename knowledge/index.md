@@ -225,5 +225,8 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Garantia de oraculos requerida por politica](oracle-assurance.md)
 - [Atribucion de fallos de mutacion](contracts/mutation-attribution.md)
 - [Revisiones obligatorias de oraculos de producto](contracts/quality-oracle-reviews.md)
+- [Restricciones con mecanismo y cobertura explicitos](required-controls.md)
+- [Medicion requerida de budgets](contracts/required-budget-coverage.md)
+- [Controles requeridos de producto](contracts/quality-required-controls.md)
 - [Perimetro obligatorio del cierre de tareas](contracts/task-finish-perimeter.md)
 - [Auditoria historica del perimetro de tareas](contracts/task-perimeter-history.md)
