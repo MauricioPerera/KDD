@@ -15,7 +15,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_context_delivery_manifest.py
-tests_sha256: '6995fcde7a8ce2b1943b15050d1ea09bce504649c88841fa1ae44c3904506c40'
+tests_sha256: '5fdf50e8136e67dc2b9ed60ebd3dddbe0051b3aacdc1d8524b47c71f1e489fce'
 touch_only: ['scripts/assemble_context.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'subprocess', 'llm']
