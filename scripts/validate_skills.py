@@ -58,6 +58,15 @@ def _parse_scalar(value):
     return value
 
 
+def _child_indent(lines, start, indent):
+    for line in lines[start:]:
+        if not line.strip():
+            continue
+        child_indent = len(line) - len(line.lstrip(' '))
+        return child_indent if child_indent > indent else None
+    return None
+
+
 def _parse_block(lines, start, indent):
     """Parsea un bloque dict a partir de la linea `start` con indent `indent`.
 
@@ -85,18 +94,7 @@ def _parse_block(lines, start, indent):
         key = key.strip()
         value = value.strip()
         if value == '':
-            j = i + 1
-            child_indent = None
-            while j < n:
-                l = lines[j]
-                if not l.strip():
-                    j += 1
-                    continue
-                ci = len(l) - len(l.lstrip(' '))
-                if ci <= indent:
-                    break
-                child_indent = ci
-                break
+            child_indent = _child_indent(lines, i + 1, indent)
             if child_indent is not None:
                 child, j = _parse_block(lines, i + 1, child_indent)
                 result[key] = child
@@ -223,130 +221,91 @@ def _finding(file, rule, msg, level='ERROR'):
 # Validacion de skills
 # ---------------------------------------------------------------------------
 
+def _skill_name(fm_data, skill_name, file_rel, entry_path, findings, names):
+    name = fm_data.get('name')
+    if not name or not isinstance(name, str) or name == '':
+        findings.append(_finding(file_rel, 'FM_NAME', 'name ausente, no-string o vacio'))
+        return
+    if not re.match(r'^[a-z0-9]+(-[a-z0-9]+)*$', name):
+        findings.append(_finding(file_rel, 'FM_NAME_KEBAB', 'name no es kebab-case'))
+    if name != skill_name:
+        findings.append(_finding(file_rel, 'FM_NAME_DIR',
+                                 'name ({}) no coincide con directorio ({})'.format(name, skill_name)))
+    names.setdefault(name, []).append((file_rel, entry_path))
+
+
+def _skill_description(fm_data, file_rel, findings):
+    desc = fm_data.get('description')
+    if not desc or not isinstance(desc, str) or desc == '':
+        findings.append(_finding(file_rel, 'FM_DESC', 'description ausente, no-string o vacia'))
+    elif len(desc) < 50 or len(desc) > 1024:
+        findings.append(_finding(file_rel, 'FM_DESC_LEN',
+                                 'description largo {} fuera de [50, 1024]'.format(len(desc))))
+
+
+def _skill_body(body, skill_md, skill_dir_abs, file_rel, findings):
+    if not body.strip():
+        findings.append(_finding(file_rel, 'BODY_EMPTY', 'cuerpo vacio'))
+    for target in _extract_links(body):
+        resolved, _inside = _resolve_link(skill_md, target, skill_dir_abs)
+        if resolved is not None and not os.path.exists(resolved):
+            findings.append(_finding(file_rel, 'LINK_BROKEN', 'enlace roto: {}'.format(target)))
+
+
+def _validate_skill(entry_path, skill_name, skill_dir_abs, skill_dir_name, findings, names):
+    skill_md = os.path.join(entry_path, 'SKILL.md')
+    prefix = skill_dir_name + '/' + skill_name
+    file_rel = prefix + '/SKILL.md'
+    if not os.path.isfile(skill_md):
+        findings.append(_finding(prefix, 'SKILL_MISSING', 'SKILL.md no encontrado'))
+        return
+    try:
+        with open(skill_md, 'r', encoding='utf-8') as fh:
+            text = fh.read()
+    except OSError:
+        findings.append(_finding(file_rel, 'IO', 'no se pudo leer SKILL.md'))
+        return
+    fm_data, body = parse_frontmatter(text)
+    if fm_data is None:
+        findings.append(_finding(file_rel, 'FM_PARSE',
+                                 "frontmatter YAML no encontrado o no delimitado por '---'"))
+        return
+    _skill_name(fm_data, skill_name, file_rel, entry_path, findings, names)
+    _skill_description(fm_data, file_rel, findings)
+    _skill_body(body, skill_md, skill_dir_abs, file_rel, findings)
+
+
+def _validate_skill_dir(skill_dir, findings, names):
+    skill_dir_abs = os.path.abspath(skill_dir)
+    if not os.path.isdir(skill_dir_abs):
+        findings.append(_finding(skill_dir, 'DIR_MISSING', 'directorio no existe', level='INFO'))
+        return
+    try:
+        entries = os.listdir(skill_dir_abs)
+    except OSError:
+        return
+    directory_name = os.path.basename(skill_dir_abs)
+    for entry in entries:
+        entry_path = os.path.join(skill_dir_abs, entry)
+        if os.path.isdir(entry_path):
+            _validate_skill(entry_path, entry, skill_dir_abs, directory_name, findings, names)
+
+
+def _duplicate_names(names, findings):
+    for name, files in names.items():
+        files_sorted = sorted(files, key=lambda x: x[0])
+        for file_rel, _entry_path in files_sorted[1:]:
+            findings.append(_finding(file_rel, 'NAME_DUP',
+                                     'name {} repetido entre skills'.format(name)))
+
+
 def validate_skills(skill_dirs):
-    """Valida skills bajo los directorios especificados.
-
-    Devuelve lista de findings [{'file','level','rule','msg'}] ordenados por
-    (file, rule), con rutas en estilo posix ('/'). Vacia si todo es conforme.
-
-    Capa opcional: dir inexistente -> finding INFO rule DIR_MISSING (no error).
-    """
+    """Valida skills y devuelve findings ordenados por archivo y regla."""
     findings = []
-    name_to_files = {}  # Para detectar duplicados globalmente
-
-    # Procesar cada directorio de skills
+    name_to_files = {}
     for skill_dir in skill_dirs:
-        skill_dir_abs = os.path.abspath(skill_dir)
-        skill_dir_name = os.path.basename(skill_dir_abs)
-
-        # Dir inexistente: INFO, no error
-        if not os.path.isdir(skill_dir_abs):
-            findings.append(_finding(skill_dir, 'DIR_MISSING',
-                                     'directorio no existe', level='INFO'))
-            continue
-
-        # Listar subdirectorios inmediatos
-        try:
-            entries = os.listdir(skill_dir_abs)
-        except OSError:
-            continue
-
-        for entry in entries:
-            entry_path = os.path.join(skill_dir_abs, entry)
-            if not os.path.isdir(entry_path):
-                # Archivos sueltos en el dir se ignoran
-                continue
-
-            skill_name = entry
-            skill_md = os.path.join(entry_path, 'SKILL.md')
-            # File path en formato posix: "skill_dir_name/skill_name" o similar
-            file_rel_prefix = skill_dir_name + '/' + skill_name
-            file_rel_full = file_rel_prefix + '/SKILL.md'
-
-            # SKILL_MISSING
-            if not os.path.isfile(skill_md):
-                findings.append(_finding(file_rel_prefix, 'SKILL_MISSING',
-                                        'SKILL.md no encontrado'))
-                continue
-
-            # Leer SKILL.md
-            try:
-                with open(skill_md, 'r', encoding='utf-8') as fh:
-                    text = fh.read()
-            except OSError:
-                findings.append(_finding(file_rel_full, 'IO',
-                                        'no se pudo leer SKILL.md'))
-                continue
-
-            # FM_PARSE
-            fm_data, body = parse_frontmatter(text)
-            if fm_data is None:
-                findings.append(_finding(file_rel_full, 'FM_PARSE',
-                                        "frontmatter YAML no encontrado o no delimitado por '---'"))
-                continue
-
-            # FM_NAME: presente, string, no vacio
-            name = fm_data.get('name')
-            if not name or not isinstance(name, str) or name == '':
-                findings.append(_finding(file_rel_full, 'FM_NAME',
-                                        'name ausente, no-string o vacio'))
-                # Seguir checks si es posible
-            else:
-                # FM_NAME_KEBAB
-                if not re.match(r'^[a-z0-9]+(-[a-z0-9]+)*$', name):
-                    findings.append(_finding(file_rel_full, 'FM_NAME_KEBAB',
-                                            'name no es kebab-case'))
-
-                # FM_NAME_DIR: name == skill_dir_name
-                if name != skill_name:
-                    findings.append(_finding(file_rel_full, 'FM_NAME_DIR',
-                                            'name ({}) no coincide con directorio ({})'.format(
-                                                name, skill_name)))
-
-                # NAME_DUP: registrar para deteccion global
-                if name not in name_to_files:
-                    name_to_files[name] = []
-                name_to_files[name].append((file_rel_full, entry_path))
-
-            # FM_DESC: presente, string, no vacio
-            desc = fm_data.get('description')
-            if not desc or not isinstance(desc, str) or desc == '':
-                findings.append(_finding(file_rel_full, 'FM_DESC',
-                                        'description ausente, no-string o vacia'))
-            else:
-                # FM_DESC_LEN: [50, 1024]
-                desc_len = len(desc)
-                if desc_len < 50 or desc_len > 1024:
-                    findings.append(_finding(file_rel_full, 'FM_DESC_LEN',
-                                            'description largo {} fuera de [50, 1024]'.format(
-                                                desc_len)))
-
-            # BODY_EMPTY
-            if not body.strip():
-                findings.append(_finding(file_rel_full, 'BODY_EMPTY',
-                                        'cuerpo vacio'))
-
-            # LINK_BROKEN: enlaces relativos que no resuelven
-            for target in _extract_links(body):
-                resolved, _inside = _resolve_link(skill_md, target, skill_dir_abs)
-                if resolved is None:
-                    continue  # Externo, ancla, etc.
-                if not os.path.exists(resolved):
-                    findings.append(_finding(file_rel_full, 'LINK_BROKEN',
-                                            'enlace roto: {}'.format(target)))
-
-    # NAME_DUP: detectar duplicados globales
-    for name, files in name_to_files.items():
-        if len(files) > 1:
-            # Un finding por ocurrencia extra, anclado en el archivo
-            # lexicograficamente posterior
-            files_sorted = sorted(files, key=lambda x: x[0])
-            for i in range(1, len(files_sorted)):
-                file_rel, _entry_path = files_sorted[i]
-                findings.append(_finding(file_rel, 'NAME_DUP',
-                                        'name {} repetido entre skills'.format(name)))
-
-    # Ordenar findings por (file, rule)
+        _validate_skill_dir(skill_dir, findings, name_to_files)
+    _duplicate_names(name_to_files, findings)
     findings.sort(key=lambda f: (f['file'], f['rule']))
     return findings
 

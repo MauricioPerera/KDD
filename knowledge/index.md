@@ -249,3 +249,14 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Compatibilidad de la evidencia JSON del cierre de gobierno](contracts/governance-evidence-initialization.md)
 
 - [Discovery de Pages en PR con dependencias del despliegue](./pages-pr-deploy-parity.md)
+- [Reduccion de complejidad del validador OKF](contracts/validate-okf-complexity.md)
+
+- [Remediacion de perimetro, controles y CI](audit-p1-p2-remediation.md)
+- [Revision externa de CI confiable](contracts/trusted-ci-change-review.md)
+- [Perfil de suite post inicializacion](contracts/init-post-apply-profile.md)
+
+- [Complejidad del validador de skills](contracts/skills-validator-complexity.md)
+
+- [Coste del fixture de trazabilidad](contracts/trace-fixture-setup-cost.md)
+
+- [Fixture de perimetro con base aislada](contracts/perimeter-fixture-snapshot.md)

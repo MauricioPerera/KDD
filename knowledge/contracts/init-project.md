@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tests/test_init_project.py"
-tests_sha256: 'ca215d5e96d13f6afb8a2ebe6575c8273d9d48614f9d59b87daf255127552d30'
+tests_sha256: '6522f25ef9f370d4e2571387ccb99e5a82ae6f53f72ec9e80c79f8cd42c0fda0'
 touch_only: ['scripts/init_project.py', 'scripts/bootstrap_transaction.py']
 deps_allowed: ['stdlib', 'bootstrap_transaction']
 forbids: ['network', 'subprocess']
@@ -88,8 +88,8 @@ dry-run por default; exit 0 ok · 1 I/O · 2 manifiesto/identidad incompletos.
   completa una vez. Las dos pasadas posteriores de la suite omiten solo ese
   caso mediante `KDD_SKIP_INIT_POST_APPLY_SUITE=1`; el resto corre dos veces.
 - La [extension de tiempo total](../ci-runtime.md) ejecuta esa misma suite
-  post-apply con scripts/run_test_suite.py y cuatro procesos explicitamente.
-  Conserva todos los casos y asserts; no reduce la integracion a un smoke.
+  post-apply segun [perfil nativo](init-post-apply-profile.md). Conserva todos
+  los casos y asserts; no reduce la integracion a un smoke.
 - Intocables presentes post-apply: validadores, assemble_context.py + ccdd/context.json,
   export_gate_contract.py, .agents/ (reglas+skill), templates de specs/reportes,
   OKF-SPEC.md, metodologia-ejecucion.md, contratos de infra, CI.

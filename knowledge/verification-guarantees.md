@@ -56,7 +56,8 @@ En este repositorio, la protección de `main` exige además `trusted-pr-gate`.
 Su workflow `pull_request_target` usa código de `main` y lee el merge propuesto
 como objetos Git, sin ejecutar archivos del PR. Compara contratos y oráculos
 con la referencia aprobada y rechaza cambios a workflows o validadores
-protegidos, incluso si el PR intenta aprobarse con su propio SHA. Al clonar
+protegidos salvo [revision externa exacta](approval-registry.md) independiente
+del baseline. El PR no puede autorizar sus propios cambios. Al clonar
 la plantilla, la configuración de protección de GitHub no se hereda: hay que
 exigir este check explícitamente para obtener esa garantía. La herramienta
 no autentica por sí sola la aprobación humana; quien administra la variable
