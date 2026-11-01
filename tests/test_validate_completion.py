@@ -66,7 +66,8 @@ class CompletionTests(unittest.TestCase):
         policy = json.loads((ROOT / 'completion-legacy.json').read_text(encoding='utf-8'))
         if policy['repository'] == 'MauricioPerera/KDD':
             self.assertEqual(len(policy['legacy_pairs']), 33)
-            self.assertEqual(counts, {'PASS': 0, 'FAIL': 0, 'SKIP': 33})
+            expected_pass = int((ROOT / REPORT).is_file())
+            self.assertEqual(counts, {'PASS': expected_pass, 'FAIL': 0, 'SKIP': 33})
         else:
             self.assertEqual(policy['legacy_pairs'], {})
             self.assertEqual(list((ROOT / 'specs').glob('CONTRACT-[0-9]*.md')), [])
