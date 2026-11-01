@@ -67,13 +67,17 @@ aprobar y proteger archivos usar [calidad](quality-approval.md).
 
 `diff` valida ambos contratos e integridades, compara slots, presupuesto,
 contenido estatico, guardrails y schemas. No permite remover slots o guardrails,
-reducir la capacidad disponible o el quorum, debilitar `on_fail`, ni cambiar
-de forma no revisable tipo, patron, objetivo o esquema de un guardrail. Cambios
-de proveedor o de fuente de un slot existente tambien bloquean. Cambios
-de contenido estatico firmado bloquean como `REVIEW_REQUIRED`: este perfil no
-verifica Ed25519, y una atestacion presente no se trata como valida. Ninguna
-salida afirma que el quorum se haya cumplido. El registro de revisores y sus
-atestaciones no se convierten ni validan; cambios en ellos bloquean.
+reducir la capacidad disponible, el quorum o el piso de un slot critico, degradar
+su prioridad o permitir su compactacion, debilitar `on_fail`, ni cambiar de forma
+no revisable tipo, patron, objetivo o esquema de un guardrail. Cambios de
+proveedor, fuente u orden de slots existentes tambien bloquean. Un slot dinamico
+nuevo o existente no puede ascender a la zona de slots criticos. Agregar un
+slot critico estatico o cambiar el contenido estatico firmado bloquea como
+`REVIEW_REQUIRED`: este perfil no verifica Ed25519, y una atestacion presente
+no se trata como valida. Ninguna salida afirma que el quorum se haya cumplido.
+El registro de revisores y sus atestaciones no se convierten ni validan; cambios
+en ellos bloquean. Aumentar quorum o agregar un guardrail no debilita el perfil
+por si mismo y puede pasar si no hay otra regresion.
 
 El diff es conservador, no prueba equivalencia semantica ni reemplaza revision
 humana. Directorios base confiables y permisos de escritura son responsabilidad

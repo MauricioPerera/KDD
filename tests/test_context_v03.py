@@ -376,6 +376,80 @@ class ContextV03Integration(unittest.TestCase):
         result, data = self.invoke('diff', self.base, candidate)
         self.rejected(result, data, 3, 'BLOCKED')
 
+    def test_critical_priority_degradation_is_blocked(self):
+        candidate = self.candidate()
+        self.spec['contract']['slots'][1]['priority'] = 3
+        save_yaml(candidate, self.spec)
+        result, data = self.invoke('diff', self.base, candidate)
+        self.rejected(result, data, 3, 'BLOCKED')
+
+    def test_critical_slot_cannot_become_compactable(self):
+        candidate = self.candidate()
+        self.spec['contract']['slots'][1]['compaction'] = 'truncate'
+        save_yaml(candidate, self.spec)
+        result, data = self.invoke('diff', self.base, candidate)
+        self.rejected(result, data, 3, 'BLOCKED')
+
+    def test_existing_static_cannot_lose_signature_requirement(self):
+        candidate = self.candidate()
+        self.spec['contract']['slots'][1]['source']['sign'] = False
+        save_yaml(candidate, self.spec)
+        sign(candidate, self.spec)
+        result, data = self.invoke('diff', self.base, candidate)
+        self.rejected(result, data, 3, 'BLOCKED')
+
+    def test_dynamic_slot_cannot_ascend_to_critical_priority(self):
+        candidate = self.candidate()
+        self.spec['contract']['slots'][2]['priority'] = 0
+        save_yaml(candidate, self.spec)
+        result, data = self.invoke('diff', self.base, candidate)
+        self.rejected(result, data, 3, 'BLOCKED')
+
+    def test_critical_slot_floor_cannot_be_reduced(self):
+        candidate = self.candidate()
+        self.spec['contract']['slots'][1]['min_tokens'] = 0
+        save_yaml(candidate, self.spec)
+        result, data = self.invoke('diff', self.base, candidate)
+        self.rejected(result, data, 3, 'BLOCKED')
+
+    def test_existing_slot_presentation_order_cannot_change(self):
+        candidate = self.candidate()
+        slots = self.spec['contract']['slots']
+        slots[0], slots[1] = slots[1], slots[0]
+        save_yaml(candidate, self.spec)
+        result, data = self.invoke('diff', self.base, candidate)
+        self.rejected(result, data, 3, 'BLOCKED')
+
+    def test_new_critical_signed_static_requires_review(self):
+        candidate = self.candidate()
+        (candidate / 'new_policy.txt').write_text('Nueva politica\n', encoding='utf-8')
+        self.spec['contract']['slots'].append({'id': 'new_policy', 'priority': 1,
+            'source': {'type': 'static', 'path': 'new_policy.txt', 'sign': True},
+            'compaction': 'none', 'min_tokens': 1})
+        save_yaml(candidate, self.spec)
+        sign(candidate, self.spec)
+        result, data = self.invoke('diff', self.base, candidate)
+        self.rejected(result, data, 3, 'BLOCKED')
+        self.assertIn('REVIEW_REQUIRED', data['findings'])
+
+    def test_increased_quorum_is_allowed_without_claiming_verified_signatures(self):
+        candidate = self.candidate()
+        self.spec['contract']['slots'][1]['review_quorum'] = 3
+        save_yaml(candidate, self.spec)
+        result, data = self.invoke('diff', self.base, candidate)
+        self.assertEqual(result.returncode, 0, data)
+        self.assertEqual(data['status'], 'PASS')
+        self.assertIs(data['governance_verified'], False)
+
+    def test_adding_a_guardrail_is_allowed_when_existing_controls_are_preserved(self):
+        candidate = self.candidate()
+        self.spec['contract']['guardrails'].append({'id': 'extra', 'type': 'regex_deny',
+                                                     'pattern': 'secret-extra', 'on_fail': 'abort'})
+        save_yaml(candidate, self.spec)
+        result, data = self.invoke('diff', self.base, candidate)
+        self.assertEqual(result.returncode, 0, data)
+        self.assertEqual(data['status'], 'PASS')
+
     def test_weaker_guardrail_action_is_blocked(self):
         candidate = self.candidate()
         self.spec['contract']['guardrails'][0]['on_fail'] = 'warn'

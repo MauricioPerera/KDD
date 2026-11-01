@@ -12,7 +12,7 @@ budget:
   cyclomatic_max: 20
   nesting_max: 4
 tests: 'tests/test_context_v03.py'
-tests_sha256: 'e22f4dd536caf44d3ca8c95b70302fddfeddbb3c86c103c3d0a6361881684ed7'
+tests_sha256: '4725499368fe1b1ffb060faebc0a6fbbdc714598b456bf44fdbfe55f4ed9734e'
 touch_only: ['scripts/context_v03.py']
 deps_allowed: ['stdlib', 'PyYAML', 'jsonschema']
 forbids: ['network', 'llm', 'subprocess']
