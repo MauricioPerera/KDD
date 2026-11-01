@@ -17,7 +17,8 @@ La [ejecucion por contratos](metodologia-ejecucion.md), la
 [aprobacion independiente](quality-approval.md) y la
 [frontera de confianza](verification-guarantees.md) siguen siendo normativas.
 El contrato de proyecto es [CONTRACT-34](../specs/CONTRACT-34-kdd-governance-closure.md).
-Este documento no declara la implementacion terminada.
+Las entregas estan verificadas como candidatos; el cierre de CONTRACT-34 conserva
+su evidencia separada y la integracion a main sigue pendiente.
 
 ## Entregas y criterio de cierre
 
@@ -38,7 +39,7 @@ Este documento no declara la implementacion terminada.
 - [x] **KG-4: restricciones con alcance declarado.** Cada restriccion y budget
   requerido identifica un mecanismo efectivo y evidencia, o bloquea por falta
   de soporte. Deteccion de cambios Git no se presenta como aislamiento.
-- [ ] **KG-5: contexto y aprendizaje trazables.** Registrar identidades y hashes
+- [x] **KG-5: contexto y aprendizaje trazables.** Registrar identidades y hashes
   de las fuentes entregadas, y enlazar hallazgos aceptados con decisiones y
   pruebas. Proporcionar contexto no prueba que el modelo lo comprendio.
 
@@ -79,11 +80,24 @@ identico, cero fallos, errores u omisiones de fixture. Conserva 10 SKIP normales
 en Ubuntu y 9 en Windows por pasada; el board pasa en ambos sistemas. Esta
 condicion se comprobo antes de modificar las tres fuentes autorizadas de KG-5.
 
-KG-5 tiene un borrador de implementacion autorizado por d10ae37136da409df99c5010986efad78f878df6
-y su extension exacta 2eb28774b7043ff043ea33d141254604603a66db. No esta verificado:
-la correccion exacta del fixture de fallback fue aprobada en
-8dad3baf4a1ba1ad92fd11e5705b3d2ef36394bb; falta completar el CI propio dual-OS 2x. Los hashes y enlaces mecanicos no acreditan comprension ni
-ejecucion de los tests del ledger.
+KG-5 esta verificado en bc96b6df1c51fc4f664e6bb115d1a000d2282b3a del
+[PR 155](https://github.com/MauricioPerera/KDD/pull/155), apilado sobre KG-4 sin
+fusionar. El [CI 41264496192](https://github.com/MauricioPerera/KDD/actions/runs/41264496192)
+completo 147 contratos y dos suites de 1852 casos por sistema, con inventario
+identico, cero fallos, errores u omisiones de fixture. Conserva 10 SKIP normales
+en Ubuntu y 9 en Windows por pasada; el board pasa en ambos sistemas. Ledger,
+contexto y mediciones reales se observaron 2x por sistema contra el commit publicado.
+
+Se conservan las aprobaciones d10ae37136da409df99c5010986efad78f878df6,
+2eb28774b7043ff043ea33d141254604603a66db y la correccion exacta del fixture
+8dad3baf4a1ba1ad92fd11e5705b3d2ef36394bb, sin alterar sus aserciones ni el ranking.
+El primer CI 41263994076 rechazo la topologia antes de las suites. La integracion
+de reemplazo reproduce el mismo arbol con una historia soportada por el auditor,
+conservando los commits originales. El intento 1 de 41264496192 agoto 600s en
+init-project Windows; el intento 2 paso sin cambiar codigo, oraculos, workflows
+ni limites. Esos resultados se conservan. Los hashes y enlaces no acreditan
+comprension, identidad humana ni ejecucion de los tests enlazados; no se afirma
+evaluacion independiente ni generalizacion.
 
 ## Primera entrega: alcance aprobado frente a cambios propios
 

@@ -5,7 +5,7 @@ description: 'Identificar fuentes y fragmentos reales, exigir contexto requerido
 tags: ['governance', 'context', 'learning', 'provenance']
 ---
 
-# KG-5: baseline aprobado y borrador de implementacion
+# KG-5: candidato verificado en CI
 
 Desarrolla el [objetivo](kdd-governance-closure.md), despues de los
 [controles requeridos](required-controls.md). Los contratos de
@@ -14,11 +14,15 @@ Desarrolla el [objetivo](kdd-governance-closure.md), despues de los
 [compatibilidad del cierre](contracts/governance-report-initialization.md)
 fijan las garantias mecanicas. El usuario aprobo d10ae37136da409df99c5010986efad78f878df6
 y la extension exacta 2eb28774b7043ff043ea33d141254604603a66db. El CI dual-OS 2x
-de KG-4 se completo y registro antes de implementar. El borrador queda dentro
+de KG-4 se completo y registro antes de implementar. La implementacion queda dentro
 de las tres fuentes autorizadas. La correccion exacta del fixture de fallback
 y su sello fue aprobada en 8dad3baf4a1ba1ad92fd11e5705b3d2ef36394bb, conservando
-todas sus aserciones y el ranking previo. Falta completar el CI propio antes de
-verificar esta entrega.
+todas sus aserciones y el ranking previo. El candidato
+bc96b6df1c51fc4f664e6bb115d1a000d2282b3a del [PR 155](https://github.com/MauricioPerera/KDD/pull/155)
+completo el [CI 41264496192](https://github.com/MauricioPerera/KDD/actions/runs/41264496192):
+147 contratos y dos suites de 1852 casos por sistema, mismo inventario y sin
+fallos, errores u omisiones de fixture. Conserva los SKIP normales (10 en Ubuntu,
+9 en Windows por pasada); el board pasa en ambos sistemas. No esta fusionado a main.
 
 ## Contexto: fuente y entrega
 
@@ -60,7 +64,7 @@ del API, la leyo, la comprendio o aplico sus reglas.
 ## Aprendizaje: enlaces declarados y aceptacion externa
 
 El nuevo validate_learning.py es de solo lectura y usa Git real. El baseline
-aprobado contenia solo un docstring no funcional; el borrador implementa las
+aprobado contenia solo un docstring no funcional; la implementacion verifica las
 comprobaciones siguientes sin importar ni ejecutar los artefactos enlazados.
 CLI: --repo-root, --ledger, --approved-ref, --observed-ref (HEAD por defecto),
 --require-accepted y --require-execution. approved_ref es OID completo canonico
@@ -122,7 +126,7 @@ Conserva IDs, metodos y demas aserciones. Su contrato actualiza exclusivamente
 el sello por ese diff revisado; los 33 pares historicos y digests siguen intactos.
 No crear el reporte real hasta tener el cierre y evidencia requeridos.
 
-Produccion propuesta: assemble_context.py, nuevo validate_learning.py e
+Produccion verificada en el candidato: assemble_context.py, nuevo validate_learning.py e
 init_project.py. Conservar budgets vigentes de contexto/inicializador y
 12/4/150/5 para el nuevo lector. Otra fuente, oraculo, dependencia, aumento de
 limites o cambio de workflow/protecciones necesita una nueva propuesta.
