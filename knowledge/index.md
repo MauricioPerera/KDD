@@ -219,3 +219,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contratos de grupo KDD](group-contracts.md)
 - [Contrato de validacion de grupos](contracts/group-contracts.md)
 - [Contrato del tipo OKF de grupo](contracts/group-okf-type.md)
+- [Compatibilidad CCDD v0.3 de contexto](context-v03-compat.md)
+- [Contrato de ensamblado CCDD v0.3](contracts/context-v03-assemble.md)
+- [Contrato de comparacion CCDD v0.3](contracts/context-v03-diff.md)
+- [Contrato CI de contexto CCDD v0.3](contracts/context-v03-ci.md)

@@ -227,6 +227,10 @@ jobs:
         run: |
           python -m pip install --only-binary=:all: -r requirements-change-audit.txt
 
+      - name: Install pinned context compatibility dependencies
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r tools/context-v03/requirements.txt
+
       - name: Check approved contract and oracle baseline
         shell: python
         env:
