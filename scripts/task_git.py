@@ -293,7 +293,7 @@ def _raw_objects(root, specifications):
 
 def _flat_task_tree(record, width):
     if record is None:
-        return {}
+        raise ValueError('task tree unavailable')
     kind, _, content = record
     if kind != b'tree':
         raise ValueError('task inventory is not a tree')
@@ -353,8 +353,9 @@ def _prefetch_task_nodes(root, revisions):
     try:
         specifications = [ref + ':knowledge/tasks' for ref in pending]
         records = _raw_objects(root, specifications)
+        # A missing path does not prove an empty tree; retain its serial read.
         inventories = {ref: _flat_task_tree(records[spec], width)
-                       for ref, spec in zip(pending, specifications)}
+                       for ref, spec in zip(pending, specifications) if records[spec] is not None}
         values = _task_inventory_values(root, inventories, cache)
     except (TaskError, ValueError, UnicodeError):
         # Unsupported or invalid batches leave every original serial check intact.
