@@ -47,7 +47,9 @@ por variables de entorno y argumentos entre comillas.
 
 La integracion post-apply sigue ejecutando toda la infraestructura restante
 en una copia real, una vez en el test_command de init-project. Esa copia
-auditada puede usar4 procesos explicitamente. Las dos pasadas generales
+auditada usa el [perfil post-apply](contracts/init-post-apply-profile.md):
+seis procesos en Windows y cuatro en Ubuntu. La seleccion es una hipotesis
+de rendimiento hasta disponer de mediciones comparables. Las dos pasadas generales
 conservan la unica exclusion previa KDD_SKIP_INIT_POST_APPLY_SUITE=1.
 Ningun skip nuevo se acepta como optimizacion.
 

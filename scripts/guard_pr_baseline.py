@@ -6,6 +6,8 @@ executed. This script is intended for a ``pull_request_target`` workflow.
 """
 
 import argparse
+import json
+import os
 from pathlib import PurePosixPath
 import re
 import subprocess
@@ -93,16 +95,91 @@ def _normalize(content):
     return content.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
 
 
-def check(base_ref, candidate_ref, approved_ref):
+def _unique_review(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('duplicate review key: ' + key)
+        result[key] = value
+    return result
+
+
+def _review_object(ref, path):
+    raw = _git('ls-tree', '-z', ref, '--', ':(literal)' + path)
+    if not raw:
+        return None
+    records = raw.split(b'\0')
+    if len(records) != 2 or records[-1]:
+        raise ValueError('ambiguous reviewed path')
+    metadata, name = records[0].split(b'\t', 1)
+    mode, kind, oid = metadata.decode('ascii').split(' ')
+    if (name.decode('utf-8') != path or kind != 'blob'
+            or mode not in ('100644', '100755')):
+        raise ValueError('reviewed path is not a regular file')
+    return {'mode': mode, 'oid': oid}
+
+
+def _review_header(raw, base, candidate):
+    if not isinstance(raw, str) or len(raw.encode('utf-8')) > 48000:
+        raise ValueError('invalid review data')
+    try:
+        review = json.loads(raw, object_pairs_hook=_unique_review)
+    except (ValueError, RecursionError) as exc:
+        raise ValueError('invalid review JSON') from exc
+    if (not isinstance(review, dict) or set(review) !=
+            {'schema_version', 'base_commit', 'candidate_tree', 'files'}
+            or type(review['schema_version']) is not int or review['schema_version'] != 1):
+        raise ValueError('invalid review schema')
+    tree = _git('rev-parse', candidate + '^{tree}').decode('ascii').strip()
+    if review['base_commit'] != base or review['candidate_tree'] != tree:
+        raise ValueError('review does not identify the exact base and tree')
+    return review['files']
+
+
+def _reviewed_protected(raw, base, candidate, protected):
+    entries = _review_header(raw, base, candidate)
+    if not isinstance(entries, list) or not entries:
+        raise ValueError('review must contain protected paths')
+    reviewed = set()
+    for entry in entries:
+        if not isinstance(entry, dict) or set(entry) != {'path', 'before', 'after'}:
+            raise ValueError('invalid reviewed file')
+        path = entry['path']
+        if not isinstance(path, str) or path not in protected or path in reviewed:
+            raise ValueError('unknown or duplicate reviewed path')
+        if (entry['before'] != _review_object(base, path)
+                or entry['after'] != _review_object(candidate, path)):
+            raise ValueError('reviewed file mode or object differs')
+        reviewed.add(path)
+    if reviewed != protected:
+        raise ValueError('review does not cover every protected change')
+    return reviewed
+
+
+def _protected_findings(paths, base, candidate, reviewed_changes):
+    protected = {path for path in paths
+                 if path in PROTECTED_FILES or path.startswith(PROTECTED_PREFIXES)}
+    reviewed, findings = set(), []
+    if reviewed_changes:
+        try:
+            reviewed = _reviewed_protected(reviewed_changes, base, candidate, protected)
+        except (ValueError, UnicodeError) as exc:
+            findings.append('TRUSTED_REVIEW: ' + str(exc))
+    for path in sorted(paths):
+        if path in protected and path not in reviewed:
+            findings.append(path + ': trusted gate file changed in PR')
+        elif path not in protected and _shadows_runtime(path):
+            findings.append(path + ': trusted import name changed in PR')
+    return findings
+
+
+def check(base_ref, candidate_ref, approved_ref, *, reviewed_changes=None):
     """Return findings for protected code and approved contract/oracle drift."""
     base, candidate, approved = map(_commit, (base_ref, candidate_ref, approved_ref))
-    changed = _git('diff', '--name-only', '-z', base, candidate).decode('utf-8')
-    findings = []
-    for path in sorted(filter(None, changed.split('\0'))):
-        if path in PROTECTED_FILES or path.startswith(PROTECTED_PREFIXES):
-            findings.append(path + ': trusted gate file changed in PR')
-        elif _shadows_runtime(path):
-            findings.append(path + ': trusted import name changed in PR')
+    changed = _git('diff', '--no-ext-diff', '--no-renames', '--name-only', '-z',
+                   base, candidate).decode('utf-8')
+    paths = set(filter(None, changed.split('\0')))
+    findings = _protected_findings(paths, base, candidate, reviewed_changes)
 
     expected_contracts = _contracts(approved)
     candidate_contracts = _contracts(candidate)
@@ -158,7 +235,8 @@ def main(argv=None):
                 _commit(approved)
             except ValueError:
                 _git('fetch', '--no-tags', 'origin', approved)
-        findings = check(base, candidate, approved)
+        findings = check(base, candidate, approved,
+                         reviewed_changes=os.environ.get('KDD_TRUSTED_CHANGE_REVIEW'))
     except (ValueError, UnicodeError, ImportError) as exc:
         print('FAIL: ' + str(exc))
         return 2

@@ -58,8 +58,8 @@ no se buscan coincidencias aproximadas ni aprobaciones de ancestros.
 
 Cada valor baseline_ref conserva el commit elegido por la persona revisora.
 Registrar un nuevo arbol con ese valor no autoriza modificar los oraculos:
-el [guard](contracts/trusted-pr-gate.md) vuelve a comparar sus bytes. Tampoco
-autoriza cambios a workflows o validadores protegidos.
+el [guard](contracts/trusted-pr-gate.md) vuelve a comparar sus bytes. Por si
+sola, esa entrada tampoco autoriza cambios a workflows o validadores protegidos.
 
 El modo nativo exige una entrada exacta para el arbol. Si falta, falla incluso
 si sigue definida una variable global antigua. Un workflow reutilizable o
@@ -72,6 +72,29 @@ de ejecutar contratos, producto o suites. Con registro, las referencias de
 contratos y de calidad salen de la misma entrada. No hay fallback silencioso
 a variables globales ni a HEAD. La ausencia de quality_ref falla cuando se
 exige quality/product.json; el bootstrap mantiene esa exigencia.
+
+# Revision independiente de infraestructura
+
+El guard con [revision exacta](contracts/trusted-ci-change-review.md) acepta,
+ademas del registro de baseline, JSON en la variable administrativa externa
+`KDD_TRUSTED_CHANGE_REVIEW`. No toma esa aprobacion del checkout ni del PR:
+la administracion de la variable es parte de la raiz de confianza. Sin ella
+mantiene el rechazo anterior. Se revisan base, arbol candidato y conjunto
+completo de rutas protegidas con modos y OIDs Git anteriores y posteriores:
+
+```json
+{"schema_version":1,"base_commit":"SHA_BASE","candidate_tree":"OID_ARBOL",
+ "files":[{"path":".github/workflows/validate.yml",
+           "before":{"mode":"100644","oid":"OID_ANTERIOR"},
+           "after":{"mode":"100644","oid":"OID_NUEVO"}}]}
+```
+
+`before` o `after` es null en altas o bajas. La revision requiere OIDs completos
+exactos, archivos regulares y ningun campo o ruta adicional. Un cambio de base,
+arbol, modo, contenido o conjunto de rutas exige una nueva revision. No
+sustituye la aprobacion de contratos y oraculos ni autentica criptograficamente
+la identidad del revisor. La version antigua del guard bloquea la primera
+instalacion de esta capacidad; requiere una excepcion puntual autorizada.
 
 # Guard y migracion
 
