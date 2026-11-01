@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "spec": "specs/CONTRACT-34-kdd-governance-closure.md",
+  "state": "verified_in_ci",
+  "ci": {
+    "run_url": "https://github.com/MauricioPerera/KDD/actions/runs/41273667316",
+    "head_sha": "9cadacb32b3a644dac358a27037416ea3d437d12"
+  },
+  "criteria": {
+    "AC-1": {
+      "status": "verified_in_ci",
+      "evidence": "https://github.com/MauricioPerera/KDD/actions/runs/41273667316"
+    },
+    "AC-2": {
+      "status": "verified_in_ci",
+      "evidence": "https://github.com/MauricioPerera/KDD/actions/runs/41273667316"
+    },
+    "AC-3": {
+      "status": "verified_in_ci",
+      "evidence": "https://github.com/MauricioPerera/KDD/actions/runs/41273667316"
+    },
+    "AC-4": {
+      "status": "verified_in_ci",
+      "evidence": "https://github.com/MauricioPerera/KDD/actions/runs/41273667316"
+    },
+    "AC-5": {
+      "status": "verified_in_ci",
+      "evidence": "https://github.com/MauricioPerera/KDD/actions/runs/41273667316"
+    },
+    "CI-1": {
+      "status": "verified_in_ci",
+      "evidence": "https://github.com/MauricioPerera/KDD/actions/runs/41273667316"
+    }
+  }
+}
