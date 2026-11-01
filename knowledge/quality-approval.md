@@ -74,3 +74,8 @@ Declarar un comando como adversarial o UI no prueba que lo sea. La revisión hum
 ## Evidencia que motivó este protocolo
 
 En el experimento local del gestor de gastos, el oráculo inicial detectó 7 de 12 mutaciones manuales. Tras reforzarlo, rechazó las 12 conocidas y la regresión de identidad; también se comprobó bloqueo de archivos no autorizados y pruebas alteradas. Esto motivó integración obligatoria del perímetro y de pruebas complementarias. No representa una medición universal de KDD ni acredita proyectos que no ejecuten estos controles. Los resultados detallados pertenecen al repositorio del experimento, no se enlazan como archivos inexistentes en la plantilla.
+
+La [propuesta KG-5](context-learning-provenance.md) distingue identidad de fuentes,
+entrega real y enlaces de aprendizaje aprobados. Un proyecto que exige esta
+garantia declara el lector con referencias explicitas como check protegido y
+obligatorio; no se deduce de etiquetas ni de un hash de test.

@@ -5,12 +5,17 @@ description: 'Aplicar budgets soportados y bloquear restricciones requeridas sin
 tags: ['governance', 'restrictions', 'budget', 'quality']
 ---
 
-# KG-4: baseline aprobado e implementacion candidata
+# KG-4: candidato verificado en CI
 
 Desarrolla el [objetivo de gobierno](kdd-governance-closure.md), despues de la
 [garantia de oraculos](oracle-assurance.md). La implementacion candidata conserva
 el baseline humano 17800863ecca2b41c168076dd7c4a73da00a8460 y sus oraculos.
-La condicion previa se cumplio con el CI de KG-3; falta completar el CI propio.
+La condicion previa se cumplio con el CI de KG-3 antes de implementar. El candidato
+e202760c01b7d5d1978f1419859f2919f586a838 del [PR 152](https://github.com/MauricioPerera/KDD/pull/152)
+completo el [CI 41256786660](https://github.com/MauricioPerera/KDD/actions/runs/41256786660):
+143 contratos y dos suites de 1796 casos en cada sistema, con inventario identico,
+cero fallos, errores u omisiones de fixture. Conserva los SKIP normales (10 en
+Ubuntu, 9 en Windows por pasada); el board pasa en ambos sistemas. No esta fusionado a main.
 Contratos: [cobertura de budgets](contracts/required-budget-coverage.md) y
 [controles de producto](contracts/quality-required-controls.md).
 
@@ -124,4 +129,5 @@ Produccion autorizada: scripts/validate_budgets.py y scripts/verify_quality.py.
 PARAR y presentar otra propuesta si hace falta otra fuente, oraculo anterior,
 dependencia, elevar budgets o modificar workflows/protecciones. El baseline humano
 y el CI dual-OS 2x de KG-3 se comprobaron antes de implementar. La verificacion
-final de KG-4 sigue exigiendo su propio CI dual-OS 2x antes de declararlo cerrado.
+final de KG-4 completo su CI dual-OS 2x; las restricciones conservan el alcance y
+las limitaciones descritas, sin afirmar aislamiento de runtime.
