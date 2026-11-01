@@ -5,15 +5,20 @@ description: 'Identificar fuentes y fragmentos reales, exigir contexto requerido
 tags: ['governance', 'context', 'learning', 'provenance']
 ---
 
-# KG-5: propuesta antes de implementar
+# KG-5: baseline aprobado y borrador de implementacion
 
 Desarrolla el [objetivo](kdd-governance-closure.md), despues de los
 [controles requeridos](required-controls.md). Los contratos de
 [contexto](contracts/context-delivery-manifest.md),
 [aprendizaje](contracts/learning-traceability.md) y
 [compatibilidad del cierre](contracts/governance-report-initialization.md)
-fijan las garantias mecanicas. Esta propuesta necesita revision propia y el
-CI dual-OS 2x de KG-4 antes de implementar.
+fijan las garantias mecanicas. El usuario aprobo d10ae37136da409df99c5010986efad78f878df6
+y la extension exacta 2eb28774b7043ff043ea33d141254604603a66db. El CI dual-OS 2x
+de KG-4 se completo y registro antes de implementar. El borrador queda dentro
+de las tres fuentes autorizadas. La correccion exacta del fixture de fallback
+y su sello fue aprobada en 8dad3baf4a1ba1ad92fd11e5705b3d2ef36394bb, conservando
+todas sus aserciones y el ranking previo. Falta completar el CI propio antes de
+verificar esta entrega.
 
 ## Contexto: fuente y entrega
 
@@ -54,8 +59,9 @@ del API, la leyo, la comprendio o aplico sus reglas.
 
 ## Aprendizaje: enlaces declarados y aceptacion externa
 
-El nuevo validate_learning.py es de solo lectura y usa Git real. Su placeholder
-actual contiene solo un docstring: no implementa ninguna garantia.
+El nuevo validate_learning.py es de solo lectura y usa Git real. El baseline
+aprobado contenia solo un docstring no funcional; el borrador implementa las
+comprobaciones siguientes sin importar ni ejecutar los artefactos enlazados.
 CLI: --repo-root, --ledger, --approved-ref, --observed-ref (HEAD por defecto),
 --require-accepted y --require-execution. approved_ref es OID completo canonico
 externo, nunca HEAD o alias automatico. observed_ref se resuelve una sola vez.
@@ -93,10 +99,11 @@ check obligatorio de [calidad](quality-approval.md), que lo ejecuta dos veces.
 El lector aislado no se presenta como gate obligatorio de todos los proyectos.
 
 El ledger propuesto `knowledge/governance-learning.json` incluye dos respuestas KG-1/KG-2
-para revision en este baseline: hallazgos registrados, decisiones y oraculos
-existentes versionados. Declararlas accepted aqui propone su aceptacion; solo
-la aprobacion humana de este baseline proporciona la referencia externa que
-permite validarlas. No se certifican retrospectivamente ejecuciones anteriores.
+aprobadas por el usuario en d10ae37136da409df99c5010986efad78f878df6:
+hallazgos registrados, decisiones y oraculos existentes versionados. La referencia
+externa explicita permite comprobar que el candidato conserva esa aceptacion;
+el lector no autentica la identidad humana. No se certifican retrospectivamente
+ejecuciones anteriores.
 
 ## Compatibilidad exacta para el cierre
 
@@ -131,6 +138,7 @@ ademas docs/reports/CONTRACT-34-EVIDENCE.json. Un probe real en copia temporal
 mostro que ese archivo conserva la identidad KDD despues de inicializar otro
 repositorio. El baseline d10ae37136da409df99c5010986efad78f878df6 aprobo solo
 el reporte Markdown. El [contrato de extension](contracts/governance-evidence-initialization.md)
-propone esta segunda ruta exacta opcional con seis oraculos nuevos, sin tocar
-ningun test previo ni ampliar otra fuente. Necesita revision propia antes de
-implementar; todas las aprobaciones anteriores siguen vigentes.
+fijo esta segunda ruta exacta opcional con seis oraculos nuevos, sin tocar
+ningun test previo ni ampliar otra fuente. El usuario aprobo el baseline
+2eb28774b7043ff043ea33d141254604603a66db antes de implementar la limpieza;
+todas las aprobaciones anteriores siguen vigentes.
