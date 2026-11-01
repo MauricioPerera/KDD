@@ -5,10 +5,12 @@ description: 'Aplicar budgets soportados y bloquear restricciones requeridas sin
 tags: ['governance', 'restrictions', 'budget', 'quality']
 ---
 
-# KG-4: borrador previo a implementacion
+# KG-4: baseline aprobado e implementacion candidata
 
 Desarrolla el [objetivo de gobierno](kdd-governance-closure.md), despues de la
-[garantia de oraculos](oracle-assurance.md). No acredita implementacion ni cierre.
+[garantia de oraculos](oracle-assurance.md). La implementacion candidata conserva
+el baseline humano 17800863ecca2b41c168076dd7c4a73da00a8460 y sus oraculos.
+La condicion previa se cumplio con el CI de KG-3; falta completar el CI propio.
 Contratos: [cobertura de budgets](contracts/required-budget-coverage.md) y
 [controles de producto](contracts/quality-required-controls.md).
 
@@ -83,7 +85,10 @@ El nuevo modo `--required --json` y measure_required declaran cobertura real:
 Soporte inicial: funciones Python del modulo, incluidas las que seleccionan
 los algoritmos AST existentes. Scope explicito: module-functions; no se afirma
 el alcance de otro motor, lenguaje o definicion de complejidad. Las metricas
-son cyclomatic_max, nesting_max, lines_max y params_max. Una key adicional
+son cyclomatic_max, nesting_max, lines_max y params_max. Se observan nodos
+FunctionDef y AsyncFunctionDef, incluidos metodos y funciones anidadas; no se
+miden lambdas ni el coste de llamadas externas. Se conservan los algoritmos
+AST previos, incluida su forma de contar ramas y anidamiento. Una key adicional
 requerida, como memory_max, no se ignora. No se sube un limite para medir verde.
 
 El reporte incluye schema_version, status, contracts_checked,
@@ -97,6 +102,9 @@ miden memoria, latencia, aislamiento ni correccion semantica del producto.
 
 Cada linea REQUIRED_CONTROL contiene JSON con id, iteracion, aprobacion,
 identidades de entradas, status, mecanismo, alcance, cobertura y resultados.
+runner_sha256 identifica los bytes Git aprobados de cada modulo; los hashes
+de target declaran LF normalizado y conservan tambien target_raw_sha256. Cada
+proceso de medicion tiene un timeout fijo de 120 segundos; timeout/error bloquea.
 AST y Git no aislan procesos: runtime_isolation=false. El auditor
 audit_forbids conserva su API advisory y FORBID_UNVERIFIED informativo;
 no se promueve a gate ni se modifica GATE_SPECS o el bundle historico de tareas.
@@ -112,7 +120,8 @@ La persona revisora decide limites, alcance, restricciones obligatorias y
 riesgo aceptable. El codigo exige esa politica y registra el soporte observado;
 un hash correcto o una metrica dentro de limites no deciden esas cuestiones.
 
-Produccion propuesta: scripts/validate_budgets.py y scripts/verify_quality.py.
+Produccion autorizada: scripts/validate_budgets.py y scripts/verify_quality.py.
 PARAR y presentar otra propuesta si hace falta otra fuente, oraculo anterior,
-dependencia, elevar budgets o modificar workflows/protecciones. Este borrador
-necesita baseline propio y el CI dual-OS 2x de KG-3 antes de implementar.
+dependencia, elevar budgets o modificar workflows/protecciones. El baseline humano
+y el CI dual-OS 2x de KG-3 se comprobaron antes de implementar. La verificacion
+final de KG-4 sigue exigiendo su propio CI dual-OS 2x antes de declararlo cerrado.

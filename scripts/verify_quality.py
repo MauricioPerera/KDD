@@ -110,6 +110,7 @@ def unique_object(pairs):
 TASK_MODULES = ('validate_tasks.py', 'task_git.py', 'task_model.py',
                 'task_evidence.py', 'validate_contracts.py')
 ORACLE_MODULES = ('mutation_audit.py', 'audit_seals.py', 'validate_contracts.py', 'process_tree.py')
+CONTROL_MODULES = ('validate_budgets.py', 'validate_contracts.py')
 
 
 def _generated_entry(entry, identifiers, protected):
@@ -190,14 +191,52 @@ def _oracle_policy(data):
         _oracle_entry(entry, protected)
 
 
+def _control_path(root, value):
+    try:
+        return safe_path(root, value)
+    except Rejected as error:
+        raise Rejected('CONTROL_POLICY: ' + str(error)) from error
+
+
+def _required_entry(root, entry, protected, identifiers):
+    if not isinstance(entry, dict):
+        raise Rejected('CONTROL_POLICY: required control must be an object')
+    fields = {'id', 'contract', 'kind', 'mechanism'}
+    if entry.get('kind') == 'forbid':
+        fields.add('capability')
+    if set(entry) != fields or any(not isinstance(entry[key], str) or not entry[key].strip()
+                                   or '\0' in entry[key] for key in fields):
+        raise Rejected('CONTROL_POLICY: invalid required control schema')
+    if entry['id'] in identifiers:
+        raise Rejected('CONTROL_POLICY: duplicate required control identity')
+    identifiers.add(entry['id'])
+    _control_path(root, entry['contract'])
+    if entry['contract'] not in protected:
+        raise Rejected('CONTROL_POLICY: required contract must be protected')
+
+
+def _required_policy(root, data):
+    if 'required_controls' not in data:
+        return
+    entries = data['required_controls']
+    if not isinstance(entries, list) or not entries:
+        raise Rejected('CONTROL_POLICY: nonempty required control inventory is required')
+    protected, identifiers = set(data['protected']), set()
+    if not {'scripts/' + name for name in CONTROL_MODULES}.issubset(protected):
+        raise Rejected('CONTROL_POLICY: frozen measurement runner modules must be protected')
+    for entry in entries:
+        _required_entry(root, entry, protected, identifiers)
+
+
 def validate_policy(root, data):
     fields = {'protected', 'implementation', 'pm', 'required_kinds', 'checks'}
-    optional = {'generated_task_evidence', 'oracle_reviews'}
+    optional = {'generated_task_evidence', 'oracle_reviews', 'required_controls'}
     if not isinstance(data, dict) or not fields.issubset(data) or set(data) - fields - optional:
         raise Rejected('Policy fields must be: ' + ', '.join(sorted(fields)))
+    path_checker = _control_path if 'required_controls' in data else safe_path
     for field in ('protected', 'implementation', 'pm'):
         for name in strings(data[field], field, field == 'protected'):
-            safe_path(root, name)
+            path_checker(root, name)
     required = strings(data['required_kinds'], 'required_kinds', True)
     if not {'functional', 'adversarial'}.issubset(required):
         raise Rejected('functional and adversarial kinds are required')
@@ -210,6 +249,7 @@ def validate_policy(root, data):
         raise Rejected('Required kind has no check')
     _generated_policy(data)
     _oracle_policy(data)
+    _required_policy(root, data)
     return data
 
 
@@ -479,30 +519,179 @@ def _oracle_pass(root, context, iteration):
         raise Rejected('ORACLE_INCONCLUSIVE: required review runner could not complete') from error
 
 
+_CONTROL_AUDIT = """import json,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+import validate_budgets as measure
+if not hasattr(measure,'measure_required'):
+    raise SystemExit('CONTROL_UNSUPPORTED: frozen runner predates required measurement')
+entry=json.loads(Path(sys.argv[3]).read_text(encoding='utf-8'))
+path=Path(sys.argv[2])/entry['contract']
+report=measure.measure_required(str(path.parent),sys.argv[2],path.stem)
+print(json.dumps(report,ensure_ascii=True,sort_keys=True))
+raise SystemExit(0 if report['status']=='PASS' else 1)
+"""
+
+
+@contextmanager
+def _control_bundle(root, context):
+    with tempfile.TemporaryDirectory(prefix='kdd-approved-controls-') as directory:
+        bundle = Path(directory)
+        if bundle.resolve().is_relative_to(root):
+            raise Rejected('CONTROL_POLICY: frozen measurement runner must be outside the checkout')
+        for name in CONTROL_MODULES:
+            path = 'scripts/' + name
+            key = ('control-mode', context['commit'], path)
+            if key not in context['cache']:
+                _approved_regular(root, context['commit'], path, 'measurement module')
+                context['cache'][key] = True
+            (bundle / name).write_bytes(context['approved'][path])
+        yield bundle
+
+
+def _control_failure(code, message):
+    return {'schema_version': 1, 'status': 'FAIL', 'contracts_checked': 0,
+            'functions_measured': 0, 'measurements': [],
+            'findings': [{'rule': code, 'message': message}]}
+
+
+def _control_result(completed):
+    try:
+        report = json.loads(completed.stdout)
+    except (ValueError, TypeError):
+        code = 'CONTROL_UNSUPPORTED' if 'CONTROL_UNSUPPORTED' in (completed.stderr or '') else 'CONTROL_INCONCLUSIVE'
+        return _control_failure(code, 'frozen measurement runner did not produce its receipt')
+    if not isinstance(report, dict) or report.get('schema_version') != 1:
+        return _control_failure('CONTROL_INCONCLUSIVE', 'invalid measurement receipt schema')
+    if completed.returncode and report.get('status') == 'PASS':
+        return _control_failure('CONTROL_INCONCLUSIVE', 'measurement execution was not successful')
+    report['exit_code'] = completed.returncode
+    return report
+
+
+def _control_run(root, context, entry):
+    if entry['kind'] != 'budget' or entry['mechanism'] != 'python-ast':
+        return _control_failure('CONTROL_UNSUPPORTED', 'required mechanism has no enforcement in this profile')
+    try:
+        with _control_bundle(root, context) as bundle:
+            payload = bundle / 'entry.json'
+            payload.write_text(json.dumps(entry), encoding='utf-8')
+            completed = context['run']([sys.executable, '-I', '-c', _CONTROL_AUDIT,
+                str(bundle), str(root), str(payload)], cwd=root, capture_output=True,
+                text=True, encoding='utf-8', errors='replace', timeout=120)
+            return _control_result(completed)
+    except Rejected as error:
+        return _control_failure('CONTROL_POLICY', str(error))
+    except (OSError, subprocess.SubprocessError) as error:
+        return _control_failure('CONTROL_INCONCLUSIVE', str(error))
+
+
+def _control_row(context, entry, iteration, report):
+    row = dict(report, id=entry['id'], contract=entry['contract'], iteration=iteration,
+        approved_ref=context['commit'], mechanism=entry['mechanism'], runtime_isolation=False,
+        scope='module-functions' if report.get('measurements') else 'not-measured',
+        contract_sha256=hashlib.sha256(normalized(context['approved'][entry['contract']])).hexdigest(),
+        runner_sha256={name: hashlib.sha256(context['approved']['scripts/' + name]).hexdigest()
+                       for name in CONTROL_MODULES})
+    for finding in row.get('findings', []):
+        if finding.get('rule') == 'BUDGET_CONTRACT':
+            finding['rule'] = 'CONTROL_CONTRACT'
+    return row
+
+
+def _control_targets(root, row):
+    measurements = row.get('measurements', [])
+    if (row.get('contracts_checked') != 1 or row.get('functions_measured', 0) <= 0
+            or len(measurements) != 1 or measurements[0].get('contract') != row['contract']):
+        raise Rejected('CONTROL_INCONCLUSIVE: required measurement has no exact positive coverage')
+    measurement = measurements[0]
+    if (measurement.get('method') != 'python-ast' or measurement.get('scope') != 'module-functions'
+            or len(measurement.get('functions', [])) != row['functions_measured']):
+        raise Rejected('CONTROL_INCONCLUSIVE: unsupported measurement coverage')
+    targets = {measurement['target']: measurement['target_raw_sha256']}
+    _stable_control_targets(root, targets)
+    return targets
+
+
+def _stable_control_targets(root, targets):
+    try:
+        _stable_review_targets(root, targets)
+    except (OSError, Rejected) as error:
+        raise Rejected('CONTROL_CHANGED: required measured target changed or became unavailable') from error
+
+
+def _control_observation(root, row):
+    if row.get('status') != 'PASS' or row.get('findings'):
+        return row, {}
+    try:
+        return row, _control_targets(root, row)
+    except (KeyError, TypeError, ValueError) as error:
+        code = str(error).split(':', 1)[0]
+        if not code.startswith('CONTROL_'):
+            code = 'CONTROL_INCONCLUSIVE'
+        row.update(status='FAIL', findings=[{'rule': code, 'message': str(error)}])
+        return row, {}
+
+
+def _required_pass(root, context, iteration):
+    targets = {}
+    for entry in context['policy'].get('required_controls', []):
+        try:
+            row = _control_row(context, entry, iteration, _control_run(root, context, entry))
+            row, measured = _control_observation(root, row)
+            print('REQUIRED_CONTROL ' + json.dumps(row, ensure_ascii=True, sort_keys=True), flush=True)
+            if row.get('status') != 'PASS' or row.get('findings'):
+                reasons = [item.get('rule', 'CONTROL_INCONCLUSIVE') for item in row.get('findings', [])]
+                raise Rejected(', '.join(reasons) or 'CONTROL_INCONCLUSIVE: required measurement failed')
+            if any(name in targets and targets[name] != digest for name, digest in measured.items()):
+                raise Rejected('CONTROL_CHANGED: different measured versions within one pass')
+            targets.update(measured)
+            _stable_control_targets(root, targets)
+        finally:
+            integrity(root, context['commit'], context['policy'], context['approved'], context['cache'])
+    return targets
+
+
+def _profiles(root, context, iteration):
+    _stable_review_targets(root, context['oracle_targets'])
+    _stable_control_targets(root, context['control_targets'])
+    measured = _required_pass(root, context, iteration)
+    if context['control_targets'] and context['control_targets'] != measured:
+        raise Rejected('CONTROL_CHANGED: required controls measured different target versions')
+    context['control_targets'] = measured
+    measured = _oracle_pass(root, context, iteration)
+    if context['oracle_targets'] and context['oracle_targets'] != measured:
+        raise Rejected('ORACLE_INCONCLUSIVE: required reviews observed different target versions')
+    context['oracle_targets'] = measured
+    _stable_review_targets(root, measured)
+    _stable_control_targets(root, context['control_targets'])
+
+
+def _run_check(root, context, check, iteration):
+    print('RUN %s/2 %s [%s]' % (iteration, check['name'], check['kind']), flush=True)
+    try:
+        result = context['run'](check['argv'], cwd=root, timeout=check['timeout'], shell=False)
+    finally:
+        integrity(root, context['commit'], context['policy'], context['approved'], context['cache'])
+        _stable_review_targets(root, context['oracle_targets'])
+        _stable_control_targets(root, context['control_targets'])
+    if result.returncode:
+        raise Rejected('Check failed: %s (exit %s)' % (check['name'], result.returncode))
+
+
 def _checks(root, commit, policy, approved, run):
     cache = {}
     integrity(root, commit, policy, approved, cache)
-    context = {'commit': commit, 'policy': policy, 'approved': approved, 'run': run, 'cache': cache}
-    targets = {}
+    context = {'commit': commit, 'policy': policy, 'approved': approved, 'run': run, 'cache': cache,
+               'oracle_targets': {}, 'control_targets': {}}
     if 'oracle_reviews' not in policy:
         print('LIMIT quality: oracle assurance not requested', flush=True)
+    if 'required_controls' not in policy:
+        print('LIMIT quality: required controls not requested', flush=True)
     for iteration in (1, 2):
-        _stable_review_targets(root, targets)
-        measured = _oracle_pass(root, context, iteration)
-        if targets and targets != measured:
-            raise Rejected('ORACLE_INCONCLUSIVE: required reviews observed different target versions')
-        targets = measured
-        _stable_review_targets(root, targets)
+        _profiles(root, context, iteration)
         for check in policy['checks']:
-            print('RUN %s/2 %s [%s]' % (iteration, check['name'], check['kind']), flush=True)
-            try:
-                result = run(check['argv'], cwd=root, timeout=check['timeout'],
-                             shell=False)
-            finally:
-                integrity(root, commit, policy, approved, cache)
-                _stable_review_targets(root, targets)
-            if result.returncode:
-                raise Rejected('Check failed: %s (exit %s)' % (check['name'], result.returncode))
+            _run_check(root, context, check, iteration)
 
 
 def approve(root, policy_path, reference):
