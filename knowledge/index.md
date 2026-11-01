@@ -223,3 +223,5 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contrato de ensamblado CCDD v0.3](contracts/context-v03-assemble.md)
 - [Contrato de comparacion CCDD v0.3](contracts/context-v03-diff.md)
 - [Contrato CI de contexto CCDD v0.3](contracts/context-v03-ci.md)
+
+- [Discovery de Pages en PR con dependencias del despliegue](./pages-pr-deploy-parity.md)
