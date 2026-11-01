@@ -25,6 +25,13 @@ sido aprobado; su cherry-pick conserva sus archivos, reindexados sobre esta base
 - [Complejidad OKF](contracts/validate-okf-complexity.md): conservar tipos de
   grupo y comparar presupuesto y comportamiento con el main vigente.
 
+# Integracion posterior de main
+
+El PR 158 se integro despues mediante `292f0e53aa50c7836300fafb389baa45dc176f08`.
+La rama conserva esa ascendencia y los cuatro artefactos de cierre incorporados.
+Las pruebas y el CI del head combinado deben validarse por separado; las
+pasadas anteriores no acreditan el nuevo arbol.
+
 # Criterios
 
 Conservar Ubuntu/Windows, Board, coverage de IDs, dos pasadas completas y
