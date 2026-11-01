@@ -14,7 +14,7 @@ budget:
   lines_max: 100
   params_max: 5
 tests: tests/test_task_import_ancestry.py
-tests_sha256: '239631ae3513b60d7779883f9965c80550cd3598b5cb1bb967287b5ad350f161'
+tests_sha256: 'ccce37706f232a32c8e8eec536f3a46b27b32fe8e3eb7215121d00338295de15'
 touch_only: ['scripts/validate_tasks.py']
 deps_allowed: ['stdlib', 'task_git', 'task_model', 'git']
 forbids: ['network', 'llm']
@@ -53,7 +53,8 @@ anidados donde la rama fuente ya integro la base por otro padre.
 
 ## Tests
 `tests/test_task_import_ancestry.py` crea repositorios y DAG reales con commits,
-merges anidados, mutaciones restauradas y controles de base externa.
+merges anidados, mutaciones restauradas, un clon superficial real y controles
+de base externa.
 
 ## Constraints
 PARAR y reportar si requiere cambiar oraculos anteriores, runtime o protecciones.

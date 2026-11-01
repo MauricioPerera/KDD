@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -88,6 +89,24 @@ class TaskImportAncestryTests(unittest.TestCase):
         errors = self.validate(head)
         self.assertTrue(any('TASK_IMPORT' in item for item in errors), errors)
         self.assertFalse(any('TASK_BASELINE' in item for item in errors), errors)
+
+    def test_shallow_nested_history_is_rejected(self):
+        _, head = self.integrate()
+        area = tempfile.TemporaryDirectory(prefix='kdd-shallow-import-')
+        self.addCleanup(area.cleanup)
+        shallow = Path(area.name) / 'project'
+        clone = subprocess.run(['git', 'clone', '--quiet', '--depth=3',
+            self.repo.root.as_uri(), str(shallow)], capture_output=True,
+            text=True, encoding='utf-8', timeout=120)
+        self.assertEqual(clone.returncode, 0, clone.stdout + clone.stderr)
+        check = subprocess.run(['git', '-C', str(shallow), 'rev-parse',
+            '--is-shallow-repository'], capture_output=True, text=True,
+            encoding='utf-8', timeout=30)
+        self.assertEqual(check.returncode, 0, check.stderr)
+        self.assertEqual(check.stdout.strip(), 'true')
+        errors = validate_tasks.validate_range(shallow, self.main_base, head)
+        self.assertTrue(any('TASK_BASELINE' in item and 'complete history' in item
+                            for item in errors), errors)
 
     def test_public_base_still_must_be_first_parent(self):
         source, head = self.integrate()
