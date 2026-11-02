@@ -9,6 +9,7 @@ intent: "Instanciar KDD en un repositorio nuevo sin arrastrar ejemplos, specs/re
 target: scripts/init_project.py
 signature: "def init_project(repo_dir: str, apply: bool, name: str, repository: str = None) -> dict:"
 test_command: "python -m unittest tests/test_init_project.py"
+test_timeout: 600
 budget:
   cyclomatic_max: 10
   nesting_max: 4

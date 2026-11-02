@@ -204,6 +204,9 @@ def _audit_range(root, base, head, cache, imported=False):
         if anchor is None:
             return ['TASK_BASELINE: base must be on the first-parent history of head']
         base = anchor
+    journal._remember_git_commits(root, chain)
+    if journal._prefetch_task_nodes(root, chain[chain.index(base):]):
+        journal._prefetch_history_metadata(root, chain[chain.index(base):])
     errors = validate_snapshot(root, base)
     parent = base
     for revision, *parents in rows[chain.index(base) + 1:]:

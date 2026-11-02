@@ -7,6 +7,7 @@ import argparse
 from pathlib import Path
 import subprocess
 from validate_contracts import parse_frontmatter
+from oracle_inventory import approved_binary_paths, inventory_paths, local_file, oracle_equal
 
 
 def _git(root, *args):
@@ -23,7 +24,11 @@ def _normalize(content):
 
 def _relative(root, file):
     try:
-        return (root / file).resolve().relative_to(root).as_posix()
+        path = Path(file)
+        name = path.relative_to(root).as_posix() if path.is_absolute() else path.as_posix()
+        if name != '.':
+            local_file(root, name)
+        return name
     except (ValueError, TypeError) as exc:
         raise ValueError('Artifact path escapes repository') from exc
 
@@ -37,16 +42,24 @@ def validate_baseline(contract, approved_ref, repo_root='.'):
     metadata, _ = parse_frontmatter(approved_contract.decode('utf-8'))
     if not isinstance(metadata, dict) or not metadata.get('tests'):
         raise ValueError('Approved contract must declare tests')
-    oracle = _relative(root, metadata['tests'])
     findings = []
-    for file, expected in [(rel, approved_contract),
-                           (oracle, _git(root, 'show', commit + ':' + oracle))]:
+    artifacts = [(rel, approved_contract)]
+    binary = (approved_binary_paths(lambda *args: _git(root, *args), commit, inventory_paths(metadata))
+              if 'oracle_files' in metadata else set())
+    for name in inventory_paths(metadata):
+        entry = _git(root, 'ls-tree', commit, '--', name).decode().split()
+        if not entry or entry[0] not in ('100644', '100755'):
+            raise ValueError('Approved oracle inventory file missing or not regular: ' + name)
+        artifacts.append((name, _git(root, 'show', commit + ':' + name)))
+    for file, expected in artifacts:
         try:
-            current = (root / file).read_bytes()
-        except OSError:
+            current = local_file(root, file).read_bytes()
+        except (OSError, ValueError):
             findings.append(file + ': approved artifact missing')
             continue
-        if _normalize(current) != _normalize(expected):
+        exact = file != rel and 'oracle_files' in metadata
+        if (not oracle_equal(current, expected, file in binary) if exact else
+                _normalize(current) != _normalize(expected)):
             findings.append(file + ': differs from approved reference ' + commit)
     return findings
 

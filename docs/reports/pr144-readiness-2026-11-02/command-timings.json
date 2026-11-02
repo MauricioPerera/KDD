@@ -1,0 +1,1325 @@
+{
+  "results": [
+    {
+      "path": "knowledge/contracts\\agents-context-rule.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.3029089999909047,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\approval-onboarding-consistency.md",
+      "scope": "product",
+      "duration_seconds": 37.14359510000213,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\approval-ref-identity.md",
+      "scope": "infrastructure",
+      "duration_seconds": 57.66633720000391,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\approval-registry.md",
+      "scope": "infrastructure",
+      "duration_seconds": 15.913540400011698,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\approval-routing.md",
+      "scope": "infrastructure",
+      "duration_seconds": 53.530540200008545,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\assemble-context-complexity.md",
+      "scope": "infrastructure",
+      "duration_seconds": 2.6370970999996644,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\assemble-context.md",
+      "scope": "infrastructure",
+      "duration_seconds": 2.1148378999787383,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\attestation-gate.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.616607700008899,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\benchmark-gates.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.40842250001151115,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-audit-context.md",
+      "scope": "infrastructure",
+      "duration_seconds": 9.390573200013023,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-audit-improvements.md",
+      "scope": "infrastructure",
+      "duration_seconds": 5.965227999986382,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-contract-refresh.md",
+      "scope": "infrastructure",
+      "duration_seconds": 9.639074999984587,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-dependency-security.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.9383158999844454,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-empty-onboarding.md",
+      "scope": "infrastructure",
+      "duration_seconds": 12.970998900011182,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-git-journal.md",
+      "scope": "infrastructure",
+      "duration_seconds": 136.1386245000176,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-git-ui.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.4846278000040911,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-hardening.md",
+      "scope": "infrastructure",
+      "duration_seconds": 1.446966399991652,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-oracle-execution.md",
+      "scope": "infrastructure",
+      "duration_seconds": 2.4484725999936927,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-perimeter-errors.md",
+      "scope": "infrastructure",
+      "duration_seconds": 112.59516200001235,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-polling-recovery.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-project-root.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-security-remediation.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.3179873999906704,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-sha-formats.md",
+      "scope": "infrastructure",
+      "duration_seconds": 144.14669269998558,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-vault-isolation.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\board-webmcp-errors.md",
+      "scope": "infrastructure",
+      "duration_seconds": 55.37765410001157,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\bootstrap-cold-start.md",
+      "scope": "infrastructure",
+      "duration_seconds": 55.95461260000593,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\bootstrap-filesystem-boundary.md",
+      "scope": "infrastructure",
+      "duration_seconds": 77.80949630000396,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\bootstrap-fixture-cache.md",
+      "scope": "infrastructure",
+      "duration_seconds": 44.0598790999793,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\bootstrap-product-quality-ci.md",
+      "scope": "infrastructure",
+      "duration_seconds": 102.34661500001675,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\bootstrap-project.md",
+      "scope": "infrastructure",
+      "duration_seconds": 1.0621188000077382,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\bootstrap-scan-provenance.md",
+      "scope": "infrastructure",
+      "duration_seconds": 20.807059000013396,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\bootstrap-transaction.md",
+      "scope": "infrastructure",
+      "duration_seconds": 28.969288699998287,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\budget-enforcement.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.2857903000258375,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\catalog-startup.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.3075726999959443,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\change-contract-audit.md",
+      "scope": "infrastructure",
+      "duration_seconds": 70.27099070002441,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\change-contract-languages.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\changelog-gate.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.3503564999846276,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\check-agent-wiring.md",
+      "scope": "product",
+      "duration_seconds": 0.3982294000161346,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\check-graph.md",
+      "scope": "product",
+      "duration_seconds": 0.2192940999811981,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\ci-command-workers.md",
+      "scope": "infrastructure",
+      "duration_seconds": 3.7351765999919735,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\ci-contract-resources.md",
+      "scope": "infrastructure",
+      "duration_seconds": 15.286066000000574,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\ci-execution-deduplication.md",
+      "scope": "infrastructure",
+      "duration_seconds": 3.359277799987467,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\ci-git-fixture-lifecycle.md",
+      "scope": "infrastructure",
+      "duration_seconds": 2.804224899999099,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\ci-node24-actions.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.6101037000189535,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\ci-product-fixture-snapshot.md",
+      "scope": "infrastructure",
+      "duration_seconds": 41.2520429000142,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\ci-suite-processes.md",
+      "scope": "infrastructure",
+      "duration_seconds": 19.25828839998576,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\ci-timeout-fixture-margin.md",
+      "scope": "infrastructure",
+      "duration_seconds": 7.588501899997937,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\ci-trusted-execution.md",
+      "scope": "infrastructure",
+      "duration_seconds": 41.77819559999625,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\ci-unittest-fixtures.md",
+      "scope": "infrastructure",
+      "duration_seconds": 16.3413811000064,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\ci-windows-suite-six.md",
+      "scope": "infrastructure",
+      "duration_seconds": 44.444786400010344,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\commit-message-gate.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.34709349999320693,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\completion-evidence.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.530254600016633,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\context-delivery-manifest.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.40653560002101585,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\context-secret-prefixes.md",
+      "scope": "product",
+      "duration_seconds": 0.4481114999798592,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\context-v03-assemble.md",
+      "scope": "infrastructure",
+      "duration_seconds": 16.91849449998699,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\context-v03-ci.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\context-v03-diff.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\contract-acceptance.md",
+      "scope": "infrastructure",
+      "duration_seconds": 58.47849509998923,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\contract-python-runtime.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.968494600005215,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\dependency-workflow-e2e.md",
+      "scope": "infrastructure",
+      "duration_seconds": 188.79848680002033,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\diagram-gate.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.5937074000248685,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\evidence-hardening.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.3616085999819916,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\example-node-greet.md",
+      "scope": "product",
+      "duration_seconds": 0.42140500000095926,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\existing-git-fixture-lifecycle.md",
+      "scope": "infrastructure",
+      "duration_seconds": 8.30226309999125,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\export-gate-contract.md",
+      "scope": "infrastructure",
+      "duration_seconds": 1.3025501999945845,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\fixture-maintenance-budget.md",
+      "scope": "infrastructure",
+      "duration_seconds": 9.414542699989397,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\fixture-preparation-cost.md",
+      "scope": "infrastructure",
+      "duration_seconds": 3.2662840000120923,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\forbids-audit.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.5882917999988422,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\gate-execution-profile.md",
+      "scope": "infrastructure",
+      "duration_seconds": 10.071449900016887,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\git-read-batching.md",
+      "scope": "infrastructure",
+      "duration_seconds": 12.651748700009193,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\git-reader-ref-cache.md",
+      "scope": "infrastructure",
+      "duration_seconds": 24.218891299999086,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\governance-evidence-initialization.md",
+      "scope": "infrastructure",
+      "duration_seconds": 4.335837199992966,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\governance-initialization.md",
+      "scope": "infrastructure",
+      "duration_seconds": 2.8287284999969415,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\governance-report-initialization.md",
+      "scope": "infrastructure",
+      "duration_seconds": 3.161444700002903,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\group-contracts.md",
+      "scope": "infrastructure",
+      "duration_seconds": 58.78168920002645,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\group-okf-type.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\init-project.md",
+      "scope": "infrastructure",
+      "duration_seconds": 600.0325250999886,
+      "exit_code": null,
+      "error": "timeout",
+      "status": "TIMEOUT"
+    },
+    {
+      "path": "knowledge/contracts\\kdd-codex-plugin.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.379694200004451,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\learning-traceability.md",
+      "scope": "infrastructure",
+      "duration_seconds": 40.79736329999287,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\lint-ascii.md",
+      "scope": "infrastructure",
+      "duration_seconds": 1.0669570999743883,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\local-authority.md",
+      "scope": "product",
+      "duration_seconds": 0.857458599988604,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\mcp-gate-dispatch.md",
+      "scope": "infrastructure",
+      "duration_seconds": 8.642802000016673,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\mcp-sdk-ci.md",
+      "scope": "infrastructure",
+      "duration_seconds": 8.44880309997825,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\methodology-onboarding.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.9523776000132784,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\mutation-attribution.md",
+      "scope": "infrastructure",
+      "duration_seconds": 10.809467600018252,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\mutation-audit.md",
+      "scope": "infrastructure",
+      "duration_seconds": 1.8192885000025854,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\mutation-command-quoting.md",
+      "scope": "infrastructure",
+      "duration_seconds": 11.801891800016165,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\mutation-control-evidence.md",
+      "scope": "infrastructure",
+      "duration_seconds": 15.180596099991817,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\mutation-python-runtime.md",
+      "scope": "infrastructure",
+      "duration_seconds": 2.3515504999959376,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\mutation-target-boundary.md",
+      "scope": "infrastructure",
+      "duration_seconds": 10.651099499984412,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\native-level2.md",
+      "scope": "infrastructure",
+      "duration_seconds": 1.3853634000115562,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\optional-evidence.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.24543179999454878,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\oracle-execution.md",
+      "scope": "infrastructure",
+      "duration_seconds": 4.459220699995058,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\oracle-inventory.md",
+      "scope": "infrastructure",
+      "duration_seconds": 29.82209950001561,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\pages-build.md",
+      "scope": "product",
+      "duration_seconds": 0.7034652000002097,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\pages-context-discovery.md",
+      "scope": "infrastructure",
+      "duration_seconds": 2.2737425999948755,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\pages-inventory-ci.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.21464419999392703,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\pages-inventory.md",
+      "scope": "product",
+      "duration_seconds": 31.01028079999378,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\pages-pr-build.md",
+      "scope": "infrastructure",
+      "duration_seconds": 1.8882009999942966,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\pages-pr-deploy-ci.md",
+      "scope": "infrastructure",
+      "duration_seconds": 58.98676650002017,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\pages-pr-deploy-environment.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\perimeter-gate.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.31619330000830814,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\preflight.md",
+      "scope": "infrastructure",
+      "duration_seconds": 1.510107500012964,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\process-exit-barrier.md",
+      "scope": "infrastructure",
+      "duration_seconds": 18.340720899985172,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\process-fixture-readiness.md",
+      "scope": "infrastructure",
+      "duration_seconds": 19.783360800007358,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\process-task-fixture.md",
+      "scope": "infrastructure",
+      "duration_seconds": 90.35141909998492,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\process-tree-timeout.md",
+      "scope": "infrastructure",
+      "duration_seconds": 66.71823080000468,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\project-initialization.md",
+      "scope": "infrastructure",
+      "duration_seconds": 49.84563470000285,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\quality-baseline.md",
+      "scope": "infrastructure",
+      "duration_seconds": 1.2606965999875683,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\quality-oracle-reviews.md",
+      "scope": "infrastructure",
+      "duration_seconds": 73.20510760002071,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\quality-process-lifecycle.md",
+      "scope": "infrastructure",
+      "duration_seconds": 66.88718069999595,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\quality-ref-canonical.md",
+      "scope": "infrastructure",
+      "duration_seconds": 70.42198700000881,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\quality-required-controls.md",
+      "scope": "infrastructure",
+      "duration_seconds": 69.15439450001577,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\quality-task-evidence.md",
+      "scope": "infrastructure",
+      "duration_seconds": 127.6868536999973,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\required-budget-coverage.md",
+      "scope": "infrastructure",
+      "duration_seconds": 2.7715545000100974,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\route-message.md",
+      "scope": "product",
+      "duration_seconds": 0.39141189999645576,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\rule-engine-complexity.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.9369189999997616,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\rule-hints.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.5278488000039943,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\rules-gate.md",
+      "scope": "infrastructure",
+      "duration_seconds": 1.7691116999776568,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\run-profile.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.40951130000757985,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\sample_task.md",
+      "scope": "product",
+      "duration_seconds": 0.5969866999948863,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\seal-audit.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.591076399985468,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\secret-scan-gate.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.5514342999958899,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\skills-gate.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.6331056999915745,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\sprint-admission.md",
+      "scope": "product",
+      "duration_seconds": 0.9920725999982096,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\sprint-planner.md",
+      "scope": "product",
+      "duration_seconds": 1.1401236999954563,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-ancestry-cache.md",
+      "scope": "infrastructure",
+      "duration_seconds": 130.55693309998605,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-approval-identity.md",
+      "scope": "infrastructure",
+      "duration_seconds": 143.53825959999813,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-cli.md",
+      "scope": "infrastructure",
+      "duration_seconds": 17.121174300002167,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-committed-artifacts.md",
+      "scope": "infrastructure",
+      "duration_seconds": 342.35714470001403,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-finish-perimeter.md",
+      "scope": "infrastructure",
+      "duration_seconds": 279.78070210001897,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-git-complexity.md",
+      "scope": "infrastructure",
+      "duration_seconds": 96.74290660000406,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-historical-controls.md",
+      "scope": "infrastructure",
+      "duration_seconds": 226.5114643999841,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-history-parent-batch.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-journal.md",
+      "scope": "infrastructure",
+      "duration_seconds": 125.23555700000725,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-main-read-budget.md",
+      "scope": "infrastructure",
+      "duration_seconds": 28.828296200023033,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-model.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.46109270001761615,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-operation-controls.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-perimeter-history.md",
+      "scope": "infrastructure",
+      "duration_seconds": 274.4357695999788,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-publication.md",
+      "scope": "infrastructure",
+      "duration_seconds": 200.33294359999127,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-validation.md",
+      "scope": "infrastructure",
+      "duration_seconds": 63.09555830000318,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-worktree-integration.md",
+      "scope": "infrastructure",
+      "duration_seconds": 147.88554019998992,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\task-write-boundary.md",
+      "scope": "infrastructure",
+      "duration_seconds": 125.99379149999004,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\test-command-gate.md",
+      "scope": "infrastructure",
+      "duration_seconds": 5.290024200017797,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\traceability-cli.md",
+      "scope": "infrastructure",
+      "duration_seconds": 174.02054199998383,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\traceability-contract-path-batch.md",
+      "scope": "infrastructure",
+      "duration_seconds": 131.49332479998702,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\traceability-fixture-package.md",
+      "scope": "infrastructure",
+      "duration_seconds": 26.451172700006282,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\traceability-git.md",
+      "scope": "infrastructure",
+      "duration_seconds": 177.22003499997663,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\traceability-model.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.613502200023504,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\trusted-pr-gate.md",
+      "scope": "infrastructure",
+      "duration_seconds": 39.26242980000097,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\ux-page-gate.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.8473805999965407,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\validate-article.md",
+      "scope": "product",
+      "duration_seconds": 0.34891119998064823,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\validate-baseline.md",
+      "scope": "infrastructure",
+      "duration_seconds": 5.974038999993354,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\validate-okf.md",
+      "scope": "infrastructure",
+      "duration_seconds": 2.040887700015446,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\validate-payment-limit.md",
+      "scope": "product",
+      "duration_seconds": 0.3101666000147816,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\validate-rules.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.43630810000468045,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\validate-specs.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.631466899998486,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\validate-user-record.md",
+      "scope": "product",
+      "duration_seconds": 0.5221079000039026,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\validation-diagnostics.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.6228058999986388,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\verify-completion-runs.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.9151066000049468,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\verify-quality-complexity.md",
+      "scope": "infrastructure",
+      "duration_seconds": 20.104826299997512,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\verify-quality.md",
+      "scope": "infrastructure",
+      "duration_seconds": 37.46752450001077,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\versioning-plantilla.md",
+      "scope": "infrastructure",
+      "duration_seconds": 0.4039520999940578,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\workflow-syntax-ci.md",
+      "scope": "infrastructure",
+      "duration_seconds": 8.206025299994508,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    },
+    {
+      "path": "knowledge/contracts\\workflow-syntax.md",
+      "scope": "infrastructure",
+      "duration_seconds": 28.33662500002538,
+      "exit_code": 0,
+      "error": null,
+      "status": "PASS"
+    }
+  ],
+  "total_duration_seconds": 6044.660455400124
+}

@@ -1,0 +1,472 @@
+{
+  "tested_commit": "a53a3337879bc05596332ee6e5b5a6edfdd69429",
+  "source_unchanged": true,
+  "all_required_passed": false,
+  "followup_ok": true,
+  "platform": "Windows AMD64",
+  "python": "3.11.15",
+  "trusted_runtime_ref": "57cb3e706b4eec756e98647e71f445dbfc6d6841",
+  "steps": [
+    {
+      "name": "sdk",
+      "command": [
+        "D:\\Repo\\Nueva carpeta (107)\\pr144-sdk-311\\Scripts\\python.exe",
+        "-I",
+        "scripts/check_mcp_sdk.py",
+        "--repo-root",
+        ".",
+        "--expected-commit",
+        "a53a3337879bc05596332ee6e5b5a6edfdd69429",
+        "--report-json",
+        "D:\\Repo\\Nueva carpeta (107)\\pr144-run-a53a3337879b-23a96e7c\\sdk.json"
+      ],
+      "exit_code": 0,
+      "seconds": 2.360000000015134,
+      "log_sha256": "2a65ac9a12ed1ecf22a511bbc8ed4b55f5b3d5cdd3ee07ab996323d641e290c0"
+    },
+    {
+      "name": "validate_contracts",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_contracts"
+      ],
+      "exit_code": 0,
+      "seconds": 0.5,
+      "log_sha256": "ffbe258e028b58280d47f909aa16ad1c4b6326d7541f877cf7736d211bf456d5"
+    },
+    {
+      "name": "validate_specs",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_specs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.5320000000065193,
+      "log_sha256": "fdbba1d5437cc3e2468911d6d4cbe5b621c2029fe499659c06821f145f2c90d2"
+    },
+    {
+      "name": "validate_okf",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_okf"
+      ],
+      "exit_code": 0,
+      "seconds": 0.45300000000861473,
+      "log_sha256": "89af6ddbb3c07420af358f681b9071682e2ea20fb33d7eb44e8455318b149d90"
+    },
+    {
+      "name": "lint_ascii",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "lint_ascii"
+      ],
+      "exit_code": 0,
+      "seconds": 0.5620000000053551,
+      "log_sha256": "9384c19fadc95dc9218c1296a892459109dc5076ba19f6b64076db587c393656"
+    },
+    {
+      "name": "validate_rules",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_rules"
+      ],
+      "exit_code": 0,
+      "seconds": 0.3909999999741558,
+      "log_sha256": "88a8150dded08fee33d34002d7946b85e552f1686fe07191b62085073646e11a"
+    },
+    {
+      "name": "validate_skills",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_skills"
+      ],
+      "exit_code": 0,
+      "seconds": 0.26500000001396984,
+      "log_sha256": "511c0daf9a0bece3cb723f7ff352112ab08c017311704d3aaaf52f80724d4f31"
+    },
+    {
+      "name": "validate_behavior",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_behavior"
+      ],
+      "exit_code": 0,
+      "seconds": 0.4379999999946449,
+      "log_sha256": "25c1c6588b37a6f6d937829470a682dbbb73f08473da633193806b63af2e6389"
+    },
+    {
+      "name": "validate_changelog",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_changelog"
+      ],
+      "exit_code": 0,
+      "seconds": 0.34400000001187436,
+      "log_sha256": "5d8e391f6fd2c2ed725973a912f65430d90fe8ec9314aab5e4a9963d47f63843"
+    },
+    {
+      "name": "validate_ux_page",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_ux_page"
+      ],
+      "exit_code": 0,
+      "seconds": 0.42199999999138527,
+      "log_sha256": "153ff5b614eaaffdc811e5e4e50c09fa20cd796990d3959bd41c5617de799052"
+    },
+    {
+      "name": "validate_diagrams",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_diagrams"
+      ],
+      "exit_code": 0,
+      "seconds": 0.3129999999946449,
+      "log_sha256": "4c76977f7501b542806a04cef112819ac674a7aecceaf9507c0c4a4c31af17f1"
+    },
+    {
+      "name": "validate_security_findings",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_security_findings"
+      ],
+      "exit_code": 0,
+      "seconds": 0.4370000000053551,
+      "log_sha256": "0c19d3d9b4c739088bbfd749d6d509553b7da1da57513ff3d885692ed86631b2"
+    },
+    {
+      "name": "validate_compliance_findings",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_compliance_findings"
+      ],
+      "exit_code": 0,
+      "seconds": 0.28099999998812564,
+      "log_sha256": "38d80da17dc7f6a2339867ce8cccd362fdaaef94ece77cfbe2b930dcb43a4585"
+    },
+    {
+      "name": "validate_privacy_findings",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_privacy_findings"
+      ],
+      "exit_code": 0,
+      "seconds": 0.34400000001187436,
+      "log_sha256": "b10e6b8ce13a0f21124ec55ad309d1919dee09c06eb4614a2302bd192b9b003a"
+    },
+    {
+      "name": "validate_accessibility_findings",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_accessibility_findings"
+      ],
+      "exit_code": 0,
+      "seconds": 0.29699999999138527,
+      "log_sha256": "1266f0890e5d961d2f617bef10e1f1d83643e1cc3d7b9a570291860b7cb56bc5"
+    },
+    {
+      "name": "validate_dependency_eol_findings",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_dependency_eol_findings"
+      ],
+      "exit_code": 0,
+      "seconds": 0.7189999999827705,
+      "log_sha256": "fab5d92e585bbaa83dd69e9b0f7a2a1bb8339bc0b41a6ccf93e6badbb674b2b3"
+    },
+    {
+      "name": "validate_observability_findings",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_observability_findings"
+      ],
+      "exit_code": 0,
+      "seconds": 0.5470000000204891,
+      "log_sha256": "edfab12e9708528d3d69c5dc1e55a80fd0d5d0707220f571d15595a4b141d4d5"
+    },
+    {
+      "name": "validate_test_coverage_findings",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import json,sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_test_coverage_findings"
+      ],
+      "exit_code": 0,
+      "seconds": 0.40599999998812564,
+      "log_sha256": "c48cb6b609303a87e858a8a1f67c309cddce9208f38ebdd433415c1328a568a7"
+    },
+    {
+      "name": "validate_test_commands",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "scripts/validate_test_commands.py",
+        "knowledge/contracts",
+        ".",
+        "--workers",
+        "4",
+        "--deduplicate",
+        "--timeout",
+        "600",
+        "--exclusive-commands-json",
+        "[\"python -m unittest tests/test_init_project.py\"]",
+        "--timings-json",
+        "D:\\Repo\\Nueva carpeta (107)\\pr144-run-a53a3337879b-23a96e7c\\command-timings.json"
+      ],
+      "exit_code": 1,
+      "seconds": 1995.0780000000086,
+      "log_sha256": "ebedea49f8b65c858c3d19dfc6132eeaeb43bad567511e1d48cb0d5086284673"
+    },
+    {
+      "name": "scan_secrets",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "scan_secrets"
+      ],
+      "exit_code": 0,
+      "seconds": 0.46900000001187436,
+      "log_sha256": "dba5166ad9db9ba648c1032ebbd34dcd0d085b50023b839ef5c68ca1db93a563"
+    },
+    {
+      "name": "validate_attestation",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-c",
+        "import sys;sys.path.insert(0,'scripts');from mcp_gate_dispatch import run_gate;r=run_gate(sys.argv[1],{},repo_root='.',timeout=120);print(r.get('stdout',''));print(r.get('stderr',''));sys.exit(r['exit_code'] if r['exit_code'] is not None else 1)",
+        "validate_attestation"
+      ],
+      "exit_code": 0,
+      "seconds": 0.7960000000020955,
+      "log_sha256": "dba5166ad9db9ba648c1032ebbd34dcd0d085b50023b839ef5c68ca1db93a563"
+    },
+    {
+      "name": "suite-1",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-I",
+        "D:\\Repo\\Nueva carpeta (107)\\pr144-trusted-runtime\\trusted_ci.py",
+        "suite",
+        "--repo-root",
+        "D:\\Repo\\Nueva carpeta (107)\\KDD",
+        "--start-directory",
+        "tests",
+        "--pattern",
+        "test_*.py",
+        "--workers",
+        "6",
+        "--report-json",
+        "D:\\Repo\\Nueva carpeta (107)\\pr144-complete-a53a3337879b-b871c450\\suite-1.json"
+      ],
+      "exit_code": 0,
+      "seconds": 1113.75,
+      "log_sha256": "93cd6e5cfed0641c9acf9a12625e748153f0021764dc538e6ccf88c2ef8bd452"
+    },
+    {
+      "name": "suite-2",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-I",
+        "D:\\Repo\\Nueva carpeta (107)\\pr144-trusted-runtime\\trusted_ci.py",
+        "suite",
+        "--repo-root",
+        "D:\\Repo\\Nueva carpeta (107)\\KDD",
+        "--start-directory",
+        "tests",
+        "--pattern",
+        "test_*.py",
+        "--workers",
+        "6",
+        "--report-json",
+        "D:\\Repo\\Nueva carpeta (107)\\pr144-complete-a53a3337879b-b871c450\\suite-2.json"
+      ],
+      "exit_code": 0,
+      "seconds": 1070.875,
+      "log_sha256": "7d19888e08044b99225fa03d1e5612e1c598c999124f970822ff152aa8ea46fc"
+    },
+    {
+      "name": "board-types",
+      "command": [
+        "npm.cmd",
+        "--prefix",
+        "tools/kdd-board",
+        "run",
+        "typecheck"
+      ],
+      "exit_code": 0,
+      "seconds": 2.0320000000065193,
+      "log_sha256": "c01770e92b5fa781a101a47696f8a252f2e4dbd7b749ee2494200f0b4cc8614c"
+    },
+    {
+      "name": "board-tests",
+      "command": [
+        "npm.cmd",
+        "--prefix",
+        "tools/kdd-board",
+        "test"
+      ],
+      "exit_code": 0,
+      "seconds": 97.65599999998813,
+      "log_sha256": "0d3fc78804903d7d7265a79458e06ccfed6bff43c37dfeff137b81702ef2049f"
+    },
+    {
+      "name": "workflow",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "scripts/validate_workflows.py",
+        "check",
+        "--repo-root",
+        "."
+      ],
+      "exit_code": 0,
+      "seconds": 0.40600000001722947,
+      "log_sha256": "219c8bf226451a0a49d8e73bb074f5bbcb201e582bb0f61fa03af0af0efd1961"
+    },
+    {
+      "name": "init-diagnostic",
+      "command": [
+        "C:\\Windows\\Temp\\pr144-native-python311-20261030\\python.exe",
+        "-m",
+        "unittest",
+        "tests.test_init_project"
+      ],
+      "exit_code": 0,
+      "seconds": 846.1409999999742,
+      "log_sha256": "2051a4a141f557e756422d69ec4d1923a4d5276fa756331f86f261abf1784f55"
+    },
+    {
+      "name": "diff",
+      "command": [
+        "C:\\Program Files\\Git\\mingw64\\bin\\git.exe",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 0.28100000001722947,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "suites": [
+    {
+      "ok": true,
+      "tests_run": 2013,
+      "duration_seconds": 1112.6906745999877,
+      "skipped": [
+        {
+          "id": "test_init_project.TestInitProject.test_gates_verdes_post_apply_en_copia",
+          "reason": "already covered by the init-project contract test_command"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_gate_accepts_explicit_dir_inside_repo",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_gate_rejects_dir_escaping_repo",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_gate_rejects_list_dir_escaping_repo",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_lint_ascii_tool_call_end_to_end",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_lists_all_expected_tools",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_rule_hint_tool_call_end_to_end",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_rule_hint_unknown_id_falls_back_without_error",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_seal_tests_rejects_path_escaping_repo",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        }
+      ],
+      "full_report_sha256": "0e756adfab92bb5827fa6edc8e948cae60da9dd4cf44f650feb671e71fbbad23"
+    },
+    {
+      "ok": true,
+      "tests_run": 2013,
+      "duration_seconds": 1068.7601935999992,
+      "skipped": [
+        {
+          "id": "test_init_project.TestInitProject.test_gates_verdes_post_apply_en_copia",
+          "reason": "already covered by the init-project contract test_command"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_gate_accepts_explicit_dir_inside_repo",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_gate_rejects_dir_escaping_repo",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_gate_rejects_list_dir_escaping_repo",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_lint_ascii_tool_call_end_to_end",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_lists_all_expected_tools",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_rule_hint_tool_call_end_to_end",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_rule_hint_unknown_id_falls_back_without_error",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        },
+        {
+          "id": "test_mcp_server_smoke.TestMcpServerSmoke.test_seal_tests_rejects_path_escaping_repo",
+          "reason": "SDK MCP compatible no disponible; ver knowledge/mcp-sdk-ci.md"
+        }
+      ],
+      "full_report_sha256": "5fce60b457233c41f57ddfff6d4c026fa99560cb149a77977f2363568044bf24"
+    }
+  ]
+}

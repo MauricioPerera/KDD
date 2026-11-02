@@ -17,8 +17,8 @@ test('createWebMcpBridge: flujo WebMCP de extremo a extremo con mock', async () 
   projectFixture(root);
   const previousDocument = globalThis.document;
   try {
-    const taskStore = new TaskStore(tmpTasks);
     const vault = new BlindVault(tmpVault);
+    const taskStore = new TaskStore(tmpTasks, key => Boolean(vault.getSecretValue(key)?.trim()));
     const bridge = createWebMcpBridge(taskStore, vault, root);
     const mock = createWebMcpMock();
 

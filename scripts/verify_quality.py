@@ -16,6 +16,14 @@ import sys
 import tempfile
 
 
+def oracle_equal(current, approved, binary=False):
+    """Keep the standalone quality executor independent of sibling scripts."""
+    if binary or b'\0' in current or b'\0' in approved:
+        return current == approved
+    normalize = lambda data: data.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+    return normalize(current) == normalize(approved)
+
+
 class Rejected(ValueError):
     """An approval condition was not satisfied."""
 
@@ -356,16 +364,16 @@ def _generated_integrity(root, commit, policy, approved, cache):
     return set(artifacts)
 
 
-def _protected_integrity(root, approved):
+def _protected_integrity(root, approved, exact_paths=()):
     indices = _objects(root, [':' + name for name in approved], allow_missing=True)
     for name, content in approved.items():
         path = safe_path(root, name)
         if not path.is_file() or path.is_symlink():
             raise Rejected('Protected file missing or symlink: ' + name)
-        if normalized(path.read_bytes()) != normalized(content):
+        if not oracle_equal(path.read_bytes(), content, name in exact_paths):
             raise Rejected('Protected file changed: ' + name)
         index = indices[':' + name]
-        if index is None or normalized(index) != normalized(content):
+        if index is None or not oracle_equal(index, content, name in exact_paths):
             raise Rejected('Protected index changed: ' + name)
 
 
@@ -373,7 +381,8 @@ def integrity(root, commit, policy, approved, cache=None):
     for field in ('protected', 'implementation', 'pm'):
         for name in policy[field]:
             safe_path(root, name)
-    _protected_integrity(root, approved)
+    cache = {} if cache is None else cache
+    _protected_integrity(root, approved, cache.get('oracle_exact_paths', ()))
     generated = _generated_integrity(root, commit, policy, approved,
                                      cache if cache is not None else {})
     allowed = set(policy['implementation']) | set(policy['pm']) | generated

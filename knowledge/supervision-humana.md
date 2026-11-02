@@ -44,9 +44,11 @@ que mirar, en que orden, y por que.
 5. **¿El `intent` del contrato describe lo que el codigo realmente hace?**
    Esta es la unica revision que NINGUN gate mecanico puede hacer por vos:
    que el contrato pedia lo correcto para el problema real. Los gates
-   verifican que el codigo cumple EL CONTRATO, no que el contrato sea la
-   decision correcta de producto/arquitectura. Esa lectura de intent
-   sigue siendo trabajo humano.
+   comprueban propiedades concretas y los comandos declarados. Para aprobar
+   aceptacion, revisa la [matriz por obligacion](acceptance.md): todo requisito
+   necesita instrumento y evidencia, y su cobertura semantica requiere revision.
+   Un verde estructural no demuestra cumplimiento completo ni una decision
+   correcta de producto/arquitectura. Esa lectura sigue siendo trabajo humano.
 6. **¿Dudas de la FUERZA del oraculo, no solo de su integridad?** El sello
    `tests_sha256` certifica que el oraculo no se reescribio, no que sepa
    hacer fallar al target. Corre `python scripts/audit_seals.py` para

@@ -4,6 +4,20 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- CI Windows reconoce el layout ucrt64 de Git for Windows 2.56 ademas del mingw64 anterior al seleccionar el ejecutable nativo de la misma instalacion. Registra muestras de arranque de ambos ejecutables; conserva version, matriz, oraculos, workers y el limite de 600 segundos.
+
+- CI Windows selecciona el ejecutable nativo de la instalacion Git existente, verificando que conserva la misma version. Mantiene el perfil de callers, workers, inventarios y el limite de 600 segundos.
+
+- PR #144: integracion con el gobierno actual, revision de comandos Python y dos suites de 2.013 casos. Se documentan el timeout local de inicializacion, la aprobacion externa pendiente y el corte de 72 excesos heredados en el [informe de validacion](docs/reports/PR144-VALIDATION-REPORT.md).
+
+- Los comandos de contrato historicos tambien conservan el interprete Python activo, sin alterar seleccion explicita de ejecutables, captura, timeout o deduplicacion. [Contrato y regresion real](knowledge/contracts/contract-python-runtime.md).
+
+- El auditor de mutaciones vincula los alias Python genericos al interprete activo; conserva ejecutables explicitos y evita controles rotos al escapar de un venv. Regresion con procesos reales en [mutation-python-runtime](knowledge/contracts/mutation-python-runtime.md).
+
+- Integracion de la revision metodologica con el main de octubre: 98 excesos frente a 100 heredados, sin nuevos o agravados; evidencia local y limites de publicacion en el [informe de integracion](docs/reports/METHODOLOGY-INTEGRATION-REPORT.md).
+
+- Metodologia: inventario aprobado de oraculos, ejecucion instrumentada, aceptacion por obligacion y onboarding verificable. Board: bloqueo de resúmenes Python inventados y caducidad de evidencias anteriores. [Revision y limites](docs/reports/METHODOLOGY-REVIEW-REPORT.md).
+- Se documentan 49 excesos de presupuesto heredados del arbol revisado, sin ampliacion del alcance ni nuevos excesos en esa medicion. [Deuda historica](knowledge/deuda-presupuestos-heredada.md).
 **Contract 34 — KDD governance closure**: require reviewed perimeters before done and historical audit, coherent operation controls, reviewed counterexamples, supported required restrictions, and traceable context/learning. Integrates current main while preserving ledger ancestry and human decisions. See [the verified report](docs/reports/CONTRACT-34-REPORT.md).
 
 - Native contract commands can reserve an exclusive phase for init-project's
