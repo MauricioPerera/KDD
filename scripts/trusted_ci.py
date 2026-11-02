@@ -21,6 +21,9 @@ RUNTIME_FILES = ('trusted_ci.py', 'run_test_suite.py', 'validate_test_commands.p
                  'validate_contracts.py', 'process_tree.py', 'execution_profile.py')
 
 
+MANAGED_RUNTIME_FILES = ('oracle_execution.py', 'oracle_inventory.py',
+                         'unittest_oracle_runner.py', 'node_oracle_reporter.mjs')
+
 def _git(root, *args):
     return subprocess.check_output(['git', '--no-pager', *args], cwd=root,
                                    stderr=subprocess.PIPE, timeout=30)
@@ -37,8 +40,10 @@ def prepare_bundle(repo_root, trusted_ref, bundle_dir) -> dict:
         raise ValueError('trusted bundle destination already exists')
     if _git(root, 'cat-file', '-t', trusted_ref).strip() != b'commit':
         raise ValueError('trusted runtime is not a commit')
+    managed = _git(root, 'ls-tree', '--name-only', trusted_ref, '--', 'scripts/oracle_execution.py')
+    names = RUNTIME_FILES + MANAGED_RUNTIME_FILES if managed.strip() else RUNTIME_FILES
     blobs = {}
-    for name in RUNTIME_FILES:
+    for name in names:
         path = 'scripts/' + name
         entry = _git(root, 'ls-tree', trusted_ref, '--', path)
         if not entry.startswith((b'100644 blob ', b'100755 blob ')):
@@ -53,7 +58,7 @@ def prepare_bundle(repo_root, trusted_ref, bundle_dir) -> dict:
         (destination / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
     except BaseException:
         # Only remove entries this call created inside its exclusive directory.
-        for name in (*RUNTIME_FILES, 'manifest.json'):
+        for name in (*names, 'manifest.json'):
             (destination / name).unlink(missing_ok=True)
         destination.rmdir()
         raise
@@ -65,13 +70,13 @@ def _runtime(root):
     if directory.is_relative_to(root):
         raise ValueError('verification must run from an external trusted bundle')
     manifest = json.loads((directory / 'manifest.json').read_text(encoding='utf-8'))
-    if (manifest.get('version') != 1 or set(manifest.get('files', {})) != set(RUNTIME_FILES)
+    if (manifest.get('version') != 1 or set(manifest.get('files', {})) not in (set(RUNTIME_FILES), set(RUNTIME_FILES + MANAGED_RUNTIME_FILES))
             or not re.fullmatch(r'[0-9a-f]{40}', manifest.get('trusted_ref', ''))):
         raise ValueError('invalid trusted runtime manifest')
-    for name in RUNTIME_FILES:
+    for name in manifest['files']:
         if hashlib.sha256((directory / name).read_bytes()).hexdigest() != manifest['files'][name]:
             raise ValueError('trusted runtime bytes changed: ' + name)
-    # This path contains only the six already verified runtime files, no checkout.
+    # This path contains only the already verified runtime files, no checkout.
     sys.path.insert(0, str(directory))
     return directory, manifest
 

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "ok": true,
+  "tests_run": 8,
+  "expected_ids": [
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_gate_accepts_explicit_dir_inside_repo",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_gate_rejects_dir_escaping_repo",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_gate_rejects_list_dir_escaping_repo",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_lint_ascii_tool_call_end_to_end",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_lists_all_expected_tools",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_rule_hint_tool_call_end_to_end",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_rule_hint_unknown_id_falls_back_without_error",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_seal_tests_rejects_path_escaping_repo"
+  ],
+  "executed_ids": [
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_gate_accepts_explicit_dir_inside_repo",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_gate_rejects_dir_escaping_repo",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_gate_rejects_list_dir_escaping_repo",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_lint_ascii_tool_call_end_to_end",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_lists_all_expected_tools",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_rule_hint_tool_call_end_to_end",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_rule_hint_unknown_id_falls_back_without_error",
+    "test_mcp_server_smoke.TestMcpServerSmoke.test_seal_tests_rejects_path_escaping_repo"
+  ],
+  "failures": [],
+  "errors": [],
+  "skipped": [],
+  "loader_errors": [],
+  "expected_failures": [],
+  "unexpected_successes": [],
+  "sdk_version": "1.30.0",
+  "sdk_module_path": "D:\\Repo\\Nueva carpeta (107)\\pr144-sdk-311\\Lib\\site-packages\\mcp\\__init__.py",
+  "transport": "in-memory",
+  "oracle_sha256": "8c841369165941980755598d984556d6359007c2010caf52e42aa7126e7bfd51",
+  "repo_commit": "a53a3337879bc05596332ee6e5b5a6edfdd69429",
+  "log": "test_gate_accepts_explicit_dir_inside_repo (test_mcp_server_smoke.TestMcpServerSmoke.test_gate_accepts_explicit_dir_inside_repo) ... ok\ntest_gate_rejects_dir_escaping_repo (test_mcp_server_smoke.TestMcpServerSmoke.test_gate_rejects_dir_escaping_repo) ... ok\ntest_gate_rejects_list_dir_escaping_repo (test_mcp_server_smoke.TestMcpServerSmoke.test_gate_rejects_list_dir_escaping_repo) ... ok\ntest_lint_ascii_tool_call_end_to_end (test_mcp_server_smoke.TestMcpServerSmoke.test_lint_ascii_tool_call_end_to_end) ... ok\ntest_lists_all_expected_tools (test_mcp_server_smoke.TestMcpServerSmoke.test_lists_all_expected_tools) ... ok\ntest_rule_hint_tool_call_end_to_end (test_mcp_server_smoke.TestMcpServerSmoke.test_rule_hint_tool_call_end_to_end)\nLa receta de un rule-id conocido viaja por el protocolo MCP real. ... ok\ntest_rule_hint_unknown_id_falls_back_without_error (test_mcp_server_smoke.TestMcpServerSmoke.test_rule_hint_unknown_id_falls_back_without_error)\nUn rule-id desconocido NO es un error de tool: devuelve el fallback. ... ok\ntest_seal_tests_rejects_path_escaping_repo (test_mcp_server_smoke.TestMcpServerSmoke.test_seal_tests_rejects_path_escaping_repo) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 1.219s\n\nOK\n"
+}

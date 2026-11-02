@@ -127,7 +127,7 @@ activarse para PRs de implementacion cuya diferencia desde ese baseline sea
 la tarea declarada; un PR que agregue otros archivos necesita otro contrato o
 un alcance revisado. Sin esa entrada el paso informa SKIP.
 
-Todos corren localmente y en CI (`.github/workflows/validate.yml`, matriz `ubuntu-latest` + `windows-latest`, que además valida los nodos OKF y corre la suite dos veces — dos corridas idénticas ≈ sin flaky). El caso costoso de post-init se ejecuta una vez dentro del `test_command` de su contrato y se omite en las dos pasadas generales mediante `KDD_SKIP_INIT_POST_APPLY_SUITE=1`; los demás tests siguen corriendo dos veces. **Ningún contrato se considera terminado hasta que pase el nivel 1.**
+Todos corren localmente y en CI (`.github/workflows/validate.yml`, matriz `ubuntu-latest` + `windows-latest`, que además valida los nodos OKF y corre la suite dos veces — dos corridas son una comprobacion basica de repetibilidad; no prueban ausencia de flaky). El caso costoso de post-init se ejecuta una vez dentro del `test_command` de su contrato y se omite en las dos pasadas generales mediante `KDD_SKIP_INIT_POST_APPLY_SUITE=1`; los demás tests siguen corriendo dos veces. **Ningún contrato se considera terminado hasta que pase el nivel 1.**
 
 ## Preflight — diagnóstico local opt-in (NO es un gate)
 
@@ -140,8 +140,8 @@ hace 3 chequeos acotados a un solo task contract: frontmatter, sello del
 oráculo y `test_command` (resumen `N/3`). Exit 0/1; cero dependencias
 (stdlib + módulos hermanos de `scripts/`, sin el SDK `mcp`).
 
-En modo full, `validate_test_commands` tiene un timeout agregado de 300s
-porque ejecuta todos los contratos; cada otro gate mantiene 120s. El
+En modo full, `validate_test_commands` tiene un timeout agregado calculado como
+`max(300, suma_de_plazos_por_contrato + 30)` segundos; cada otro gate mantiene 120s. El
 `test_command` individual de `--contract` mantiene 120s.
 
 Esto **no es un gate nuevo**: Nivel 1 sigue siendo **19 gates** y el
@@ -307,3 +307,59 @@ automatica de autenticacion del adaptador.
 ## Aprobacion de calidad del proyecto
 
 La validacion estructural de la plantilla no sustituye la aprobacion de comportamiento. Para nuevos proyectos, integrar los gates aplicables, oraculos funcionales, adversariales y UI en el [protocolo de aprobacion integrada](quality-approval.md), con politica y referencia aprobada explicitas. El protocolo compone controles existentes y no altera el conteo anterior de 19 gates.
+
+
+## Diagnostico reproducible de comandos
+
+En Windows, `python scripts/validation_runtime.py suite`, `preflight` o
+`contracts` prioriza Git para Windows si esta instalado en una ubicacion
+estandar. Solo cambia el entorno del proceso y sus hijos. `preflight.py`,
+`validate_test_commands.py` y `run_profile.py` tambien preparan ese entorno
+al ejecutarse como CLI. Si no hay Git nativo, conservan el PATH existente;
+no instalan programas ni alteran certificados o configuracion global.
+
+Cada comando conserva su timeout individual de 180 segundos. El preflight
+calcula para el gate agregado `max(300, numero_de_contratos * 180 + 30)`;
+asi el limite global no interrumpe comandos validos por sumar sus duraciones.
+Un comando colgado sigue fallando por su propio limite. El progreso imprime
+RUN y el resultado con duracion antes de iniciar el siguiente comando.
+
+Para conservar la medicion:
+
+```text
+python scripts/validation_runtime.py contracts --timings-json tiempos.json
+```
+
+El JSON incluye ruta, scope, duracion y estado PASS/FAIL/TIMEOUT por contrato,
+sin stdout, stderr ni el texto del comando. No introduce cache ni omite pruebas.
+La ausencia opcional de evidencia sigue siendo SKIP en el preflight. Ver
+[el contrato del diagnostico](contracts/validation-diagnostics.md).
+
+## Aceptacion y muestras ejecutables
+
+El nuevo perfil [acceptance](acceptance.md) exige un SHA aprobado, inventario
+completo y matriz por obligacion. El Nivel 1 historico sigue siendo validacion
+estructural y de comandos: su verde no sustituye el punto de aceptacion.
+
+`oracle_files` es opcional por compatibilidad historica, pero obligatorio en
+acceptance. Si esta presente se validan rutas exactas, existencia e interseccion
+con `touch_only`; baseline y gate confiable comparan cada archivo aprobado.
+`test_runner` activa ejecucion instrumentada con casos positivos en cada archivo
+seleccionado, en vez de usar unicamente exit code. Su ausencia conserva la
+semantica historica y no permite acceptance.
+
+```text
+python scripts/validate_documentation_examples.py
+```
+
+Este check extrae las muestras del quickstart real y comprueba contrato valido,
+stub rechazado e implementacion aprobada con dos casos. Se ejecuta tambien en CI.
+Los requisitos de la suite completa son los declarados en el quickstart; los
+validadores estructurales individuales mantienen sus dependencias documentadas.
+
+El plazo por contrato es 180s por defecto. `test_timeout` declara un entero
+entre 1 y 3600 segundos aprobado con el contrato; `--timeout` cambia el valor
+por defecto de los contratos que no lo declaran. El contrato init-project
+usa 300s porque verifica la suite en una copia inicializada. El modo
+preflight --contract usa 120s historicos salvo plazo declarado y respeta
+test_runner; no degrada un oraculo instrumentado a exit code libre.

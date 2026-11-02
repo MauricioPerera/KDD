@@ -1,0 +1,13 @@
+{
+  "head": "a53a3337879bc05596332ee6e5b5a6edfdd69429",
+  "tree": "e9423d46289244cd619097f6af9df2b597b4b748",
+  "base": "01b264f4c38e88b15eef698b1d8792f4f7cac2c5",
+  "protected_files": [
+    ".github/workflows/validate.yml",
+    "scripts/guard_pr_baseline.py",
+    "scripts/trusted_ci.py",
+    "scripts/validate_baseline.py",
+    "scripts/validate_contracts.py",
+    "scripts/validate_test_commands.py"
+  ]
+}

@@ -40,6 +40,8 @@ import sys
 import mcp_gate_dispatch
 import rule_hints
 from validate_contracts import parse_frontmatter
+from validate_test_commands import collect_contracts
+from validation_runtime import prepare_runtime
 from execution_profile import resolve_profile
 from process_tree import run as run_process
 
@@ -214,6 +216,17 @@ def _check_test_command(repo_root, data, timeout=_TIMEOUT):
     quita una capa de comillas envolventes por token, como
     validate_test_commands. Nunca lanza: fallo es informacion.
     """
+    deadline = timeout
+    if 'test_timeout' in data or 'test_runner' in data:
+        from oracle_execution import declared_timeout, execute_oracle
+        try:
+            deadline = declared_timeout(data, timeout)
+        except ValueError as exc:
+            return _result(1, stderr=str(exc))
+        if 'test_runner' in data:
+            outcome = execute_oracle(data, repo_root, deadline)
+            return _result(outcome['exit_code'], stdout=outcome['stdout'],
+                           stderr=outcome['stderr'] + (outcome['error'] or ''))
     cmd = data['test_command']
     posix = os.name != 'nt'
     try:
@@ -224,9 +237,9 @@ def _check_test_command(repo_root, data, timeout=_TIMEOUT):
         tokens = [_strip_quotes(t) for t in tokens]
     try:
         proc = run_process(tokens, cwd=repo_root, capture_output=True,
-                           text=True, timeout=timeout)
+                           text=True, timeout=deadline)
     except subprocess.TimeoutExpired:
-        return _result(None, stderr='timeout after {}s'.format(timeout))
+        return _result(None, stderr='timeout after {}s'.format(deadline))
     except FileNotFoundError:
         return _result(1, stderr='command not found: {}'.format(tokens[0]))
     except OSError as exc:
@@ -265,6 +278,14 @@ def _contract_payload(results, agent=False):
     lines = _format_lines(results, len(_CONTRACT_CHECKS), agent=agent)
     return {'mode': 'contract', 'overall_ok': overall_ok,
             'results': results, 'lines': lines}
+
+
+def contract_gate_timeout(repo_root):
+    directory = os.path.join(repo_root, 'knowledge', 'contracts')
+    items = collect_contracts(directory)
+    deadlines = [item.get('test_timeout', 180) for item in items]
+    return max(300, sum(value if type(value) is int and 0 < value <= 3600 else 180
+                        for value in deadlines) + 30)
 
 
 def run_preflight(repo_root='.', contract=None, runner=None, agent=False,
@@ -332,6 +353,7 @@ def _parse_cli_flags(argv):
 
 def main(argv):
     """Entry point CLI. Devuelve 0 si overall_ok, 1 si no."""
+    prepare_runtime()
     repo_root, contract, agent = _parse_cli_flags(argv)
     import argparse
     parser = argparse.ArgumentParser(add_help=False)

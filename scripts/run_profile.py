@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+from validation_runtime import prepare_runtime
 
 
 _MINIMAL = (
@@ -26,6 +27,8 @@ _STANDARD = (
     ("secrets", ("python", "scripts/scan_secrets.py", "src")),
 )
 _PROFILES = {
+    "acceptance": (("acceptance", ("python", "scripts/verify_acceptance.py",
+                                   "--policy", "@acceptance_policy@", "--approved-ref", "@approved_ref@")),),
     "minimal": _MINIMAL,
     "standard": _STANDARD,
     "strict": _STANDARD + (
@@ -54,13 +57,15 @@ def _with_budget_contract(profile, budget_contract):
     return profile
 
 
-def build_profile(name, mutation_contract=None, budget_contract=None, approved_ref=None):
+def build_profile(name, mutation_contract=None, budget_contract=None, approved_ref=None,
+                  acceptance_policy=None):
     if (mutation_contract or budget_contract) and name != "strict":
         raise ValueError("--mutation-contract y --budget-contract requieren el perfil strict")
     try:
         profile = list(_PROFILES[name])
     except KeyError as exc:
-        raise ValueError("perfil desconocido: {} (use minimal, standard o strict)".format(name)) from exc
+        raise ValueError("perfil desconocido: {} (use minimal, standard, strict o acceptance)".format(name)) from exc
+    profile = _with_acceptance_policy(profile, name, acceptance_policy)
     if name != "minimal":
         profile = _with_approved_ref(profile, approved_ref)
     if mutation_contract:
@@ -68,6 +73,17 @@ def build_profile(name, mutation_contract=None, budget_contract=None, approved_r
                                       mutation_contract, "--repo-root", ".", "--strict")))
     if budget_contract:
         profile = _with_budget_contract(profile, budget_contract)
+    return profile
+
+
+def _with_acceptance_policy(profile, name, policy):
+    if name == 'acceptance':
+        if not policy:
+            raise ValueError('acceptance requiere --acceptance-policy')
+        return [(step, tuple(policy if arg == '@acceptance_policy@' else arg
+                             for arg in command)) for step, command in profile]
+    if policy:
+        raise ValueError('--acceptance-policy requiere el perfil acceptance')
     return profile
 
 
@@ -104,10 +120,13 @@ def _result_item(step, command, outcome):
 
 
 def run_profile(name, repo_root, mutation_contract=None, budget_contract=None, runner=None,
-                approved_ref=None):
+                **approval):
+    if set(approval) - {'approved_ref', 'acceptance_policy'}:
+        raise TypeError('Unknown approval option')
     runner = runner or _run_command
     results = []
-    for step, command in build_profile(name, mutation_contract, budget_contract, approved_ref):
+    for step, command in build_profile(name, mutation_contract, budget_contract,
+                                       approval.get('approved_ref'), approval.get('acceptance_policy')):
         item = _result_item(step, command, runner(command, repo_root))
         results.append(item)
         if item["exit_code"] != 0:
@@ -118,10 +137,10 @@ def run_profile(name, repo_root, mutation_contract=None, budget_contract=None, r
 def _print_item(item):
     detail = " ({} tests SKIP)".format(item["skipped_tests"]) if item["skipped_tests"] else ""
     print("{} [{}]: {}{}".format(item["step"], item["category"], item["status"], detail))
-    if item["step"] != "contract_tests" and item["status"] == "PASS":
+    if item["step"] not in ("contract_tests", "acceptance") and item["status"] == "PASS":
         return
     lines = item["output"].splitlines()
-    if item["status"] != "FAIL":
+    if item["status"] != "FAIL" and item["step"] != 'acceptance':
         lines = [line for line in lines if line.startswith(("PASS [", "FAIL [", "Summary:", "SKIP ", "Skipped:")) or
                  (item["status"] == "SKIP" and "INFO [PATH_MISSING]" in line)]
     for line in lines:
@@ -129,17 +148,19 @@ def _print_item(item):
 
 
 def main(argv=None):
+    prepare_runtime()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", choices=sorted(_PROFILES), default="standard")
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--mutation-contract", help="contract to mutate in strict mode")
     parser.add_argument("--budget-contract", help="contract whose budget is enforced in strict mode")
     parser.add_argument("--approved-ref", help="full commit SHA approved outside the implementing agent")
+    parser.add_argument("--acceptance-policy", help="approved policy for the acceptance profile")
     args = parser.parse_args(argv)
     try:
         result = run_profile(args.profile, os.path.abspath(args.repo_root),
                              args.mutation_contract, args.budget_contract,
-                             approved_ref=args.approved_ref)
+                             approved_ref=args.approved_ref, acceptance_policy=args.acceptance_policy)
     except ValueError as exc:
         parser.error(str(exc))
     for item in result["results"]:
@@ -147,6 +168,8 @@ def main(argv=None):
     counts = {status: sum(item["status"] == status for item in result["results"])
               for status in ("PASS", "FAIL", "SKIP")}
     print("Summary: PASS={PASS} FAIL={FAIL} SKIP={SKIP}".format(**counts))
+    if args.profile != 'acceptance':
+        print('Acceptance: NOT_EVALUATED (legacy validation profile)')
     suite_skips = sum(item["skipped_tests"] for item in result["results"])
     if suite_skips:
         print("Skipped tests inside suite: {}".format(suite_skips))

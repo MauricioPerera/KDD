@@ -9,6 +9,8 @@ intent: "<UNA sola frase con UN verbo. 'y ademas...' la rompe.>"
 target: <ruta/al/archivo.py>
 signature: "<def firma(arg: tipo) -> tipo:>"
 test_command: "<comando que corre SOLO los tests de esta tarea, ej. 'python -m unittest tests/test_x.py'>"
+test_runner: python-unittest
+oracle_files: ['<ruta/al/archivo/de/tests>', '<helper-fixture-config-si-corresponde>']
 budget:
   cyclomatic_max: <numero, empeza en 5-8 para funciones simples>
   nesting_max: <numero, 2-3 salvo razon documentada>
@@ -69,7 +71,12 @@ COMO USAR ESTA PLANTILLA (borrar este bloque en tu copia):
 5. Reemplaza TODOS los placeholders `<...>` de este archivo.
 6. Corre `python scripts/validate_contracts.py knowledge/contracts` — debe
    dar 0 errores antes de delegar la implementacion a nadie.
-7. Guia completa paso a paso: `knowledge/quickstart.md`.
+7. Completar oracle_files con tests, helpers, fixtures y configuracion.
+   Retirar el placeholder de soporte si no aplica. Las rutas son exactas,
+   no patrones, y no pueden intersectar touch_only.
+8. Para aceptar una entrega, crear la politica de knowledge/acceptance.md
+   y obtener revision externa del commit de contrato/inventario/politica.
+9. Guia completa paso a paso: `knowledge/quickstart.md`.
 
 Esta plantilla NO es un contrato real: `TEMPLATE-*.md` se excluye del gate
 (`scripts/validate_contracts.py`, ver `_collect_files`) igual que
