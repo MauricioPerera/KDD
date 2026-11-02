@@ -1,0 +1,9 @@
+{
+  "tests/test_oracle_inventory.py": "9c92dbcba88d7475b1433786e9e1709f4dd052731c6c1c7ec4ff2813abe9d80c",
+  "tests/test_oracle_execution.py": "58310b12e05ea62c4dbcc78bb3127669aa5cf22d6de500bb37f7fecd5088125a",
+  "tests/test_contract_acceptance.py": "527490867a309f5ac4108b4ac7f1f26bb8c45f36a7378a907fd29a6818d00295",
+  "tests/test_methodology_docs.py": "8b7bf6b979f4221d988a1408630bbbc8cbb12d8d56a871a7374920a6f2d9d284",
+  "tools/kdd-board/tests/python-oracle-proof.test.ts": "83499da71ea953dfb195ecf58309940e36979581fbc0569a59990d56b1d3a225",
+  "tests/test_mutation_python_runtime.py": "4bd938ca5c29f35310f43ce0794a1a80c26b77f82bae8d40bcd24ac17cb1ba05",
+  "tests/test_contract_python_runtime.py": "3e2e5e90ec506c5644f76306b2b125ca4c9c0fb7ebbcdbe3fa0f819e1dd96309"
+}

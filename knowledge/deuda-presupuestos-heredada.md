@@ -17,6 +17,10 @@ La integracion con main `1df365d2307a7058876bc609e09fb4af8c9c9ca9` compara 100 e
 
 La regresion suplementaria de presupuestos compara funcion, medicion y tope contra el inventario de ese main, protegido en oracle_files. Permite conservar o reducir la deuda entrante; no permite hallazgos nuevos, mediciones peores ni topes elevados. No modifica los oraculos primarios congelados ni declara verde la comprobacion global estricta.
 
+## Corte de integracion del 2026-11-02
+
+El main `01b264f4c38e88b15eef698b1d8792f4f7cac2c5` y el codigo integrado `a53a3337879bc05596332ee6e5b5a6edfdd69429` registran 72 excesos cada uno: cero nuevos o agravados, cero resueltos y tres mediciones reducidas que siguen superando el tope. Los cortes anteriores son historicos y no se suman a este total. No se elevaron limites. Ver [inventario exacto](../docs/reports/pr144-readiness-2026-11-02/budget-comparison.json) y [validacion y bloqueos del PR](../docs/reports/PR144-VALIDATION-REPORT.md).
+
 ## Tratamiento posterior
 
 1. Reproducir la medicion sobre el SHA que vaya a corregirse: `python scripts/validate_budgets.py`.

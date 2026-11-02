@@ -1,5 +1,7 @@
 # Integracion de los cambios revisados con main — 2026-10-29
 
+Este documento conserva el corte historico del 2026-10-29. El estado posterior, las dos suites completas y los bloqueos actuales se documentan en [la validacion del PR #144](PR144-VALIDATION-REPORT.md).
+
 Los cambios se publican mediante el PR #144. Se integro main `1df365d2307a7058876bc609e09fb4af8c9c9ca9` conservando sus protecciones del vault, contexto Git, cancelacion de procesos y runtime confiable. Este informe sustituye los conteos historicos de septiembre para describir esta integracion; no atribuye aprobacion independiente ni CI verde al nuevo arbol.
 
 ## Cambios de integracion

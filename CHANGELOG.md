@@ -4,6 +4,8 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- PR #144: integracion con el gobierno actual, revision de comandos Python y dos suites de 2.013 casos. Se documentan el timeout local de inicializacion, la aprobacion externa pendiente y el corte de 72 excesos heredados en el [informe de validacion](docs/reports/PR144-VALIDATION-REPORT.md).
+
 - Los comandos de contrato historicos tambien conservan el interprete Python activo, sin alterar seleccion explicita de ejecutables, captura, timeout o deduplicacion. [Contrato y regresion real](knowledge/contracts/contract-python-runtime.md).
 
 - El auditor de mutaciones vincula los alias Python genericos al interprete activo; conserva ejecutables explicitos y evita controles rotos al escapar de un venv. Regresion con procesos reales en [mutation-python-runtime](knowledge/contracts/mutation-python-runtime.md).
