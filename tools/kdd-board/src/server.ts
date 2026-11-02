@@ -1,4 +1,6 @@
 import http from 'node:http';
+import { z } from 'zod';
+import { httpSchemas, InputError, statusSchema } from './input-validation.ts';
 import crypto from 'node:crypto';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
@@ -39,7 +41,7 @@ const legacyVaultFile = path.join(projectDir, '.env.local');
 const publicDir = path.join(rootDir, 'public');
 
 const gitStore = isGitProject(projectDir) ? new GitTaskStore(projectDir) : undefined;
-const taskStore = gitStore ? undefined : new TaskStore(tasksFile);
+const taskStore = gitStore ? undefined : new TaskStore(tasksFile, key => Boolean(vault.getSecretValue(key)?.trim()));
 const vault = new BlindVault(vaultFile, legacyVaultFile);
 const bridge = gitStore ? createGitBridge(gitStore) : createWebMcpBridge(taskStore!, vault, projectDir);
 const gitApi = gitStore ? createGitApi(gitStore, parseJsonBody, sendJson) : undefined;
@@ -86,7 +88,7 @@ async function allowVaultWrite(res: http.ServerResponse): Promise<boolean> {
   return false;
 }
 
-function parseJsonBody<T>(req: http.IncomingMessage): Promise<T> {
+function parseJsonBody<T>(req: http.IncomingMessage, schema?: z.ZodType<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     let body = '';
     req.on('data', (chunk: Buffer | string) => {
@@ -97,7 +99,7 @@ function parseJsonBody<T>(req: http.IncomingMessage): Promise<T> {
       try {
         const parsed = body ? JSON.parse(body) : ({} as T);
         requireStableLegacyContext();
-        resolve(parsed);
+        resolve(schema ? schema.parse(parsed) : parsed);
       } catch (err) {
         reject(err);
       }
@@ -275,20 +277,14 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
       }
       // 1. GET /api/tasks
       if (req.method === 'GET' && pathname === '/api/tasks') {
-        const status = url.searchParams.get('status') as TaskStatus | null;
+        const rawStatus = url.searchParams.get('status');
+        const status = rawStatus ? statusSchema.parse(rawStatus) : undefined;
         return sendJson(res, 200, taskStore!.getAllTasks(status || undefined));
       }
 
       // 2. POST /api/tasks
       if (req.method === 'POST' && pathname === '/api/tasks') {
-        const body = await parseJsonBody<{
-          title: string;
-          description?: string;
-          assignee?: TaskAssignee;
-          priority?: TaskPriority;
-          contractId?: string;
-          testCommand?: string;
-        }>(req);
+        const body = await parseJsonBody(req, httpSchemas.task);
         if (body.priority !== undefined && !['low', 'medium', 'high', 'urgent'].includes(body.priority)) {
           return sendJson(res, 400, {error: 'Invalid priority'});
         }
@@ -307,10 +303,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
       const statusMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/status$/);
       if (req.method === 'PATCH' && statusMatch) {
         const taskId = statusMatch[1];
-        const body = await parseJsonBody<{
-          status: TaskStatus;
-          comment?: { author: 'human' | 'agent' | 'system'; text: string };
-        }>(req);
+        const body = await parseJsonBody(req, httpSchemas.status);
         const task = taskStore!.updateTaskStatus(taskId, body.status, body.comment);
         return sendJson(res, 200, task);
       }
@@ -319,7 +312,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
       const assignMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/assign$/);
       if (req.method === 'PATCH' && assignMatch) {
         const taskId = assignMatch[1];
-        const body = await parseJsonBody<{ assignee: TaskAssignee }>(req);
+        const body = await parseJsonBody(req, httpSchemas.assign);
         const task = taskStore!.assignTask(taskId, body.assignee);
         return sendJson(res, 200, task);
       }
@@ -328,7 +321,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
       const contractMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/contract$/);
       if (req.method === 'PATCH' && contractMatch) {
         const taskId = contractMatch[1];
-        const body = await parseJsonBody<{ contractId?: string }>(req);
+        const body = await parseJsonBody(req, httpSchemas.contract);
         const task = taskStore!.linkContract(taskId, body.contractId);
         return sendJson(res, 200, task);
       }
@@ -337,12 +330,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
       const reqMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/requirements$/);
       if (req.method === 'POST' && reqMatch) {
         const taskId = reqMatch[1];
-        const body = await parseJsonBody<{
-          fieldKey: string;
-          label: string;
-          description: string;
-          isSecret?: boolean;
-        }>(req);
+        const body = await parseJsonBody(req, httpSchemas.requirement);
         const task = taskStore!.requestHumanInput(taskId, body);
         return sendJson(res, 200, task);
       }
@@ -351,21 +339,19 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
       const fulfillMatch = pathname.match(/^\/api\/tasks\/([^/]+)\/fulfill$/);
       if (req.method === 'POST' && fulfillMatch) {
         const taskId = fulfillMatch[1];
-        const body = await parseJsonBody<{
-          fieldKey: string;
-          value?: string;
-          secretValue?: string;
-        }>(req);
+        const body = await parseJsonBody(req, httpSchemas.fulfill);
 
-        if (body.secretValue) {
-          const task = taskStore!.getTask(taskId);
-          const key = (body.fieldKey || '').trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
-          if (!task || !task.requirements.some(r => r.fieldKey === key)) {
-            return sendJson(res, 404, {error:'Tarea o requerimiento no encontrado'});
+        const requirement = taskStore!.getTask(taskId)?.requirements.find(r => r.fieldKey === body.fieldKey);
+        if (!requirement) throw new InputError('Unknown requirement');
+        if (requirement.isSecret) {
+          if (body.value !== undefined || (!body.secretValue && !vault.getSecretValue(body.fieldKey)?.trim())) throw new InputError('A saved credential is required');
+          if (body.secretValue) {
+            if (!await allowVaultWrite(res)) return;
+            requireStableLegacyContext();
+            vault.setSecret(body.fieldKey, body.secretValue);
           }
-          if (!await allowVaultWrite(res)) return;
-          requireStableLegacyContext();
-          vault.setSecret(body.fieldKey, body.secretValue);
+        } else if (!body.value?.trim() || body.secretValue !== undefined) {
+          throw new InputError('A non-empty answer is required');
         }
         const task = taskStore!.satisfyHumanInput(taskId, body.fieldKey, body.value);
         return sendJson(res, 200, {
@@ -408,7 +394,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
 
       // 8. POST /api/vault (Add or modify secret)
       if (req.method === 'POST' && pathname === '/api/vault') {
-        const body = await parseJsonBody<{ key: string; value: string }>(req);
+        const body = await parseJsonBody(req, httpSchemas.vault);
         if (!body.key || !body.value) {
           return sendJson(res, 400, { error: 'Clave y valor requeridos' });
         }
@@ -420,7 +406,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
         // Auto-satisfy any task waiting for this credential
         const allTasks = taskStore?.getAllTasks() || [];
         for (const t of allTasks) {
-          const req = t.requirements?.find((r) => !r.isSatisfied && r.fieldKey.toUpperCase() === sanitized);
+          const req = t.requirements?.find((r) => r.isSecret && !r.isSatisfied && r.fieldKey.toUpperCase() === sanitized);
           if (req) {
             taskStore!.satisfyHumanInput(t.id, req.fieldKey);
           }
@@ -507,6 +493,7 @@ export function createServer(apiToken = process.env.KDD_BOARD_TOKEN || crypto.ra
       if (err instanceof BoardRestartRequired) {
         return sendJson(res, 409, {error:err.message, code:'BOARD_RESTART_REQUIRED'});
       }
+      if (err instanceof z.ZodError || err instanceof SyntaxError || err instanceof InputError) return sendJson(res, 400, {error: 'Invalid request or unsatisfied requirement'});
       sendJson(res, 500, { error: err?.message || 'Internal Server Error' });
     }
   });

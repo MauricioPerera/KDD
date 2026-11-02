@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "trusted_ref": "57cb3e706b4eec756e98647e71f445dbfc6d6841",
+  "files": {
+    "trusted_ci.py": "0d473d57853f8b9f9c72e587caca9bed98a0cd3650b72259bb8eb63a05095502",
+    "run_test_suite.py": "8955a127a8c7b4e364011c7c1970d1072ae133a47c022cacab6c81235c87acc6",
+    "validate_test_commands.py": "71bbea4459cd84edeede669226033473db4e7ea0ae6ca25a69f5319f305f7ead",
+    "validate_contracts.py": "017cd90c49cf4e3d3bbf42064c9d4e2420c5d78f0bf2e00db1f30885c27e2dc3",
+    "process_tree.py": "fa2b7b64bdee00c6ce662bf4dd035e8ed6050473f5b31e506562af59abda1b1d",
+    "execution_profile.py": "d46fac687d9da220a126abe24f3249773bbcf997703559203232df5e8a57c045"
+  }
+}
