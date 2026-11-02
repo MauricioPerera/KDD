@@ -78,11 +78,14 @@ En el experimento local del gestor de gastos, el oráculo inicial detectó 7 de 
 ## Aceptacion de nuevas entregas
 
 Para nuevas entregas, [acceptance](acceptance.md) exige inventario de oraculos,
-runners reconocidos y matriz por obligacion. `verify_quality` conserva el
-protocolo historico de checks libres: no demuestra por si solo que se ejecuto
-el archivo tests ni que cada restriccion tiene cobertura. Migrar esas politicas
-sin convertir un exit 0 libre en aceptacion. El revisor verifica la fuerza de
-cada assert y la completitud del inventario antes de aprobar el commit.
+runners reconocidos y matriz por obligacion. `verify_quality` conserva checks libres para politicas historicas; sin
+`oracle_reviews` ni `required_controls`, esos checks no demuestran por si solos
+que se ejecuto el archivo tests ni que cada restriccion tiene cobertura. Los
+[oraculos revisados](oracle-assurance.md) y los
+[controles requeridos](required-controls.md) agregan comprobaciones explicitas
+cuando la politica los exige. No convertir un exit 0 libre en aceptacion. El
+revisor verifica la fuerza de cada assert y la completitud del inventario
+antes de aprobar el commit.
 La [propuesta KG-5](context-learning-provenance.md) distingue identidad de fuentes,
 entrega real y enlaces de aprendizaje aprobados. Un proyecto que exige esta
 garantia declara el lector con referencias explicitas como check protegido y

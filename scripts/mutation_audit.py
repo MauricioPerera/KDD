@@ -73,11 +73,15 @@ def _python_runtime(tokens):
 
 
 def _command(value):
+    return _python_runtime(_raw_command(value))
+
+
+def _raw_command(value):
     try:
         tokens = shlex.split(value, posix=os.name != "nt")
         if os.name == 'nt':
             tokens = [t[1:-1] if len(t) > 1 and t[0] == t[-1] and t[0] in "\"'" else t for t in tokens]
-        return _python_runtime(tokens)
+        return tokens
     except ValueError as exc:
         raise ValueError("test_command invalido: {}".format(exc)) from exc
 
@@ -339,12 +343,12 @@ def _review_schema(review):
 
 
 def _review_command(metadata):
-    command = _command(metadata['test_command'])
+    command = _raw_command(metadata['test_command'])
     expected = {metadata['tests'], metadata['tests'].removesuffix('.py').replace('/', '.')}
     if (len(command) != 4 or not re.fullmatch(r'python(?:3(?:\.\d+)?)?', command[0])
             or command[1:3] != ['-m', 'unittest'] or command[3] not in expected):
         raise ValueError('ORACLE_UNSUPPORTED: use unittest with the exact sealed Python oracle')
-    return command
+    return _python_runtime(command)
 
 
 def _review_definition(contract_path, root, review):
