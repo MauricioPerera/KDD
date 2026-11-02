@@ -199,6 +199,26 @@ jobs:
               output.write('KDD_QUALITY_APPROVED_REF=' + (selected['quality_ref'] or '') + '\n')
           print(json.dumps(selected, sort_keys=True))
 
+      - name: Select native Git on Windows
+        if: ${{ runner.os == 'Windows' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+          import shutil
+          import subprocess
+          launcher = Path(shutil.which('git')).resolve()
+          native = launcher.parent.parent / 'mingw64' / 'bin' / 'git.exe'
+          if not native.is_file():
+              native = launcher
+          version = subprocess.check_output([str(launcher), '--version'], text=True).strip()
+          if subprocess.check_output([str(native), '--version'], text=True).strip() != version:
+              raise SystemExit('FAIL: native Git must match the installed launcher version')
+          with open(os.environ['GITHUB_PATH'], 'a', encoding='utf-8') as output:
+              output.write(str(native.parent) + '\n')
+          print(json.dumps({'git_launcher': str(launcher), 'git_native': str(native), 'version': version}))
+
       - name: Materialize reviewed isolated CI runtime
         shell: python -I {0}
         run: |
