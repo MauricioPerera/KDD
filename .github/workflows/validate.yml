@@ -207,17 +207,29 @@ jobs:
           import os
           from pathlib import Path
           import shutil
+          import statistics
           import subprocess
+          import time
           launcher = Path(shutil.which('git')).resolve()
-          native = launcher.parent.parent / 'mingw64' / 'bin' / 'git.exe'
-          if not native.is_file():
-              native = launcher
+          # Git for Windows 2.56 moved its native executable to ucrt64.
+          # Older installations retain mingw64; both belong to this launcher.
+          home = launcher.parent.parent
+          candidates = [home / layout / 'bin' / 'git.exe' for layout in ('ucrt64', 'mingw64')]
+          native = next((path for path in candidates if path.is_file()), launcher)
           version = subprocess.check_output([str(launcher), '--version'], text=True).strip()
           if subprocess.check_output([str(native), '--version'], text=True).strip() != version:
               raise SystemExit('FAIL: native Git must match the installed launcher version')
+          startup = {}
+          for label, executable in (('launcher', launcher), ('native', native)):
+              samples = []
+              for _ in range(7):
+                  started = time.perf_counter()
+                  subprocess.check_output([str(executable), '--version'])
+                  samples.append(time.perf_counter() - started)
+              startup[label] = {'median_seconds': statistics.median(samples), 'samples_seconds': samples}
           with open(os.environ['GITHUB_PATH'], 'a', encoding='utf-8') as output:
               output.write(str(native.parent) + '\n')
-          print(json.dumps({'git_launcher': str(launcher), 'git_native': str(native), 'version': version}))
+          print(json.dumps({'git_launcher': str(launcher), 'git_native': str(native), 'version': version, 'startup': startup}))
 
       - name: Materialize reviewed isolated CI runtime
         shell: python -I {0}
