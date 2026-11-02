@@ -4,6 +4,8 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- CI Windows reconoce el layout ucrt64 de Git for Windows 2.56 ademas del mingw64 anterior al seleccionar el ejecutable nativo de la misma instalacion. Registra muestras de arranque de ambos ejecutables; conserva version, matriz, oraculos, workers y el limite de 600 segundos.
+
 - CI Windows selecciona el ejecutable nativo de la instalacion Git existente, verificando que conserva la misma version. Mantiene el perfil de callers, workers, inventarios y el limite de 600 segundos.
 
 - PR #144: integracion con el gobierno actual, revision de comandos Python y dos suites de 2.013 casos. Se documentan el timeout local de inicializacion, la aprobacion externa pendiente y el corte de 72 excesos heredados en el [informe de validacion](docs/reports/PR144-VALIDATION-REPORT.md).
