@@ -195,7 +195,7 @@ operativos manuales hasta implementar un despachador que los aplique.
    *(Verificación de un LOTE completo mediante agentes auditores independientes — no de
    una tarea sola — tiene su propio ciclo: ver [Rondas de auditoría y confirmación](#rondas-de-auditoría-y-confirmación) más abajo.)*
 5. **COMMIT por tarea verificada** — baseline limpio para la siguiente tarea.
-6. **CIERRE** — suite completa 2× (dos corridas idénticas ≈ sin flaky; un flaky detectado
+6. **CIERRE** — suite completa 2× (dos corridas son una comprobacion basica de repetibilidad, no una prueba de ausencia de flaky; un flaky detectado
    es una tarea futura, no se ignora), reporte del contrato en `docs/reports/`, estado en
    el README.
    Si el cierre involucró agentes auditores sobre un lote completo, el cierre real

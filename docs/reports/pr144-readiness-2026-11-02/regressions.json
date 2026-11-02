@@ -1,0 +1,22 @@
+{
+  "note": "Red result is before the compatibility fix; green result and full suites are after it.",
+  "runs": [
+    {
+      "log": "pr144-main-integration-focused.log",
+      "tests_run": 59,
+      "failures": 10,
+      "seconds": 146.421,
+      "log_sha256": "6dc2ae29cc2cb57b2037ddabe9864f7c6eb190ac608dfd08541ffc609597903f",
+      "phase": "integrated worktree before compatibility fix"
+    },
+    {
+      "log": "pr144-runtime-integration-green.log",
+      "tests_run": 45,
+      "failures": 0,
+      "seconds": 142.894,
+      "log_sha256": "db5405b9f44a1150aad0cbe348a16044d0ceff4eefbdb99d9bae4a7e02cd5f7f",
+      "phase": "after compatibility fix"
+    }
+  ],
+  "final_tested_commit": "a53a3337879bc05596332ee6e5b5a6edfdd69429"
+}

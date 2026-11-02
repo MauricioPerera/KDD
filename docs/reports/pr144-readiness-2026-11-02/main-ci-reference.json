@@ -1,0 +1,23 @@
+{
+  "commit": "01b264f4c38e88b15eef698b1d8792f4f7cac2c5",
+  "job_url": "https://github.com/MauricioPerera/KDD/actions/runs/41362426808/job/125021320829",
+  "platform": "windows-latest",
+  "init_contract_status": "PASS",
+  "suites": [
+    {
+      "tests_run": 1954,
+      "duration_seconds": 574.3305198999999,
+      "ok": true,
+      "skipped": 9,
+      "fixture_omitted_count": 0
+    },
+    {
+      "tests_run": 1954,
+      "duration_seconds": 562.6750233,
+      "ok": true,
+      "skipped": 9,
+      "fixture_omitted_count": 0
+    }
+  ],
+  "limitation": "Comparison with main only; does not certify the PR tree or explain the performance difference by itself."
+}
