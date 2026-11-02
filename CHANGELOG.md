@@ -4,6 +4,8 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- CI nativo fija Windows Server 2022 en validate y Board para comprobar los timeouts intermitentes de inicializacion/procesos observados despues de fusionar PR #144. Conserva nombres de checks y artefactos, callers, cobertura, workers y el limite de 600 segundos; la seleccion de Git por si sola no resolvio el fallo.
+
 - CI Windows selecciona el ejecutable nativo de la instalacion Git existente, verificando que conserva la misma version. Mantiene el perfil de callers, workers, inventarios y el limite de 600 segundos.
 
 - PR #144: integracion con el gobierno actual, revision de comandos Python y dos suites de 2.013 casos. Se documentan el timeout local de inicializacion, la aprobacion externa pendiente y el corte de 72 excesos heredados en el [informe de validacion](docs/reports/PR144-VALIDATION-REPORT.md).

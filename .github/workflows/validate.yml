@@ -134,7 +134,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    # Preserve required check/artifact names while fixing the native Windows
+    # host image. Reusable callers and other repositories keep their OS choice.
+    runs-on: ${{ !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && matrix.os == 'windows-latest' && 'windows-2022' || matrix.os }}
     env:
       KDD_SUITE_WORKERS: ${{ inputs.suite_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && (matrix.os == 'windows-latest' && '6' || '4') || '1') }}
       KDD_CONTRACT_WORKERS: ${{ inputs.contract_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1') }}
@@ -644,7 +646,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    # Use the same fixed Windows image as native validate, with unchanged names.
+    runs-on: ${{ !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && matrix.os == 'windows-latest' && 'windows-2022' || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
