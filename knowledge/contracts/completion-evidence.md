@@ -14,7 +14,7 @@ budget:
   lines_max: 300
   params_max: 4
 tests: 'tests/test_validate_completion.py'
-tests_sha256: '7f8ef28967a6c3e4e323f1500b673754b241a1187ea74d817e6dca8885e0e996'
+tests_sha256: 'b5bb30f0d28a0891ba9dedd47d82f871c3c9b4a2dbb8d049d8dc4dbcb8f72927'
 touch_only: ['scripts/validate_completion.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'subprocess', 'llm']

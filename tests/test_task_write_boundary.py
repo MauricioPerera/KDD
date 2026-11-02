@@ -152,7 +152,7 @@ class TaskWriteBoundary(unittest.TestCase):
         link, content = self.alias('knowledge/index.md'); before = self.state()
         with self.assertRaisesRegex(model.TaskError, 'TASK_PATH:'):
             journal._publish(self.repo.root, before['head'],
-                {'knowledge/index.md': b'new index\n'}, None, 'Own rejected write')
+                {'knowledge/index.md': b'new index\n'}, (None, 'Own rejected write'))
         self.assertEqual(self.state(), before); self.assertEqual(link.read_bytes(), content)
 
     def test_regular_destinations_and_missing_leaf_remain_supported(self):

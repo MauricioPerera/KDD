@@ -36,6 +36,7 @@ Claves adicionales (p. ej. `task`, `target`, `signature` en los contratos) son *
 `type` debe ser exactamente uno de:
 
 - `'Task Contract'` — contrato determinista para un agente efímero (CCDD). Vive típicamente bajo `knowledge/contracts/`.
+- `'Group Contract'` — contrato compuesto con hijos e integración; formato y ejecución en [contratos de grupo](./group-contracts.md).
 - `'Data Model'` — modelo de datos (tablas, esquemas, entidades). Vive bajo `knowledge/data_models/`.
 - `'Architecture'` — componente o vista de arquitectura del sistema. Vive bajo `knowledge/architecture/`.
 - `'Concept'` — definición conceptual o especificación de referencia (esta spec lo es).

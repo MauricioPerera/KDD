@@ -233,6 +233,10 @@ jobs:
         run: |
           python -m pip install --only-binary=:all: -r requirements-change-audit.txt
 
+      - name: Install pinned context compatibility dependencies
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r tools/context-v03/requirements.txt
+
       - name: Check approved contract and oracle baseline
         shell: python
         env:
@@ -485,6 +489,11 @@ jobs:
         if: ${{ github.event_name == 'pull_request' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
         shell: bash
         run: npm ci --prefix site --ignore-scripts --no-audit --no-fund
+
+      - name: Validate Pages discovery with deployment dependencies
+        if: ${{ github.event_name == 'pull_request' && matrix.os == 'ubuntu-latest' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: bash
+        run: python scripts/pages_pr_discovery.py --repo-root . --venv-dir "$RUNNER_TEMP/kdd-pages-discovery-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
 
       - name: Build and validate Pages for PR
         if: ${{ github.event_name == 'pull_request' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}

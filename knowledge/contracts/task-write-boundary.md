@@ -15,7 +15,7 @@ budget:
   lines_max: 180
   params_max: 5
 tests: tests/test_task_write_boundary.py
-tests_sha256: '839a3b6fbec30b3d9c1b9e1398cd1a27a12c0aab7d5afe44d5cd1eac81676425'
+tests_sha256: 'd5ac1fe7f888ec023376cd71915e4892546a0b2b79721adc05fb3a08919f1b1e'
 touch_only: ['scripts/task_git.py']
 deps_allowed: ['stdlib', 'task_model', 'task_evidence', 'validate_contracts']
 forbids: ['network', 'llm']
@@ -37,5 +37,8 @@ canarios ante rechazo. Conservar rollback y las transiciones existentes.
 - DON'T prometer sandbox ni convertir un timeout en rechazo de ruta demostrado.
 ## Tests
 Oraculo nuevo independiente: canarios, estados, locks, rollback real y Node.
+La llamada directa a `_publish` agrupa rama y mensaje en el par de publicacion
+definido por [el contrato de complejidad](task-git-complexity.md); conserva todas
+las comprobaciones de la frontera.
 ## Constraints
 PARAR y reportar si requiere cambiar otro oraculo, runtime o proteccion.

@@ -38,10 +38,13 @@ Aplicar [target contenido](mutation-target-boundary.md) y
 [comillas portables](mutation-command-quoting.md) antes de ejecutar controles.
 
 - Nunca modifica el working tree ni el índice del repositorio real.
-- `DETECTED` exige controles verdes del original y de una copia sin mutar;
-  despues, el test_command del mutante termina con codigo distinto de cero.
-- `SURVIVED` significa que el mutante pasó; en `--strict` el comando falla.
-- `INCONCLUSIVE` significa timeout y nunca se presenta como mutación detectada.
+- La [revision de atribucion](mutation-attribution.md), propuesta para KG-3,
+  exige controles verdes y pruebas reconocidas antes de clasificar mutantes.
+- `DETECTED` requiere fallos de asercion reconocidos, sin errores de ejecucion.
+- `SURVIVED` requiere pruebas ejecutadas y exitosas; en `--strict` falla.
+- `INCONCLUSIVE` incluye timeout, importacion/preparacion rota, errores o cero
+  pruebas y nunca se presenta como mutacion detectada. Esta revision requiere
+  aprobar su propio baseline antes de implementar; el oraculo previo no cambia.
 - Targets no Python se omiten explícitamente.
 - Los [controles de fidelidad](../audit-remediation-approval-mutation-board.md)
   fallidos producen FAIL sin detecciones ni mutantes ejecutados. Conservar

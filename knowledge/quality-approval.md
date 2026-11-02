@@ -50,6 +50,15 @@ Ejemplo adaptable: [política y guía](../examples/quality-approval/README.md). 
 
 ## Pruebas adversariales y de interfaz
 
+La [propuesta KG-4](required-controls.md) define required_controls para exigir
+un mecanismo y cobertura efectivos. Mantiene las omisiones del diagnostico
+legacy sin atribuirles enforcement. Requiere baseline propio antes de implementar.
+
+La [propuesta KG-3](oracle-assurance.md) define `oracle_reviews` para exigir
+estructura soportada y contramuestras exactas desde la politica aprobada.
+Requiere su baseline propio antes de implementar. Una politica antigua sin
+ese campo no acredita esta garantia; las etiquetas de checks no la sustituyen.
+
 Además de casos correctos, introducir defectos deliberados en copias aisladas. Para cada mutación registrar cambio exacto, test que la rechaza, salida y timeout. Clasificar: detectada por el oráculo pertinente, superviviente, equivalente o inconclusa. Un fallo por conexión o entorno no cuenta como detección de otro defecto.
 
 Las pruebas de interfaz deben comprobar comportamiento: valores mostrados, texto del usuario, cancelación/confirmación y acciones realizadas. DOM simulado, navegador real, accesibilidad y revisión visual proporcionan evidencias distintas; no presentarlas como intercambiables. La categoría `ui` no permite deducir automáticamente cuál se ejecutó.
@@ -74,3 +83,7 @@ protocolo historico de checks libres: no demuestra por si solo que se ejecuto
 el archivo tests ni que cada restriccion tiene cobertura. Migrar esas politicas
 sin convertir un exit 0 libre en aceptacion. El revisor verifica la fuerza de
 cada assert y la completitud del inventario antes de aprobar el commit.
+La [propuesta KG-5](context-learning-provenance.md) distingue identidad de fuentes,
+entrega real y enlaces de aprendizaje aprobados. Un proyecto que exige esta
+garantia declara el lector con referencias explicitas como check protegido y
+obligatorio; no se deduce de etiquetas ni de un hash de test.

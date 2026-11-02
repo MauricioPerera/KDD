@@ -46,6 +46,7 @@ const coordinatorReasons:Record<string,string>={
   TASK_BRANCH:'task branch is missing, rewritten or already exists',TASK_EVIDENCE:'task evidence is invalid',
   TASK_APPROVAL:'an explicit approved ancestor and unchanged oracle are required',TASK_CONTRACT:'contract is invalid',
   TASK_GIT:'Git operation failed',TASK_TESTS:'contract tests failed or could not complete',
+  TASK_PERIMETER:'implementation exceeds the approved scope',
   TASK_INTEGRATION:'integrate the preserved implementation first',TASK_TRANSITION:'transition is not permitted',
   TASK_ID:'expected TASK-NNN',TASK_EXISTS:'task already exists',TASK_RUNNER:'unsupported oracle runner',
   TASK_ORACLE:'oracle seal is invalid',TASK_PATH:'invalid task path',TASK_OPERATION:'unknown task operation',
@@ -110,7 +111,7 @@ export class GitTaskStore {
     } catch (error: any) {
       const message = String(error.stderr || error.message || 'Coordinator failed').trim();
       const code = message.match(/\bTASK_[A-Z_]+(?=:)/)?.[0] || (binary === 'git' ? 'TASK_GIT' : 'TASK_UNAVAILABLE');
-      const status = code === 'TASK_MISSING' ? 404 : binary === 'git' || /TASK_(MAIN|DIRTY|LOCK|RACE|BRANCH|EVIDENCE|APPROVAL|CONTRACT|DEPENDENCIES|GIT|TESTS|INTEGRATION)/.test(code) ? 409 : 400;
+      const status = code === 'TASK_MISSING' ? 404 : binary === 'git' || /TASK_(MAIN|DIRTY|LOCK|RACE|BRANCH|EVIDENCE|APPROVAL|CONTRACT|DEPENDENCIES|GIT|TESTS|INTEGRATION|PERIMETER)/.test(code) ? 409 : 400;
       if (error.killed || typeof error.code !== 'number' || !coordinatorReasons[code]) {
         throw new BoardGitError('Git coordinator unavailable',503,'TASK_UNAVAILABLE');
       }

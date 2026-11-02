@@ -63,6 +63,14 @@ def _proof_fields(root, task, report, metadata):
     return ['TASK_EVIDENCE: mismatch in ' + k for k, v in expected.items() if report.get(k) != v]
 
 
+def _proof_perimeter(root, task, report):
+    expected = journal.task_perimeter(root, task, task['verified_ref'], report['branch_tip'])
+    if 'perimeter' in report and report['perimeter'] != expected:
+        return ['TASK_PERIMETER: receipt differs from Git: ' +
+                json.dumps(report['perimeter'], sort_keys=True)]
+    return []
+
+
 def _evidence(root, ref, task, metadata):
     content = journal.blob(root, ref, task['evidence'])
     if proof.digest(content) != task['evidence_sha256']:
@@ -72,8 +80,9 @@ def _evidence(root, ref, task, metadata):
         return ['TASK_EVIDENCE: expected an object']
     if not journal.ancestor(root, task['verified_ref'], journal.commit_sha(root, ref)):
         return ['TASK_EVIDENCE: tested commit is not an ancestor']
-    return (_proof_fields(root, task, report, metadata) + _proof_refs(root, task, report)
-            + _proof_output(report, metadata))
+    findings = (_proof_fields(root, task, report, metadata) + _proof_refs(root, task, report)
+                + _proof_output(report, metadata))
+    return findings or _proof_perimeter(root, task, report)
 
 
 def _snapshot(repo_root, ref='main'):
@@ -164,6 +173,9 @@ def _audit_range(root, base, head, cache):
     chain = [row[0] for row in rows]
     if base not in chain:
         return ['TASK_BASELINE: base must be on the first-parent history of head']
+    journal._remember_git_commits(root, chain)
+    if journal._prefetch_task_nodes(root, chain[chain.index(base):]):
+        journal._prefetch_history_metadata(root, chain[chain.index(base):])
     errors = validate_snapshot(root, base)
     parent = base
     for revision, *parents in rows[chain.index(base) + 1:]:

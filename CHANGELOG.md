@@ -12,6 +12,8 @@ All notable changes to the KDD Template are documented here.
 
 - Metodologia: inventario aprobado de oraculos, ejecucion instrumentada, aceptacion por obligacion y onboarding verificable. Board: bloqueo de resúmenes Python inventados y caducidad de evidencias anteriores. [Revision y limites](docs/reports/METHODOLOGY-REVIEW-REPORT.md).
 - Se documentan 49 excesos de presupuesto heredados del arbol revisado, sin ampliacion del alcance ni nuevos excesos en esa medicion. [Deuda historica](knowledge/deuda-presupuestos-heredada.md).
+**Contract 34 — KDD governance closure**: require reviewed perimeters before done and historical audit, coherent operation controls, reviewed counterexamples, supported required restrictions, and traceable context/learning. Integrates current main while preserving ledger ancestry and human decisions. See [the verified report](docs/reports/CONTRACT-34-REPORT.md).
+
 - Native contract commands can reserve an exclusive phase for init-project's
   nested suite, retaining its 600-second limit, every contract result, exact
   deduplication and the existing worker defaults for reusable callers. Native

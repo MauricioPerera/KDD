@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "id": "kg1-reviewed-response",
+      "status": "accepted",
+      "finding": {
+        "path": "knowledge/learning/kg1-finding.md",
+        "ref": "b6ba7daf34cfe9da6d7c033f3f97cc4c4d27fac8",
+        "sha256": "4215db5140ff2fd6e57a2281b2eb8b0a18825a760f66d8d57fbbd5bf9e82bf94"
+      },
+      "decision": {
+        "path": "knowledge/contracts/task-finish-perimeter.md",
+        "ref": "9ab50143ba3f3a8db768d5e1e4324b523eb02d39",
+        "sha256": "43a3daf32b211dfa5984443464e7d32efbca9abd87517887d260d7dfe4991785"
+      },
+      "tests": [
+        {
+          "path": "tests/test_task_finish_perimeter.py",
+          "ref": "9ab50143ba3f3a8db768d5e1e4324b523eb02d39",
+          "sha256": "feb77a95536b0704f72660620cc6eb2920fdbd3f73be53afe75c7bc7718631ee"
+        },
+        {
+          "path": "tests/test_task_perimeter_history.py",
+          "ref": "9ab50143ba3f3a8db768d5e1e4324b523eb02d39",
+          "sha256": "6f8708cdda9e2fb95d78f8aa4c3a0c35b1c3d4d6294ba0f628409eb7f4fc3bda"
+        }
+      ]
+    },
+    {
+      "id": "kg2-reviewed-response",
+      "status": "accepted",
+      "finding": {
+        "path": "knowledge/learning/kg2-finding.md",
+        "ref": "b6ba7daf34cfe9da6d7c033f3f97cc4c4d27fac8",
+        "sha256": "13114a1b1f06ea21657935ba2f37e33018e72bbc266f5e76856395590c02cfce"
+      },
+      "decision": {
+        "path": "knowledge/contracts/task-operation-controls.md",
+        "ref": "9ab50143ba3f3a8db768d5e1e4324b523eb02d39",
+        "sha256": "2c345320935bc2d20a9cd699147927b088c5cc294fc092ceccdc259911fd92df"
+      },
+      "tests": [
+        {
+          "path": "tests/test_task_operation_controls.py",
+          "ref": "9ab50143ba3f3a8db768d5e1e4324b523eb02d39",
+          "sha256": "67607583a8b51cd63723481d4fd37b2a93e9c91cf36a9d7443f2a93977899c75"
+        }
+      ]
+    }
+  ]
+}
