@@ -66,15 +66,32 @@ if os.environ.get('KDD_PERIMETER_PROBE'):
 
 
 class PerimeterCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        area = tempfile.TemporaryDirectory(prefix='kdd-perimeter-started-')
+        cls.addClassCleanup(area.cleanup)
+        seed = PerimeterProject(Path(area.name) / 'product')
+        seed.create(1)
+        started = seed.act('start', 1, '--assignee', 'synthetic worker')
+        cls.started_fixture = (seed.root, seed.ref, started['task']['branch_base'])
+
     def setUp(self):
         self.area = tempfile.TemporaryDirectory(prefix='kdd-perimeter-oracle-')
         self.addCleanup(self.area.cleanup)
-        self.p = PerimeterProject(Path(self.area.name) / 'product')
+        source, reference, self.branch_base = self.started_fixture
+        self.p = object.__new__(PerimeterProject)
+        TaskProject.__init__(self.p, Path(self.area.name) / 'product', initialize=False)
+        self.p.command(['git', 'clone', '-q', '--shared', str(source), str(self.p.root)],
+                       cwd=self.p.root.parent)
+        configure_git(self.p.root, {'user.name': 'Simulated fixture reviewer',
+            'user.email': 'fixture@example.invalid', 'maintenance.autoDetach': 'false',
+            'gc.autoDetach': 'false', 'core.autocrlf': 'false', 'commit.gpgsign': 'false'},
+            ephemeral=True)
+        self.p.ref = reference
         self.marker = Path(self.area.name) / 'oracle-ran.txt'
         self.p.env['KDD_PERIMETER_PROBE'] = str(self.marker)
-        self.p.create(1)
-        started = self.p.act('start', 1, '--assignee', 'synthetic worker')
-        self.branch_base = started['task']['branch_base']
+        self.p.git('branch', 'task/TASK-001', self.branch_base)
         self.p.git('switch', '-q', 'task/TASK-001')
         self.p.write('src/feature1.py', self.p.implementation(1))
 
