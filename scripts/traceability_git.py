@@ -46,6 +46,13 @@ class _Projection:
         name = exact_path(name)
         key = (revision, name)
         if key not in self.objects:
+            try:
+                prefetched = journal._prefetch_metadata(self.root, (revision,), (name,))
+            except (ValueError, OSError):
+                prefetched = False
+            if prefetched:
+                self.objects[key] = journal.blob(self.root, revision, name)
+                return self.objects[key]
             output = journal.git(self.root, 'ls-tree', '-z', revision, '--', name)
             records = list(filter(None, output.split('\0')))
             if len(records) != 1 or '\t' not in records[0]:
@@ -60,7 +67,16 @@ class _Projection:
     def plan(self, revision):
         if revision not in self.plans:
             manifest = self.blob(revision, self.manifest)
-            spec = self.blob(revision, manifest_spec(manifest))
+            name = manifest_spec(manifest)
+            if revision == self.revision:
+                try:
+                    tasks = [p for p in journal.paths(self.root, revision, 'knowledge/tasks')
+                             if p.endswith('.md') and Path(p).name != 'index.md']
+                    if 0 < len(tasks) <= 32:
+                        journal._prefetch_metadata(self.root, (revision,), (name, *tasks))
+                except (ValueError, OSError, TypeError):
+                    pass
+            spec = self.blob(revision, name)
             self.plans[revision] = parse_plan(spec, manifest)
         return self.plans[revision]
 
@@ -87,8 +103,9 @@ class _Projection:
             records[path] = fields[2]
         if set(records) != {first, second}:
             return serial()
-        self.objects[(revision, first)] = journal.blob(self.root, revision, first)
-        self.objects[(revision, second)] = journal.blob(self.root, revision, second)
+        values = journal.blobs(self.root, revision, (first, second))
+        self.objects[(revision, first)] = values[first]
+        self.objects[(revision, second)] = values[second]
         return self.objects[(revision, first)], self.objects[(revision, second)]
 
     def contract(self, revision, name):
@@ -147,12 +164,12 @@ class _Projection:
         if not started:
             errors = validate_snapshot(self.root, self.revision)
         else:
-            chain = journal.git(self.root, 'rev-list', '--first-parent', '--reverse', self.revision).splitlines()
             try:
-                indices = [self._audit_index(self._initial_ready(task), chain) for task in started]
-                audit_base = chain[min(indices)]
-                # validate_range already checks both endpoints and every transition.
-                errors = validate_range(self.root, audit_base, self.revision)
+                with journal.first_parent_walk(self.root, self.revision) as chain:
+                    indices = [self._audit_index(self._initial_ready(task), chain) for task in started]
+                    audit_base = chain[min(indices)]
+                    # validate_range still checks both endpoints and every transition.
+                    errors = validate_range(self.root, audit_base, self.revision)
             except (TaskError, ValueError, OSError) as error:
                 errors = [str(error)]
         self.journal_ok = not errors
@@ -170,9 +187,46 @@ class _Projection:
     def _fresh(self, task, metadata):
         names = (task['contract'], metadata['tests'], metadata['target'])
         try:
+            # A failed speculative read must fall back to the ordered checks
+            # below, which determine the observable first error.
+            try:
+                revisions = (self.revision, task['verified_ref'])
+                journal._prefetch_metadata(self.root, revisions, names[:2])
+                journal._prefetch_metadata(self.root, revisions, names[2:])
+            except (ValueError, OSError, TypeError):
+                pass
             return all(self.blob(self.revision, p) == self.blob(task['verified_ref'], p) for p in names)
         except (ValueError, OSError):
             return False
+
+    def _prefetch_link(self, task, metadata):
+        """Read known paths together; retain the original ordered error checks."""
+        cache = journal._OBJECT_CACHE.get()
+        if cache is None:
+            return
+        try:
+            names = (task['contract'], metadata['tests'], metadata['target'])
+            pairs = [(self.revision, task['evidence'])]
+            pairs += [(ref, name) for ref in (self.revision, task['verified_ref']) for name in names]
+            if task['approved_ref']:
+                pairs += [(task['approved_ref'], self.manifest),
+                          (task['approved_ref'], self.plans[self.revision]['spec'])]
+            pairs = list(dict.fromkeys((ref, exact_path(name)) for ref, name in pairs))
+            if not all(journal._native_oid(self.root, ref) for ref, _ in pairs):
+                return
+            requests = []
+            for ref, name in pairs:
+                journal._reuse_cached_blob_objects(self.root, ref, (name,), cache)
+                content = journal._key(self.root, 'blob', ref, name) not in cache
+                regular = journal._key(self.root, 'regular-path', ref, name) not in cache
+                if content or regular:
+                    requests.append((ref, name, content))
+            if requests:
+                records = journal._read_metadata(self.root, requests)
+                if records is not None and records is not False:
+                    journal._store_metadata(self.root, cache, records)
+        except (ValueError, OSError, KeyError, TypeError):
+            pass
 
     def _stale(self, link, requirement, message):
         link['state'] = 'stale'
@@ -193,6 +247,7 @@ class _Projection:
             self._stale(link, requirement, 'canonical journal or task/contract relationship is invalid')
             return link
         if task['status'] == 'done':
+            self._prefetch_link(task, metadata)
             report = json.loads(self.blob(self.revision, task['evidence']))
             link.update(branch_tip=report['branch_tip'], historical_verified=True, state='verified')
             if not self._fresh(task, metadata):

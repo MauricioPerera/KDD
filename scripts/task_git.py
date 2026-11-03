@@ -17,6 +17,7 @@ from validate_contracts import parse_frontmatter, validate_file
 
 
 _OBJECT_CACHE = ContextVar('kdd_git_objects', default=None)
+_PARENT_WALK = ContextVar('kdd_parent_walk', default=None)
 
 
 class _MutationContext(NamedTuple):
@@ -58,7 +59,26 @@ def _output(root, args):
 
 
 def git(root, *args):
+    pending = _PARENT_WALK.get()
+    if (pending is not None and str(Path(root).resolve()) == pending[0]
+            and args == ('rev-list', '--first-parent', '--reverse', '--parents', pending[1])):
+        _PARENT_WALK.set(None)
+        return pending[2]
     return _output(root, args).strip()
+
+
+@contextmanager
+def first_parent_walk(root, revision):
+    """Share one raw walk with the immediately nested range audit only."""
+    output = _output(root, ('rev-list', '--first-parent', '--reverse', '--parents', revision)).strip()
+    rows = [line.split() for line in output.splitlines()]
+    if not rows or any(not row or any(not valid_sha(value) for value in row) for row in rows):
+        raise TaskError('TASK_GIT: invalid first-parent walk')
+    token = _PARENT_WALK.set((str(Path(root).resolve()), revision, output))
+    try:
+        yield [row[0] for row in rows]
+    finally:
+        _PARENT_WALK.reset(token)
 
 
 def _native_oid(root, ref):
@@ -789,6 +809,20 @@ def _start(root, task, options, head):
 
 
 def _perimeter_refs(root, references):
+    cache = _OBJECT_CACHE.get()
+    if cache is not None and all(_native_oid(root, ref) for ref in references):
+        pending = list(dict.fromkeys(ref for ref in references
+                       if cache.get(_key(root, 'commit', ref)) != ref))
+        if len(pending) > 1:
+            try:
+                result = subprocess.run(['git', '--literal-pathspecs', '-C', str(root),
+                    'rev-parse', '--revs-only', '--end-of-options',
+                    *(ref + '^{commit}' for ref in pending)],
+                    capture_output=True, text=True, encoding='utf-8', timeout=30, check=False)
+                if not result.returncode and not result.stderr and result.stdout.splitlines() == pending:
+                    _remember_git_commits(root, pending)
+            except (OSError, UnicodeError, subprocess.SubprocessError):
+                pass
     for reference in references:
         if not _native_oid(root, reference) or commit_sha(root, reference) != reference:
             raise TaskError('TASK_PERIMETER: canonical commit identities are required')
