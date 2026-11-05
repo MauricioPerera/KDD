@@ -347,7 +347,64 @@ def _run_worker(job, directory, index, start_dir, pattern):
     return report
 
 
-def run_suite(start_dir, pattern="test_*.py", workers=1) -> dict:
+def _module_order(path, workers):
+    if path is None:
+        return [], None
+    try:
+        raw = Path(path).read_bytes()
+        priorities = json.loads(raw.decode('utf-8'))
+    except (OSError, ValueError) as error:
+        raise ValueError('SUITE_ORDER: unreadable or invalid JSON profile') from error
+    if not isinstance(priorities, list) or any(
+            not isinstance(name, str) or not all(part.isidentifier() for part in name.split('.'))
+            for name in priorities):
+        raise ValueError('SUITE_ORDER: expected an array of module names')
+    if len(set(priorities)) != len(priorities):
+        raise ValueError('SUITE_ORDER: duplicate module priority')
+    if priorities and workers == 1:
+        raise ValueError('SUITE_ORDER: nonempty priorities require parallel workers')
+    return priorities, hashlib.sha256(raw).hexdigest()
+
+
+def _module_jobs(inventory, priorities):
+    jobs = {}
+    for item in inventory:
+        job = jobs.setdefault(item['origin'], {'module': item['origin'], 'ids': [], 'inventory': []})
+        job['ids'].append(item['id'])
+        job['inventory'].append(item)
+    ranks = {name: index for index, name in enumerate(priorities)}
+    return sorted(jobs.values(), key=lambda job: ranks.get(job['module'], len(ranks)))
+
+
+def _merge_modules(report, reports):
+    report['ok'] = bool(reports) and not report['errors'] and all(r['ok'] for r in reports)
+    for child in reports:
+        report['tests_run'] += child['tests_run']
+        report['executed_ids'].extend(child['executed_ids'])
+        report['fixture_omitted_ids'].extend(child['fixture_omitted_ids'])
+        report['fixture_outcomes'].extend(child['fixture_outcomes'])
+        report['modules'].append(child['module_result'])
+        for name in OUTCOMES:
+            report[name].extend(child[name])
+    report['executed_ids'].sort()
+    report['fixture_omitted_ids'].sort()
+
+
+def _parallel_modules(report, jobs, start_dir, pattern, workers):
+    with tempfile.TemporaryDirectory(prefix='kdd-suite-') as directory:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = [pool.submit(_run_worker, job, directory, index, start_dir, pattern)
+                       for index, job in enumerate(jobs)]
+            reports = []
+            for future in futures:
+                try:
+                    reports.append(future.result())
+                except Exception as error:
+                    _problem(report, 'worker infrastructure error: ' + str(error))
+    _merge_modules(report, reports)
+
+
+def run_suite(start_dir, pattern="test_*.py", workers=1, *, module_order=None) -> dict:
     """Discover every case, execute it once, and reconcile actual case callbacks."""
     _workers(workers)
     started = time.perf_counter()
@@ -355,6 +412,7 @@ def run_suite(start_dir, pattern="test_*.py", workers=1) -> dict:
     start_dir = str(Path(start_dir).resolve())
     loader = DiscoveryLoader()
     try:
+        priorities, profile_hash = _module_order(module_order, workers)
         suite = loader.discover(start_dir, pattern=pattern)
         cases = list(_cases(suite))
     except (ImportError, OSError, ValueError) as error:
@@ -370,32 +428,12 @@ def run_suite(start_dir, pattern="test_*.py", workers=1) -> dict:
     elif workers == 1:
         report = _execute(suite, ids, inventory)
     else:
-        jobs = {}
-        for item in inventory:
-            job = jobs.setdefault(item['origin'], {'module': item['origin'], 'ids': [], 'inventory': []})
-            job['ids'].append(item['id'])
-            job['inventory'].append(item)
-        with tempfile.TemporaryDirectory(prefix='kdd-suite-') as directory:
-            with ThreadPoolExecutor(max_workers=workers) as pool:
-                futures = [pool.submit(_run_worker, job, directory, index, start_dir, pattern)
-                           for index, job in enumerate(jobs.values())]
-                reports = []
-                for future in futures:
-                    try:
-                        reports.append(future.result())
-                    except Exception as error:
-                        _problem(report, 'worker infrastructure error: ' + str(error))
-        report['ok'] = bool(reports) and not report['errors'] and all(r['ok'] for r in reports)
-        for child in reports:
-            report['tests_run'] += child['tests_run']
-            report['executed_ids'].extend(child['executed_ids'])
-            report['fixture_omitted_ids'].extend(child['fixture_omitted_ids'])
-            report['fixture_outcomes'].extend(child['fixture_outcomes'])
-            report['modules'].append(child['module_result'])
-            for name in OUTCOMES:
-                report[name].extend(child[name])
-        report['executed_ids'].sort()
-        report['fixture_omitted_ids'].sort()
+        jobs = _module_jobs(inventory, priorities)
+        if module_order is not None:
+            report['scheduling'] = dict(profile_sha256=profile_hash,
+                modules=[job['module'] for job in jobs],
+                ignored_priorities=len(set(priorities) - {job['module'] for job in jobs}))
+        _parallel_modules(report, jobs, start_dir, pattern, workers)
     for error in validate_report(ids, report):
         _problem(report, error)
     report.update(workers=workers, duration_seconds=time.perf_counter() - started)
@@ -407,17 +445,24 @@ def _display(text):
     print(text.encode(encoding, errors='backslashreplace').decode(encoding))
 
 
+def _controller_command(args, destination):
+    command = [sys.executable, '-I', '-X', 'utf8', str(Path(__file__).resolve()),
+               '--start-directory', args.start_directory, '--pattern', args.pattern,
+               '--workers', str(args.workers), '--controller-report', str(destination)]
+    module_order = getattr(args, 'module_order', None)
+    if module_order is not None:
+        command += ['--module-order', module_order]
+    return command
+
+
 def _supervise(args):
     """Keep discovery and serial test exits from bypassing the CLI verdict."""
     started = time.perf_counter()
     with tempfile.TemporaryDirectory(prefix='kdd-suite-controller-') as directory:
         destination = Path(directory) / 'controller.json'
         try:
-            proc = run_process([
-                sys.executable, '-I', '-X', 'utf8', str(Path(__file__).resolve()),
-                '--start-directory', args.start_directory, '--pattern', args.pattern,
-                '--workers', str(args.workers), '--controller-report', str(destination)],
-                cwd=Path.cwd(), capture_output=True, timeout=1800)
+            proc = run_process(_controller_command(args, destination), cwd=Path.cwd(),
+                               capture_output=True, timeout=1800)
         except (OSError, ValueError, subprocess.SubprocessError) as exc:
             report = _empty([])
             _problem(report, 'suite controller could not complete: ' + str(exc))
@@ -485,6 +530,7 @@ def main(argv=None):
     parser.add_argument('--pattern', default='test_*.py')
     parser.add_argument('--workers', type=int, default=1)
     parser.add_argument('--report-json')
+    parser.add_argument('--module-order')
     parser.add_argument('--worker-plan', help=argparse.SUPPRESS)
     parser.add_argument('--worker-report', help=argparse.SUPPRESS)
     parser.add_argument('--controller-report', help=argparse.SUPPRESS)
@@ -498,7 +544,7 @@ def main(argv=None):
             parser.error('worker report destination required')
         return _worker(args.worker_plan, args.worker_report)
     if args.controller_report:
-        report = run_suite(args.start_directory, args.pattern, args.workers)
+        report = run_suite(args.start_directory, args.pattern, args.workers, module_order=args.module_order)
         _write(args.controller_report, report)
         return 0 if report['ok'] else 1
     report = _supervise(args)
