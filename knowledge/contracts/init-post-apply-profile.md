@@ -26,6 +26,8 @@ a la integracion completa de [init-project](init-project.md).
 CLI que ejecuta `scripts/run_test_suite.py` del proyecto indicado con cwd en
 ese proyecto, tests/test_*.py y ocho procesos Windows o cuatro Ubuntu. Acepta
 un reporte JSON opcional nuevo, preserva stdout/stderr y devuelve el exit real.
+La extension de [orden medido](postinit-module-order.md) agrega prioridades
+opcionales solo a Windows; conserva todos los jobs y el fallback sin perfil.
 
 ## Invariants
 - El fixture aprobado conserva su copia real, apply, gates, asserts y todos los

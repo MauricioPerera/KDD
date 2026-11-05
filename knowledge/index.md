@@ -282,3 +282,6 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Margen estable del post-init Windows](postinit-windows-runtime.md)
 - [Identidad fisica de raiz para las claves](contracts/task-root-identity.md)
 - [Tiempo completo de init en CI](contracts/postinit-command-timing.md)
+- [Orden medido de modulos post-init](postinit-module-order.md)
+- [Prioridades opt-in del runner](contracts/ci-module-order.md)
+- [Prioridades del post-init Windows](contracts/postinit-module-order.md)
