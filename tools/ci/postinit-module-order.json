@@ -38,6 +38,7 @@
   "test_task_git_complexity",
   "test_ci_unittest_fixtures",
   "test_process_exit_barrier",
+  "test_ci_module_order",
   "test_git_reader_ref_cache",
   "test_contract_resource_scheduling",
   "test_mutation_control_evidence",

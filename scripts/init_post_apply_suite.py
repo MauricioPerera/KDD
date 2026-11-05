@@ -6,6 +6,13 @@ import subprocess
 import sys
 
 
+def _order_arguments():
+    if os.name != 'nt':
+        return []
+    profile = Path(__file__).resolve().parents[1] / 'tools/ci/postinit-module-order.json'
+    return ['--module-order', str(profile)] if os.path.lexists(profile) else []
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo-root', required=True)
@@ -21,6 +28,7 @@ def main(argv=None):
         command = [sys.executable, str(root / 'scripts/run_test_suite.py'),
                    '--start-directory', 'tests', '--pattern', 'test_*.py',
                    '--workers', '8' if os.name == 'nt' else '4']
+        command += _order_arguments()
         if report is not None:
             command += ['--report-json', str(report)]
         return subprocess.call(command, cwd=root)
