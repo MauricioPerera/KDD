@@ -34,6 +34,24 @@ mismo f993e5e. Se puede regenerar con mediciones nuevas sin convertirlo en un
 oraculo funcional: no acredita PASS, solo ordena trabajo que debe ejecutarse.
 Nombres desconocidos no se importan; nuevos modulos conservan su ejecucion.
 
+## Resultado de la primera muestra y procedencia de costes
+
+El candidato 9e21871 pasa los cuatro jobs del run 42107907177, pero el comando
+init Windows tarda 517,754 s, frente a 507,362 s de f993e5e. El job completo
+pasa de 42:32 a 43:02. No acredita una optimizacion; se conserva la muestra y
+no se repite ese head para buscar un resultado favorable.
+
+El arranque medido del mismo Git 2.56.0.windows.4 cambia de 24,192 a 45,616 ms
+de mediana entre esos runners. Los costes locales no representan por si solos
+el entorno remoto. Las suites generales tampoco representan el post-init:
+incluyen integraciones de bootstrap que se omiten en la copia ya inicializada.
+No usar sus costes sin distinguir la aplicabilidad de cada contexto.
+
+La propuesta de [evidencia del oraculo](contracts/init-project.md) expone el
+reporte real de la pasada post-init que ya existe, sin agregar otra ejecucion.
+Primero se revisa el nuevo baseline del fixture; los tiempos son diagnosticos y
+no permiten declarar el objetivo de 480 s sin las tres muestras completas.
+
 ## Revision y aceptacion
 
 La [politica de calidad](quality-approval.md) exige revisar contratos y oraculos

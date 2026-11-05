@@ -14,7 +14,7 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tests/test_init_project.py"
-tests_sha256: '2b4fca15ce223b208d9daca672e16b3452fda38a615594ea33328769f8ada0a2'
+tests_sha256: '7ad0d9e4ca0aaf222f872f924ae752089d9e32ebe940c1c79f5ad56e132f1a51'
 touch_only: ['scripts/init_project.py', 'scripts/bootstrap_transaction.py']
 deps_allowed: ['stdlib', 'bootstrap_transaction']
 forbids: ['network', 'subprocess']
@@ -123,6 +123,16 @@ Migracion aprobada del fixture: la copia excluye solamente las dependencias loca
 en `tools/kdd-board/node_modules`, conservando fuente y lockfile. El oraculo verifica
 el alcance del filtro y preserva archivos testigo en ese directorio tanto en dry-run
 como en apply. No se reducen las aserciones existentes ni se aumenta el timeout.
+
+Propuesta de evidencia de costes: el mismo caso post-apply solicita el reporte
+JSON nuevo del runner en un temporal propio, fuera del proyecto copiado. Antes
+de informar tiempos verifica exito, inventario no vacio, callbacks contabilizados
+y la union disjunta de ejecutados y omitidos por fixture. Emite lineas JSON ASCII
+con prefijo `KDD_POST_INIT_PROFILE`: un resumen y una fila por modulo con su
+duracion real, exit code y SKIP aplicables. Es diagnostico, no sustituye el exit
+code ni las aserciones anteriores. No agrega invocaciones de casos ni pasadas;
+no cambia codigo de produccion, runtime, entornos, workflows, limites o perfiles.
+El cambio del oraculo requiere otra revision y baseline antes de adoptarlo en CI.
 
 ## Constraints
 - PARAR y reportar si... dejar los gates verdes post-init exigiera modificar un intocable
