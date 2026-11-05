@@ -43,7 +43,15 @@ def object_cache():
 
 
 def _key(root, kind, revision, *parts):
-    return (str(Path(root).resolve()), kind, revision, *parts)
+    try:
+        current = os.stat(root)
+    except OSError:
+        current = None
+    if current is not None and stat.S_ISDIR(current.st_mode) and current.st_dev and current.st_ino:
+        identity = ('directory', current.st_dev, current.st_ino, current.st_ctime_ns)
+    else:
+        identity = str(Path(root).resolve())
+    return (identity, kind, revision, *parts)
 
 
 def _output(root, args):

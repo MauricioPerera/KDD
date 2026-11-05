@@ -539,6 +539,46 @@ jobs:
         # init-project also runs the post-initialization suite; allow slow Windows runners.
         run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" commands --repo-root . --contracts-dir "$KDD_CONTRACTS_DIR" --timeout 600 --deduplicate --workers "$KDD_CONTRACT_WORKERS" --report-dir "$RUNNER_TEMP/kdd-command-reports" --exclusive-commands-json "$KDD_EXCLUSIVE_CONTRACT_COMMANDS"
 
+      - name: Report init command duration
+        if: ${{ always() && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: python
+        run: |
+          import json
+          import math
+          import os
+          from pathlib import Path
+          reports = list((Path(os.environ['RUNNER_TEMP']) / 'kdd-command-reports').glob('evidence-*.json'))
+          if len(reports) != 1:
+              raise SystemExit('INIT_TIMING: expected one command report')
+          data = json.loads(reports[0].read_text(encoding='utf-8'))
+          runtime = os.environ['KDD_TRUSTED_RUNTIME_REF']
+          if (not isinstance(data, dict) or type(data.get('version')) is not int
+                  or data['version'] != 1 or data.get('trusted_runtime_ref') != runtime
+                  or not isinstance(data.get('results'), list)):
+              raise SystemExit('INIT_TIMING: invalid report or runtime')
+          contract = 'knowledge/contracts/init-project.md'
+          expected = Path(contract).resolve()
+          matches = [row for row in data['results'] if isinstance(row, dict)
+                     and isinstance(row.get('path'), str) and Path(row['path']).resolve() == expected]
+          if len(matches) != 1:
+              raise SystemExit('INIT_TIMING: expected one init result')
+          row = matches[0]
+          duration, ok, code, error = (row.get(key) for key in ('duration_seconds', 'ok', 'exit_code', 'error'))
+          if (row.get('scope') != 'infrastructure'
+                  or row.get('test_command') != 'python -m unittest tests/test_init_project.py'
+                  or row.get('shared_from') is not None
+                  or type(duration) not in (int, float) or not math.isfinite(duration) or duration < 0
+                  or type(ok) is not bool or (code is not None and type(code) is not int)
+                  or (error is not None and not isinstance(error, str))
+                  or (ok and (code != 0 or error is not None))
+                  or (not ok and code == 0 and error is None)):
+              raise SystemExit('INIT_TIMING: invalid init outcome')
+          summary = dict(schema_version=1, run_id=os.environ['GITHUB_RUN_ID'],
+                         run_attempt=os.environ['GITHUB_RUN_ATTEMPT'], head_sha=os.environ['GITHUB_SHA'],
+                         trusted_runtime_ref=runtime, contract=contract, duration_seconds=duration,
+                         ok=ok, exit_code=code, error=error)
+          print('KDD_INIT_TIMING ' + json.dumps(summary, allow_nan=False, sort_keys=True))
+
       - name: Scan for leaked secrets (src only — see knowledge/contracts/secret-scan-gate.md)
         shell: bash
         run: python scripts/scan_secrets.py "$KDD_SRC_DIR_SECRETS"
