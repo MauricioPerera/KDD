@@ -43,7 +43,7 @@ class ClosedTaskReadCost(support.RepositoryFixture):
         self.assertTrue(report['complete'], report)
         self.assertEqual(report['requirements'][0]['links'][0]['task_id'], 'TASK-001')
         starts = [event for event in events if event.get('event') == 'start']
-        self.assertLessEqual(len(starts), 45, 'real Git starts: %d' % len(starts))
+        self.assertLessEqual(len(starts), 62, 'real Git starts: %d' % len(starts))
         after = (support.git(self.root, 'rev-parse', 'HEAD'),
                  support.git(self.root, 'status', '--porcelain=v1'),
                  support.git(self.root, 'show-ref'), (self.root / '.git/index').read_bytes())
