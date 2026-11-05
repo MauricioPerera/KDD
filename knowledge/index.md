@@ -278,3 +278,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Auditoria de importaciones con base integrada](contracts/task-import-ancestry.md)
 
 - [Lecturas agrupadas del baseline](contracts/baseline-git-batch.md)
+
+- [Margen estable del post-init Windows](postinit-windows-runtime.md)
+- [Identidad fisica de raiz para las claves](contracts/task-root-identity.md)
+- [Tiempo completo de init en CI](contracts/postinit-command-timing.md)

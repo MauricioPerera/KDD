@@ -12,7 +12,7 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: tests/test_init_post_apply_profile.py
-tests_sha256: '5f155adeaafe2f5c3baaad30d2daf7d6d126585b6e64e0c2eab98da4d550f118'
+tests_sha256: '6fde807037624ffcfe2aab4756fd4fbe8be4b654c8103fdaf9463f781c51062a'
 touch_only: ['scripts/init_post_apply_suite.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -24,7 +24,7 @@ a la integracion completa de [init-project](init-project.md).
 
 ## Interface
 CLI que ejecuta `scripts/run_test_suite.py` del proyecto indicado con cwd en
-ese proyecto, tests/test_*.py y seis procesos Windows o cuatro Ubuntu. Acepta
+ese proyecto, tests/test_*.py y ocho procesos Windows o cuatro Ubuntu. Acepta
 un reporte JSON opcional nuevo, preserva stdout/stderr y devuelve el exit real.
 
 ## Invariants
@@ -33,7 +33,7 @@ un reporte JSON opcional nuevo, preserva stdout/stderr y devuelve el exit real.
 - Las dos suites ordinarias de CI siguen completas, independientes y con sus
   perfiles vigentes; no variar el timeout 600 ni permitir exito al fallar el hijo.
 - Si el reporte ya existe, rechazar sin modificarlo. No usar shell ni red.
-- Medir varias muestras comparables; seis procesos son una hipotesis de prueba,
+- Medir varias muestras comparables; ocho procesos son una hipotesis de prueba,
   no evidencia de mejora ni garantia de pasar en todos los runners.
 
 ## Examples
@@ -48,6 +48,9 @@ un reporte JSON opcional nuevo, preserva stdout/stderr y devuelve el exit real.
 `tests/test_init_post_apply_profile.py` ejecuta procesos e inventario reales en
 un proyecto temporal, con control sano y uno fallido. El cambio del fixture
 anterior y su sello se presentan en el mismo baseline para revision humana.
+La extension de [margen Windows](../postinit-windows-runtime.md) conserva los
+tres casos anteriores y agrega dos invocaciones reales con IDs iguales y un
+testigo de ejecucion repetida. No reutiliza resultados entre pasadas.
 
 ## Constraints
 PARAR y reportar si se necesita cambiar una proteccion remota o aprobar runtime.

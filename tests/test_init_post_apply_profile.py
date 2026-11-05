@@ -37,7 +37,7 @@ class PostApplyProfile(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         report = json.loads(self.report.read_text(encoding='utf-8'))
         self.assertTrue(report['ok'])
-        self.assertEqual(report['workers'], 6 if os.name == 'nt' else 4)
+        self.assertEqual(report['workers'], 8 if os.name == 'nt' else 4)
         self.assertEqual(report['tests_run'], 2)
         self.assertEqual(report['expected_ids'], report['executed_ids'])
         self.assertEqual(report['skipped'], [])
@@ -59,6 +59,23 @@ class PostApplyProfile(unittest.TestCase):
         result = self.run_profile()
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(self.report.read_text(encoding='utf-8'), '{"ok":true}')
+
+    def test_two_real_invocations_execute_again_with_identical_ids(self):
+        (self.root / 'tests/test_first.py').write_text(
+            'import unittest\nfrom pathlib import Path\nclass First(unittest.TestCase):\n'
+            ' def test_a(self):\n'
+            '  with Path("executions.txt").open("a", encoding="utf-8") as stream: stream.write("ran\\n")\n'
+            '  self.assertEqual(2+2,4)\n', encoding='utf-8')
+        first = self.run_profile()
+        self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
+        previous = json.loads(self.report.read_text(encoding='utf-8'))
+        self.report.unlink()
+        second = self.run_profile()
+        self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
+        current = json.loads(self.report.read_text(encoding='utf-8'))
+        self.assertEqual(current['expected_ids'], previous['expected_ids'])
+        self.assertEqual(current['executed_ids'], previous['executed_ids'])
+        self.assertEqual((self.root / 'executions.txt').read_text(encoding='utf-8'), 'ran\nran\n')
 
 
 if __name__ == '__main__':
