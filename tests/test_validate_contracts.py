@@ -148,7 +148,7 @@ class TestValidatorValid(unittest.TestCase):
             self.assertEqual(errors, [], msg=[str(f) for f in findings])
 
 
-class TestValidatorErrors(unittest.TestCase):
+class _ValidatorHelpers:
     def _run(self, content, create_files=True):
         """Ejecuta validación sobre estructura temporal.
 
@@ -166,6 +166,7 @@ class TestValidatorErrors(unittest.TestCase):
     def _rules(self, findings):
         return {f.rule for f in findings if f.level == 'ERROR'}
 
+class TestValidatorErrors(_ValidatorHelpers, unittest.TestCase):
     def test_missing_required_key(self):
         # quitar test_command
         bad = VALID_CONTRACT.replace('test_command: "python -m unittest tests/test_sample.py"\n',
@@ -230,7 +231,7 @@ class TestValidatorErrors(unittest.TestCase):
         self.assertIn('FM_PATH_tests', rules)
 
 
-class TestTouchOnly(TestValidatorErrors):
+class TestTouchOnly(_ValidatorHelpers, unittest.TestCase):
     """Contrato 28: touch_only obligatoria — el perimetro como dato.
 
     Semantica: lista inline no vacia de rutas/patrones repo-relativos posix,
@@ -292,7 +293,7 @@ class TestTouchOnly(TestValidatorErrors):
         self.assertNotIn('FM_TOUCH_TARGET', rules)
 
 
-class TestBudgetKeys(TestValidatorErrors):
+class TestBudgetKeys(_ValidatorHelpers, unittest.TestCase):
     """Las subclaves de `budget` deben ser las que el gate de Nivel 2 LEE.
 
     Motivo: `tc_lint.py` (ccdd-gate) lee `cyclomatic_max` / `nesting_max` /

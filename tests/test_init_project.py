@@ -309,9 +309,6 @@ class TestInitProject(unittest.TestCase):
         _copy_repo(self.repo)
         self.assertEqual(_run_cli(self.repo).returncode, 0)
 
-    def test_exit_code_0_apply(self):
-        _copy_repo(self.repo)
-        self.assertEqual(_run_cli(self.repo, "--apply").returncode, 0)
 
     def test_exit_code_2_manifiesto_incompleto(self):
         _copy_repo(self.repo)

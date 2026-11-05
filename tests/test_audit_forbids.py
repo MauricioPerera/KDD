@@ -466,13 +466,6 @@ class GoAuditFindings(GoFixture):
                                    'func Demo(a int) int { return a }\n')
         self.assertEqual(self._rules(d), {af.FORBID_UNSAFE_PRESENT})
 
-    def test_go_no_tiene_denegacion_que_silencie_el_uso(self):
-        # A diferencia de Rust (donde denegar a nivel crate silencia el
-        # reporta), en Go no hay denegacion posible: un target que importa
-        # unsafe SIEMPRE es FORBID_UNSAFE_PRESENT, nunca [].
-        d = self._build_go(gofile='package main\nimport "unsafe"\n\n'
-                                   'func Demo(a int) int { return a }\n')
-        self.assertEqual(self._rules(d), {af.FORBID_UNSAFE_PRESENT})
 
     def test_unsafe_en_lenguaje_sin_verificador_sigue_unverified(self):
         # El verificador Go no rompe el comportamiento default: un lenguaje

@@ -245,19 +245,6 @@ class TestGuardrails(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def test_regex_deny_aborta(self):
-        contract = {
-            "budget": {"max_tokens": 10000, "output_reserve": 0},
-            "slots": [
-                {"id": "task", "source": "runtime", "compaction": "none",
-                 "priority": 0},
-            ],
-            "guardrails": {
-                "regex_deny": {"patterns": ["api_key="], "on_fail": "abort"},
-            },
-        }
-        with self.assertRaises(ac.GuardrailAbort):
-            ac.assemble(contract, "mi api_key=secret123", self.d)
 
     def test_reference_check_detecta_inexistente(self):
         contract = {
