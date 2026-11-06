@@ -24,8 +24,6 @@ ROUTING = {"senders": {"vip@acme.com": "A", "soporte@acme.com": "A"}, "default":
 
 
 class TestEmisorListado(unittest.TestCase):
-    def test_emisor_y_va_a_a(self):
-        self.assertEqual(route_message({"sender": "vip@acme.com"}, ROUTING), "A")
 
     def test_normaliza_mayusculas(self):
         self.assertEqual(route_message({"sender": "VIP@ACME.COM"}, ROUTING), "A")

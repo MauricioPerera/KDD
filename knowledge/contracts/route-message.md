@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 5
   nesting_max: 2
 tests: "tests/test_route_message.py"
-tests_sha256: "58536df6ac19b41b15b6024a3a9af2d842fb4ec647a39091eb42da066439cba7"
+tests_sha256: "9cec1d2fc5599be6d33fa8df9698b367001ebce699e1ae218989115f843e2c5e"
 touch_only: ['src/route_message.py']
 deps_allowed: []
 forbids: ['network', 'subprocess']

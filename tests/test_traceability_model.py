@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from tests.test_fixture_preparation import configure_git
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -101,9 +102,8 @@ def task_command(root, operation, *args):
 def prepare_project(root):
     root.mkdir()
     git(root, 'init', '-q', '-b', 'main')
-    for name, value in [('user.name', 'Traceability integration'), ('user.email', 'trace@example.invalid'),
-                        ('maintenance.autoDetach', 'false'), ('gc.autoDetach', 'false')]:
-        git(root, 'config', name, value)
+    configure_git(root, {'user.name': 'Traceability integration', 'user.email': 'trace@example.invalid',
+                         'maintenance.autoDetach': 'false', 'gc.autoDetach': 'false'})
     for name in SCRIPT_FILES:
         write(root, 'scripts/' + name, (ROOT / 'scripts' / name).read_text(encoding='utf-8'))
     write(root, 'src/value.py', "def value(item):\n    raise NotImplementedError('fixture red phase')\n")
@@ -195,9 +195,8 @@ class RepositoryFixture(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name) / 'project'
         git(Path(self.temp.name), 'clone', '-q', '--shared', str(self.base), str(self.root))
-        for key, value in [('user.name', 'Trace case'), ('user.email', 'trace@example.invalid'),
-                           ('maintenance.autoDetach', 'false'), ('gc.autoDetach', 'false')]:
-            git(self.root, 'config', key, value)
+        configure_git(self.root, {'user.name': 'Trace case', 'user.email': 'trace@example.invalid',
+                                  'maintenance.autoDetach': 'false', 'gc.autoDetach': 'false'})
 
     def cli(self, *args, cwd=None):
         return command(cwd or self.root, [sys.executable, str(self.root / 'scripts/traceability.py'),

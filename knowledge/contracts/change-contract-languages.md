@@ -14,7 +14,7 @@ budget:
   lines_max: 400
   params_max: 5
 tests: 'tests/test_validate_change_contract.py'
-tests_sha256: '5b64c68c50b6e9ec5d631b0448bfd2e61f8c2de0353aa0c5b2a582bbccbc160e'
+tests_sha256: '5d85299f41ed57bdfce046c9252f0976433e03f111d02d537640cc96878b53de'
 touch_only: ['scripts/change_contract_multilang.py']
 deps_allowed: ['stdlib', 'tree_sitter', 'tree_sitter_javascript', 'tree_sitter_typescript', 'tree_sitter_go', 'tree_sitter_rust']
 forbids: ['network', 'llm']

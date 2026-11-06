@@ -14,7 +14,7 @@ budget:
   lines_max: 100
   params_max: 4
 tests: tests/test_task_finish_perimeter.py
-tests_sha256: 'feb77a95536b0704f72660620cc6eb2920fdbd3f73be53afe75c7bc7718631ee'
+tests_sha256: '5d31a7e1b2c58627236178847b7766e16396245e038f07281bf2d81f1d77c4e9'
 touch_only: ['scripts/task_git.py']
 deps_allowed: ['stdlib', 'task_evidence', 'task_model', 'validate_contracts', 'validate_tasks']
 forbids: ['network', 'llm']
@@ -59,6 +59,9 @@ debe poder usarlo sin ejecutar codigo del producto.
   o atribuir a esta tarea todo el avance ajeno de main.
 
 ## Tests
+
+El [fixture de perimetro](perimeter-fixture-snapshot.md) usa una base
+Git inmutable por proceso y clones independientes sin reutilizar resultados.
 
 Oraculo nuevo en tests/test_task_finish_perimeter.py. Reutiliza sin editar el
 fixture real congelado de tests/test_generated_task_evidence.py y su preparacion

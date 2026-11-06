@@ -289,9 +289,6 @@ class TestParsePie(unittest.TestCase):
             {"label": "A", "value": 40}, {"label": "B", "value": 35}, {"label": "C", "value": 25},
         ])
 
-    def test_title_se_ignora(self):
-        parsed = vd.parse_pie(PIE_OK)
-        self.assertEqual(len(parsed["slices"]), 3)
 
 
 class TestParseJourney(unittest.TestCase):

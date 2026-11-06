@@ -13,6 +13,102 @@ Actualmente dispone de una plantilla inicializable, validadores, una CLI de
 tareas y KDD-Board integrados con Git. El flujo se ha comprobado desde un
 proyecto vacío hasta su calidad de producto en CI.
 
+## Corte del 6 de noviembre de 2026
+
+Este corte, preparado antes de publicar la nueva ubicacion temporal, distingue
+`main`, lo publicado en un PR y el candidato local. Los resultados posteriores
+se registran en el PR sin reinterpretar la evidencia de este corte.
+La funcionalidad verificada y la aceptacion de rendimiento son resultados
+separados. Los conteos son inventarios de casos, incluidos sus SKIP; no son
+porcentajes de cobertura de codigo.
+
+| Revision | Estado comprobado |
+| --- | --- |
+| `main` `c094317407cbb51448dc6282e531ed76be318bff` | Integra PR163 y la seleccion de Git nativo con layouts ucrt64/mingw64. El [CI de main](https://github.com/MauricioPerera/KDD/actions/runs/41519134701) paso contratos, SDK, ambas pasadas y Board en Ubuntu/Windows. [Pages](https://github.com/MauricioPerera/KDD/actions/runs/41525501404) se desplego para ese SHA. |
+| [PR161](https://github.com/MauricioPerera/KDD/pull/161), head `b9778924e7282a293721cb10b3623460e0bacb1f` | Abierto, con 38 commits conservados; aun no integrado en main. Su [CI](https://github.com/MauricioPerera/KDD/actions/runs/42155573090) paso los cuatro jobs funcionales y las dos suites de 2110 IDs por OS. Init Windows tardo 568.9987731 s: FAIL del objetivo de rendimiento. |
+| Codigo local `fe73f58a83fba7592fd76f87d36ac50e4d8534f7` y esta formalizacion | Agrega temporales privados bajo RUNNER_TEMP solo al CI nativo Windows. Baseline `d221236bdcfdc3d82e353fd7cf644c97c2a0c7c4` y diff del workflow aprobados antes de implementar. Todavia no publicados al preparar este corte. |
+
+La base ya permite modelar conocimiento y contratos, aprobar oraculos,
+inicializar proyectos, operar tareas desde CLI/Board con estados versionados
+en Git y verificar calidad de producto en CI. Los pilotos historicos y los
+limites de esas garantias se conservan abajo. Las correcciones del PR161
+siguen siendo trabajo de rama; no se presentan como capacidades integradas
+en el `main` de este corte.
+
+En el candidato local se conservan los 190 archivos Python de pruebas previos
+y los 2110 IDs; las tres integraciones nuevas elevan el inventario a 2113.
+Las nuevas pruebas comprueban herencia Python/Node/Git, aislamiento, aliases
+y errores reales de escritura, tambien en copias inicializadas sin .git.
+Pasan las contramuestras y actionlint en ambos sistemas.
+
+El perfil local corregido pasa 185 comandos de contratos por OS. Init completo:
+Windows 408.2287113 s /Ubuntu 177.3177953 s; post-init con 2009 casos y los
+101/102 SKIP anteriores. Ubuntu completo ambas suites de 2113 IDs con sus
+10 SKIP exactos. Windows completo dos pasadas nuevas de 2113 IDs con sus
+9 SKIP anteriores y los mismos motivos, en 383.823/432.663 s. Su controlador
+anterior habia quedado inactivo; el reporte parcial se conserva y no cuenta
+como PASS. Se reconcilian los 21 pasos previos completados y las dos suites
+nuevas del mismo codigo, sin presentar el controlador parcial como completo.
+SDK ejecuto sus ocho casos genuinos sin SKIP y Board paso 86/86 por OS.
+Un intento local anterior omitia la variable del SDK y agregaba tres SKIP;
+se conserva, pero se excluye de la prueba de cobertura conservada.
+
+### Lo aprendido del CI
+
+- Un CI funcional verde puede incumplir el plazo de rendimiento: 569 s no
+  satisface el objetivo de 480 s, aunque quede por debajo del timeout de 600 s.
+- Reducir procesos Git o acelerar un modulo no demuestra ahorro del comando
+  completo. La ultima lectura agrupada mejoro su modulo local, pero el init
+  remoto paso de 567.65 a 569.00 s; el objetivo sigue abierto.
+- El post-init es trabajo completo de una copia inicializada. Su inventario
+  y sus SKIP deben comprobarse aparte de las dos suites de la plantilla.
+- La ocupacion agregada del ultimo post-init fue 4429.08 s: /8=553.64 s,
+  frente a 559.75 s de pared. Queda poco margen de cola; reordenar por si solo
+  no acredita 480 s. Esa suma no mide tiempo de CPU.
+- Los fixtures remotos usan C: y RUNNER_TEMP usa D:. Cambiar su ubicacion es
+  una hipotesis de I/O aprobada para medir, no una mejora ya demostrada.
+
+### Pendientes para cerrar el objetivo
+
+1. Incorporar esta formalizacion al candidato, registrar el arbol final con el baseline aprobado
+   conservando las 55 entradas externas y actualizar PR161 sin reescribir commits.
+2. Medir tres workflows completos consecutivos del mismo head final: init
+   Windows <480 s en cada uno; contratos, Ubuntu/Windows, ambas pasadas,
+   SDK y Board satisfactorios. Cero muestras aceptadas del candidato local.
+3. Conservar todas las muestras fallidas y comparar tambien el job Windows
+   completo. Si la ubicacion temporal no basta, continuar sobre el coste medido.
+4. La fusion y la verificacion posterior de main/Pages son una etapa distinta.
+   Este trabajo no autoriza excepciones de gates, runtime ni protecciones.
+
+Se conservan runtime `74d357f`, timeout 600 s, presupuesto Git seguro de 62
+procesos y los perfiles existentes. El [contrato y protocolo de temporales](windows-ci-test-temp.md)
+define la siguiente medicion. Los cortes inferiores son evidencia historica;
+sus pendientes no deben leerse como una nueva auditoria del main actual.
+
+## Actualizacion posterior del 1 de noviembre de 2026
+
+El [PR 158](https://github.com/MauricioPerera/KDD/pull/158) se integro en
+`main` mediante `292f0e53aa50c7836300fafb389baa45dc176f08`, con KG-1 a KG-5
+y sus artefactos de cierre. Al preparar esta actualizacion, el
+[CI de main](https://github.com/MauricioPerera/KDD/actions/runs/41330505969)
+estaba en curso; ese enlace no afirma un resultado futuro. La remediacion de
+bootstrap, guard y complejidad aun vive en una rama de trabajo independiente.
+La evidencia del corte anterior conserva su SHA y sus resultados originales.
+
+## Corte verificado del 1 de noviembre de 2026
+
+El `main` auditado `f1faf516b0622bd5d91ffb7321580127530aa948` integra
+la compatibilidad de contexto v0.3, los contratos de grupo y la validacion
+previa de discovery de Pages. El [CI](https://github.com/MauricioPerera/KDD/actions/runs/41291672436)
+paso en Ubuntu y Windows con dos pasadas de 1791 IDs por sistema; cada pasada
+registro 10 SKIP en Ubuntu y 9 en Windows. El [despliegue](https://github.com/MauricioPerera/KDD/actions/runs/41294269554)
+de Pages paso y el sitio publico se comprobo. El total incluye los SKIP y no
+mide cobertura de codigo.
+
+La integracion de gobernanza [PR 158](https://github.com/MauricioPerera/KDD/pull/158)
+y la remediacion [de auditoria](audit-p1-p2-remediation.md) eran candidatos
+en ese corte; el PR 158 se integro despues, segun la actualizacion superior. El corte siguiente conserva su contexto historico.
+
 ## Corte verificado del 31 de octubre de 2026
 
 Este corte distingue el resultado publicado de una mejora aun local. Los
@@ -125,11 +221,12 @@ no constituye una ejecucion autenticada de GitHub Actions.
 | Conocimiento OKF | Conservar contexto, decisiones y modelos en nodos Markdown enlazados. | [Especificación OKF](OKF-SPEC.md) |
 | Task Contract y oráculo | Definir qué se implementa y cómo se comprueba; conservar la integridad de las pruebas mediante sello y referencia aprobada. | [Validación](validacion.md), [supervisión humana](supervision-humana.md) |
 | Contratos de grupo | Componer y ejecutar contratos atomicos e integraciones bajo una referencia explicita; disponible en el main del corte actual. | [Grupos](group-contracts.md) |
-| Contexto CCDD v0.3 | Validar, ensamblar y comparar contextos como perfil opt-in; implementado y validado localmente en la rama del corte actual. | [Compatibilidad de contexto](context-v03-compat.md) |
+| Contexto CCDD v0.3 | Validar, ensamblar y comparar contextos como perfil opt-in, integrado en main. No ejecuta proveedores dinamicos ni acredita firmas de quorum. | [Compatibilidad de contexto](context-v03-compat.md) |
 | Task y diario Git | Registrar el avance operativo en nodos de `main`, con una rama de implementación por tarea e historial de transiciones validable. | [Modelo Task](data_models/git-task.md), [tareas con Git](git-tasks.md) |
 | CLI y KDD-Board | Operar el mismo coordinador; leer tareas confirmadas de `main` y devolver el commit real de cada cambio de estado. | [CLI](contracts/task-cli.md), [integración del tablero](board-git.md) |
 | Bootstrap | Adaptar la plantilla a la identidad del proyecto, retirar ejemplos e historial operativo heredado y preparar el CI de producto. | [Inicializador](contracts/init-project.md), [arranque guiado](contracts/bootstrap-project.md) |
 | Política de calidad | Delimitar archivos protegidos y cambios permitidos; ejecutar checks estructurales, funcionales, adversariales y de interfaz según el producto. | [Aprobación de calidad](quality-approval.md) |
+| Aceptacion y controles declarados | Comprobar obligaciones, oraculos, controles requeridos y procedencia segun la politica del producto. Su disponibilidad no acredita automaticamente una entrega. | [Aceptacion](acceptance.md), [controles requeridos](required-controls.md), [oraculos revisados](oracle-assurance.md) |
 | CI | Ejecutar validación y tablero en Ubuntu/Windows, con runtime revisado fuera del checkout, dos pasadas completas y reportes por ID; exigir calidad de producto en proyectos inicializados. | [Calidad desde el arranque](bootstrap-product-quality-ci.md), [tiempo del CI](ci-runtime.md), [frontera de confianza](ci-audit-remediation.md) |
 | Pages | Compilar el sitio real en PR de ambas plataformas y reconstruir al desplegar el SHA de main cuyo CI paso, con cotejo de inventarios de las cuatro pasadas y discovery estricto. | [Build en PR](pages-pr-validation.md), [inventario](pages-ci-inventory.md), [operacion](../site/README.md) |
 
@@ -303,14 +400,18 @@ La actualizacion superior enlaza al despliegue ya verificado en main.
 - **Arranque remoto.** Variables, protecciones y disponibilidad de Actions son
   configuración externa. La demo requirió habilitar Actions desde GitHub; el
   bootstrap no automatiza esa administración.
-- **Compatibilidad de contexto local.** Publicar y revisar la rama cuando se
-  autorice; verificar su CI remoto antes de considerar su integracion y
-  comprobar despues el CI y Pages del `main` resultante. El cambio de workflow
-  requiere los controles de confianza del repositorio; este documento no
-  autoriza modificar protecciones.
-- **Complejidad pendiente.** Revisar la rama local de `validate_okf.py` frente
-  al main vigente y los fallos de procesos Windows antes de decidir como
-  integrarla; su evidencia anterior no es CI remoto del main actual.
+- **Limites del contexto integrado.** La compatibilidad v0.3 ya esta en main.
+  Las firmas de quorum y la ejecucion de fuentes dinamicas no estan soportadas
+  por ese perfil. Ampliarlas exige un objetivo, contratos y evidencia propios;
+  no forma parte de la optimizacion Windows actual.
+- **Complejidad en rama.** PR161 incorpora las reducciones de validadores
+  indicadas en su alcance, incluida `validate_okf.py`; aun no estan integradas
+  en el main del corte actual. Este documento no contiene una nueva medicion
+  de toda la deuda de complejidad del repositorio.
+- **Rendimiento Windows.** Completar la regresion y publicacion del candidato,
+  y demostrar init <480 s en tres CI completos consecutivos del mismo head,
+  conservando cobertura, ambas plataformas y las dos pasadas. El corte del
+  6 de noviembre distingue evidencia local, publicada y pendiente.
 - **Proxima validacion de uso.** Ya hay pilotos CLI de una y cuatro tareas con
   dependencias. Falta medir colaboracion concurrente real, requisitos de interfaz
   y coste de revision en un producto mayor. El piloto HTTP automatizado no

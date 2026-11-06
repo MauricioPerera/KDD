@@ -73,6 +73,15 @@ def _parse_scalar(value):
     return value
 
 
+def _child_indent(lines, start, indent):
+    for line in lines[start:]:
+        if not line.strip():
+            continue
+        child_indent = len(line) - len(line.lstrip(' '))
+        return child_indent if child_indent > indent else None
+    return None
+
+
 def _parse_block(lines, start, indent):
     """Parsea un bloque dict a partir de la linea `start` con indent `indent`.
 
@@ -100,18 +109,7 @@ def _parse_block(lines, start, indent):
         key = key.strip()
         value = value.strip()
         if value == '':
-            j = i + 1
-            child_indent = None
-            while j < n:
-                l = lines[j]
-                if not l.strip():
-                    j += 1
-                    continue
-                ci = len(l) - len(l.lstrip(' '))
-                if ci <= indent:
-                    break
-                child_indent = ci
-                break
+            child_indent = _child_indent(lines, i + 1, indent)
             if child_indent is not None:
                 child, j = _parse_block(lines, i + 1, child_indent)
                 result[key] = child
@@ -261,6 +259,43 @@ def _rel(path, base):
     return os.path.relpath(path, base).replace(os.sep, '/')
 
 
+def _validate_required_keys(file_rel, data):
+    findings = []
+    for key in REQUIRED_KEYS:
+        if key not in data:
+            findings.append(_finding(
+                file_rel, 'FM_KEY', 'clave requerida ausente: {}'.format(key)))
+        elif data[key] == '' or data[key] is None:
+            findings.append(_finding(
+                file_rel, 'FM_KEY', 'clave requerida vacia: {}'.format(key)))
+
+    return findings
+
+
+def _validate_tags(file_rel, data):
+    findings = []
+    tags = data.get('tags')
+    if tags is None or tags == '':
+        # ya reportado por FM_KEY si ausente/vacia; nada extra
+        return findings
+    if not isinstance(tags, list):
+        findings.append(_finding(
+            file_rel, 'TAGS', 'tags debe ser una lista (se encontro: {!r})'.format(tags)))
+        return findings
+    if len(tags) == 0:
+        findings.append(_finding(file_rel, 'TAGS', 'tags debe ser una lista no vacia'))
+        return findings
+    for tag in tags:
+        if not isinstance(tag, str) or tag == '':
+            findings.append(_finding(
+                file_rel, 'TAGS', 'tag vacio o no string en tags: {!r}'.format(tag)))
+        elif tag != tag.lower():
+            findings.append(_finding(
+                file_rel, 'TAGS', "tag en mayusculas (debe ser minuscula): {!r}".format(tag)))
+
+    return findings
+
+
 def _validate_frontmatter(file_rel, text):
     """§1-§3: frontmatter, claves, tags y type. Devuelve (findings, data)."""
     findings = []
@@ -273,33 +308,8 @@ def _validate_frontmatter(file_rel, text):
     if not isinstance(data, dict):
         findings.append(_finding(file_rel, 'FM', 'el frontmatter no es un mapping'))
         return findings, None
-
-    for key in REQUIRED_KEYS:
-        if key not in data:
-            findings.append(_finding(
-                file_rel, 'FM_KEY', 'clave requerida ausente: {}'.format(key)))
-        elif data[key] == '' or data[key] is None:
-            findings.append(_finding(
-                file_rel, 'FM_KEY', 'clave requerida vacia: {}'.format(key)))
-
-    # §2 tags: lista no vacia, valores en minusculas.
-    tags = data.get('tags')
-    if tags is None or tags == '':
-        # ya reportado por FM_KEY si ausente/vacia; nada extra
-        pass
-    elif not isinstance(tags, list):
-        findings.append(_finding(
-            file_rel, 'TAGS', 'tags debe ser una lista (se encontro: {!r})'.format(tags)))
-    elif len(tags) == 0:
-        findings.append(_finding(file_rel, 'TAGS', 'tags debe ser una lista no vacia'))
-    else:
-        for tag in tags:
-            if not isinstance(tag, str) or tag == '':
-                findings.append(_finding(
-                    file_rel, 'TAGS', 'tag vacio o no string en tags: {!r}'.format(tag)))
-            elif tag != tag.lower():
-                findings.append(_finding(
-                    file_rel, 'TAGS', "tag en mayusculas (debe ser minuscula): {!r}".format(tag)))
+    findings.extend(_validate_required_keys(file_rel, data))
+    findings.extend(_validate_tags(file_rel, data))
 
     # §3 type reconocido.
     type_val = data.get('type')
@@ -357,6 +367,15 @@ def _collect_md_files(kb_abs):
     return sorted(out)
 
 
+def _add_index_target(reachable, resolved):
+    if os.path.isfile(resolved):
+        reachable.add(resolved)
+    elif os.path.isdir(resolved):
+        for name in sorted(os.listdir(resolved)):
+            if name.lower().endswith('.md'):
+                reachable.add(os.path.join(resolved, name))
+
+
 def _reachable_from_index(kb_abs):
     """§5: conjunto de rutas absolutas alcanzables desde index.md.
 
@@ -383,12 +402,7 @@ def _reachable_from_index(kb_abs):
         resolved, inside = _resolve_link(index_abs, target, kb_abs)
         if resolved is None or not inside:
             continue
-        if os.path.isfile(resolved):
-            reachable.add(resolved)
-        elif os.path.isdir(resolved):
-            for name in sorted(os.listdir(resolved)):
-                if name.lower().endswith('.md'):
-                    reachable.add(os.path.join(resolved, name))
+        _add_index_target(reachable, resolved)
     return reachable, index_abs, findings
 
 

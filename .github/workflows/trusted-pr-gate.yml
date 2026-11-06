@@ -25,6 +25,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           KDD_APPROVAL_REGISTRY: ${{ vars.KDD_APPROVAL_REGISTRY }}
+          KDD_TRUSTED_CHANGE_REVIEW: ${{ vars.KDD_TRUSTED_CHANGE_REVIEW }}
         run: >-
           python scripts/guard_pr_baseline.py
           --pr-number "$PR_NUMBER"

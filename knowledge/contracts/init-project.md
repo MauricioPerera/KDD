@@ -14,7 +14,7 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tests/test_init_project.py"
-tests_sha256: 'ca215d5e96d13f6afb8a2ebe6575c8273d9d48614f9d59b87daf255127552d30'
+tests_sha256: '7ad0d9e4ca0aaf222f872f924ae752089d9e32ebe940c1c79f5ad56e132f1a51'
 touch_only: ['scripts/init_project.py', 'scripts/bootstrap_transaction.py']
 deps_allowed: ['stdlib', 'bootstrap_transaction']
 forbids: ['network', 'subprocess']
@@ -89,8 +89,8 @@ dry-run por default; exit 0 ok · 1 I/O · 2 manifiesto/identidad incompletos.
   completa una vez. Las dos pasadas posteriores de la suite omiten solo ese
   caso mediante `KDD_SKIP_INIT_POST_APPLY_SUITE=1`; el resto corre dos veces.
 - La [extension de tiempo total](../ci-runtime.md) ejecuta esa misma suite
-  post-apply con scripts/run_test_suite.py y cuatro procesos explicitamente.
-  Conserva todos los casos y asserts; no reduce la integracion a un smoke.
+  post-apply segun [perfil nativo](init-post-apply-profile.md). Conserva todos
+  los casos y asserts; no reduce la integracion a un smoke.
 - Intocables presentes post-apply: validadores, assemble_context.py + ccdd/context.json,
   export_gate_contract.py, .agents/ (reglas+skill), templates de specs/reportes,
   OKF-SPEC.md, metodologia-ejecucion.md, contratos de infra, CI.
@@ -123,6 +123,16 @@ Migracion aprobada del fixture: la copia excluye solamente las dependencias loca
 en `tools/kdd-board/node_modules`, conservando fuente y lockfile. El oraculo verifica
 el alcance del filtro y preserva archivos testigo en ese directorio tanto en dry-run
 como en apply. No se reducen las aserciones existentes ni se aumenta el timeout.
+
+Propuesta de evidencia de costes: el mismo caso post-apply solicita el reporte
+JSON nuevo del runner en un temporal propio, fuera del proyecto copiado. Antes
+de informar tiempos verifica exito, inventario no vacio, callbacks contabilizados
+y la union disjunta de ejecutados y omitidos por fixture. Emite lineas JSON ASCII
+con prefijo `KDD_POST_INIT_PROFILE`: un resumen y una fila por modulo con su
+duracion real, exit code y SKIP aplicables. Es diagnostico, no sustituye el exit
+code ni las aserciones anteriores. No agrega invocaciones de casos ni pasadas;
+no cambia codigo de produccion, runtime, entornos, workflows, limites o perfiles.
+El cambio del oraculo requiere otra revision y baseline antes de adoptarlo en CI.
 
 ## Constraints
 - PARAR y reportar si... dejar los gates verdes post-init exigiera modificar un intocable

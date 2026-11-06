@@ -44,7 +44,7 @@ cambios al workflow y a los validadores que forman la raiz de confianza.
 - La referencia aprobada es un SHA completo configurado fuera del PR.
 - Un contrato u oraculo agregado, eliminado o modificado sin aprobar falla.
 - Un cambio al workflow o a los scripts protegidos falla incluso si el PR
-  contiene el mismo SHA configurado como referencia aprobada.
+  contiene el mismo SHA de baseline; solo la [revision externa exacta](trusted-ci-change-review.md) puede autorizar expresamente esa diferencia.
 - La politica de excepciones historicas de cierre y su validador tambien
   pertenecen a la raiz protegida; un PR no puede anadir una excepcion para
   autoaprobar un reporte incompleto.

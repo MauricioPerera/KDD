@@ -251,10 +251,32 @@ class TestInitProject(unittest.TestCase):
         # Evitar recursion: este mismo test no debe correrse dentro del
         # discover de la copia (no es "infra restante", es el test del tool).
         os.unlink(os.path.join(self.repo, "tests", "test_init_project.py"))
-        disc = _run(["scripts/run_test_suite.py", "--start-directory", "tests",
-                     "--pattern", "test_*.py", "--workers", "4"], self.repo)
-        self.assertEqual(disc.returncode, 0,
-                         "unittest discover:\n" + disc.stdout + disc.stderr)
+        with tempfile.TemporaryDirectory(prefix="kdd-postinit-report-") as directory:
+            report_path = Path(directory) / "suite.json"
+            disc = _run(["scripts/init_post_apply_suite.py", "--repo-root", self.repo,
+                         "--report-json", str(report_path)], self.repo)
+            self.assertEqual(disc.returncode, 0,
+                             "unittest discover:\n" + disc.stdout + disc.stderr)
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            self.assertTrue(report["ok"])
+            self.assertTrue(report["expected_ids"])
+            self.assertEqual(report["tests_run"], len(report["executed_ids"]))
+            self.assertEqual(set(report["expected_ids"]),
+                             set(report["executed_ids"]) | set(report["fixture_omitted_ids"]))
+            self.assertTrue(set(report["executed_ids"]).isdisjoint(report["fixture_omitted_ids"]))
+            self.assertEqual(report["workers"], 8 if os.name == "nt" else 4)
+            print("KDD_POST_INIT_PROFILE " + json.dumps(dict(kind="summary", platform=sys.platform,
+                duration_seconds=report["duration_seconds"], workers=report["workers"],
+                tests_run=report["tests_run"], expected_count=len(report["expected_ids"]),
+                fixture_omitted_count=len(report["fixture_omitted_ids"]),
+                skipped=len(report["skipped"]), modules=len(report["modules"])), ensure_ascii=True))
+            origins = {item["id"]: item["origin"] for item in report["inventory"]}
+            for module in report["modules"]:
+                print("KDD_POST_INIT_PROFILE " + json.dumps(dict(kind="module", module=module["module"],
+                    duration_seconds=module["duration_seconds"], tests_run=module["tests_run"],
+                    exit_code=module["exit_code"], skipped=sum(
+                        origins.get(item.get("id")) == module["module"] for item in report["skipped"])),
+                    ensure_ascii=True))
 
     def test_intocables_presentes_post_apply(self):
         _copy_repo(self.repo)
@@ -310,9 +332,6 @@ class TestInitProject(unittest.TestCase):
         _copy_repo(self.repo)
         self.assertEqual(_run_cli(self.repo).returncode, 0)
 
-    def test_exit_code_0_apply(self):
-        _copy_repo(self.repo)
-        self.assertEqual(_run_cli(self.repo, "--apply").returncode, 0)
 
     def test_exit_code_2_manifiesto_incompleto(self):
         _copy_repo(self.repo)

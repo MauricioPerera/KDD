@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tests/test_assemble_context.py"
-tests_sha256: "1a9f103cc9ad634ca5df39e3573fc617612bd7fbfac3d7df03856e8825dd4801"
+tests_sha256: "10980e5d4552b2880d54e7a05b0793fe65bd6e93a267c0fd22d2bbe67e3d9647"
 touch_only: ['scripts/assemble_context.py']
 deps_allowed: []
 forbids: ['network', 'subprocess']

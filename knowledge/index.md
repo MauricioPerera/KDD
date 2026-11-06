@@ -263,3 +263,33 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Compatibilidad de la evidencia JSON del cierre de gobierno](contracts/governance-evidence-initialization.md)
 
 - [Discovery de Pages en PR con dependencias del despliegue](./pages-pr-deploy-parity.md)
+- [Reduccion de complejidad del validador OKF](contracts/validate-okf-complexity.md)
+
+- [Remediacion de perimetro, controles y CI](audit-p1-p2-remediation.md)
+- [Revision externa de CI confiable](contracts/trusted-ci-change-review.md)
+- [Perfil de suite post inicializacion](contracts/init-post-apply-profile.md)
+
+- [Complejidad del validador de skills](contracts/skills-validator-complexity.md)
+
+- [Coste del fixture de trazabilidad](contracts/trace-fixture-setup-cost.md)
+
+- [Fixture de perimetro con base aislada](contracts/perimeter-fixture-snapshot.md)
+
+- [Auditoria de importaciones con base integrada](contracts/task-import-ancestry.md)
+
+- [Lecturas agrupadas del baseline](contracts/baseline-git-batch.md)
+
+- [Margen estable del post-init Windows](postinit-windows-runtime.md)
+- [Identidad fisica de raiz para las claves](contracts/task-root-identity.md)
+- [Tiempo completo de init en CI](contracts/postinit-command-timing.md)
+- [Orden medido de modulos post-init](postinit-module-order.md)
+- [Prioridades opt-in del runner](contracts/ci-module-order.md)
+- [Prioridades del post-init Windows](contracts/postinit-module-order.md)
+
+- [Preparacion unica del fixture de auditoria](change-fixture-seed.md)
+
+- [Lectura fresca de proyeccion (propuesta)](trace-projection-fresh-read.md)
+- [Contrato de lectura fresca](contracts/trace-projection-fresh-read.md)
+
+- [Temporales Windows CI (propuesta)](windows-ci-test-temp.md)
+- [Contrato de temporales Windows CI](contracts/windows-ci-test-temp.md)

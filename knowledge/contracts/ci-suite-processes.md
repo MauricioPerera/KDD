@@ -7,7 +7,7 @@ task: ci-suite-processes
 intent: 'Reducir la duracion de cada pasada conservando sus IDs y resultados reales.'
 target: scripts/run_test_suite.py
 language: python
-signature: 'def run_suite(start_dir, pattern="test_*.py", workers=1) -> dict:'
+signature: 'def run_suite(start_dir, pattern="test_*.py", workers=1, *, module_order=None) -> dict:'
 test_command: 'python -m unittest tests/test_ci_suite_processes.py'
 budget:
   cyclomatic_max: 14
@@ -30,7 +30,9 @@ conservando [validacion](../validacion.md) y [aprobacion](../quality-approval.md
   explicita de omisiones y suites load_tests; la [ejecucion confiable](ci-trusted-execution.md)
   extiende el arranque y el comando de CI. Sus reglas sustituyen igualdad de
   executed_ids con expected_ids solo cuando existe omision de fixture verificada.
-- run_suite(start_dir, pattern='test_*.py', workers=1) devuelve dict version1.
+- run_suite(start_dir, pattern='test_*.py', workers=1, *, module_order=None)
+  devuelve dict version1. La extension de [orden opt-in](ci-module-order.md)
+  agrega prioridades sin cambiar inventarios, procesos ni el default serial.
 - CLI --start-directory (default tests), --pattern (default test_*.py),
   --workers (entero1..8, default1) y --report-json PATH opcional.
   El cwd del hijo es el cwd original. Rutas con espacios/Unicode son validas.

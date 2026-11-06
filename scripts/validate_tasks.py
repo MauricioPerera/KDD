@@ -139,11 +139,14 @@ def _audit_import(root, parents, nodes, changed, cache):
             errors.append('TASK_IMPORT: concurrent target change to ' + identifier)
         if identifier not in source or after.get(identifier) != source.get(identifier):
             errors.append('TASK_IMPORT: merge must preserve the source node ' + identifier)
-    return errors + _audit_range(root, bases[0], parents[1], cache)
+    return errors + _audit_range(root, bases[0], parents[1], cache, imported=True)
 
 
 def _audit_commit(root, parent, revision, cache, parents):
-    before, after = journal.read_nodes(root, parent), journal.read_nodes(root, revision)
+    try:
+        before, after = journal.read_nodes(root, parent), journal.read_nodes(root, revision)
+    except (TaskError, ValueError, OSError, KeyError, RecursionError) as exc:
+        return ['{}: TASK_HISTORY: {}'.format(revision, exc)]
     changed = [key for key in sorted(before.keys() | after.keys()) if before.get(key) != after.get(key)]
     if len(parents) > 1:
         errors = _audit_import(root, parents, (before, after), changed, cache)
@@ -164,15 +167,43 @@ def _audit_commit(root, parent, revision, cache, parents):
     return ['{}: {}'.format(revision, e) for e in errors + validate_snapshot(root, revision)]
 
 
-def _audit_range(root, base, head, cache):
-    key = (base, head)
+def _strict_ancestor(root, before, after):
+    bases = journal.git(root, 'merge-base', '--all', before, after).splitlines()
+    if len(bases) != 1:
+        raise TaskError('TASK_BASELINE: ambiguous or missing ancestor')
+    return bases[0] == before
+
+
+def _import_anchor(root, base, head, chain):
+    """Find the newest first-parent ancestor shared with an integrated base."""
+    if journal.git(root, 'rev-parse', '--is-shallow-repository') != 'false':
+        raise TaskError('TASK_BASELINE: complete history is required for imports')
+    if not _strict_ancestor(root, base, head):
+        return None
+    low, high = 0, len(chain)
+    while low < high:
+        middle = (low + high) // 2
+        if _strict_ancestor(root, chain[middle], base):
+            low = middle + 1
+        else:
+            high = middle
+    if low and _strict_ancestor(root, chain[low - 1], base):
+        return chain[low - 1]
+    return None
+
+
+def _audit_range(root, base, head, cache, imported=False):
+    key = (base, head, imported)
     if key in cache:
         return cache[key]
     rows = [line.split() for line in journal.git(
         root, 'rev-list', '--first-parent', '--reverse', '--parents', head).splitlines()]
     chain = [row[0] for row in rows]
     if base not in chain:
-        return ['TASK_BASELINE: base must be on the first-parent history of head']
+        anchor = _import_anchor(root, base, head, chain) if imported else None
+        if anchor is None:
+            return ['TASK_BASELINE: base must be on the first-parent history of head']
+        base = anchor
     journal._remember_git_commits(root, chain)
     if journal._prefetch_task_nodes(root, chain[chain.index(base):]):
         journal._prefetch_history_metadata(root, chain[chain.index(base):])

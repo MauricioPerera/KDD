@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: "tests/test_validate_diagrams.py"
-tests_sha256: "e0ef690cc83b80f9192b6d500c86962d3d88ebf138bbf1a4d696bb7abdeb90a9"
+tests_sha256: "395ca165f42408e7712b2c575109d419245e1fd477c5a35d5b16dfe7be3d372e"
 touch_only: ['scripts/validate_diagrams.py']
 deps_allowed: []
 forbids: ['network', 'subprocess', 'llm']

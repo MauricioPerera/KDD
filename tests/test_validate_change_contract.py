@@ -1,6 +1,7 @@
 """A sealed baseline must govern checks against an actual Git change."""
 
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -14,10 +15,29 @@ import change_contract_multilang as languages  # noqa: E402
 
 
 class ChangeContractTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls._seed = None
+        area = tempfile.TemporaryDirectory(prefix='kdd-change-seed-')
+        cls.addClassCleanup(area.cleanup)
+        cls.addClassCleanup(setattr, cls, '_seed', None)
+        seed = cls('test_target_change_with_stdlib_import_passes')
+        seed.root = Path(area.name)
+        seed._initialize()
+        cls._seed = (seed.root, seed.contract, seed.base)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        seed = type(self).__dict__.get('_seed')
+        if seed is None:
+            self._initialize()
+        else:
+            source, self.contract, self.base = seed
+            shutil.copytree(source, self.root, dirs_exist_ok=True)
+
+    def _initialize(self):
         self._git('init', '-q')
         self._git('config', 'maintenance.autoDetach', 'false')
         self._git('config', 'gc.autoDetach', 'false')
