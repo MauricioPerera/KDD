@@ -290,3 +290,6 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 - [Lectura fresca de proyeccion (propuesta)](trace-projection-fresh-read.md)
 - [Contrato de lectura fresca](contracts/trace-projection-fresh-read.md)
+
+- [Temporales Windows CI (propuesta)](windows-ci-test-temp.md)
+- [Contrato de temporales Windows CI](contracts/windows-ci-test-temp.md)
