@@ -25,6 +25,36 @@ La hipotesis es usar un hijo privado de RUNNER_TEMP mediante las variables
 estandar, sin una unidad fija, cache persistente, otro runner ni mas procesos.
 No se afirma que la hipotesis cumpla 480 s antes de medir el comando entero.
 
+## Estado de implementacion al 6 de noviembre de 2026
+
+El baseline d221236bdcfdc3d82e353fd7cf644c97c2a0c7c4 y el diff exacto del
+workflow fueron aprobados. La implementacion fe73f58a83fba7592fd76f87d36ac50e4d8534f7
+agrega un paso de 31 lineas; no cambia lectores Git, runtime u oraculos previos.
+Este corte precede su publicacion. PR161 conservaba 38 commits publicados
+con head b977892; los resultados posteriores se registran en el PR.
+
+Pasan las tres integraciones reales y actionlint. El inventario conserva
+2110 IDs y agrega tres, total 2113, sin editar los 190 archivos Python previos.
+En el perfil local con SDK configurado pasan los 185 contratos por OS.
+Init Windows mide 408.2287113 s y Ubuntu 177.3177953 s, con 2009 casos post-init
+y 101/102 SKIP respectivamente. Estas muestras locales no prueban el objetivo
+remoto ni aislan causalmente una mejora frente al entorno anterior.
+
+Ambos OS pasaron sus dos suites de 2113 IDs exactos, con los mismos motivos
+de SKIP: Windows 9 /Ubuntu 10. Windows tardo 383.823/432.663 s y Ubuntu
+163.795/138.713 s. El controlador Windows anterior quedo inactivo despues
+de los contratos; su reporte parcial se conserva y no cuenta como completo.
+La reconciliacion usa sus 21 pasos previos terminados y dos suites nuevas
+del mismo codigo, SDK y runtime, identificando ambas fuentes.
+SDK paso ocho casos genuinos y Board 86/86 por OS, sin SKIP en esos controles.
+El primer perfil local omitia KDD_MCP_SDK_PYTHON y agregaba tres SKIP; sus
+resultados se conservan y quedan excluidos de la aceptacion de cobertura.
+
+Falta publicar el arbol final preservando el registro y los commits, y medir
+las tres ejecuciones remotas.
+No hay muestras aceptadas de rendimiento para esta propuesta. El
+[estado general](estado-actual-kdd.md) conserva la distincion main/PR/local.
+
 ## Aplicabilidad y confianza
 
 El paso inline queda en el workflow protegido; no se agrega un ejecutable
