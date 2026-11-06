@@ -45,13 +45,30 @@ para los mismos 38 casos. Los procesos Git pasan 1038 -> 742: la preparacion
 completo ni del CI. El coste de los tres controles nuevos tambien debe entrar
 en la comparacion neta del post-init.
 
-## Revision y aceptacion pendientes
+## Aprobacion y verificacion local
 
-La propuesta del fixture congelado y sus dos sellos requieren un baseline
-revisado segun [quality-approval](quality-approval.md), antes de adoptarse.
-Luego corresponde medir el post-init completo, completar la regresion y
-continuar sobre los costes restantes si el margen sigue siendo insuficiente.
-No atribuir a este cambio aislado una reduccion hasta 480 s.
+El usuario aprobo el baseline da57380496ac98bb1f2e12ed7fb285c94dc9874c,
+incluido el fixture y sus dos sellos, segun
+[quality-approval](quality-approval.md). La regresion completa pasa los 19
+gates, los 183 resultados de contratos, el baseline y los sellos estrictos
+en ambos sistemas. Las cuatro suites generales contienen exactamente 2107
+IDs: nueve SKIP en Windows y diez en Ubuntu, sin omisiones de fixtures.
+
+| Medicion local completa | Windows | Ubuntu |
+| --- | ---: | ---: |
+| Comando init | 347,618 s | 143,654 s |
+| Post-init, 2003 casos | 329,687 s | 141,868 s |
+| Primera suite general | 428,298 s | 157,131 s |
+| Segunda suite general | 447,985 s | 143,295 s |
+
+Los 178 modulos post-init anteriores conservan sus casos y SKIP; se agrega
+el modulo de tres controles, sin omisiones. Las validaciones locales de
+ambos sistemas compartieron el host durante parte del trabajo; sus tiempos
+no acreditan por si solos una reduccion causal ni el criterio remoto.
+
+Falta medir el candidato final en GitHub Actions y continuar sobre los costes
+restantes si el margen sigue siendo insuficiente. No atribuir a la mejora del
+modulo aislado el cumplimiento de 480 s.
 
 Conservar los 2104 IDs anteriores; los tres nuevos elevan el inventario a 2107.
 Permanecen Ubuntu/Windows, las dos suites, presupuesto Git 62, timeout 600 s,
