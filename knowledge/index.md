@@ -285,3 +285,5 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Orden medido de modulos post-init](postinit-module-order.md)
 - [Prioridades opt-in del runner](contracts/ci-module-order.md)
 - [Prioridades del post-init Windows](contracts/postinit-module-order.md)
+
+- [Preparacion unica del fixture de auditoria](change-fixture-seed.md)
