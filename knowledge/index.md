@@ -293,3 +293,6 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 - [Temporales Windows CI (propuesta)](windows-ci-test-temp.md)
 - [Contrato de temporales Windows CI](contracts/windows-ci-test-temp.md)
+
+- [Identidad estable en el oraculo de contencion](process-observer-identity.md)
+- [Contrato del observador de procesos de calidad](contracts/quality-process-observer.md)

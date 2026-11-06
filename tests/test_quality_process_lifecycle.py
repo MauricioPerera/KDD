@@ -1,8 +1,10 @@
 """Real approved quality commands, owned processes and immutable helper origin."""
 import ctypes
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 from pathlib import Path
+import select
 import shutil
 import subprocess
 import sys
@@ -20,11 +22,16 @@ if '--spawn' in sys.argv:
     child=subprocess.Popen([sys.executable,__file__],stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     until=time.monotonic()+8
-    while not (state/('ready-'+str(child.pid))).exists() and time.monotonic()<until:
+    while (not (state/('ready-'+str(child.pid))).exists() or
+           not (state/('observed-'+str(child.pid))).exists()) and time.monotonic()<until:
         time.sleep(.01)
     assert (state/('ready-'+str(child.pid))).exists(),'grandchild readiness failed'
+    assert (state/('observed-'+str(child.pid))).exists(),'grandchild observation failed'
 (state/('ready-'+str(os.getpid()))).write_text('ready')
 until=time.monotonic()+20
+while not (state/('observed-'+str(os.getpid()))).exists() and not (state/'release').exists() and time.monotonic()<until:
+    time.sleep(.01)
+assert (state/('observed-'+str(os.getpid()))).exists() or (state/'release').exists(),'observation failed'
 while not (state/'release').exists() and time.monotonic()<until:
     time.sleep(.01)
 if (state/'release').exists():
@@ -39,9 +46,11 @@ argv=[sys.executable,str(root/'worker.py')]
 if '--grandchild' in sys.argv:argv.append('--spawn')
 child=subprocess.Popen(argv,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
 ready=root/'.audit'/('ready-'+str(child.pid))
+observed=root/'.audit'/('observed-'+str(child.pid))
 until=time.monotonic()+10
-while not ready.exists() and time.monotonic()<until:time.sleep(.01)
+while (not ready.exists() or not observed.exists()) and time.monotonic()<until:time.sleep(.01)
 assert ready.exists(),'child readiness failed'
+assert observed.exists(),'child observation failed'
 if '--timeout' in sys.argv:time.sleep(30)
 if '--fail' in sys.argv:raise SystemExit(7)
 '''
@@ -79,6 +88,86 @@ def alive(pid):
         return False
 
 
+class _ProcessObserver:
+    """Oracle-owned process objects retained before acknowledging readiness."""
+    def __init__(self):
+        self.resources = {}
+        self.backend = 'windows' if os.name == 'nt' else 'pidfd' if sys.platform.startswith('linux') else 'pid'
+        if self.backend == 'windows':
+            from ctypes import wintypes as w
+            self.kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+            for name, arguments, result in (
+                    ('OpenProcess', [w.DWORD, w.BOOL, w.DWORD], w.HANDLE),
+                    ('WaitForSingleObject', [w.HANDLE, w.DWORD], w.DWORD),
+                    ('CloseHandle', [w.HANDLE], w.BOOL)):
+                function = getattr(self.kernel, name)
+                function.argtypes, function.restype = arguments, result
+        elif self.backend == 'pidfd':
+            self.open_pidfd = getattr(os, 'pidfd_open', None)
+            if self.open_pidfd is None:
+                self.open_pidfd = ctypes.CDLL(None, use_errno=True).pidfd_open
+                self.open_pidfd.argtypes = [ctypes.c_int, ctypes.c_uint]
+                self.open_pidfd.restype = ctypes.c_int
+
+    def retain(self, pid):
+        if pid in self.resources:
+            return
+        if self.backend == 'windows':
+            resource = self.kernel.OpenProcess(0x100000, False, pid)
+            if not resource:
+                raise ctypes.WinError(ctypes.get_last_error())
+        elif self.backend == 'pidfd':
+            resource = self.open_pidfd(pid, 0)
+            if resource < 0:
+                raise OSError(ctypes.get_errno(), 'could not retain observed process')
+            try:
+                os.set_inheritable(resource, False)
+            except BaseException:
+                os.close(resource)
+                raise
+        else:
+            resource = pid  # Existing POSIX fallback, without stable-object claims.
+        self.resources[pid] = resource
+
+    def sync(self, state):
+        for path in state.glob('ready-*'):
+            pid = int(path.name.split('-')[1])
+            if pid not in self.resources:
+                self.retain(pid)
+                (state / ('observed-' + str(pid))).touch()
+
+    def alive(self, pid):
+        resource = self.resources[pid]
+        if self.backend == 'windows':
+            status = self.kernel.WaitForSingleObject(resource, 0)
+            if status not in (0, 258):
+                raise ctypes.WinError(ctypes.get_last_error())
+            return status == 258
+        if self.backend == 'pidfd':
+            poller = select.poll()
+            poller.register(resource, select.POLLIN)
+            events = poller.poll(0)
+            if any(flags & select.POLLNVAL for _, flags in events):
+                raise OSError('invalid observed process descriptor')
+            return not events
+        return alive(pid)
+
+    def close(self):
+        errors = []
+        for pid, resource in list(self.resources.items()):
+            try:
+                if self.backend == 'windows' and not self.kernel.CloseHandle(resource):
+                    raise ctypes.WinError(ctypes.get_last_error())
+                if self.backend == 'pidfd':
+                    os.close(resource)
+            except OSError as error:
+                errors.append(error)
+            finally:
+                del self.resources[pid]
+        if errors:
+            raise errors[0]
+
+
 class QualityProcessLifecycle(unittest.TestCase):
     def setUp(self):
         self.area = tempfile.TemporaryDirectory(prefix='kdd-quality-owned-')
@@ -87,6 +176,8 @@ class QualityProcessLifecycle(unittest.TestCase):
         self.root.mkdir()
         self.state = self.root / '.audit'
         self.state.mkdir()
+        self.observer = _ProcessObserver()
+        self.addCleanup(self.observer.close)
         self.addCleanup(self.release_children)
         self.env = dict(os.environ, PYTHONUTF8='1', PYTHONDONTWRITEBYTECODE='1',
             GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull,
@@ -128,16 +219,22 @@ class QualityProcessLifecycle(unittest.TestCase):
 
     def release_children(self):
         if self.state.exists():
+            self.observer.sync(self.state)
             (self.state / 'release').write_text('release', encoding='utf-8')
             until = time.monotonic() + 3
             pids = [int(p.name.split('-')[1]) for p in self.state.glob('ready-*')]
-            while any(alive(pid) for pid in pids) and time.monotonic() < until:
+            while any(self.observer.alive(pid) for pid in pids) and time.monotonic() < until:
                 time.sleep(.02)
 
     def invoke(self, runner=SCRIPT):
-        return subprocess.run([sys.executable, str(runner), '--repo-root', str(self.root),
-            '--policy', 'quality.json', '--approved-ref', self.ref], env=self.env,
-            capture_output=True, text=True, encoding='utf-8', timeout=40)
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            command = pool.submit(subprocess.run, [sys.executable, str(runner), '--repo-root', str(self.root),
+                '--policy', 'quality.json', '--approved-ref', self.ref], env=self.env,
+                capture_output=True, text=True, encoding='utf-8', timeout=40)
+            while not command.done():
+                self.observer.sync(self.state)
+                time.sleep(.005)
+            return command.result()
 
     def assert_contained(self, result, success=True, children=2, exclude=()):
         if success:
@@ -150,7 +247,7 @@ class QualityProcessLifecycle(unittest.TestCase):
         pids = [int(p.name.split('-')[1]) for p in self.state.glob('ready-*')
                 if int(p.name.split('-')[1]) not in exclude]
         self.assertEqual(len(pids), children, 'real child readiness is mandatory')
-        running = [pid for pid in pids if alive(pid)]
+        running = [pid for pid in pids if self.observer.alive(pid)]
         self.assertEqual(running, [], 'quality returned with owned processes still running')
         (self.state / 'release').write_text('release', encoding='utf-8')
         time.sleep(.1)
@@ -193,7 +290,7 @@ class QualityProcessLifecycle(unittest.TestCase):
             time.sleep(.01)
         self.assertTrue((self.state / ('ready-' + str(neighbor.pid))).exists())
         result = self.invoke()
-        self.assertTrue(alive(neighbor.pid), 'unrelated neighbor was terminated')
+        self.assertTrue(self.observer.alive(neighbor.pid), 'unrelated neighbor was terminated')
         self.assert_contained(result, exclude=(neighbor.pid,))
         neighbor.wait(timeout=5)
         self.assertTrue((self.state / ('done-' + str(neighbor.pid))).exists())

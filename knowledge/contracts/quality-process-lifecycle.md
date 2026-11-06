@@ -15,7 +15,7 @@ budget:
   lines_max: 160
   params_max: 5
 tests: tests/test_quality_process_lifecycle.py
-tests_sha256: 'b53c19888c76dd908440c3b1f767bb690f4f861a0d90d2e531787c3ebd7f4e6d'
+tests_sha256: 'bfaef9718e62427abf99076d395f69c62cbff6049cd0d6f1a72a4eb6ede2255a'
 touch_only: ['scripts/verify_quality.py']
 deps_allowed: ['stdlib', 'process_tree']
 forbids: ['network', 'llm']
@@ -49,6 +49,10 @@ Mantener treinta procesos Git en el fixture de batching existente.
 ## Tests
 tests/test_quality_process_lifecycle.py usa repositorios, politica y procesos
 reales, dos rondas, modos de indice y runner externo. No simula Git o procesos.
+El [observador de identidad](quality-process-observer.md) retiene los objetos
+antes de confirmar readiness y conserva los doce metodos y sus aserciones.
+El [protocolo](../process-observer-identity.md) distingue este ajuste del oraculo
+de una correccion del runtime y conserva la evidencia del fallo original.
 
 ## Constraints
 PARAR y reportar si se necesita adoptar otro baseline o cambiar el runtime
