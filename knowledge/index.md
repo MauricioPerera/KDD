@@ -287,3 +287,6 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Prioridades del post-init Windows](contracts/postinit-module-order.md)
 
 - [Preparacion unica del fixture de auditoria](change-fixture-seed.md)
+
+- [Lectura fresca de proyeccion (propuesta)](trace-projection-fresh-read.md)
+- [Contrato de lectura fresca](contracts/trace-projection-fresh-read.md)
