@@ -23,6 +23,10 @@ def _input(message):
     raise ValueError('TRACE_INPUT: ' + message)
 
 
+def _overlapping_paths(first, second):
+    return first == second or first.startswith(second + '/') or second.startswith(first + '/')
+
+
 def _repository(repo_root):
     root = Path(repo_root).resolve(strict=True)
     actual = Path(journal.git(root, 'rev-parse', '--show-toplevel')).resolve()
@@ -42,19 +46,38 @@ class _Projection:
         self.findings = []
         self.journal_ok = False
 
+    def _fresh_blob(self, revision, name):
+        if not journal._native_oid(self.root, revision):
+            return None, None
+        try:
+            records = journal._read_metadata(self.root, [(revision, name, True)])
+        except TaskError as error:
+            return None, error
+        if not records:
+            return None, None
+        try:
+            return records[0][3].decode('utf-8').replace('\r\n', '\n').replace('\r', '\n'), None
+        except UnicodeError:
+            return None, None
+
     def blob(self, revision, name):
         name = exact_path(name)
         key = (revision, name)
         if key not in self.objects:
-            output = journal.git(self.root, 'ls-tree', '-z', revision, '--', name)
-            records = list(filter(None, output.split('\0')))
-            if len(records) != 1 or '\t' not in records[0]:
-                _input('missing regular Git file: ' + name)
-            header, path = records[0].split('\t', 1)
-            fields = header.split()
-            if path != name or len(fields) != 3 or fields[0] not in ('100644', '100755') or fields[1] != 'blob':
-                _input('expected a regular Git blob: ' + name)
-            self.objects[key] = journal.blob(self.root, revision, name)
+            value, error = self._fresh_blob(revision, name)
+            if value is None:
+                output = journal.git(self.root, 'ls-tree', '-z', revision, '--', name)
+                records = list(filter(None, output.split('\0')))
+                if len(records) != 1 or '\t' not in records[0]:
+                    _input('missing regular Git file: ' + name)
+                header, path = records[0].split('\t', 1)
+                fields = header.split()
+                if path != name or len(fields) != 3 or fields[0] not in ('100644', '100755') or fields[1] != 'blob':
+                    _input('expected a regular Git blob: ' + name)
+                value = journal.blob(self.root, revision, name)
+                if error is not None:
+                    raise error
+            self.objects[key] = value
         return self.objects[key]
 
     def plan(self, revision):
@@ -72,7 +95,7 @@ class _Projection:
             first, second = exact_path(oracle), exact_path(target)
         except ValueError:
             return serial()
-        if (first == second or first.startswith(second + '/') or second.startswith(first + '/')
+        if (_overlapping_paths(first, second)
                 or (revision, first) in self.objects or (revision, second) in self.objects
                 or not journal._native_oid(self.root, revision)):
             return serial()
