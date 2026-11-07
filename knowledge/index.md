@@ -300,3 +300,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Margen del post-init Windows: preparacion local](postinit-windows-headroom.md)
 - [Contrato de preparacion de fixtures](contracts/postinit-fixture-config.md)
 - [Contrato de Git directo en validaciones](contracts/validation-native-git-path.md)
+
+- [Lecturas agrupadas por etapa de trazabilidad](trace-stage-batches.md)
+- [Contrato del lote de contenidos](contracts/trace-contract-content-batch.md)
+- [Contrato del lote de frescura](contracts/trace-fresh-stage-batch.md)

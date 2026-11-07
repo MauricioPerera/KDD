@@ -110,8 +110,8 @@ class _Projection:
             records[path] = fields[2]
         if set(records) != {first, second}:
             return serial()
-        self.objects[(revision, first)] = journal.blob(self.root, revision, first)
-        self.objects[(revision, second)] = journal.blob(self.root, revision, second)
+        values = journal.blobs(self.root, revision, [first, second])
+        self.objects.update({(revision, name): value for name, value in values.items()})
         return self.objects[(revision, first)], self.objects[(revision, second)]
 
     def contract(self, revision, name):
@@ -190,9 +190,31 @@ class _Projection:
         except (ValueError, OSError):
             return False
 
+    def _stage_blobs(self, names, revisions):
+        try:
+            names = tuple(exact_path(name) for name in names)
+        except ValueError:
+            return
+        if any(_overlapping_paths(first, second) for i, first in enumerate(names)
+               for second in names[i + 1:]):
+            return
+        missing = list(dict.fromkeys((revision, name) for name in names for revision in revisions
+                                    if (revision, name) not in self.objects))
+        if not missing or not all(journal._native_oid(self.root, ref) for ref, _ in missing):
+            return
+        # This stage observes mode and content together. Do not use journal's
+        # retained mode proofs or publish a prefix before all decoding succeeds.
+        records = journal._read_metadata(self.root, [(ref, name, True) for ref, name in missing])
+        if not records:
+            return
+        values = {(ref, name): body.decode('utf-8').replace('\r\n', '\n').replace('\r', '\n')
+                  for ref, name, _, body in records}
+        self.objects.update(values)
+
     def _fresh(self, task, metadata):
         names = (task['contract'], metadata['tests'], metadata['target'])
         try:
+            self._stage_blobs(names, (self.revision, task['verified_ref']))
             return all(self.blob(self.revision, p) == self.blob(task['verified_ref'], p) for p in names)
         except (ValueError, OSError):
             return False
