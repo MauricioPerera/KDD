@@ -191,7 +191,10 @@ class _Projection:
             return False
 
     def _stage_blobs(self, names, revisions):
-        names = tuple(exact_path(name) for name in names)
+        try:
+            names = tuple(exact_path(name) for name in names)
+        except ValueError:
+            return
         if any(_overlapping_paths(first, second) for i, first in enumerate(names)
                for second in names[i + 1:]):
             return
