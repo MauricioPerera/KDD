@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from tests.test_fixture_preparation import configure_git
 
 SOURCE = Path(__file__).resolve().parents[1] / 'scripts/validate_baseline.py'
 
@@ -15,11 +16,8 @@ class BatchInventoryIntegration(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
         self.git('init', '-q', '-b', 'main')
-        self.git('config', 'user.name', 'Inventory Test')
-        self.git('config', 'user.email', 'inventory@example.invalid')
-        self.git('config', 'core.autocrlf', 'false')
-        self.git('config', 'gc.auto', '0')
-        self.git('config', 'maintenance.auto', 'false')
+        configure_git(self.root, {'user.name': 'Inventory Test', 'user.email': 'inventory@example.invalid',
+            'core.autocrlf': 'false'}, ephemeral=True)
         (self.root / 'knowledge/contracts').mkdir(parents=True)
         (self.root / 'tests').mkdir()
         (self.root / '.gitattributes').write_text('tests/fixture.bin -text\n', encoding='utf8')

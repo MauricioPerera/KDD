@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from tests.test_fixture_preparation import configure_git
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -37,8 +38,7 @@ class GitReaderRefCache(unittest.TestCase):
         root = self.base / name
         root.mkdir()
         self.git(root, 'init', '-q', '-b', 'main', '--object-format=' + algorithm)
-        for key in ('maintenance.autoDetach', 'gc.autoDetach'):
-            self.git(root, 'config', key, 'false')
+        configure_git(root, {'maintenance.autoDetach': 'false', 'gc.autoDetach': 'false'}, ephemeral=True)
         one = self.git(root, 'hash-object', '-w', '--stdin', text='before\n')
         two = self.git(root, 'hash-object', '-w', '--stdin', text='after\n')
         a_tree = self.git(root, 'mktree', text='100644 blob ' + one + '\tfile.txt\n')

@@ -14,7 +14,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_verify_quality_complexity.py
-tests_sha256: '6c4ac5412f66edca0dd51e5fecadf7957b19aa9e8b900049bf1b7359e9681f77'
+tests_sha256: '0549153e5b2172aa6141fa777ed9ee4b2df1a3a20e71c713f96ba72ddf53e9e4'
 touch_only: ['scripts/verify_quality.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']

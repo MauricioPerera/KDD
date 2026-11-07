@@ -296,3 +296,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 - [Identidad estable en el oraculo de contencion](process-observer-identity.md)
 - [Contrato del observador de procesos de calidad](contracts/quality-process-observer.md)
+
+- [Margen del post-init Windows: preparacion local](postinit-windows-headroom.md)
+- [Contrato de preparacion de fixtures](contracts/postinit-fixture-config.md)
+- [Contrato de Git directo en validaciones](contracts/validation-native-git-path.md)

@@ -247,9 +247,8 @@ class GeneratedTaskEvidence(unittest.TestCase):
         self.base.command(['git', 'clone', '-q', '--shared', str(self.base.root), str(target)])
         self.project = TaskProject(target, initialize=False)
         self.project.ref = self.approved
-        for name, value in [('user.name', 'Fixture editor'), ('user.email', 'fixture@example.invalid'),
-                            ('core.autocrlf', 'false'), ('commit.gpgsign', 'false')]:
-            self.project.git('config', name, value)
+        configure_git(target, {'user.name': 'Fixture editor', 'user.email': 'fixture@example.invalid',
+            'core.autocrlf': 'false', 'commit.gpgsign': 'false'}, ephemeral=True)
 
     def reject(self):
         result = self.project.quality()

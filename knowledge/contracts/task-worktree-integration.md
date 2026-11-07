@@ -15,7 +15,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_task_worktree_integration.py
-tests_sha256: '3503ef8bc93375915db5a8f9601de375628324ad7b3e0199bc4059890fc7ca1a'
+tests_sha256: '31ff150b79e61484ba8aafacddbaa176c89da02439040d321ca14c4d95c50884'
 touch_only: ['scripts/task_git.py', 'scripts/validate_tasks.py']
 deps_allowed: ['stdlib']
 forbids: ['llm']

@@ -9,6 +9,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
+from tests.test_fixture_preparation import configure_git
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT/'scripts'),str(ROOT/'tests')]
@@ -48,8 +49,8 @@ class GitFixture(unittest.TestCase):
         subprocess.run(['git','-c','core.autocrlf=false','clone','-q','--no-hardlinks',str(seed.root),str(root)],
             capture_output=True,check=True,timeout=30)
         root=root.resolve()
-        for name,value in [('user.name','KDD identity fixture'),('user.email','identity@example.invalid'),
-                ('core.autocrlf','false'),('maintenance.autoDetach','false'),('gc.autoDetach','false')]:git('config',name,value)
+        configure_git(root, {'user.name':'KDD identity fixture', 'user.email':'identity@example.invalid',
+            'core.autocrlf':'false', 'maintenance.autoDetach':'false', 'gc.autoDetach':'false'}, ephemeral=True)
         def commit(message):
             git('add','-A');git('commit','-qm',message);return git('rev-parse','HEAD')
         def act(operation,**options):

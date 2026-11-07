@@ -15,7 +15,7 @@ budget:
   lines_max: 180
   params_max: 5
 tests: tests/test_task_approval_identity.py
-tests_sha256: '49622594be356404a9f6a04010fe1447969b16d4f2a0cf0c79dbd6e9c9b338ac'
+tests_sha256: '41242198dc6ac02b0555d61c386854164d059623c467ddc71dd953053e173b52'
 touch_only: ['scripts/task_git.py']
 deps_allowed: ['stdlib', 'task_evidence', 'task_model', 'validate_contracts']
 forbids: ['network', 'llm']

@@ -15,7 +15,7 @@ budget:
   lines_max: 180
   params_max: 5
 tests: tests/test_traceability_contract_batch.py
-tests_sha256: 'f0e864a43e6aa7482634cd03b723035d1bcf545bf2fc253de63b03e3550e96a6'
+tests_sha256: '1c1e5656668913403282d52e54acccded795c5d9ca9f2f826a44843e68b22774'
 touch_only: ['scripts/traceability_git.py']
 deps_allowed: ['stdlib', 'traceability_model', 'task_git', 'task_model', 'task_evidence', 'validate_tasks', 'validate_contracts']
 forbids: ['network', 'llm']

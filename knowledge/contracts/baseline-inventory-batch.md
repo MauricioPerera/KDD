@@ -16,7 +16,7 @@ budget:
   params_max: 5
 tests: tests/test_baseline_inventory_batch.py
 oracle_files: [tests/test_baseline_inventory_batch.py, tests/__init__.py]
-tests_sha256: 'af75a3967c4b9fa3ce2797784400bf14b89ff6e05221bdd3ad124124c3344fbe'
+tests_sha256: '449e854ef00ded17afd2cfaceb2f9535ad7302e2a9c934a1165c8ecb7817591e'
 touch_only: ['scripts/validate_baseline.py']
 deps_allowed: ['stdlib', 'vendored-codex-security']
 forbids: ['network', 'llm']

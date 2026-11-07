@@ -7,6 +7,16 @@ import subprocess
 import sys
 
 
+def _selected_direct_git(env):
+    for entry in env.get('PATH', '').split(';'):
+        directory = Path(entry.strip('"'))
+        if (directory / 'git.exe').is_file():
+            return (directory.name.casefold() == 'bin'
+                    and directory.parent.name.casefold() in ('ucrt64', 'mingw64')
+                    and (directory.parent.parent / 'cmd' / 'git.exe').is_file())
+    return False
+
+
 def runtime_environment(environ=None, platform=None):
     """Prefer an installed native Git without editing global configuration."""
     env = dict(os.environ if environ is None else environ)
@@ -15,6 +25,10 @@ def runtime_environment(environ=None, platform=None):
     # Windows environment names are case-insensitive; Python exposes uppercase
     # keys, while callers may supply mixed-case dictionaries.
     env = {key.upper(): value for key, value in env.items()}
+    # CI already selected and version-checked this installation's direct Git.
+    # Keep that choice instead of reintroducing the cmd launcher's extra child.
+    if _selected_direct_git(env):
+        return env
     roots = [env.get('PROGRAMW6432'), env.get('PROGRAMFILES'),
              env.get('PROGRAMFILES(X86)')]
     candidates = [Path(root) / 'Git' / 'cmd' for root in roots if root]

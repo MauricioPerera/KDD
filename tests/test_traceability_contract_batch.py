@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
+from tests.test_fixture_preparation import configure_git
 
 from tests import test_traceability_model as support
 import task_git as journal
@@ -20,10 +21,9 @@ class RealRepository:
         self.root = Path(parent)
         self.root.mkdir(parents=True, exist_ok=True)
         self.git('init', '-q', '-b', 'main', '--object-format=' + object_format)
-        for key, value in [('user.name', 'Batch fixture'), ('user.email', 'batch@example.invalid'),
-                           ('core.autocrlf', 'false'), ('maintenance.autoDetach', 'false'),
-                           ('gc.autoDetach', 'false')]:
-            self.git('config', key, value)
+        configure_git(self.root, {'user.name': 'Batch fixture', 'user.email': 'batch@example.invalid',
+            'core.autocrlf': 'false', 'maintenance.autoDetach': 'false',
+            'gc.autoDetach': 'false'}, ephemeral=True)
         self.oracle = 'tests/test_value.py'
         self.target = 'src/value.py'
         self.contract = 'knowledge/contracts/value.md'

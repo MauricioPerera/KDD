@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from tests.test_fixture_preparation import configure_git
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 import guard_pr_baseline as guard  # noqa: E402
@@ -18,8 +19,7 @@ class TestTrustedPrBaseline(unittest.TestCase):
         self.previous = Path.cwd()
         os.chdir(self.root)
         self.git('init', '-q')
-        self.git('config', 'user.email', 'test@example.invalid')
-        self.git('config', 'user.name', 'Test')
+        configure_git(self.root, {'user.email': 'test@example.invalid', 'user.name': 'Test'}, ephemeral=True)
         self.write('knowledge/contracts/task.md',
                    "---\ntype: 'Task Contract'\ntests: 'tests/task.py'\n---\n")
         self.write('tests/task.py', 'assert True\n')

@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from tests.test_fixture_preparation import configure_git
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -21,9 +22,8 @@ class TrustedChangeReview(unittest.TestCase):
         os.chdir(self.root)
         self.addCleanup(os.chdir, self.old_cwd)
         self.git('init', '-q')
-        self.git('config', 'user.name', 'Synthetic Reviewer')
-        self.git('config', 'user.email', 'reviewer@example.invalid')
-        self.git('config', 'core.autocrlf', 'false')
+        configure_git(self.root, {'user.name': 'Synthetic Reviewer', 'user.email': 'reviewer@example.invalid',
+            'core.autocrlf': 'false'}, ephemeral=True)
         self.write('knowledge/contracts/task.md', "---\ntype: 'Task Contract'\ntests: 'tests/task.py'\n---\n")
         self.write('tests/task.py', 'assert True\n')
         self.write('.github/workflows/validate.yml', 'name: old\n')

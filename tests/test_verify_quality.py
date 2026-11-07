@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from tests.test_fixture_preparation import configure_git
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'scripts/verify_quality.py'
 
@@ -15,8 +16,7 @@ class QualityApproval(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         self.git('init','-q')
-        self.git('config','user.name','Quality Test')
-        self.git('config','user.email','test@example.invalid')
+        configure_git(self.root, {'user.name':'Quality Test', 'user.email':'test@example.invalid'}, ephemeral=True)
         (self.root/'scripts').mkdir()
         shutil.copyfile(SCRIPT.with_name('process_tree.py'), self.root/'scripts/process_tree.py')
         (self.root/'oracle.py').write_text('assert True\n',encoding='utf-8')

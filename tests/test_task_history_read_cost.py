@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from tests.test_fixture_preparation import configure_git
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -25,9 +26,8 @@ def git(root, *args, input=None):
 def initialize(root, algorithm='sha1'):
     root.mkdir()
     git(root, 'init', '-q', '-b', 'main', '--object-format=' + algorithm)
-    for key, value in [('user.name', 'KDD Graph Test'), ('user.email', 'graph@example.test'),
-                       ('maintenance.autoDetach', 'false'), ('gc.autoDetach', 'false')]:
-        git(root, 'config', key, value)
+    configure_git(root, {'user.name': 'KDD Graph Test', 'user.email': 'graph@example.test',
+        'maintenance.autoDetach': 'false', 'gc.autoDetach': 'false'}, ephemeral=True)
     tree = git(root, 'mktree', input='')
     a = git(root, 'commit-tree', tree, '-m', 'root A')
     b = git(root, 'commit-tree', tree, '-p', a, '-m', 'left B')
@@ -242,9 +242,8 @@ class HistoryReadCost(TraceCase):
 
     def project(self):
         root = self.clone(self.repo.root)
-        for key, value in [('user.name', 'KDD History Test'), ('user.email', 'history@example.test'),
-                           ('maintenance.autoDetach', 'false'), ('gc.autoDetach', 'false')]:
-            git(root, 'config', key, value)
+        configure_git(root, {'user.name': 'KDD History Test', 'user.email': 'history@example.test',
+            'maintenance.autoDetach': 'false', 'gc.autoDetach': 'false'}, ephemeral=True)
         return root
 
     def commit(self, root, message):

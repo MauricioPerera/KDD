@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from tests.test_fixture_preparation import configure_git
 
 ROOT = Path(__file__).resolve().parents[1]
 PROBE = r'''
@@ -38,11 +39,8 @@ class BaselineGitBatchTests(unittest.TestCase):
         self.root = Path(self.area.name) / 'project'
         self.root.mkdir()
         self.git('init', '-q', '-b', 'main')
-        self.git('config', 'user.name', 'Baseline Test')
-        self.git('config', 'user.email', 'baseline@example.invalid')
-        self.git('config', 'core.autocrlf', 'false')
-        self.git('config', 'gc.auto', '0')
-        self.git('config', 'maintenance.auto', 'false')
+        configure_git(self.root, {'user.name': 'Baseline Test', 'user.email': 'baseline@example.invalid',
+            'core.autocrlf': 'false'}, ephemeral=True)
         (self.root/'knowledge/contracts').mkdir(parents=True)
         (self.root/'tests').mkdir()
         for i in range(12):

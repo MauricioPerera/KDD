@@ -15,7 +15,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_task_history_read_cost.py
-tests_sha256: 'ebffa345f9c0fe9fb1db9bcbcb17015f995fdffc764ec1348dfa22dbc511f000'
+tests_sha256: 'cc4f0176be866b8b1f00797bdb7ba152a3f785f8ff2732e42155cfc0e36e8eb4'
 touch_only: ['scripts/task_git.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']

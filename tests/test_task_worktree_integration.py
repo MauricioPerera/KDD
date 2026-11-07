@@ -9,6 +9,7 @@ import sys
 import tempfile
 import time
 import unittest
+from tests.test_fixture_preparation import configure_git
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tests'))
@@ -35,10 +36,8 @@ class TaskWorktreeIntegration(unittest.TestCase):
                                    str(self.base_project.root), str(target)])
         self.project = TaskProject(target, count=3, initialize=False)
         self.project.ref = self.base_project.ref
-        for name, value in [('user.name', 'Fixture worker'),
-                            ('user.email', 'fixture@example.invalid'),
-                            ('core.autocrlf', 'false'), ('commit.gpgsign', 'false')]:
-            self.project.git('config', name, value)
+        configure_git(target, {'user.name': 'Fixture worker', 'user.email': 'fixture@example.invalid',
+            'core.autocrlf': 'false', 'commit.gpgsign': 'false'}, ephemeral=True)
         for number in (2, 3):
             self.project.git('branch', 'task/TASK-%03d' % number,
                              'origin/task/TASK-%03d' % number)
