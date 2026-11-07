@@ -58,3 +58,18 @@ tres workflows completos del mismo head, inventarios exactos y tiempos del
 comando entero. Si no cumplen, conservar resultados y continuar dentro del
 perimetro revisado; una ampliacion requiere otro contrato y revision.
 No fusionar ni modificar protecciones. Runtime y workflows permanecen intactos.
+
+## Implementacion y medida local
+
+El baseline eb5be8f1fbb636a7945123900cfeb5676c1796a4 fue revisado antes de
+implementar las dos agrupaciones. Pasan los tres controles nuevos y los 21
+controles previos en Windows y Ubuntu; tambien la copia inicializada sin Git.
+Los contenidos del par y de la etapa fresca se publican solo tras completar
+el lote. Se conservan la consulta de modos, los valores retenidos y el fallback.
+
+En los 19 casos de test_task_committed_artifacts, Trace2 mide 1579 -> 1545
+procesos Git: 34 menos, todos cat-file. El ahorro observado es menor que los
+46 candidatos porque algunas lecturas ya reutilizaban contenido existente.
+La comparacion local original/propuesta/original tarda 95,974 / 87,673 / 92,170 s,
+sin errores ni SKIP. No acredita el objetivo remoto: faltan la regresion completa
+y tres CI consecutivos del mismo SHA con cada comando Windows por debajo de 480 s.
