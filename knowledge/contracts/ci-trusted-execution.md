@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 18
   nesting_max: 4
 tests: tests/test_ci_trusted_execution.py
-tests_sha256: 'ab92d87f830893997223cca9f5f53cc4b9ec3aa3ef583a2aff9a81ff18f74a79'
+tests_sha256: 'abb73c7c165113198c63b6b54d7bc10919d30b6309b979602a0cf22585e86774'
 touch_only: ['scripts/trusted_ci.py', 'scripts/guard_pr_baseline.py', 'scripts/run_test_suite.py', 'scripts/validate_test_commands.py', '.github/workflows/validate.yml']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']

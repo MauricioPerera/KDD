@@ -15,7 +15,7 @@ budget:
   lines_max: 160
   params_max: 5
 tests: tests/test_git_reader_ref_cache.py
-tests_sha256: '8e43deee1313367deb79caeeddd723c8a23e1bdaff505314ae43360975d85b1d'
+tests_sha256: '2314aaf6f779217eadd00dfe723558b10813208fda4a5dfff5b4bf059d1228ba'
 touch_only: ['scripts/task_git.py']
 deps_allowed: ['stdlib', 'task_evidence', 'task_model', 'validate_contracts']
 forbids: ['network', 'llm']

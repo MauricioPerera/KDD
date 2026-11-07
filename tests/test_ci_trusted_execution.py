@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from tests.test_fixture_preparation import configure_git
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = ('trusted_ci.py', 'run_test_suite.py', 'validate_test_commands.py',
@@ -54,10 +55,9 @@ class TrustedExecution(unittest.TestCase):
             "## Do / Don't\nKeep assertions.\n## Tests\nReal oracle.\n"
             "## Constraints\nPARAR y reportar si no hay oracle.\n", encoding='utf-8')
         self.git('init', '-q', '-b', 'main')
-        for key, value in [('user.name', 'Fixture reviewer'), ('user.email', 'reviewer@example.invalid'),
-                           ('core.autocrlf', 'false'), ('commit.gpgsign', 'false'),
-                           ('maintenance.autoDetach', 'false'), ('gc.autoDetach', 'false')]:
-            self.git('config', key, value)
+        configure_git(self.repo, {'user.name': 'Fixture reviewer', 'user.email': 'reviewer@example.invalid',
+            'core.autocrlf': 'false', 'commit.gpgsign': 'false',
+            'maintenance.autoDetach': 'false', 'gc.autoDetach': 'false'}, ephemeral=True)
         self.base = self.commit('Reviewed runtime and oracle')
 
     def run_command(self, argv, env=None):

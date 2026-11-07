@@ -14,7 +14,7 @@ budget:
   lines_max: 100
   params_max: 5
 tests: tests/test_baseline_git_batch.py
-tests_sha256: '0747f8ef081167c18087c2413bbd7554da47432af2739e4dda538d00c5d7cc32'
+tests_sha256: 'bb46510cd144e9df0906d51d755643803b5fea3375e84117a196aa92ceef8653'
 touch_only: ['scripts/validate_baseline.py']
 deps_allowed: ['stdlib', 'vendored-codex-security']
 forbids: ['network', 'llm']

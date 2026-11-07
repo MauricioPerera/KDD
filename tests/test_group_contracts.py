@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from tests.test_fixture_preparation import configure_git
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,9 +30,7 @@ class GroupContractsIntegration(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.git('init', '-q')
-        self.git('config', 'core.autocrlf', 'false')
-        self.git('config', 'gc.auto', '0')
-        self.git('config', 'maintenance.auto', 'false')
+        configure_git(self.root, {'core.autocrlf': 'false'}, ephemeral=True)
         self.write('.gitignore', 'events.log\n__pycache__/\n')
         self.write('src/add.py', 'def add(a, b): return a + b\n')
         self.write('tests/atom.py', "from pathlib import Path\np=Path('events.log')\np.open('a').write('atom\\n')\n")

@@ -103,7 +103,7 @@ def prepare_project(root):
     root.mkdir()
     git(root, 'init', '-q', '-b', 'main')
     configure_git(root, {'user.name': 'Traceability integration', 'user.email': 'trace@example.invalid',
-                         'maintenance.autoDetach': 'false', 'gc.autoDetach': 'false'})
+                         'maintenance.autoDetach': 'false', 'gc.autoDetach': 'false'}, ephemeral=True)
     for name in SCRIPT_FILES:
         write(root, 'scripts/' + name, (ROOT / 'scripts' / name).read_text(encoding='utf-8'))
     write(root, 'src/value.py', "def value(item):\n    raise NotImplementedError('fixture red phase')\n")
@@ -196,7 +196,7 @@ class RepositoryFixture(unittest.TestCase):
         self.root = Path(self.temp.name) / 'project'
         git(Path(self.temp.name), 'clone', '-q', '--shared', str(self.base), str(self.root))
         configure_git(self.root, {'user.name': 'Trace case', 'user.email': 'trace@example.invalid',
-                                  'maintenance.autoDetach': 'false', 'gc.autoDetach': 'false'})
+                                  'maintenance.autoDetach': 'false', 'gc.autoDetach': 'false'}, ephemeral=True)
 
     def cli(self, *args, cwd=None):
         return command(cwd or self.root, [sys.executable, str(self.root / 'scripts/traceability.py'),

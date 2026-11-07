@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 12
   nesting_max: 4
 tests: 'tests/test_verify_quality.py'
-tests_sha256: '9dd2b958c95445f909f272dcdaf07f6c4a4b7aeabd53547f797d5eb37cef9243'
+tests_sha256: '841cd3f6456a336827e34ea7b5e40f31d32023422f0358059dd6a9be962ef184'
 touch_only: ['scripts/verify_quality.py']
 deps_allowed: ['stdlib']
 forbids: ['llm']

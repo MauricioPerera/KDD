@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from tests.test_fixture_preparation import configure_git
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / 'scripts' / 'verify_quality.py'
@@ -41,10 +42,8 @@ class QualityIntegration(unittest.TestCase):
         self.env = dict(os.environ, GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull,
                         PYTHONUTF8='1', PYTHONDONTWRITEBYTECODE='1')
         self.git('init', '-q')
-        self.git('config', 'user.name', 'Quality Integration')
-        self.git('config', 'user.email', 'quality@example.invalid')
-        self.git('config', 'gc.auto', '0')
-        self.git('config', 'maintenance.auto', 'false')
+        configure_git(self.root, {'user.name': 'Quality Integration',
+            'user.email': 'quality@example.invalid'}, ephemeral=True)
         (self.root / 'scripts').mkdir()
         shutil.copyfile(ROOT / 'scripts/process_tree.py', self.root / 'scripts/process_tree.py')
         (self.root / 'oracle.py').write_text('assert True\n', encoding='utf-8')
