@@ -1,0 +1,168 @@
+{
+  "record_kind": "documentary-observation",
+  "repository": "MauricioPerera/KDD",
+  "source_revision": "0ac8666d9dc686e749890ca73bf3a736878c377a",
+  "observed_at": "2026-11-06T23:38:51.803132+00:00",
+  "scope": "Historical results for the source revision; not a CI run of subsequent documentation edits",
+  "merge": {
+    "verified_at": "2026-11-06T23:38:51.803132+00:00",
+    "pr": 164,
+    "merged": true,
+    "merge_commit": "0ac8666d9dc686e749890ca73bf3a736878c377a",
+    "original_commit_preserved": "0fb9e41ec7f538bf096a45b9562007d821061cdb",
+    "original_commits": 1,
+    "exact_tree": "ee04fcc150c5a81efd7a2b4753c3fa7f37796878",
+    "approved_baseline": "0fb9e41ec7f538bf096a45b9562007d821061cdb",
+    "main_ci_url": "https://github.com/MauricioPerera/KDD/actions/runs/42308617660",
+    "main_ci_attempt": 1,
+    "main_ci_status": "success",
+    "os": [
+      "Ubuntu",
+      "Windows"
+    ],
+    "suite_passes_per_os": 2,
+    "exact_ids_each_pass": 2118,
+    "pages_url": "https://mauricioperera.github.io/KDD/",
+    "pages_run_url": "https://github.com/MauricioPerera/KDD/actions/runs/42313182858",
+    "pages_status": "success",
+    "main_local_clean_synced": true,
+    "protections_unchanged": true,
+    "runtime_registry_global_baseline_unchanged": true,
+    "entire_exception": "User-authorized only for PR #164; no controls were disabled or edited"
+  },
+  "main_ci": {
+    "run_id": 42308617660,
+    "attempt": 1,
+    "head": "0ac8666d9dc686e749890ca73bf3a736878c377a",
+    "tree": "ee04fcc150c5a81efd7a2b4753c3fa7f37796878",
+    "baseline": "0fb9e41ec7f538bf096a45b9562007d821061cdb",
+    "runtime": "74d357f7099651b9b39dc8088f725183a672ec94",
+    "suite_ids": 2118,
+    "four_exact_inventories": true,
+    "jobs": [
+      {
+        "name": "validate (ubuntu-latest)",
+        "seconds": 531.0,
+        "init_seconds": 153.37470077700002,
+        "postinit_cases": 2014,
+        "passes": 2,
+        "tests_each_pass": 2118,
+        "skips_each_pass": 10,
+        "new_cases": 5,
+        "new_cases_skipped": 0,
+        "sdk_cases": 8
+      },
+      {
+        "name": "board (ubuntu-latest)",
+        "seconds": 28.0,
+        "counts": {
+          "tests": 86,
+          "pass": 86,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "name": "board (windows-latest)",
+        "seconds": 124.0,
+        "counts": {
+          "tests": 86,
+          "pass": 86,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "name": "validate (windows-latest)",
+        "seconds": 2352.0,
+        "init_seconds": 515.1589716,
+        "postinit_cases": 2014,
+        "passes": 2,
+        "tests_each_pass": 2118,
+        "skips_each_pass": 9,
+        "new_cases": 5,
+        "new_cases_skipped": 0,
+        "sdk_cases": 8
+      }
+    ]
+  },
+  "pages": {
+    "verified_at": "2026-11-06T23:38:40.528857+00:00",
+    "head": "0ac8666d9dc686e749890ca73bf3a736878c377a",
+    "ci_run": 42308617660,
+    "pages_run": 42313182858,
+    "pages_attempt": 1,
+    "pages_run_url": "https://github.com/MauricioPerera/KDD/actions/runs/42313182858",
+    "status": "success",
+    "deployment_id": 7613322027,
+    "url": "https://mauricioperera.github.io/KDD/",
+    "public_http_status": 200,
+    "public_landing_links_exact_ci_run": true,
+    "tests": 2118,
+    "gates": 19,
+    "inventory_source": "ci-verified",
+    "ids_sha256": "5679d5bff02314486c9bc9c724174c45407f143c74c29ead403b3310488fcb8a",
+    "log_sha256": "c8c0c2e5ffaffdac9ff06757fce4ec587b7f85afe12af2a5dcfe8e015af6c9c2",
+    "landing_sha256": "b1869f47795a7fde397cd1875a09f81edfacc2c03d2a5bda1628cd83d5364f61"
+  },
+  "preceding_pr_ci": {
+    "run_id": 42304707531,
+    "attempt": 1,
+    "head": "0fb9e41ec7f538bf096a45b9562007d821061cdb",
+    "tree": "ee04fcc150c5a81efd7a2b4753c3fa7f37796878",
+    "baseline": "0fb9e41ec7f538bf096a45b9562007d821061cdb",
+    "runtime": "74d357f7099651b9b39dc8088f725183a672ec94",
+    "suite_ids": 2118,
+    "four_exact_inventories": true,
+    "jobs": [
+      {
+        "name": "validate (ubuntu-latest)",
+        "seconds": 518.0,
+        "init_seconds": 145.52060513100002,
+        "postinit_cases": 2014,
+        "passes": 2,
+        "tests_each_pass": 2118,
+        "skips_each_pass": 10,
+        "new_cases": 5,
+        "new_cases_skipped": 0,
+        "sdk_cases": 8
+      },
+      {
+        "name": "validate (windows-latest)",
+        "seconds": 1657.0,
+        "init_seconds": 339.118931,
+        "postinit_cases": 2014,
+        "passes": 2,
+        "tests_each_pass": 2118,
+        "skips_each_pass": 9,
+        "new_cases": 5,
+        "new_cases_skipped": 0,
+        "sdk_cases": 8
+      },
+      {
+        "name": "board (windows-latest)",
+        "seconds": 114.0,
+        "counts": {
+          "tests": 86,
+          "pass": 86,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "name": "board (ubuntu-latest)",
+        "seconds": 25.0,
+        "counts": {
+          "tests": 86,
+          "pass": 86,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0
+        }
+      }
+    ]
+  }
+}

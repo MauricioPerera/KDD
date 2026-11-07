@@ -13,6 +13,9 @@
 🌐 **[Landing page](https://mauricioperera.github.io/KDD/)** — a visual walkthrough of the methodology (EN/ES toggle).
 
 For the dated implementation status and evidence, see [verified KDD status](knowledge/estado-actual-kdd.md).
+The November 6, 2026 snapshot records PRs #161/#164 integrated, two passes of
+2,118 test IDs on Ubuntu and Windows, and the matching Pages deployment.
+Windows performance acceptance remains open under the documented <480 s criterion.
 The [Pages guide](site/README.md) explains PR builds, local previews and deployment
 from the exact CI inventory; the counter measures test IDs, including declared skips.
 
@@ -164,7 +167,10 @@ KDD upstream uses **semantic versioning**; its releases are in [`CHANGELOG.md`](
 ## Español
 
 El [estado verificable de KDD](knowledge/estado-actual-kdd.md) reúne el alcance y
-la evidencia por fecha. La [guía de Pages](site/README.md) explica los builds de
+la evidencia por fecha. El corte del 6 de noviembre de 2026 registra PR161/164
+integrados, dos pasadas de 2118 IDs en Ubuntu/Windows y Pages verificado.
+La aceptacion de rendimiento Windows sigue abierta bajo el criterio <480 s.
+La [guía de Pages](site/README.md) explica los builds de
 PR, el preview local y el despliegue con el inventario exacto del CI; el contador
 representa IDs de pruebas, incluidas las omisiones declaradas.
 
@@ -265,7 +271,10 @@ KDD upstream usa **versionado semántico**; sus releases están en [`CHANGELOG.m
 ## Português
 
 O [estado verificável do KDD](knowledge/estado-actual-kdd.md) reúne o escopo e a
-evidência por data. O [guia de Pages](site/README.md) explica builds de PR,
+evidência por data. O corte de 6 de novembro de 2026 registra PRs #161/#164
+integrados, duas passagens de 2118 IDs no Ubuntu/Windows e Pages verificado.
+A aceitação de desempenho no Windows segue aberta pelo critério <480 s.
+O [guia de Pages](site/README.md) explica builds de PR,
 preview local e publicação com o inventário exato do CI; o contador representa
 IDs de testes, incluindo as omissões declaradas.
 

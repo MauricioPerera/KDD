@@ -4,6 +4,17 @@ All notable changes to the KDD Template are documented here.
 
 ## Unreleased
 
+- Estado integrado al 6 de noviembre de 2026: PR161 y PR164 fusionados con sus
+  commits originales, CI de main con dos pasadas de 2118 IDs en Ubuntu/Windows
+  y Pages del mismo SHA. La aceptacion Windows <480 s sigue abierta: init de
+  main 515,16 s con limite de 600 s. [Estado y pendientes](knowledge/estado-actual-kdd.md)
+  e [informe verificable](docs/reports/KDD-STATE-2026-11-06-REPORT.md).
+
+- El oraculo de contencion retiene objetos de proceso antes de confirmar
+  readiness: HANDLE SYNCHRONIZE en Windows y pidfd en Linux. Cinco integraciones
+  reales verifican identidad, vecinos, fugas y recursos, conservando los doce
+  metodos y las 40 aserciones anteriores. [Protocolo y alcance](knowledge/process-observer-identity.md).
+
 - CI Windows reconoce el layout ucrt64 de Git for Windows 2.56 ademas del mingw64 anterior al seleccionar el ejecutable nativo de la misma instalacion. Registra muestras de arranque de ambos ejecutables; conserva version, matriz, oraculos, workers y el limite de 600 segundos.
 
 - CI Windows selecciona el ejecutable nativo de la instalacion Git existente, verificando que conserva la misma version. Mantiene el perfil de callers, workers, inventarios y el limite de 600 segundos.

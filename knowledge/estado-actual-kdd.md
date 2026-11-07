@@ -13,7 +13,89 @@ Actualmente dispone de una plantilla inicializable, validadores, una CLI de
 tareas y KDD-Board integrados con Git. El flujo se ha comprobado desde un
 proyecto vacío hasta su calidad de producto en CI.
 
-## Corte del 6 de noviembre de 2026
+## Estado integrado al 6 de noviembre de 2026, 23:38 UTC
+
+La revision verificada de `main` es
+[`0ac8666d9dc686e749890ca73bf3a736878c377a`](https://github.com/MauricioPerera/KDD/commit/0ac8666d9dc686e749890ca73bf3a736878c377a).
+Integra [PR161](https://github.com/MauricioPerera/KDD/pull/161) con sus 41
+commits originales y [PR164](https://github.com/MauricioPerera/KDD/pull/164)
+con su unico commit `0fb9e41ec7f538bf096a45b9562007d821061cdb`, que tambien
+es el baseline aprobado del oraculo. Los cortes inferiores conservan el
+estado que tenian las ramas al registrarlos.
+
+El [CI de main, intento 1](https://github.com/MauricioPerera/KDD/actions/runs/42308617660)
+paso los cuatro jobs. El [build y despliegue de Pages](https://github.com/MauricioPerera/KDD/actions/runs/42313182858)
+paso para el mismo SHA; la web publica respondio HTTP 200, mostro 2118 IDs
+y 19 gates y enlazo ese run exacto. El
+[informe versionado](../docs/reports/KDD-STATE-2026-11-06-REPORT.md)
+conserva las referencias, tiempos y limites de esta observacion.
+
+| Evidencia remota de main | Ubuntu | Windows |
+| --- | ---: | ---: |
+| Pasadas completas de la plantilla | 2 | 2 |
+| IDs exactos por pasada | 2118 | 2118 |
+| SKIP de aplicabilidad por pasada | 10 | 9 |
+| Job validate | 8 min 51 s | 39 min 12 s |
+| init-project real | 153,37 s | 515,16 s |
+| Casos / modulos post-init | 2014 / 182 | 2014 / 182 |
+| SDK MCP genuino | 8/8, cero SKIP | 8/8, cero SKIP |
+| Board | 86/86 | 86/86 |
+
+Los cuatro inventarios coinciden literalmente. El post-init conserva su
+inventario propio y 102 SKIP en Ubuntu /101 en Windows. Las cinco
+integraciones nuevas de identidad se ejecutan sin SKIP. Estos conteos
+incluyen omisiones declaradas y no miden porcentaje de cobertura de codigo.
+
+### Capacidades integradas
+
+La plantilla ya conecta conocimiento OKF, contratos atomicos y de grupo,
+oraculos revisados, tareas y dependencias, CLI/Board, bootstrap y calidad de
+producto obligatoria. La tabla de componentes inferior enlaza sus fuentes
+normativas y los pilotos de proyectos nuevos conservan su evidencia historica.
+La compatibilidad de contexto v0.3 y los controles de aceptacion estan
+disponibles con los limites de cada perfil.
+
+PR161 integra las correcciones de bootstrap, historial Git, fixtures,
+lecturas agrupadas, reducciones de complejidad y temporales Windows descritas
+en su alcance. Su publicacion, fusion y verificacion posterior ya terminaron.
+PR164 agrega el [observador de identidad estable](process-observer-identity.md):
+retiene el objeto del proceso antes de confirmar readiness y consulta ese
+objeto al retornar calidad. Los controles reales conservan vecinos, deteccion
+de fugas, escrituras tardias y liberacion de recursos. El incidente historico
+del PID 3224 conserva una causa inconclusa; la regresion nueva verifica el
+mecanismo corregido.
+
+El runtime revisado sigue siendo `74d357f7099651b9b39dc8088f725183a672ec94`.
+Los perfiles conservan Ubuntu/Windows, ambas pasadas, los timeouts, el
+presupuesto Git seguro de 62 procesos y los 19 gates. La fusion de PR164 uso
+la excepcion humana puntual a Entire autorizada por el usuario; los cinco
+checks requeridos pasaron y las protecciones, strict y las 57 entradas del
+registro externo permanecieron intactos. El main local quedo limpio y
+sincronizado en el SHA citado al terminar la comprobacion.
+
+### Pendientes vigentes
+
+1. **Rendimiento Windows.** El objetivo exige init <480 s en tres workflows
+   completos consecutivos del mismo head, con ambos sistemas y ambas pasadas
+   correctos. La muestra actual de main mide 515,16 s y no cumple ese criterio,
+   aunque pasa el timeout de 600 s. El PR midio 339,12 s y su job Windows
+   27 min 37 s; son SHA y eventos distintos y no forman una comparacion causal
+   ni tres muestras aceptadas. Seguir el [protocolo vigente](windows-ci-test-temp.md).
+2. **Repetibilidad del observador.** PR y main pasan con las cinco regresiones
+   reales. Seguir conservando los resultados concurrentes y cualquier fallo
+   nuevo; esas observaciones no demuestran ausencia universal de intermitencia
+   ni explican retrospectivamente el PID del incidente anterior.
+3. **Deuda y adopcion a mayor escala.** Hace falta otra medicion global de
+   complejidad para priorizar el siguiente modulo. La colaboracion distribuida,
+   el uso multiusuario y la evaluacion de un producto mayor siguen fuera de
+   los pilotos actuales. Los limites de firmas y fuentes dinamicas del perfil
+   v0.3 permanecen documentados abajo; su ampliacion necesita alcance propio.
+
+Este corte registra una entrega funcional integrada y su evidencia. La
+aceptacion de rendimiento continua abierta. Los resultados de CI enlazados
+corresponden al codigo citado; no certifican cambios documentales posteriores.
+
+## Corte historico del 6 de noviembre de 2026, anterior a la publicacion de temporales
 
 Este corte, preparado antes de publicar la nueva ubicacion temporal, distingue
 `main`, lo publicado en un PR y el candidato local. Los resultados posteriores
@@ -404,14 +486,15 @@ La actualizacion superior enlaza al despliegue ya verificado en main.
   Las firmas de quorum y la ejecucion de fuentes dinamicas no estan soportadas
   por ese perfil. Ampliarlas exige un objetivo, contratos y evidencia propios;
   no forma parte de la optimizacion Windows actual.
-- **Complejidad en rama.** PR161 incorpora las reducciones de validadores
-  indicadas en su alcance, incluida `validate_okf.py`; aun no estan integradas
-  en el main del corte actual. Este documento no contiene una nueva medicion
-  de toda la deuda de complejidad del repositorio.
-- **Rendimiento Windows.** Completar la regresion y publicacion del candidato,
-  y demostrar init <480 s en tres CI completos consecutivos del mismo head,
-  conservando cobertura, ambas plataformas y las dos pasadas. El corte del
-  6 de noviembre distingue evidencia local, publicada y pendiente.
+- **Complejidad integrada y deuda restante.** PR161 ya integra las reducciones
+  indicadas en su alcance, incluida `validate_okf.py`. Falta una medicion global
+  nueva para priorizar la deuda restante; los recuentos historicos no son una
+  auditoria del main actual.
+- **Rendimiento Windows.** Publicacion, fusion y verificacion funcional ya
+  terminaron. Sigue pendiente demostrar init <480 s en tres CI completos
+  consecutivos del mismo head, conservando cobertura, ambas plataformas y
+  las dos pasadas. El corte actual registra 515,16 s en main y mantiene el
+  objetivo abierto.
 - **Proxima validacion de uso.** Ya hay pilotos CLI de una y cuatro tareas con
   dependencias. Falta medir colaboracion concurrente real, requisitos de interfaz
   y coste de revision en un producto mayor. El piloto HTTP automatizado no

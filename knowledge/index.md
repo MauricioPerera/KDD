@@ -6,7 +6,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Barrera de terminacion de procesos](./process-exit-barrier.md) — handles propios senalados y limpieza acotada antes de liberar comandos.
 - [Contrato de barrera de terminacion](./contracts/process-exit-barrier.md)
 - [Coste de lectura del historial](./task-history-read-cost.md) — propuesta de cache por operacion y padres por lote, conservando la auditoria completa.
-- [Estado verificable de KDD](./estado-actual-kdd.md) — estado de main, evidencia publica, limites y corte historico.
+- [Estado verificable de KDD](./estado-actual-kdd.md) — capacidades integradas, evidencia de main/Pages, pendientes vigentes y cortes historicos.
 - [Calidad de producto desde el arranque](./bootstrap-product-quality-ci.md) — CI obligatorio sobre politica propia y referencia revisada.
 - [Optimizacion de CI](./contracts/ci-execution-deduplication.md) — agrupacion local de comandos identicos, concurrencia de PR y medicion antes/despues.
 - [Tareas con Git](./git-tasks.md) — CLI local, nodos Task y estados registrados por commits en main.

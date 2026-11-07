@@ -13,8 +13,8 @@ completo paso sin cambios. El log no conserva la identidad del objeto que
 ocupaba ese PID: no demuestra que se tratara del descendiente original.
 Se conserva el fallo; no se atribuye retrospectivamente una causa probada.
 
-El [oraculo existente](contracts/quality-process-lifecycle.md) reabre PIDs
-despues de que el runner termina. Microsoft documenta que el identificador
+El [oraculo anterior](contracts/quality-process-lifecycle.md) reabria PIDs
+despues de que el runner terminaba. Microsoft documenta que el identificador
 puede reutilizarse al liberar el objeto y sus handles, mientras un handle
 retenido sigue identificando el objeto original incluso despues del exit:
 [PROCESS_INFORMATION](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-process_information),
@@ -63,6 +63,16 @@ automaticos, pausas para esperar un resultado favorable, red ni dependencias.
 La fase roja, controles, diff y hashes se revisan mediante el
 [protocolo de calidad](quality-approval.md) antes de adoptar el fixture.
 
-El runtime aprobado, los workflows, el registro externo y las protecciones
-permanecen intactos en esta propuesta. La regresion completa del baseline
-revisado corresponde a la fase posterior a su aprobacion.
+## Estado integrado
+
+La correccion se integro mediante [PR164](https://github.com/MauricioPerera/KDD/pull/164)
+conservando el commit y baseline aprobado
+`0fb9e41ec7f538bf096a45b9562007d821061cdb`. Pasaron las regresiones locales,
+el CI del PR y el CI posterior de main con Ubuntu/Windows y ambas pasadas.
+Las cinco integraciones nuevas se ejecutaron sin SKIP, tambien en post-init.
+El [estado verificable](estado-actual-kdd.md) enlaza los runs y sus inventarios.
+
+La publicacion registro el arbol revisado conservando las entradas anteriores;
+la fusion mantuvo ese registro, el runtime aprobado, los workflows y las
+protecciones sin cambios. La identidad estable elimina la consulta tardia
+insegura; las observaciones verdes siguen limitadas a sus ejecuciones reales.

@@ -1,7 +1,7 @@
 ---
 type: 'Concept'
-title: 'Propuesta de temporales del CI Windows'
-description: 'Hipotesis de I/O que conserva pruebas y requiere medicion remota antes de aceptar resultados.'
+title: 'Temporales privados del CI Windows'
+description: 'Ubicacion integrada de fixtures que conserva pruebas y mantiene abierta la aceptacion de rendimiento.'
 tags: ['ci', 'windows', 'performance', 'evidence']
 ---
 
@@ -25,7 +25,18 @@ La hipotesis es usar un hijo privado de RUNNER_TEMP mediante las variables
 estandar, sin una unidad fija, cache persistente, otro runner ni mas procesos.
 No se afirma que la hipotesis cumpla 480 s antes de medir el comando entero.
 
-## Estado de implementacion al 6 de noviembre de 2026
+## Estado integrado al 6 de noviembre de 2026
+
+La ubicacion privada ya esta integrada en main mediante
+[PR161](https://github.com/MauricioPerera/KDD/pull/161), conservando sus 41
+commits. PR164 integro despues la correccion del observador de procesos sin
+modificar el workflow. El [estado verificable](estado-actual-kdd.md) enlaza
+el CI y Pages del main actual: init Windows 515,16 s, por encima del objetivo
+de 480 s y dentro del timeout de 600 s. La aceptacion de rendimiento sigue
+abierta con el protocolo inferior. Los parrafos siguientes son el corte local
+anterior a la publicacion; conservan sus resultados y pendientes de entonces.
+
+## Corte historico de implementacion, antes de publicar
 
 El baseline d221236bdcfdc3d82e353fd7cf644c97c2a0c7c4 y el diff exacto del
 workflow fueron aprobados. La implementacion fe73f58a83fba7592fd76f87d36ac50e4d8534f7
