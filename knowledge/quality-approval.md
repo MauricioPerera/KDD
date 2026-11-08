@@ -13,6 +13,14 @@ Este protocolo complementa la [validación de la plantilla](validacion.md) con u
 
 ## Flujo de aprobación
 
+Antes de solicitar un baseline nuevo, aplicar la
+[revision breve proporcional al riesgo](baseline-risk-review.md) al commit
+candidato exacto. Su resultado `review_ready` comprueba la preparacion del
+registro, no concede aprobacion ni sustituye la revision de su contenido.
+El responsable revisa tambien los riesgos semanticos que no detecta el piso
+de rutas. Las referencias historicas conservan su alcance; no se presentan
+retroactivamente como revisadas con este protocolo.
+
 1. El PM define requisitos y oráculos antes de implementar. Cada garantía debe tener comprobación o una limitación declarada.
 2. El PM redacta una política JSON que distingue archivos protegidos, implementación y artefactos del PM; declara comandos funcionales, adversariales y de interfaz cuando corresponda.
 3. El revisor aprueba y registra un commit que contiene política y oráculos. El implementador no elige ni actualiza esa referencia.

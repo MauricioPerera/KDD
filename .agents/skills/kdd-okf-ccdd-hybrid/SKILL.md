@@ -60,3 +60,11 @@ inventario completo, runner instrumentado y checks aprobados por cada obligacion
 No degradar un instrumento ausente a un comando libre ni presentar el verde de
 un perfil historico como aceptacion. Dos corridas verifican repetibilidad basica;
 la fuerza semantica de oraculos y la independencia del aprobador se revisan.
+
+## 9. Revision proporcional previa al baseline
+
+Antes de solicitar la aprobacion de un baseline nuevo, aplicar
+[revision proporcional](../../../knowledge/baseline-risk-review.md).
+Presentar el registro y su resultado para el SHA exacto; el protocolo es la
+fuente unica de niveles, perspectivas y limites. Un `review_ready` no autoriza
+implementar: sigue siendo necesaria la aprobacion humana de la referencia.

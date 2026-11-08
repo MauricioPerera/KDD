@@ -127,6 +127,15 @@ del paso 4 y redacta quality/product.json segun
 el runner entre los archivos protegidos. El CI falla si falta esta
 preparacion. Registra el estado revisable en un commit y obtiene su SHA completo:
 
+Antes de solicitar ese SHA, aplica la
+[revision proporcional al riesgo](./baseline-risk-review.md): inspecciona base y
+candidato, completa el registro y verifica su preparacion con el modo
+`quality_baseline.py --base-ref BASE --candidate-ref CANDIDATO --review INFORME.json`.
+No mezcles ese modo con `--approved-ref`; su resultado no concede aprobacion.
+Si el proyecto todavia no tiene commits, crea primero una base vacia con
+`git commit --allow-empty -m "chore: initialize review base"`, antes de agregar
+contratos y oraculos al indice. Conserva su SHA para comparar el candidato.
+
 ```
 git add -A
 git commit -m "chore: initialize project baseline"

@@ -38,12 +38,34 @@ def build_baseline(repo_root, policy_path, approved_ref):
             "policy_sha256": _sha256(raw_policy), "protected": protected}
 
 
+def _prepare_review(args):
+    from baseline_review import ReviewError, verify_review
+    try:
+        with open(args.review, encoding='utf-8') as stream:
+            result = verify_review(args.repo_root, args.base_ref, args.candidate_ref, stream.read(262145))
+    except (ReviewError, OSError, UnicodeError) as error:
+        print('REJECT review: ' + str(error), file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2, sort_keys=True))
+    return 0 if result['review_ready'] else 1
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-root", default=".")
-    parser.add_argument("--policy", required=True)
-    parser.add_argument("--approved-ref", required=True)
+    parser.add_argument("--policy")
+    parser.add_argument("--approved-ref")
+    parser.add_argument('--base-ref')
+    parser.add_argument('--candidate-ref')
+    parser.add_argument('--review')
     args = parser.parse_args(argv)
+    review_flags = (args.base_ref, args.candidate_ref, args.review)
+    if any(value is not None for value in review_flags):
+        if not all(review_flags) or args.policy is not None or args.approved_ref is not None:
+            parser.error('review mode requires base-ref, candidate-ref and review, without policy or approved-ref')
+        return _prepare_review(args)
+    if args.policy is None or args.approved_ref is None:
+        parser.error('approved mode requires policy and approved-ref')
     try:
         result = build_baseline(args.repo_root, args.policy, args.approved_ref)
     except (Rejected, OSError, subprocess.SubprocessError) as error:
