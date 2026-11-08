@@ -203,7 +203,7 @@ class ClosedTaskProofBudget(support.RepositoryFixture):
         self.assertEqual(receipt['passed_tests'], 2)
         self.assertEqual(state(self.root), before)
         commands = starts(trace)
-        self.assertLessEqual(len(commands), 48, 'real Git starts: ' + str(len(commands)))
+        self.assertLessEqual(len(commands), 44, 'real Git starts: ' + str(len(commands)))
 
 
 if __name__ == '__main__':

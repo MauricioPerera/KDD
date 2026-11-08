@@ -922,7 +922,117 @@ def _perimeter_incoming(root, merge, owned):
     return selected
 
 
+def _scope_header(output, offset, width):
+    if output[offset:offset + 1] != '\0':
+        raise ValueError('missing scope header boundary')
+    end = output.find('\0', offset + 1)
+    fields = output[offset + 1:end].split() if end >= 0 else []
+    if (not fields or output[end:end + 2] != '\0\0'
+            or any(not valid_sha(value) or len(value) != width for value in fields)):
+        raise ValueError('invalid scope commit header')
+    return fields, end + 2
+
+
+def _scope_raw_header(header, width):
+    fields = header.split()
+    if (len(fields) != 5 or not fields[0].startswith(':')
+            or fields[4] not in ('A', 'D', 'M', 'T')):
+        raise ValueError('invalid scope change header')
+    if any(len(value) != width or not valid_sha(value) for value in fields[2:4]):
+        raise ValueError('invalid scope object identity')
+    if any(len(mode) != 6 or not set(mode) <= set('01234567')
+           for mode in (fields[0][1:], fields[1])):
+        raise ValueError('invalid scope object mode')
+
+
+def _scope_change(output, offset, width):
+    end = output.find('\0', offset)
+    if end < 0:
+        raise ValueError('truncated scope change header')
+    _scope_raw_header(output[offset:end], width)
+    finish = output.find('\0', end + 1)
+    if finish <= end + 1:
+        raise ValueError('empty or truncated scope path')
+    return output[end + 1:finish], finish + 1
+
+
+def _scope_names(output, offset, width):
+    names = []
+    if output[offset:offset + 1] == '\n':
+        offset += 1
+        while offset < len(output) and output[offset] != '\0':
+            name, offset = _scope_change(output, offset, width)
+            names.append(name)
+    if offset < len(output) and output[offset] != '\0':
+        raise ValueError('invalid scope path boundary')
+    return tuple(names), offset
+
+
+def _scope_records(root, context):
+    args = ('log', '--reverse', '--topo-order', '--format=%x00%H %P%x00',
+            '--raw', '--no-abbrev', '-r', '-z', '--no-renames', '--no-ext-diff', '--no-textconv',
+            '--diff-merges=off', '--no-show-signature', '--no-notes', '--no-color',
+            context.tested, '^' + context.base, '--')
+    output, rows, offset = _output(root, args), {}, 0
+    while offset < len(output):
+        fields, offset = _scope_header(output, offset, len(context.base))
+        names, offset = _scope_names(output, offset, len(context.base))
+        if fields[0] in rows:
+            raise ValueError('duplicate scope commit')
+        rows[fields[0]] = (tuple(fields[1:]), names)
+    return rows
+
+
+def _scope_chain(rows, revision, base, max_parents):
+    chain, visited = [], set()
+    while revision != base:
+        if revision not in rows or revision in visited:
+            raise ValueError('incomplete scope lineage')
+        parents = rows[revision][0]
+        if not 1 <= len(parents) <= max_parents:
+            raise ValueError('unsupported scope lineage')
+        visited.add(revision)
+        chain.append(revision)
+        revision = parents[0]
+    return chain
+
+
+def _scope_merge(rows, context):
+    owned = _scope_chain(rows, context.tip, context.base, 1)
+    public = _scope_chain(rows, context.tested, context.base, 2)
+    merges = [ref for ref in public if len(rows[ref][0]) == 2]
+    if (len(merges) != 1 or set(owned) & set(public)
+            or set(rows) != set(owned) | set(public)):
+        raise ValueError('unsupported scope graph')
+    merge = merges[0]
+    if rows[merge][0][1] != context.tip or rows[merge][1]:
+        raise ValueError('unrecognized scope integration')
+    return owned, merge
+
+
+def _batched_perimeter_paths(root, context):
+    refs = tuple(context)
+    if len(set(refs)) != 3 or not all(valid_sha(ref) for ref in refs):
+        return None
+    cache = _OBJECT_CACHE.get()
+    bounds = ((context.tip, context.base, False), (context.tested, context.base, True))
+    if cache is not None and any(_key(root, 'perimeter-rows', *bound) in cache for bound in bounds):
+        return None
+    try:
+        rows = _scope_records(root, context)
+        owned, merge = _scope_merge(rows, context)
+        changed = {name for ref in owned for name in rows[ref][1]}
+        changed.update(_perimeter_diff(root, rows[merge][0][0], merge))
+        return changed
+    except (TaskError, ValueError):
+        # Unrecognized graphs and incomplete reads retain the original checks.
+        return None
+
+
 def _perimeter_paths(root, context):
+    batched = _batched_perimeter_paths(root, context)
+    if batched is not None:
+        return batched
     rows = _perimeter_rows(root, (context.tip, context.base))
     owned = {row[0] for row in rows}
     if not owned:
