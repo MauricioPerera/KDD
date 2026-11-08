@@ -47,8 +47,7 @@ def _proof_refs(root, task, report):
     tip = report.get('branch_tip')
     if not valid_sha(tip) or tip == task['branch_base']:
         return ['TASK_EVIDENCE: missing implementation tip']
-    pairs = [(task['branch_base'], tip), (tip, task['verified_ref'])]
-    if not all(journal.ancestor(root, a, b) for a, b in pairs):
+    if not all(journal._chain_ancestry(root, task['branch_base'], tip, task['verified_ref'])):
         return ['TASK_EVIDENCE: implementation is not integrated']
     return []
 
@@ -125,31 +124,32 @@ def _transition_scope(old, new, identifier, parent):
     return errors, allowed
 
 
-def _audit_import(root, parents, nodes, changed, cache):
+def _audit_import(root, parents, state, cache):
     if len(parents) != 2:
         return ['TASK_IMPORT: only two-parent journal imports are supported']
     bases = journal.git(root, 'merge-base', '--all', *parents).splitlines()
     if len(bases) != 1:
         return ['TASK_IMPORT: journal import requires an unambiguous fork']
     fork, source = journal.read_nodes(root, bases[0]), journal.read_nodes(root, parents[1])
-    before, after = nodes
+    before, after, changed = state
     errors = []
     for identifier in changed:
         if before.get(identifier) != fork.get(identifier):
             errors.append('TASK_IMPORT: concurrent target change to ' + identifier)
         if identifier not in source or after.get(identifier) != source.get(identifier):
             errors.append('TASK_IMPORT: merge must preserve the source node ' + identifier)
-    return errors + _audit_range(root, bases[0], parents[1], cache, imported=True)
+    return errors + _audit_range(root, (bases[0], parents[1]), cache, imported=True)
 
 
-def _audit_commit(root, parent, revision, cache, parents):
+def _audit_commit(root, versions, cache, parents):
+    parent, revision = versions
     try:
         before, after = journal.read_nodes(root, parent), journal.read_nodes(root, revision)
     except (TaskError, ValueError, OSError, KeyError, RecursionError) as exc:
         return ['{}: TASK_HISTORY: {}'.format(revision, exc)]
     changed = [key for key in sorted(before.keys() | after.keys()) if before.get(key) != after.get(key)]
     if len(parents) > 1:
-        errors = _audit_import(root, parents, (before, after), changed, cache)
+        errors = _audit_import(root, parents, (before, after, changed), cache)
         return errors + ['{}: {}'.format(revision, e) for e in validate_snapshot(root, revision)]
     completed = {key for key, pair in before.items() if pair[0]['status'] == 'done'}
     errors, allowed = [], set()
@@ -192,7 +192,8 @@ def _import_anchor(root, base, head, chain):
     return None
 
 
-def _audit_range(root, base, head, cache, imported=False):
+def _audit_range(root, bounds, cache, imported=False):
+    base, head = bounds
     key = (base, head, imported)
     if key in cache:
         return cache[key]
@@ -210,7 +211,7 @@ def _audit_range(root, base, head, cache, imported=False):
     errors = validate_snapshot(root, base)
     parent = base
     for revision, *parents in rows[chain.index(base) + 1:]:
-        errors.extend(_audit_commit(root, parent, revision, cache, parents))
+        errors.extend(_audit_commit(root, (parent, revision), cache, parents))
         parent = revision
     cache[key] = errors
     return errors
@@ -221,7 +222,7 @@ def validate_range(repo_root, base_ref, head_ref):
     try:
         with journal.object_cache():
             base, head = journal.commit_sha(root, base_ref), journal.commit_sha(root, head_ref)
-            return _audit_range(root, base, head, {})
+            return _audit_range(root, (base, head), {})
     except (TaskError, ValueError, OSError, KeyError, RecursionError) as exc:
         return ['TASK_HISTORY: ' + str(exc)]
 
