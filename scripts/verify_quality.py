@@ -29,7 +29,7 @@ class Rejected(ValueError):
 
 
 def git(root, *args):
-    result = subprocess.run(['git', '-C', str(root), *args],
+    result = subprocess.run(['git', '--no-replace-objects', '-C', str(root), *args],
                             capture_output=True, timeout=30, check=False)
     if result.returncode:
         raise Rejected('Git operation failed: ' + result.stderr.decode('utf-8', 'replace').strip())
@@ -73,7 +73,7 @@ def _objects(root, specifications, allow_missing=False):
         return {}
     if any(any(c in spec for c in '\r\n\0') for spec in specs):
         raise Rejected('Invalid Git object specification')
-    result = subprocess.run(['git', '-C', str(root), 'cat-file', '--batch'],
+    result = subprocess.run(['git', '--no-replace-objects', '-C', str(root), 'cat-file', '--batch'],
                             input=('\n'.join(specs) + '\n').encode('utf-8'),
                             capture_output=True, timeout=30, check=False)
     if result.returncode:

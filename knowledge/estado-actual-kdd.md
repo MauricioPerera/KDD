@@ -46,15 +46,19 @@ nueva de tres mediciones ni como una reduccion causal respecto de otros runners.
 La medicion global de complejidad del mismo codigo reporta 64 incumplimientos
 en 31 contratos. Algunos contratos miden el mismo helper; no son 64 bugs distintos.
 
-### Correcciones de la auditoria en preparacion
+### Remediacion de auditoria en rama separada
 
 La auditoria posterior reprodujo en ambos sistemas la sustitucion del baseline
 de calidad mediante Git replacements, el fallo de reinicio legacy con un requisito
 secreto satisfecho y hashes de manifiesto que normalizan binarios. La
 [remediacion definida primero](quality-board-audit-remediation.md) fija tres
-contratos y sus integraciones reales. Este corte no afirma que esas correcciones
-esten implementadas: necesitan revisar el commit de oraculos, aplicar el arreglo
-y completar la regresion Ubuntu/Windows con dos pasadas.
+contratos y sus integraciones reales. Su baseline
+`ee0d4e614dff81e09e971edbf727b7a3c0a31948` fue aprobado despues de dos revisiones
+independientes; conserva 2168 IDs previos y agrega 19 Python y tres escenarios Node.
+La rama codex/quality-board-audit-remediation aplica las correcciones y conserva
+la estructura del manifiesto. Su cierre requiere regresion completa por commit,
+Ubuntu/Windows y dos pasadas. No se atribuye a main71630f0 ni al CI enlazado arriba
+el codigo de una rama todavia no publicada o integrada.
 
 ## Estado integrado al 6 de noviembre de 2026, 23:38 UTC
 

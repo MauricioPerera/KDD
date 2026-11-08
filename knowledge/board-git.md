@@ -88,6 +88,13 @@ vista valida y permite reintentar.
 
 ## Concurrencia y errores
 
+En el modo legacy, el [reinicio con requisitos secretos](contracts/board-secret-restart.md)
+carga el vault antes de construir TaskStore. Los requisitos persistidos se
+contrastan con las credenciales vigentes: una credencial retirada vuelve a
+requerir intervencion humana sin clasificar el archivo de tareas como corrupto.
+El vault antiguo identificado conserva su aislamiento durante el reinicio y
+la migracion; no se reescribe el dotenv de la aplicacion al leerlo.
+
 El lock y las comprobaciones de main limpio pertenecen al coordinador Python.
 El adaptador no hace checkout, stash, merge, init, push ni commits propios.
 Errores de entrada son 400, tarea ausente 404 y precondiciones del diario 409.

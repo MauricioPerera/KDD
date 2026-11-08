@@ -53,6 +53,12 @@ El comando rechaza `HEAD`, extrae la política y calcula hashes de todos los arc
 `protected` desde ese commit. Guarda su salida como evidencia de revisión y pasa el
 mismo SHA explícito a `verify_quality.py`; el manifiesto no sustituye la aprobación
 humana ni crea commits.
+La [lectura de objetos originales](contracts/quality-approved-objects.md) ignora
+los replacements Git, tambien al cargar politica, helper, indice y perimetro.
+Los [hashes del manifiesto](contracts/quality-manifest-bytes.md) identifican los
+bytes exactos de cada blob aprobado, incluida la politica JSON. No normalizan
+CR/LF ni infieren que un archivo sea texto. La comparacion normalizada de
+oraculos de texto del verificador conserva su alcance y no redefine esos hashes.
 
 Ejemplo adaptable: [política y guía](../examples/quality-approval/README.md). No se debe usar HEAD automáticamente como referencia aprobada: hacerlo después de implementar borraría la frontera de revisión.
 

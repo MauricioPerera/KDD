@@ -8,8 +8,11 @@ tags: ['quality', 'baseline', 'board', 'integration']
 # Alcance definido antes de implementar
 
 La auditoria de main `71630f08229140c661e0c3b0ddd4412e06c6176e` reprodujo
-los tres defectos en Windows y Ubuntu. Este nodo define la correccion;
-no acredita todavia una implementacion ni un CI nuevo.
+los tres defectos en Windows y Ubuntu. Esta rama implementa las garantias
+definidas abajo con el baseline aprobado
+`ee0d4e614dff81e09e971edbf727b7a3c0a31948`. Los resultados locales de verificacion
+se registran para el commit probado; no acreditan un CI remoto ni la integracion
+en main mientras no se publiquen y verifiquen por separado.
 Aplicar la [aprobacion](quality-approval.md) y la
 [revision proporcional del candidato](baseline-risk-review.md) antes de adoptar
 el commit de contratos y oraculos.
@@ -60,10 +63,12 @@ estado enlazan estas garantias y la evidencia que realmente haya terminado.
 No modificar workflows, locks, runtime confiable, protecciones ni registros
 externos en esta tarea. La publicacion y fusion no forman parte de este alcance.
 
-Antes de implementar: contratos validos, sellos exactos, fase roja equivalente
+Antes de implementar se exigieron: contratos validos, sellos exactos, fase roja equivalente
 en Windows/Ubuntu y copias inicializadas, inventario anterior conservado,
-revision del candidato exacto y aprobacion humana del baseline.
-Despues: los 19 gates y comandos de contratos aplicables, dos pasadas completas
+revision del candidato exacto y aprobacion humana del baseline. El primer candidato
+se conservo bloqueado al faltar la sustitucion independiente de la politica;
+el segundo agrega ese control y fue revisado antes de aprobarse.
+El cierre exige los 19 gates y comandos de contratos aplicables, dos pasadas completas
 por sistema, IDs previos conservados, integraciones nuevas reales y controles
 de mutacion pertinentes. Las pruebas Node de Board pueden omitirse unicamente
 en la copia Python inicializada que no incluye sus dependencias; en la plantilla
