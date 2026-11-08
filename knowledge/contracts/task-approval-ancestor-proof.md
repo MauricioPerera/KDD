@@ -15,7 +15,7 @@ budget:
   lines_max: 100
   params_max: 4
 tests: tests/test_task_proof_batches.py
-tests_sha256: '51b1fb521aadd0b6467d0a6e45eb3bf102df44b3b2082b4acccd680a3802ed5b'
+tests_sha256: '96dc769a8939864a052e491834a101aa492a71035bd705d41159753b7f71cb96'
 oracle_files: ['tests/test_task_proof_batches.py', 'tests/test_task_history_read_cost.py', 'tests/test_traceability_model.py', 'tests/test_task_git.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py']
 touch_only: ['scripts/task_git.py']
 deps_allowed: ['stdlib', 'task_model', 'task_evidence', 'validate_contracts']
