@@ -36,3 +36,11 @@ completo, runner reconocido y checks aprobados de cada obligacion. Los perfiles
 historicos no autorizan declarar `acceptance_approved`. La revision externa del
 SHA y la fuerza semantica de cada oraculo no se sustituyen por validacion propia.
 Dos corridas comprueban repetibilidad basica, no ausencia de flaky.
+
+## Revision antes de solicitar un baseline
+
+Para una solicitud nueva seguir [baseline-risk-review](../knowledge/baseline-risk-review.md)
+antes de pedir la aprobacion del SHA. Presentar el registro de riesgo y su
+verificacion sobre el commit exacto; `review_ready` no es una aprobacion.
+Si faltan revisores o evidencia, reportarlo sin reemplazarlos por autorrevision.
+El protocolo conserva los perfiles historicos, runtime, gates y suites.

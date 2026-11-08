@@ -12,6 +12,16 @@ que orquesta (el "PM"). Este nodo es para la persona humana que revisa un
 PR o un merge producido bajo KDD sin haber leido todo el proceso interno —
 que mirar, en que orden, y por que.
 
+## Antes de aprobar un baseline nuevo
+
+Aplicar la [revision proporcional](./baseline-risk-review.md) al SHA concreto,
+antes de autorizar la implementacion. Comprobar el riesgo declarado, las fuentes
+leidas y los hallazgos; un `review_ready` solo acredita que el registro cumple
+los requisitos mecanicos. Revisar sus argumentos y la independencia real de
+quienes participaron. Una revision ausente no equivale a cero hallazgos y un
+limite de rondas no convierte riesgos abiertos en aceptados automaticamente.
+No se necesita ejecutar modelos en CI para conservar este punto de revision.
+
 ## El checklist de 5 minutos
 
 1. **¿El CI esta verde?** `.github/workflows/validate.yml` corre TODOS los
