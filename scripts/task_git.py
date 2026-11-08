@@ -423,6 +423,64 @@ def ancestor(root, before, after):
         return False
 
 
+def _chain_rows(root, refs):
+    # This auxiliary DAG walk is separate from the journal's first-parent list.
+    output = git(root, 'log', '--max-count=2048', '--boundary', '--format=%H %P',
+                 '--no-patch', '--no-show-signature', '--topo-order',
+                 refs[1], refs[2], '^' + refs[0])
+    rows = {}
+    for line in output.splitlines():
+        revision, *parents = line.split()
+        revision = revision.removeprefix('-')
+        if (not valid_sha(revision) or revision in rows
+                or any(not valid_sha(parent) for parent in parents)):
+            raise ValueError('invalid ancestry proof rows')
+        rows[revision] = parents
+    return rows
+
+
+def _chain_reaches(rows, before, after):
+    pending, visited = [after], set()
+    while pending:
+        revision = pending.pop()
+        if revision == before:
+            return True
+        if revision not in visited:
+            visited.add(revision)
+            pending.extend(rows.get(revision, ()))
+    return False
+
+
+def _serial_chain(root, refs):
+    first = ancestor(root, refs[0], refs[1])
+    return first, ancestor(root, refs[1], refs[2]) if first else None
+
+
+def _chain_ancestry(root, before, middle, after):
+    refs = before, middle, after
+    cache = _OBJECT_CACHE.get()
+    if len(set(refs)) != 3 or not all(valid_sha(ref) for ref in refs):
+        return _serial_chain(root, refs)
+    pairs = list(zip(refs, refs[1:]))
+    keys = [_key(root, 'ancestor', first, second) for first, second in pairs]
+    if cache is not None and any(key in cache for key in keys):
+        return _serial_chain(root, refs)
+    try:
+        rows = _chain_rows(root, refs)
+        complete = (all(ref in rows for ref in refs)
+                    and all(_chain_reaches(rows, first, second) for first, second in pairs))
+    except (TaskError, ValueError):
+        complete = False
+    if not complete:
+        return _serial_chain(root, refs)
+    if cache is not None:
+        # Only the three requested endpoints were certified as actual rows.
+        _remember_git_commits(root, refs)
+        for key in keys:
+            cache[key] = True
+    return True, True
+
+
 def _relative_parts(relative):
     parts = PurePosixPath(relative).parts
     if not parts or relative.startswith('/') or any(p in ('.', '..') for p in parts):
@@ -695,12 +753,24 @@ def _lock(root):
 
 
 def _require_approved_ancestor(root, approved, revision):
-    try:
-        identity = commit_sha(root, approved) if valid_sha(approved) else None
-    except TaskError:
-        identity = None
-    if not valid_sha(approved) or identity != approved or not ancestor(root, approved, revision):
+    if not valid_sha(approved):
         raise TaskError('TASK_APPROVAL: supply an explicit approved ancestor SHA')
+    cache = _OBJECT_CACHE.get()
+    key = _ancestor_key(root, approved, revision, cache)
+    if (key is not None and key in cache
+            and cache.get(_key(root, 'commit', approved)) == approved):
+        return
+    try:
+        common = git(root, 'merge-base', '--all', approved, revision).splitlines()
+    except TaskError:
+        common = []
+    # A merge-base is a canonical commit OID. Exact equality rejects peeled
+    # tags and mobile hexadecimal names as well as unrelated commits.
+    if common != [approved]:
+        raise TaskError('TASK_APPROVAL: supply an explicit approved ancestor SHA')
+    _remember_git_commits(root, [approved])
+    if key is not None:
+        cache[key] = True
 
 
 def _require_valid_contract(root, name):
@@ -915,9 +985,12 @@ def _finish(root, task, options, head):
     if safe_path(root, evidence).exists():
         raise TaskError('TASK_EVIDENCE: refusing to overwrite an existing artifact')
     tip = commit_sha(root, task['branch'])
-    if tip == task['branch_base'] or not ancestor(root, task['branch_base'], tip):
+    if tip == task['branch_base']:
         raise TaskError('TASK_INTEGRATION: task branch has no preserved implementation')
-    if not ancestor(root, tip, head):
+    first, second = _chain_ancestry(root, task['branch_base'], tip, head)
+    if not first:
+        raise TaskError('TASK_INTEGRATION: task branch has no preserved implementation')
+    if not second:
         raise TaskError('TASK_INTEGRATION: integrate the task branch into main first')
     metadata = contract_metadata(root, task, head)
     perimeter = task_perimeter(root, task, head, tip)

@@ -89,3 +89,26 @@ El objetivo sigue abierto hasta esa evidencia. Si el ahorro no basta,
 continuar el diagnostico y someter cualquier ampliacion a otro contrato y
 revision. Esta propuesta no autoriza ampliar timeouts, retirar pruebas,
 alterar sus aserciones ni modificar controles remotos.
+
+## Implementacion y evidencia local
+
+El baseline e069e2e73227b84721fa11ad1bec8c1f4630c928 fue revisado antes de
+implementar. La comprobacion del baseline compara el resultado canonico
+de merge-base con el OID aprobado. La cadena usa un log de padres acotado,
+sin parches ni firmas; mantiene separado el recorrido de primera linea
+del diario. Solo publica las dos relaciones positivas y las identidades
+de los tres endpoints despues de probar el conjunto. Conserva el fallback
+serial, los pares calientes y el descarte de la cache al salir.
+
+Tres helpers privados de validate_tasks agrupan estado o limites para
+cumplir el maximo aprobado de cuatro parametros; sus interfaces publicas
+y los oraculos anteriores se conservan. Pasan las nueve integraciones nuevas
+en ambos sistemas y los controles dirigidos de historia, identidad,
+reemplazos e importaciones. El presupuesto completo mide 53 -> 48 procesos.
+
+La comparacion local Windows original/propuesta/original, con Git directo y
+los mismos 19 casos, registra 1545 / 1443 / 1545 procesos y 101,7224245 /
+96,0367095 / 102,5779170 s; todos verdes sin SKIP. Se eliminan 80 resoluciones
+rev-parse y 44 merge-base y se agregan 22 recorridos log: 102 procesos netos
+menos. El resto de comandos permanece igual. Este resultado local no
+acredita el post-init remoto ni el criterio de tres muestras de main.
