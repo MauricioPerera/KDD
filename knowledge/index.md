@@ -304,3 +304,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Lecturas agrupadas por etapa de trazabilidad](trace-stage-batches.md)
 - [Contrato del lote de contenidos](contracts/trace-contract-content-batch.md)
 - [Contrato del lote de frescura](contracts/trace-fresh-stage-batch.md)
+
+- [Margen del post-init mediante pruebas Git](postinit-proof-cost.md)
+- [Prueba conjunta del baseline aprobado](contracts/task-approval-ancestor-proof.md)
+- [Prueba conjunta de la cadena integrada](contracts/task-evidence-chain-proof.md)
