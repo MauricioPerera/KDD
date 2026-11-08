@@ -41,8 +41,8 @@ const legacyVaultFile = path.join(projectDir, '.env.local');
 const publicDir = path.join(rootDir, 'public');
 
 const gitStore = isGitProject(projectDir) ? new GitTaskStore(projectDir) : undefined;
-const taskStore = gitStore ? undefined : new TaskStore(tasksFile, key => Boolean(vault.getSecretValue(key)?.trim()));
 const vault = new BlindVault(vaultFile, legacyVaultFile);
+const taskStore = gitStore ? undefined : new TaskStore(tasksFile, key => Boolean(vault.getSecretValue(key)?.trim()));
 const bridge = gitStore ? createGitBridge(gitStore) : createWebMcpBridge(taskStore!, vault, projectDir);
 const gitApi = gitStore ? createGitApi(gitStore, parseJsonBody, sendJson) : undefined;
 const runGit = promisify(execFile);

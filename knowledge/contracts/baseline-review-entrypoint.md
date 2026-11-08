@@ -34,19 +34,24 @@ el JSON de verify_review; exit 0/1/2 segun el protocolo.
 Modo historico: --policy y --approved-ref obligatorios juntos, sin flags de
 revision; conservar build_baseline(repo_root, policy_path, approved_ref) y
 su resultado, sin afirmar review_ready. Errores de uso salen 2.
+La estructura del resultado historico se conserva. La correccion de
+[hashes exactos](quality-manifest-bytes.md) define los valores de identidad de
+blobs; no normalizar contenido binario ni mantener un hash historico incorrecto.
 
 ## Invariants
 - No crear un baseline aprobado, registro externo, commit o ref desde este modo.
 - Fallar cerrado si se proporciona un informe pero falta cualquier identidad.
 - No ignorar un informe invalido, ajeno, con revision ausente o riesgo insuficiente.
-- Conservar hashes de politica y protected y el rechazo de HEAD del modo anterior.
+- Conservar los campos de hash y el rechazo de HEAD del modo anterior; los valores
+  identifican bytes originales segun quality-manifest-bytes.
 - El flujo nuevo se documenta antes de pedir aprobacion de un baseline nuevo.
 - Conservar los perfiles historicos, los 19 gates y Ubuntu/Windows con dos suites.
 
 ## Examples
 - Candidato con informe completo -> review_ready true, sin approved_ref.
 - Candidato sin informe o mezcla de modos -> error de uso, sin manifiesto.
-- Referencia aprobada historica explicita -> mismo manifiesto anterior.
+- Referencia aprobada historica explicita -> misma estructura de manifiesto,
+  con la identidad exacta de blobs definida en quality-manifest-bytes.
 
 ## Do / Don't
 - DO separar revision lista de aprobacion externa del SHA.
@@ -55,7 +60,9 @@ su resultado, sin afirmar review_ready. Errores de uso salen 2.
 ## Tests
 Subprocesos Python y repositorios Git reales verifican ambos modos, sus errores,
 read-only, informe ajeno y clon de una copia inicializada sin .git. Los oraculos
-anteriores de quality_baseline quedan byte por byte intactos.
+anteriores de quality_baseline conservan metodos y aserciones. La unica adaptacion
+del fixture LF esta definida en [la remediacion](../quality-board-audit-remediation.md)
+y requiere su nuevo sello y baseline revisado; no se presenta como bytes intactos.
 
 ## Constraints
 PARAR y reportar si se necesita implementar sin baseline revisado. La publicacion,

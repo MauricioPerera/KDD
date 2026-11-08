@@ -313,3 +313,8 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Lecturas agrupadas de la etapa de perimetro](contracts/task-perimeter-stage-batch.md)
 - [Prueba conjunta del baseline aprobado](contracts/task-approval-ancestor-proof.md)
 - [Prueba conjunta de la cadena integrada](contracts/task-evidence-chain-proof.md)
+
+- [Remediacion de calidad y reinicio de Board](quality-board-audit-remediation.md)
+- [Objetos originales del baseline de calidad](contracts/quality-approved-objects.md)
+- [Hashes exactos del manifiesto](contracts/quality-manifest-bytes.md)
+- [Reinicio con requisitos secretos](contracts/board-secret-restart.md)

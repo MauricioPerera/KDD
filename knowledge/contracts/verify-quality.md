@@ -23,6 +23,8 @@ forbids: ['llm']
 Aplicar la [validacion](../validacion.md) mediante una politica de aprobacion del proyecto.
 
 ## Interface
+La [lectura de objetos originales](quality-approved-objects.md) se aplica tambien
+a los lectores batch y a las comprobaciones posteriores a los checks.
 La [identidad canonica local](../task-quality-fixture-remediation.md) exige
 un OID completo nativo de commit, tambien cuando se invoca directamente
 esta API/CLI. Rechazar aliases antes de ejecutar los checks aprobados.

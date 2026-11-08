@@ -12,7 +12,7 @@ from verify_quality import Rejected, approved_commit, safe_path, unique_object, 
 
 
 def _git(root, *args):
-    result = subprocess.run(["git", "-C", str(root), *args], capture_output=True,
+    result = subprocess.run(["git", "--no-replace-objects", "-C", str(root), *args], capture_output=True,
                             timeout=30, check=False)
     if result.returncode:
         raise Rejected("Git operation failed: " + result.stderr.decode("utf-8", "replace").strip())
@@ -20,7 +20,7 @@ def _git(root, *args):
 
 
 def _sha256(data):
-    return hashlib.sha256(data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")).hexdigest()
+    return hashlib.sha256(data).hexdigest()
 
 
 def build_baseline(repo_root, policy_path, approved_ref):
