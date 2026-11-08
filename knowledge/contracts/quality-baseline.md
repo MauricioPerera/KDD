@@ -14,7 +14,7 @@ budget:
   lines_max: 160
   params_max: 3
 tests: 'tests/test_quality_baseline.py'
-tests_sha256: 'a1468bcf1494effceef5f5b6e66c9050ad5869e46a2b2e79db176d64f705788b'
+tests_sha256: '44208887727b3a1a520cdbaaff308f909fb99a4d336e1c97a6fd1ed9fcc2acaf'
 touch_only: ['scripts/quality_baseline.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -39,6 +39,8 @@ def build_baseline(repo_root: str, policy_path: str, approved_ref: str) -> dict:
 
 ## Invariants
 
+- Aplicar los [hashes exactos de blobs](quality-manifest-bytes.md) y la
+  [identidad sin replacements](quality-approved-objects.md). La forma JSON no cambia.
 - `HEAD` y referencias vacías se rechazan como baseline implícito.
 - La política y los protected se leen del commit aprobado, no del working tree.
 - Las rutas se validan como relativas y exactas.
@@ -61,6 +63,8 @@ def build_baseline(repo_root: str, policy_path: str, approved_ref: str) -> dict:
 
 El oráculo congelado está en `tests/test_quality_baseline.py` y verifica hashes
 de archivos protegidos y rechazo de referencias no explícitas.
+El fixture escribe su entrada LF conocida como bytes explicitos; conserva sus
+dos metodos, aserciones y hash esperado, tambien con traduccion de newline Windows.
 
 ## Constraints
 

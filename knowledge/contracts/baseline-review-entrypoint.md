@@ -34,6 +34,9 @@ el JSON de verify_review; exit 0/1/2 segun el protocolo.
 Modo historico: --policy y --approved-ref obligatorios juntos, sin flags de
 revision; conservar build_baseline(repo_root, policy_path, approved_ref) y
 su resultado, sin afirmar review_ready. Errores de uso salen 2.
+La estructura del resultado historico se conserva. La correccion de
+[hashes exactos](quality-manifest-bytes.md) define los valores de identidad de
+blobs; no normalizar contenido binario ni mantener un hash historico incorrecto.
 
 ## Invariants
 - No crear un baseline aprobado, registro externo, commit o ref desde este modo.

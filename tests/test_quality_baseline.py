@@ -28,7 +28,7 @@ class QualityBaselineTests(unittest.TestCase):
             ],
         }))
         (self.root / "tests").mkdir()
-        (self.root / "tests" / "oracle.txt").write_text("frozen\n")
+        (self.root / "tests" / "oracle.txt").write_bytes(b"frozen\n")
         (self.root / "src").mkdir()
         (self.root / "src" / "app.py").write_text("print('ok')\n")
         subprocess.run(["git", "add", "."], cwd=self.root, check=True)

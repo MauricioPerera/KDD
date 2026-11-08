@@ -13,6 +13,49 @@ Actualmente dispone de una plantilla inicializable, validadores, una CLI de
 tareas y KDD-Board integrados con Git. El flujo se ha comprobado desde un
 proyecto vacío hasta su calidad de producto en CI.
 
+## Estado integrado al 8 de noviembre de 2026
+
+El corte actual verificado de main es
+[`71630f08229140c661e0c3b0ddd4412e06c6176e`](https://github.com/MauricioPerera/KDD/commit/71630f08229140c661e0c3b0ddd4412e06c6176e).
+Integra hasta [PR170](https://github.com/MauricioPerera/KDD/pull/170), conservando
+sus tres commits originales y el baseline `a6e4d673a2c2d39e4d119253981115b4207f7c60`.
+La [revision proporcional](baseline-risk-review.md) prepara una solicitud nueva
+de baseline con tres perspectivas y fuentes del commit exacto; review_ready
+no concede aprobacion ni autentica la independencia declarada.
+
+El [CI del SHA final](https://github.com/MauricioPerera/KDD/actions/runs/42517850144)
+paso sus cuatro jobs y las dos listas exactas de 2168 IDs por sistema, con
+195 contratos, 19 gates, SDK MCP 8/8 y Board 86/86. Las omisiones de aplicabilidad
+de la suite general conservan Ubuntu 10/Windows 9; no son porcentaje de cobertura.
+[Pages](https://github.com/MauricioPerera/KDD/actions/runs/42520272372) se desplego
+con los inventarios del run e intento exactos. La web publica respondio HTTP200,
+mostro 2168 pruebas y 19 gates, enlazo ese CI y sirvio los documentos revisados
+con sus bytes de Git. Runtime, registro externo y protecciones permanecieron
+intactos; la excepcion de Entire Gates se limito a esa fusion.
+
+| Medicion del mismo CI, intento 1 | Ubuntu | Windows |
+| --- | ---: | ---: |
+| Job validate | 9 min 56 s | 27 min 47 s |
+| Lote de contratos | 230 s | 831 s |
+| Suite 1 / 2 | 163 / 162 s | 383 / 387 s |
+| init-project, incluido en el lote | 169,46 s | 382,26 s |
+| Casos / modulos post-init | 2064 / 189 | 2064 / 189 |
+
+Este intento cumple 480s de post-init Windows; no se presenta como una serie
+nueva de tres mediciones ni como una reduccion causal respecto de otros runners.
+La medicion global de complejidad del mismo codigo reporta 64 incumplimientos
+en 31 contratos. Algunos contratos miden el mismo helper; no son 64 bugs distintos.
+
+### Correcciones de la auditoria en preparacion
+
+La auditoria posterior reprodujo en ambos sistemas la sustitucion del baseline
+de calidad mediante Git replacements, el fallo de reinicio legacy con un requisito
+secreto satisfecho y hashes de manifiesto que normalizan binarios. La
+[remediacion definida primero](quality-board-audit-remediation.md) fija tres
+contratos y sus integraciones reales. Este corte no afirma que esas correcciones
+esten implementadas: necesitan revisar el commit de oraculos, aplicar el arreglo
+y completar la regresion Ubuntu/Windows con dos pasadas.
+
 ## Estado integrado al 6 de noviembre de 2026, 23:38 UTC
 
 La revision verificada de `main` es
