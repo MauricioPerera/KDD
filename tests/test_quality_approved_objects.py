@@ -38,6 +38,30 @@ class QualityApprovedObjectsTests(QualityReviewFixture, unittest.TestCase):
             self.git('replace', original, altered)
         self.assert_rejected(self.cli())
 
+    def test_policy_blob_replacement_cannot_select_unreviewed_checks(self):
+        original = self.git('rev-parse', self.approved + ':quality.json')
+        policy = json.loads(self.originals['quality.json'])
+        marker = 'UNREVIEWED_POLICY_CHECK'
+        for check in policy['checks']:
+            check['argv'] = [sys.executable, '-X', 'utf8', '-c', "print('" + marker + "')"]
+        (self.root / 'quality.json').write_bytes((json.dumps(policy, indent=2) + '\n').encode())
+        (self.root / 'product.txt').write_bytes(b'BAD\n')
+        candidate = self.commit('unreviewed policy with no-op checks')
+        for name in ('functional.py', 'adversarial.py', 'scripts/process_tree.py'):
+            self.assertEqual((self.root / name).read_bytes(), self.originals[name])
+        result = self.cli()
+        self.assert_rejected(result)
+        self.assertNotIn(marker, result.stdout)
+        altered = self.git('rev-parse', candidate + ':quality.json')
+        self.git('replace', original, altered)
+        with self.subTest(reader='quality approval'):
+            result = self.cli()
+            self.assertNotIn(marker, result.stdout)
+            self.assert_rejected(result)
+        with self.subTest(reader='policy manifest'):
+            manifest = quality_baseline.build_baseline(self.root, 'quality.json', self.approved)
+            self.assertEqual(manifest['policy_sha256'], hashlib.sha256(self.originals['quality.json']).hexdigest())
+
     def test_batch_reader_returns_original_blobs(self):
         original = self.git('rev-parse', self.approved + ':functional.py')
         altered = self.git('hash-object', '-w', '--stdin', data=b'not the reviewed bytes\n')

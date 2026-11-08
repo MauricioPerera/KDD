@@ -15,7 +15,7 @@ budget:
   lines_max: 100
   params_max: 4
 tests: tests/test_quality_approved_objects.py
-tests_sha256: 'a3cca3d8a7d173b680efe65569ad7951c5fe62b78bd19eb154f3c7f7ceacb3eb'
+tests_sha256: '212c984c520fbd1282158eef25591ad2b4330f7056bc9ca810a918b57b246aea'
 oracle_files: ['tests/test_quality_approved_objects.py', 'tests/quality_review_fixture.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py']
 touch_only: ['scripts/verify_quality.py', 'scripts/quality_baseline.py']
 deps_allowed: ['stdlib', 'verify_quality', 'baseline_review']
@@ -42,6 +42,8 @@ indice, politica, helper y perimetro anteriores y posteriores a cada check.
 - Producto correcto y politica revisada -> PASS tras dos vueltas.
 - Oraculos cambiados mas replacement del aprobado -> rechazo sin PASS global.
 - Un check confirma un archivo ajeno y sustituye la base -> rechazo por perimetro.
+- Solo cambia la politica y se reemplaza su blob aprobado -> no ejecutar sus
+  checks ajenos y conservar el hash de la politica original en el manifiesto.
 
 ## Do / Don't
 - DO usar Git y procesos Python reales en repositorios independientes.
@@ -49,7 +51,8 @@ indice, politica, helper y perimetro anteriores y posteriores a cada check.
 
 ## Tests
 El oraculo distingue control correcto, defecto sin replacement, defecto con
-replacement, lector batch, manifiesto, namespace, helper y efectos de un check.
+replacement, politica sustituida independientemente de los scripts protegidos,
+lector batch, manifiesto, namespace, helper y efectos de un check.
 Su fixture se congela con el oraculo; no modifica pruebas anteriores.
 
 ## Constraints
