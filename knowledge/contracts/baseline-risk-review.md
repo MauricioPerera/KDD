@@ -15,7 +15,7 @@ budget:
   lines_max: 100
   params_max: 4
 tests: tests/test_baseline_risk_review.py
-tests_sha256: '9b632fc89ab50fc82727e19d85d6cee6af01cb93ede88190fc675806fae24c54'
+tests_sha256: '00cb737377f1261dffb76856cb58d3b39b67033163a07603ba709224c5e4c17c'
 oracle_files: ['tests/test_baseline_risk_review.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py']
 touch_only: ['scripts/baseline_review.py']
 deps_allowed: ['stdlib']
@@ -63,6 +63,10 @@ REVIEW_HISTORY o REVIEW_GIT segun su causa, sin producir un resultado parcial.
 Integraciones Git reales y procesos CLI cubren los ejemplos y rechazos del
 protocolo en ambos sistemas. No se simula un PASS del runner ni de un revisor.
 El archivo nuevo no modifica los 2138 IDs anteriores ni sus aserciones.
+La preparacion aplica core.autocrlf=false durante el clone, antes del checkout;
+un control con configuracion global true debe conservar los bytes de base y
+un checkout limpio en ambos sistemas. No normalizar el diff de produccion para
+ocultar cambios de bytes provocados por un fixture mal preparado.
 
 ## Constraints
 PARAR y reportar si se necesita implementar sin revision del SHA de contratos y

@@ -60,7 +60,7 @@ class ReviewFixture:
         self.addCleanup(self.area.cleanup)
         self.owner = Path(self.area.name)
         self.root = self.owner / 'project'
-        self.run_git(self.owner, 'clone', '--quiet', '--no-hardlinks', str(self.seed), str(self.root))
+        self.run_git(self.owner, 'clone', '-c', 'core.autocrlf=false', '--quiet', '--no-hardlinks', str(self.seed), str(self.root))
         configure_git(self.root, {'user.name': 'Review Integration',
             'user.email': 'review@example.invalid', 'core.autocrlf': 'false',
             'commit.gpgsign': 'false'}, ephemeral=True)
@@ -130,6 +130,35 @@ class ReviewFixture:
 
 
 class BaselineRiskReviewTests(ReviewFixture, unittest.TestCase):
+    def test_clone_is_clean_under_global_autocrlf_and_preserves_base_bytes(self):
+        config = self.owner / 'global.gitconfig'
+        config.write_text('[core]\n\tautocrlf = true\n', encoding='utf-8')
+        probe = '''
+import json, sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from tests.test_baseline_risk_review import BaselineRiskReviewTests
+cls = BaselineRiskReviewTests
+cls.setUpClass()
+case = cls('test_git_fixture_is_independent_and_has_real_committed_objects')
+try:
+    case.setUp()
+    print(json.dumps({'status': case.git('status', '--porcelain=v1'),
+                      'readme_hex': (case.root/'README.md').read_bytes().hex(),
+                      'oracle_hex': (case.root/'tests/oracle.py').read_bytes().hex()}))
+finally:
+    case.doCleanups()
+    cls.doClassCleanups()
+'''
+        result = subprocess.run([sys.executable, '-X', 'utf8', '-c', probe, str(ROOT)],
+            capture_output=True, encoding='utf-8', timeout=90,
+            env=dict(os.environ, GIT_CONFIG_GLOBAL=str(config), GIT_CONFIG_NOSYSTEM='1'))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        data = json.loads(result.stdout)
+        self.assertEqual(data['status'], '')
+        self.assertEqual(bytes.fromhex(data['readme_hex']), b'# A real project\n')
+        self.assertEqual(bytes.fromhex(data['oracle_hex']), b'assert 1 == 1\n')
+
     def test_git_fixture_is_independent_and_has_real_committed_objects(self):
         self.candidate()
         self.assertNotEqual(self.base, self.head)
