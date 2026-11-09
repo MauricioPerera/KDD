@@ -9,10 +9,10 @@ from pathlib import Path
 import re
 
 import task_git as journal
-from task_model import TaskError
+from task_model import TaskError, valid_sha
 from traceability_model import exact_path, manifest_spec, parse_plan
 from validate_contracts import parse_frontmatter
-from validate_tasks import validate_range, validate_snapshot
+from validate_tasks import _observe_snapshot, validate_range, validate_snapshot
 
 
 def _finding(code, message, requirement='', task_id=''):
@@ -39,6 +39,13 @@ def _repository(repo_root):
     return root
 
 
+def _blob_text(content):
+    try:
+        return content.decode('utf-8').replace('\r\n', '\n').replace('\r', '\n')
+    except UnicodeError as error:
+        raise TaskError('TASK_GIT: ' + str(error)) from error
+
+
 class _Projection:
     def __init__(self, root, revision, manifest):
         self.root, self.revision, self.manifest = root, revision, manifest
@@ -55,10 +62,7 @@ class _Projection:
             return None, error
         if not records:
             return None, None
-        try:
-            return records[0][3].decode('utf-8').replace('\r\n', '\n').replace('\r', '\n'), None
-        except UnicodeError:
-            return None, None
+        return _blob_text(records[0][3]), None
 
     def blob(self, revision, name):
         name = exact_path(name)
@@ -74,9 +78,15 @@ class _Projection:
                 fields = header.split()
                 if path != name or len(fields) != 3 or fields[0] not in ('100644', '100755') or fields[1] != 'blob':
                     _input('expected a regular Git blob: ' + name)
-                value = journal.blob(self.root, revision, name)
                 if error is not None:
                     raise error
+                oid = fields[2]
+                if not valid_sha(oid):
+                    raise TaskError('TASK_GIT: invalid blob identifier: ' + name)
+                record = journal._raw_objects(self.root, [oid])[oid]
+                if record is None or record[:2] != (b'blob', oid):
+                    raise TaskError('TASK_GIT: missing or invalid blob: ' + name)
+                value = _blob_text(record[2])
             self.objects[key] = value
         return self.objects[key]
 
@@ -131,10 +141,10 @@ class _Projection:
         return self.contracts[key]
 
     def tasks(self):
-        for name in journal.paths(self.root, self.revision, 'knowledge/tasks'):
-            if name.endswith('.md') and Path(name).name != 'index.md':
-                self.blob(self.revision, name)
-        return journal.read_tasks(self.root, self.revision)
+        contents = {name: self.blob(self.revision, name)
+                    for name in journal.paths(self.root, self.revision, 'knowledge/tasks')
+                    if name.endswith('.md') and Path(name).name != 'index.md'}
+        return {key: pair[0] for key, pair in journal._task_records(contents).items()}
 
     def _initial_ready(self, task):
         base = task['branch_base']
@@ -164,20 +174,28 @@ class _Projection:
             raise TaskError('the original journal import is outside available history')
         return low - 1
 
+    def _audit_history(self, started):
+        audit_base = ''
+        chain = journal.git(self.root, 'rev-list', '--first-parent', '--reverse', self.revision).splitlines()
+        try:
+            indices = [self._audit_index(self._initial_ready(task), chain) for task in started]
+            audit_base = chain[min(indices)]
+            # validate_range already checks both endpoints and every transition.
+            errors = validate_range(self.root, audit_base, self.revision)
+        except (TaskError, ValueError, OSError) as error:
+            errors = [str(error)]
+        return audit_base, errors
+
     def audit(self, tasks, selected):
         audit_base = ''
         started = [tasks[t] for t in sorted(selected) if t in tasks and tasks[t]['branch_base']]
-        if not started:
-            errors = validate_snapshot(self.root, self.revision)
-        else:
-            chain = journal.git(self.root, 'rev-list', '--first-parent', '--reverse', self.revision).splitlines()
-            try:
-                indices = [self._audit_index(self._initial_ready(task), chain) for task in started]
-                audit_base = chain[min(indices)]
-                # validate_range already checks both endpoints and every transition.
-                errors = validate_range(self.root, audit_base, self.revision)
-            except (TaskError, ValueError, OSError) as error:
-                errors = [str(error)]
+        with _observe_snapshot(self.root, self.revision, tasks) as matches:
+            if started:
+                audit_base, errors = self._audit_history(started)
+            else:
+                errors = validate_snapshot(self.root, self.revision)
+        if not errors and (not matches or not all(matches)):
+            errors = ['projected task nodes differ from the audited snapshot']
         self.journal_ok = not errors
         self.findings.extend(_finding('TRACE_JOURNAL', error) for error in errors)
         return audit_base

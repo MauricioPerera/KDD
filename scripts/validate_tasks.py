@@ -1,5 +1,7 @@
 """Validate committed Task snapshots and every mainline transition read-only."""
 import argparse
+from contextlib import contextmanager
+from contextvars import ContextVar
 import json
 from pathlib import Path
 import sys
@@ -84,11 +86,32 @@ def _evidence(root, ref, task, metadata):
     return findings or _proof_perimeter(root, task, report)
 
 
+_snapshot_observation = ContextVar('task_snapshot_observation', default=None)
+
+
+@contextmanager
+def _observe_snapshot(root, revision, expected):
+    matches = []
+    token = _snapshot_observation.set((root, revision, expected, matches))
+    try:
+        yield matches
+    finally:
+        _snapshot_observation.reset(token)
+
+
+def _record_snapshot(root, revision, tasks):
+    observation = _snapshot_observation.get()
+    if observation is not None and observation[:2] == (root, revision):
+        _, _, expected, matches = observation
+        matches.append(tasks == expected)
+
+
 def _snapshot(repo_root, ref='main'):
     root = Path(repo_root).resolve()
     try:
         revision = journal.commit_sha(root, ref)
         tasks = journal.read_tasks(root, revision)
+        _record_snapshot(root, revision, tasks)
         errors = _dependencies(tasks)
         for task in tasks.values():
             if task['status'] == 'backlog':

@@ -675,12 +675,15 @@ def read_nodes(root, ref='main'):
 
 def _read_nodes(root, ref):
     revision = commit_sha(root, ref)
-    records = {}
     names = [name for name in paths(root, revision, 'knowledge/tasks')
              if name.endswith('.md') and PurePosixPath(name).name != 'index.md']
-    contents = blobs(root, revision, names)
-    for name in names:
-        data, body = parse_task(contents[name], name)
+    return _task_records(blobs(root, revision, names))
+
+
+def _task_records(contents):
+    records = {}
+    for name, text in contents.items():
+        data, body = parse_task(text, name)
         if name != task_path(data['task_id']):
             raise TaskError('TASK_PATH: nested task records are unsupported')
         records[data['task_id']] = (data, body)
