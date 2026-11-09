@@ -41,8 +41,8 @@ OUTCOMES = ('skipped', 'failures', 'errors', 'expected_failures', 'unexpected_su
 
 
 def _workers(value):
-    if type(value) is not int or not 1 <= value <= 8:
-        raise ValueError('workers must be an integer between 1 and 8')
+    if type(value) is not int or not 1 <= value <= 10:
+        raise ValueError('workers must be an integer between 1 and 10')
     return value
 
 
