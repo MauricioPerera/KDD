@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -222,10 +223,19 @@ PARAR y reportar si falta el contrato.
                                 check=False, timeout=180)
 
     def snapshot(self):
-        return {'head': self.git('rev-parse', 'HEAD'),
-                'branches': self.git('show-ref', '--heads'),
-                'status': self.git('status', '--porcelain'),
-                'tree': self.git('write-tree')}
+        records = self.git('status', '--porcelain=v2', '--branch').split('\n')
+        prefix = '# branch.oid '
+        head = records[0].removeprefix(prefix)
+        if records[0].startswith(prefix) and re.fullmatch(r'[0-9a-f]{40}|[0-9a-f]{64}', head):
+            first_path = 1
+            while first_path < len(records) and records[first_path].startswith('# '):
+                first_path += 1
+            status = '\n'.join(records[first_path:])
+        else:
+            head = self.git('rev-parse', 'HEAD')
+            status = self.git('status', '--porcelain')
+        return {'head': head, 'branches': self.git('show-ref', '--heads'),
+                'status': status, 'tree': self.git('write-tree')}
 
 
 class GeneratedTaskEvidence(unittest.TestCase):

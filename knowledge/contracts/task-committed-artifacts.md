@@ -15,7 +15,7 @@ budget:
   lines_max: 100
   params_max: 5
 tests: tests/test_task_committed_artifacts.py
-tests_sha256: 'e4522ae7cc1e5dc71aea4c6a83253df333274164207682b2ef080d2082f2f1f2'
+tests_sha256: '34ddf5fd0de18c488bf6a2e97dc5857caa3f5d42b5127a70818a0a2665fb12c9'
 touch_only: ['scripts/task_git.py', 'scripts/validate_tasks.py']
 deps_allowed: ['stdlib', 'task_model', 'task_evidence', 'task_git', 'validate_contracts']
 forbids: ['network', 'llm']
@@ -60,6 +60,23 @@ y todas las aserciones del oraculo.
 tests/test_task_committed_artifacts.py completa una tarea real y usa el fixture
 sellado por traceability-model, aliases nativos, canarios, indice Git y procesos
 de CLI. No hay mocks de Git, del coordinador o del sistema de archivos.
+
+### Control limpio de los casos de checkout
+
+La clase de integracion prepara un diario valido con Git real una vez por
+invocacion. Las siete comparaciones que parten del mismo checkout limpio
+pueden usar una copia del control calculado sobre ese diario, antes de
+aplicar los cambios del caso. El control contiene el snapshot, el rango
+y la proyeccion completa del OID original.
+
+Cada caso conserva su clon y ejecuta las consultas reales despues de la
+alteracion correspondiente. Los casos de evidencia alterada, historia
+ilegal y producto obsoleto conservan sus consultas previas propias.
+El control se recalcula en cada invocacion del modulo, carece de estado
+compartido mutable y no sirve como resultado de la auditoria del candidato.
+Un caso de Git real comprueba que mover main en un clon cambia la consulta
+del clon, mientras que las copias del control siguen ligadas al diario
+original y su lectura no inicia Git.
 
 ## Constraints
 

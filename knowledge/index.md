@@ -179,6 +179,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Modelo de trazabilidad v1](./data_models/requirement-trace.md)
 - [Contrato del modelo de trazabilidad](./contracts/traceability-model.md)
 - [Contrato de proyeccion Git](./contracts/traceability-git.md)
+- [Observacion de nodos Task en la proyeccion](./contracts/trace-task-node-observation.md)
 - [Contrato de CLI y calidad](./contracts/traceability-cli.md)
 
 - [Aprobacion integrada de calidad](quality-approval.md)
@@ -306,6 +307,8 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Margen del post-init Windows: preparacion local](postinit-windows-headroom.md)
 - [Contrato de preparacion de fixtures](contracts/postinit-fixture-config.md)
 - [Preparacion acotada de diarios para pruebas de publicacion](contracts/postinit-publication-fixtures.md)
+- [Lectura del merge de perimetro](contracts/task-perimeter-merge-read.md)
+- [Captura Git de los fixtures de tarea](contracts/task-fixture-snapshot-read.md)
 - [Ensayo de concurrencia post-init Windows](contracts/postinit-windows-concurrency.md)
 - [Contrato de Git directo en validaciones](contracts/validation-native-git-path.md)
 
