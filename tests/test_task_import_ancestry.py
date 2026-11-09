@@ -13,17 +13,24 @@ from tests.test_task_git import Repository
 
 
 class TaskImportAncestryTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        area = tempfile.TemporaryDirectory()
+        cls.addClassCleanup(area.cleanup)
+        cls.seed = Repository(area=area)
+        cls.seed.git('branch', 'feature', cls.seed.approved)
+        cls.seed.act('create')
+        cls.main_base = cls.seed.git('rev-parse', 'HEAD')
+        cls.task_path = 'knowledge/tasks/TASK-001.md'
+        cls.task = (cls.seed.root / cls.task_path).read_text(encoding='utf-8')
+        cls.seed.git('switch', '-q', 'feature')
+        (cls.seed.root / 'feature.txt').write_text('feature\n', encoding='utf-8')
+        cls.seed.commit('feature change before integration')
+
     def setUp(self):
-        self.repo = Repository()
+        self.repo = self.seed.independent_copy()
         self.addCleanup(self.repo.close)
-        self.path = self.repo.root / 'knowledge/tasks/TASK-001.md'
-        self.repo.git('branch', 'feature', self.repo.approved)
-        self.repo.act('create')
-        self.main_base = self.repo.git('rev-parse', 'HEAD')
-        self.task = self.path.read_text(encoding='utf-8')
-        self.repo.git('switch', '-q', 'feature')
-        (self.repo.root / 'feature.txt').write_text('feature\n', encoding='utf-8')
-        self.repo.commit('feature change before integration')
+        self.path = self.repo.root / self.task_path
         self.bad = ''
 
     def illegal_then_restore(self, existed):
