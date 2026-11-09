@@ -13,7 +13,7 @@ Actualmente dispone de una plantilla inicializable, validadores, una CLI de
 tareas y KDD-Board integrados con Git. El flujo se ha comprobado desde un
 proyecto vacío hasta su calidad de producto en CI.
 
-## Estado integrado al 8 de noviembre de 2026
+## Corte integrado del 8 de noviembre de 2026 en e9689aa
 
 El corte verificado de `main` integra el PR #171 y conserva sus tres commits
 originales. El árbol selecciona el baseline aprobado
@@ -116,13 +116,14 @@ registró `NOT_EVALUATED` en los dos sistemas. [CI de main](https://github.com/M
   contrato y puede medir la misma función en varios contratos.
   [Presupuestos de complejidad](validacion.md#precedencia-del-budget)
 
-## Flujo ligero ODD en revisión
+## Flujo ligero ODD integrado
 
 `codex/odd-lightweight` contiene el baseline aprobado `f39220e` y la
 implementación `8a102ba`. El piloto adapta Organic Driven Development
 al trabajo editorial que se puede retomar con el pedido, el diff y la
-evidencia del commit o PR. El [PR #172](https://github.com/MauricioPerera/KDD/pull/172)
-publicó esos mismos dos commits. [Protocolo de ODD](https://github.com/Gentleman-Programming/gentle-ai/blob/main/docs/usage.md#organic-driven-development-odd)
+evidencia del commit o PR. Ambos commits se integraron en `159d9e1` mediante
+el PR #172. [PR #172](https://github.com/MauricioPerera/KDD/pull/172) ·
+[Protocolo de ODD](https://github.com/Gentleman-Programming/gentle-ai/blob/main/docs/usage.md#organic-driven-development-odd)
 
 `baseline_review.py --small-change` clasifica un candidato de un solo
 commit. La vía ligera admite ediciones de documentos existentes en el
@@ -142,8 +143,20 @@ requiere revisión y aprobación del baseline.
 Las cuatro pasadas conservan los 2.187 IDs previos y ejecutan las 15
 integraciones nuevas sin SKIP. El primer intento en Windows tuvo fallos
 con el entorno virtual. La repetición usó Python independiente en el
-mismo SHA. El CI remoto y la integración se registran en el PR.
+mismo SHA. Los cinco checks requeridos del PR pasaron, con dos pasadas de
+2.202 IDs por sistema. El post-init Windows del PR tardó 283,01 s. Esa
+medición corresponde al checkout del PR. [CI del PR](https://github.com/MauricioPerera/KDD/actions/runs/42549571792) ·
+[CI del merge en main](https://github.com/MauricioPerera/KDD/actions/runs/42552033325) ·
 [Registro de evidencia](../docs/reports/KDD-STATE-2026-11-08-EVIDENCE.json)
+
+## Corrección de la referencia de aceptación
+
+El cambio `3bb059a` hace que el selector exporte el mismo SHA para la
+comprobación del baseline y la aceptación. Tres pruebas ejecutan los pasos
+del workflow con Git real. Una comprueba el rechazo al borrar la política,
+otra verifica que una variable obsoleta no desplace el SHA seleccionado y
+la tercera comprueba el modo reutilizable. Pasaron en Ubuntu y Windows.
+[Contrato de la corrección](contracts/acceptance-baseline-routing.md)
 
 ## Corte histórico del 8 de noviembre de 2026 en 71630f0
 
@@ -655,8 +668,9 @@ La actualizacion superior enlaza al despliegue ya verificado en main.
   no forma parte de la optimizacion Windows actual.
 - **Complejidad y rendimiento.** Las mediciones del SHA actual y el criterio
   pendiente de aceptación figuran en el [corte vigente](#límites-medidos).
-- **Aceptación de producto.** Queda abierta la conexión entre el selector
-  del registro y el paso que lee la política de aceptación.
+- **Aceptación de producto.** Cada proyecto requiere la política y los
+  instrumentos que cubren sus obligaciones. La auditoría de `e9689aa`
+  registra los límites observados.
   [Hallazgos de auditoría](#hallazgos-de-la-auditoría-posterior)
 - **Proxima validacion de uso.** Ya hay pilotos CLI de una y cuatro tareas con
   dependencias. Falta medir colaboracion concurrente real, requisitos de interfaz

@@ -179,6 +179,15 @@
     },
     "branch": "codex/odd-lightweight",
     "published_pr": "https://github.com/MauricioPerera/KDD/pull/172",
+    "merged_sha": "159d9e1e5969acdeba3afae56fd51a546f50aefe",
+    "pr_ci": {
+      "run_id": 42549571792,
+      "attempt": 1,
+      "required_checks_passed": 5,
+      "suite_passes_per_os": 2,
+      "ids_per_pass": 2202,
+      "windows_init_seconds": 283.01086969999994
+    },
     "prior_ids": 2187,
     "new_integration_ids": 15,
     "new_ids_skipped": 0,
