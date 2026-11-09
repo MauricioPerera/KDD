@@ -179,6 +179,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Modelo de trazabilidad v1](./data_models/requirement-trace.md)
 - [Contrato del modelo de trazabilidad](./contracts/traceability-model.md)
 - [Contrato de proyeccion Git](./contracts/traceability-git.md)
+- [Observacion de nodos Task en la proyeccion](./contracts/trace-task-node-observation.md)
 - [Contrato de CLI y calidad](./contracts/traceability-cli.md)
 
 - [Aprobacion integrada de calidad](quality-approval.md)

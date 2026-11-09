@@ -1,9 +1,11 @@
 """Historical Git reads, native checkout aliases and unchanged writer boundaries."""
+from copy import deepcopy
 import hashlib
 import json
 import os
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 from tests import test_traceability_model as support
 from tests.test_fixture_preparation import directory_alias as native_directory_alias
 import task_git as journal
@@ -13,6 +15,14 @@ from validate_tasks import validate_range, validate_snapshot
 
 
 class TaskCommittedArtifactsTests(support.RepositoryFixture):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls._clean_control = cls.observe(cls.base, cls.refs['closed'], 'main')
+
+    def clean_control(self):
+        return deepcopy(self._clean_control)
+
     def alias(self, directory):
         area = Path(self.temp.name).resolve()
         source = self.root / directory
@@ -54,13 +64,19 @@ class TaskCommittedArtifactsTests(support.RepositoryFixture):
     def trace(self, ref='main'):
         return build_trace(self.root, ref, 'quality/traceability.json', require_verified=True)
 
-    def queries(self, ref='main'):
+    @staticmethod
+    def observe(root, closed, ref):
         with journal.object_cache():
-            return (validate_snapshot(self.root, ref),
-                    validate_range(self.root, self.task()['branch_base'], ref), self.trace(ref))
+            snapshot = validate_snapshot(root, ref)
+            base = journal.read_tasks(root, closed)['TASK-001']['branch_base']
+            return (snapshot, validate_range(root, base, ref),
+                    build_trace(root, ref, 'quality/traceability.json', require_verified=True))
+
+    def queries(self, ref='main'):
+        return self.observe(self.root, self.refs['closed'], ref)
 
     def snapshot_alias(self, directory):
-        before = self.queries()
+        before = self.clean_control()
         self.assertEqual(before[0], [])
         self.assertEqual(before[1], [])
         self.assertTrue(before[2]['complete'])
@@ -110,7 +126,7 @@ class TaskCommittedArtifactsTests(support.RepositoryFixture):
         self.snapshot_alias('knowledge/contracts')
 
     def test_range_with_all_checkout_aliases_preserves_original_refs_and_evidence(self):
-        before = self.queries()
+        before = self.clean_control()
         self.assertTrue(before[2]['complete'])
         outside = [self.alias(name) for name in ('src','tests','knowledge/contracts')]
         canaries = [self.files(path) for path in outside]
@@ -123,7 +139,7 @@ class TaskCommittedArtifactsTests(support.RepositoryFixture):
         self.assertEqual([self.files(path) for path in outside], canaries)
 
     def test_cli_json_and_markdown_preserve_index_refs_branch_and_canaries(self):
-        expected = self.trace()
+        expected = self.clean_control()[2]
         outside = [self.alias(name) for name in ('src','tests','knowledge/contracts')]
         canaries = [self.files(path) for path in outside]
         support.git(self.root, 'status', '--porcelain=v1')
@@ -143,7 +159,7 @@ class TaskCommittedArtifactsTests(support.RepositoryFixture):
         self.assertEqual([self.files(path) for path in outside], canaries)
 
     def test_other_branch_with_committed_git_link_still_queries_historical_main(self):
-        expected = self.trace()
+        expected = self.clean_control()[2]
         support.git(self.root, 'switch', '-q', '-c', 'other-layout')
         outside = self.alias('src')
         payload = support.git(self.root, 'hash-object', '-w', '--stdin', input='../../external/value.py\n')
@@ -159,7 +175,7 @@ class TaskCommittedArtifactsTests(support.RepositoryFixture):
         self.assertEqual(self.files(outside), canary)
 
     def test_absent_checkout_artifacts_are_not_materialized(self):
-        before = self.queries()
+        before = self.clean_control()
         area = Path(self.temp.name)
         for name in ('src','tests','knowledge/contracts'):
             destination = area/('removed-'+name.replace('/','-'))
@@ -260,6 +276,29 @@ class TaskCommittedArtifactsTests(support.RepositoryFixture):
         self.assertTrue(expected['requirements'][0]['links'][0]['historical_verified'])
         self.alias('src')
         self.assertEqual(self.trace(), expected)
+
+
+    def test_clean_control_copies_stay_bound_to_the_original_commit(self):
+        control = getattr(self, 'clean_control', None)
+        self.assertTrue(callable(control), 'the clean fixture must expose its observed control')
+        event_log = Path(self.temp.name) / 'control-lookups.jsonl'
+        with patch.dict(os.environ, {'GIT_TRACE2_EVENT': str(event_log)}):
+            first = control()
+            second = control()
+        self.assertFalse(event_log.exists(), 'reading expected data must not start Git')
+        self.assertEqual(first, second)
+        self.assertEqual(first[:2], ([], []))
+        self.assertTrue(first[2]['complete'])
+        self.assertEqual(first[2]['observed_commit'], self.refs['closed'])
+        first[2]['requirements'].clear()
+        self.assertTrue(second[2]['requirements'])
+
+        support.write(self.root, 'src/value.py', support.IMPLEMENTATION + '\n# modified case\n')
+        changed = support.commit(self.root, 'Move only the case main')
+        report = self.trace()
+        self.assertEqual(report['observed_commit'], changed)
+        self.assertFalse(report['complete'])
+        self.assertEqual(control(), second)
 
 
 if __name__ == '__main__':
