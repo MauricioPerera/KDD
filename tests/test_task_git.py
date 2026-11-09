@@ -17,8 +17,8 @@ import task_model as model
 
 
 class Repository:
-    def __init__(self, oracle=None, *, automatic_maintenance=False):
-        self.temp = tempfile.TemporaryDirectory()
+    def __init__(self, oracle=None, *, automatic_maintenance=False, area=None):
+        self.temp = tempfile.TemporaryDirectory() if area is None else area
         self.root = Path(self.temp.name)
         for folder in ['scripts', 'knowledge/contracts', 'src', 'tests']:
             (self.root / folder).mkdir(parents=True, exist_ok=True)
@@ -76,6 +76,18 @@ PARAR y reportar si the oracle changes.
             'user.name': 'KDD Task Test', 'user.email': 'tasks@example.test', 'core.autocrlf': 'false'},
             ephemeral=not automatic_maintenance)
         self.approved = self.commit('approved contract')
+
+    def independent_copy(self):
+        copy = Repository.__new__(Repository)
+        copy.temp = tempfile.TemporaryDirectory()
+        copy.root = Path(copy.temp.name)
+        try:
+            shutil.copytree(self.root, copy.root, symlinks=True, dirs_exist_ok=True)
+        except BaseException:
+            copy.close()
+            raise
+        copy.oracle, copy.contract, copy.approved = self.oracle, self.contract, self.approved
+        return copy
 
     def git(self, *args):
         return subprocess.check_output(['git', '-C', str(self.root), *args],

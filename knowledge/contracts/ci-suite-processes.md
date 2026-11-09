@@ -15,7 +15,7 @@ budget:
   lines_max: 180
   params_max: 5
 tests: tests/test_ci_suite_processes.py
-tests_sha256: '72bf496447358a97bf6dfdcd372860fa23fb2008c4005ac7284f03a07576bec1'
+tests_sha256: '3e103170002814c3d81a5ff42fa61dbda12cc3ab2d790b675448f73b43c87082'
 touch_only: ['scripts/run_test_suite.py', 'scripts/guard_pr_baseline.py', '.github/workflows/validate.yml']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -34,7 +34,7 @@ conservando [validacion](../validacion.md) y [aprobacion](../quality-approval.md
   devuelve dict version1. La extension de [orden opt-in](ci-module-order.md)
   agrega prioridades sin cambiar inventarios, procesos ni el default serial.
 - CLI --start-directory (default tests), --pattern (default test_*.py),
-  --workers (entero1..8, default1) y --report-json PATH opcional.
+  --workers (entero1..10, default1) y --report-json PATH opcional.
   El cwd del hijo es el cwd original. Rutas con espacios/Unicode son validas.
 - workers1 ejecuta la suite completa con la semantica serial unittest.
   workers>1 descubre el inventario completo y despacha modulos completos

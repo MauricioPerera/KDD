@@ -37,7 +37,7 @@ class PostApplyProfile(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         report = json.loads(self.report.read_text(encoding='utf-8'))
         self.assertTrue(report['ok'])
-        self.assertEqual(report['workers'], 8 if os.name == 'nt' else 4)
+        self.assertEqual(report['workers'], 10 if os.name == 'nt' else 4)
         self.assertEqual(report['tests_run'], 2)
         self.assertEqual(report['expected_ids'], report['executed_ids'])
         self.assertEqual(report['skipped'], [])

@@ -14,7 +14,7 @@ budget:
   lines_max: 100
   params_max: 5
 tests: tests/test_task_import_ancestry.py
-tests_sha256: 'ccce37706f232a32c8e8eec536f3a46b27b32fe8e3eb7215121d00338295de15'
+tests_sha256: 'a7c55da16dd3a58b3343f12e31b495026a3ff04f8afea7a4aedd839dea6c8224'
 touch_only: ['scripts/validate_tasks.py']
 deps_allowed: ['stdlib', 'task_git', 'task_model', 'git']
 forbids: ['network', 'llm']

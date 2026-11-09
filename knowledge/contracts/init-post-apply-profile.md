@@ -12,7 +12,7 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: tests/test_init_post_apply_profile.py
-tests_sha256: '6fde807037624ffcfe2aab4756fd4fbe8be4b654c8103fdaf9463f781c51062a'
+tests_sha256: '78299887827bbe49d6af8b40e2873a75ddfe07240ab87bc114a35c362d11fe01'
 touch_only: ['scripts/init_post_apply_suite.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -24,7 +24,7 @@ a la integracion completa de [init-project](init-project.md).
 
 ## Interface
 CLI que ejecuta `scripts/run_test_suite.py` del proyecto indicado con cwd en
-ese proyecto, tests/test_*.py y ocho procesos Windows o cuatro Ubuntu. Acepta
+ese proyecto, tests/test_*.py y diez procesos Windows o cuatro Ubuntu. Acepta
 un reporte JSON opcional nuevo, preserva stdout/stderr y devuelve el exit real.
 La extension de [orden medido](postinit-module-order.md) agrega prioridades
 opcionales solo a Windows; conserva todos los jobs y el fallback sin perfil.
@@ -35,7 +35,7 @@ opcionales solo a Windows; conserva todos los jobs y el fallback sin perfil.
 - Las dos suites ordinarias de CI siguen completas, independientes y con sus
   perfiles vigentes; no variar el timeout 600 ni permitir exito al fallar el hijo.
 - Si el reporte ya existe, rechazar sin modificarlo. No usar shell ni red.
-- Medir varias muestras comparables; ocho procesos son una hipotesis de prueba,
+- Medir varias muestras comparables; diez procesos son una hipotesis de prueba,
   no evidencia de mejora ni garantia de pasar en todos los runners.
 
 ## Examples

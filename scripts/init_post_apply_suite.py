@@ -27,7 +27,7 @@ def main(argv=None):
             raise ValueError('report destination already exists')
         command = [sys.executable, str(root / 'scripts/run_test_suite.py'),
                    '--start-directory', 'tests', '--pattern', 'test_*.py',
-                   '--workers', '8' if os.name == 'nt' else '4']
+                   '--workers', '10' if os.name == 'nt' else '4']
         command += _order_arguments()
         if report is not None:
             command += ['--report-json', str(report)]

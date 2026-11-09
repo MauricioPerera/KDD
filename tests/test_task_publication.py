@@ -2,6 +2,7 @@
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -12,13 +13,19 @@ from tests.test_task_git import Repository
 
 
 class TaskPublicationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        area = tempfile.TemporaryDirectory()
+        cls.addClassCleanup(area.cleanup)
+        cls.seed = Repository(area=area)
+        cls.start_commit = cls.seed.start()['commit']
+
     def setUp(self):
-        self.repo = Repository()
+        self.repo = self.seed.independent_copy()
         self.addCleanup(self.repo.close)
         self.path = 'knowledge/tasks/TASK-001.md'
 
     def complete(self):
-        self.repo.start()
         self.repo.act('block', reason='Need a decision')
         self.repo.act('resume', reason='Decision recorded')
         self.repo.act('start', assignee='developer')
@@ -54,21 +61,19 @@ class TaskPublicationTests(unittest.TestCase):
         self.assertNotEqual(closed['task']['verified_ref'], self.repo.git('rev-parse', 'HEAD^'))
 
     def test_partial_journal_is_imported_without_inventing_a_transition(self):
-        self.repo.start()
         entries = journal.history(self.repo.root, 'TASK-001')
         self.publish()
         self.assertEqual(self.findings(), [])
         self.assertEqual(journal.history(self.repo.root, 'TASK-001'), entries)
 
     def test_updates_to_an_existing_task_can_be_imported(self):
-        base = self.repo.start()['commit']
+        base = self.start_commit
         blocked = self.repo.act('block', reason='Decision required')
         self.publish(base)
         self.assertEqual(self.findings(), [])
         self.assertEqual(journal.history(self.repo.root, 'TASK-001')[-1]['commit'], blocked['commit'])
 
     def test_invalid_intermediate_source_commit_cannot_hide_behind_valid_tip(self):
-        self.repo.start()
         path = self.repo.root / self.path
         original = path.read_text(encoding='utf-8')
         path.write_text(original.replace("status: 'in_progress'", "status: 'ready'"), encoding='utf-8')
@@ -89,7 +94,6 @@ class TaskPublicationTests(unittest.TestCase):
         self.assertTrue(any('TASK_CREATE' in error or 'TASK_CLOSURE' in error for error in self.findings()))
 
     def test_merge_cannot_modify_source_task_body(self):
-        self.repo.start()
         self.rewind_main(self.repo.approved)
         self.repo.git('merge', '--no-ff', '--no-commit', 'delivery')
         with (self.repo.root / self.path).open('a', encoding='utf-8') as stream:
@@ -98,7 +102,7 @@ class TaskPublicationTests(unittest.TestCase):
         self.assertTrue(any('TASK_IMPORT' in error for error in self.findings()))
 
     def test_merge_cannot_overwrite_concurrent_main_task_changes(self):
-        base = self.repo.start()['commit']
+        base = self.start_commit
         self.repo.act('block', reason='Source decision')
         source = (self.repo.root / self.path).read_text(encoding='utf-8')
         self.rewind_main(base)
@@ -110,21 +114,18 @@ class TaskPublicationTests(unittest.TestCase):
         self.assertTrue(any('TASK_IMPORT' in error for error in self.findings()))
 
     def test_implementation_merge_does_not_duplicate_task_history(self):
-        self.repo.start()
         entries = journal.history(self.repo.root, 'TASK-001')
         self.repo.integrate()
         self.assertEqual(self.findings(), [])
         self.assertEqual(journal.history(self.repo.root, 'TASK-001'), entries)
 
     def test_baseline_must_remain_on_first_parent_history(self):
-        self.repo.start()
         source = self.repo.git('rev-parse', 'HEAD')
         self.publish()
         errors = validate_range(self.repo.root, source, 'main')
         self.assertTrue(any('TASK_BASELINE' in error for error in errors))
 
     def test_nested_publication_is_audited_and_keeps_original_commits(self):
-        self.repo.start()
         entries = journal.history(self.repo.root, 'TASK-001')
         self.publish()
         self.repo.git('branch', '-m', 'delivery', 'first-delivery')

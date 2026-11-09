@@ -14,7 +14,7 @@ budget:
   lines_max: 100
   params_max: 5
 tests: 'tests/test_task_publication.py'
-tests_sha256: b85d174f28d29d0bb44d765ca158eb932aebb3ac107cc62a6f5a6d078cc04269
+tests_sha256: 4a90072c0aec494841da51ecb8665cfc0c40ea0d1a0f192eed50507e23e6e9bd
 touch_only: ['scripts/validate_tasks.py', 'scripts/task_git.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']

@@ -32,7 +32,10 @@ resolvio la raiz 4.362 veces: `_key` acumulo 1,145 segundos en una ejecucion
 instrumentada de 8,424 segundos. La propuesta de [identidad de raiz](contracts/task-root-identity.md)
 reduce ese coste sin adelantar lecturas Git ni cachear refs o resultados nuevos.
 
-## Cambios propuestos
+## Cambios propuestos en la medicion de partida
+
+El [ensayo de concurrencia](contracts/postinit-windows-concurrency.md)
+define el perfil que se medira en el siguiente candidato.
 
 - [Identidad fisica de la raiz](contracts/task-root-identity.md): clave de
   cache por directorio real, observada de nuevo en cada consulta, con fallback

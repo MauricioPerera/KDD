@@ -264,7 +264,7 @@ class TestInitProject(unittest.TestCase):
             self.assertEqual(set(report["expected_ids"]),
                              set(report["executed_ids"]) | set(report["fixture_omitted_ids"]))
             self.assertTrue(set(report["executed_ids"]).isdisjoint(report["fixture_omitted_ids"]))
-            self.assertEqual(report["workers"], 8 if os.name == "nt" else 4)
+            self.assertEqual(report["workers"], 10 if os.name == "nt" else 4)
             print("KDD_POST_INIT_PROFILE " + json.dumps(dict(kind="summary", platform=sys.platform,
                 duration_seconds=report["duration_seconds"], workers=report["workers"],
                 tests_run=report["tests_run"], expected_count=len(report["expected_ids"]),

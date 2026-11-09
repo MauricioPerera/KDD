@@ -14,7 +14,7 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tests/test_init_project.py"
-tests_sha256: '7ad0d9e4ca0aaf222f872f924ae752089d9e32ebe940c1c79f5ad56e132f1a51'
+tests_sha256: '09b673bcb243ba98b95917749c866db6ea896b838ac80205667205bd511d790e'
 touch_only: ['scripts/init_project.py', 'scripts/bootstrap_transaction.py']
 deps_allowed: ['stdlib', 'bootstrap_transaction']
 forbids: ['network', 'subprocess']
