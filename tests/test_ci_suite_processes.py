@@ -246,7 +246,7 @@ def load_tests(loader,tests,pattern):
                     'class T(unittest.TestCase):\n'
                     ' def test_work(self): Path("unexpected").touch()\n')
         self.assertTrue(RUNNER.is_file(), 'Missing contracted suite runner')
-        for value in ('0', '-1', '9', '1.5', 'abc', '$(echo bad)'):
+        for value in ('0', '-1', '11', '1.5', 'abc', '$(echo bad)'):
             with self.subTest(value=value):
                 result = subprocess.run([sys.executable, str(RUNNER),
                                          '--start-directory', str(self.tests),

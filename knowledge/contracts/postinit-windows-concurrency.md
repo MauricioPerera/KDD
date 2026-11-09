@@ -54,7 +54,8 @@ las dos pasadas generales y los workers de contratos conservan sus valores.
 
 ## Tests
 Barrera, rechazo del limite y lanzador con procesos reales. Los oraculos
-anteriores conservan sus aserciones y actualizan el valor de Windows.
+anteriores conservan sus aserciones. El lanzador verifica el nuevo valor
+de Windows y el runner prueba once como primer valor fuera del rango.
 
 ## Constraints
 PARAR y reportar si falta el baseline, la revision exacta del cambio

@@ -15,7 +15,7 @@ budget:
   lines_max: 180
   params_max: 5
 tests: tests/test_ci_suite_processes.py
-tests_sha256: '72bf496447358a97bf6dfdcd372860fa23fb2008c4005ac7284f03a07576bec1'
+tests_sha256: '3e103170002814c3d81a5ff42fa61dbda12cc3ab2d790b675448f73b43c87082'
 touch_only: ['scripts/run_test_suite.py', 'scripts/guard_pr_baseline.py', '.github/workflows/validate.yml']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
