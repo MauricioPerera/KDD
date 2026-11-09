@@ -30,11 +30,11 @@ No se afirma que la hipotesis cumpla 480 s antes de medir el comando entero.
 La ubicacion privada ya esta integrada en main mediante
 [PR161](https://github.com/MauricioPerera/KDD/pull/161), conservando sus 41
 commits. PR164 integro despues la correccion del observador de procesos sin
-modificar el workflow. El [estado verificable](estado-actual-kdd.md) enlaza
-el CI y Pages del main actual: init Windows 515,16 s, por encima del objetivo
-de 480 s y dentro del timeout de 600 s. La aceptacion de rendimiento sigue
-abierta con el protocolo inferior. Los parrafos siguientes son el corte local
-anterior a la publicacion; conservan sus resultados y pendientes de entonces.
+modificar el workflow. El comando init de Windows duró 515,16 s en
+`0ac8666`, por encima del objetivo de 480 s y dentro del límite de 600 s.
+El estado verificable reúne las mediciones posteriores. Los párrafos
+siguientes conservan el corte local anterior a la publicación.
+[Estado verificable de KDD](estado-actual-kdd.md)
 
 ## Corte historico de implementacion, antes de publicar
 
