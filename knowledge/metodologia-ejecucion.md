@@ -41,6 +41,8 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
 
 ## Proceso
 
+Para cambios editoriales acotados, consultar el [flujo ligero](./odd-lightweight.md).
+
 En proyectos que adopten el [protocolo de sprints](./sprints.md), seleccionar el resultado
 y el backlog del sprint antes de PLAN. El sprint referencia entregas de los contratos;
 no reemplaza sus criterios de aceptación. Su admisión y presupuesto son controles

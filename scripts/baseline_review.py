@@ -127,6 +127,40 @@ def inspect_change(repo_root, base_ref, candidate_ref):
             'risk_floor': _highest(_path_risk(change) for change in changes), 'review_ready': False}
 
 
+def _editorial_change(change):
+    path = change['path']
+    guide = (path.startswith('docs/guides/') and path.endswith('.md')
+             and not any(part.startswith('.') for part in path.split('/')[2:]))
+    allowed = guide or path in ('README.md', 'docs/KDD-PARA-PERSONAS.md')
+    return allowed and all(
+        side is not None and side['mode'] == '100644'
+        for side in (change['before'], change['after']))
+
+
+def inspect_small_change(repo_root, base_ref, candidate_ref, editorial_only=False):
+    """Classify an editorial candidate without granting approval."""
+    if type(editorial_only) is not bool:
+        _reject('REVIEW_SCHEMA', 'editorial_only must be a boolean')
+    result = inspect_change(repo_root, base_ref, candidate_ref)
+    # Read the original parent headers so grafts cannot hide intervening commits.
+    commit = _git(repo_root, 'cat-file', 'commit', result['candidate_commit'])
+    headers = commit.partition(b'\n\n')[0].split(b'\n')
+    parents = [line for line in headers if line.startswith(b'parent ')]
+    expected_parent = b'parent ' + result['base_commit'].encode('ascii')
+    changes = result['changes']
+    if parents != [expected_parent]:
+        reason = 'history'
+    elif not changes:
+        reason = 'empty_change'
+    elif result['risk_floor'] != 'low' or not all(map(_editorial_change, changes)):
+        reason = 'outside_scope'
+    elif not editorial_only:
+        reason = 'confirmation_required'
+    else:
+        return dict(result, route='lightweight', reason='editorial_only')
+    return dict(result, route='standard', reason=reason)
+
+
 def _keys(value, names, code='REVIEW_SCHEMA'):
     if not isinstance(value, dict) or set(value) != set(names.split()):
         _reject(code, 'unexpected or missing fields')
@@ -379,13 +413,23 @@ def main(argv=None):
     parser.add_argument('--repo-root', default='.')
     parser.add_argument('--base-ref', required=True)
     parser.add_argument('--candidate-ref', required=True)
-    parser.add_argument('--review')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--review')
+    mode.add_argument('--small-change', action='store_true',
+                      help='classify a candidate for the lightweight editorial workflow')
+    parser.add_argument('--editorial-only', action='store_true',
+                        help='confirm the scope and guarantees after reading the diff')
     args = parser.parse_args(argv)
+    if args.editorial_only and not args.small_change:
+        parser.error('--editorial-only requires --small-change')
     try:
         if args.review:
             with open(args.review, encoding='utf-8') as stream:
                 result = verify_review(args.repo_root, args.base_ref,
                                        args.candidate_ref, stream.read(262145))
+        elif args.small_change:
+            result = inspect_small_change(args.repo_root, args.base_ref,
+                                          args.candidate_ref, args.editorial_only)
         else:
             result = inspect_change(args.repo_root, args.base_ref, args.candidate_ref)
     except (ReviewError, OSError, UnicodeError) as error:

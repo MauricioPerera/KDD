@@ -44,3 +44,9 @@ antes de pedir la aprobacion del SHA. Presentar el registro de riesgo y su
 verificacion sobre el commit exacto; `review_ready` no es una aprobacion.
 Si faltan revisores o evidencia, reportarlo sin reemplazarlos por autorrevision.
 El protocolo conserva los perfiles historicos, runtime, gates y suites.
+
+## Cambios editoriales pequenos
+
+Aplicar el [flujo ligero](../knowledge/odd-lightweight.md) cuando el pedido,
+el diff y la evidencia breve permiten retomar el cambio. Los cambios de
+garantias siguen la revision y aprobacion del baseline.
