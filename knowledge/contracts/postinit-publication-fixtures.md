@@ -15,7 +15,7 @@ budget:
   lines_max: 100
   params_max: 4
 tests: tests/test_postinit_publication_fixtures.py
-tests_sha256: '2d0503df7c4de0cc8d776000c65f3d5bfd7b9ef4484bb2cb0be7d887168dfc66'
+tests_sha256: '7766876bdec62437223e692d97d07d6b188b4f6eb82ee70507e10590f4150133'
 oracle_files: ['tests/test_postinit_publication_fixtures.py', 'tests/test_fixture_preparation.py']
 touch_only: ['tests/test_task_git.py', 'tests/test_task_publication.py', 'tests/test_task_import_ancestry.py', 'tools/ci/postinit-module-order.json']
 deps_allowed: ['stdlib', 'test_fixture_preparation', 'task_git', 'task_model']
@@ -64,7 +64,7 @@ Actualizar las prioridades de Windows segun los perfiles registrados con el
 
 ## Tests
 Las integraciones nuevas cuentan los procesos de preparacion y verifican
-estado, aislamiento y limpieza con Git real. Los casos de publicacion y
+estado, objetos sin enlaces duros y limpieza ante fallos reales de Git o copia. Los casos de publicacion y
 ascendencia existentes comprueban el comportamiento de cada escenario.
 
 ## Constraints

@@ -31,10 +31,7 @@ class PublicationFixtureHeadroom(unittest.TestCase):
                     commands.append(event['argv'])
 
     @contextmanager
-    def cases(self, base, count=2):
-        class Fixture(base):
-            pass
-
+    def cases(self, Fixture, count=2):
         with ExitStack() as cleanup:
             cleanup.callback(Fixture.doClassCleanups)
             with self.trace() as setup:
@@ -84,8 +81,11 @@ class PublicationFixtureHeadroom(unittest.TestCase):
                     for repo in (a, b):
                         self.assertIsInstance(repo, test_task_git.Repository)
                         self.assertFalse((repo.root / '.git/objects/info/alternates').exists())
-                        for name in ('.git/config', '.git/index', 'src/value.py'):
-                            self.assertEqual((repo.root / name).stat().st_nlink, 1)
+                        original_commit = Path('.git/objects', repo.approved[:2], repo.approved[2:])
+                        self.assertEqual(repo.git('cat-file', '-t', repo.approved), 'commit')
+                        for name in (Path('.git/config'), Path('.git/index'), Path('src/value.py'),
+                                     original_commit):
+                            self.assertEqual((repo.root / name).stat().st_nlink, 1, name)
                     snapshot = (b.git('show-ref'), (b.root / '.git/index').read_bytes(),
                                 (b.root / 'src/value.py').read_bytes(), b.git('config', '--local', '--list'))
                     (a.root / 'src/value.py').write_text('fixture-private\n', encoding='utf-8')
@@ -116,6 +116,20 @@ class PublicationFixtureHeadroom(unittest.TestCase):
             self.assertEqual(sum('init' in argv for argv in setup), 1, setup)
             self.assertEqual(commands, [], commands)
             self.assertEqual(case.repo.git('branch', '--show-current'), 'feature')
+
+
+    def test_missing_source_fails_and_cleans_the_copy_destination(self):
+        seed = test_task_git.Repository()
+        self.addCleanup(seed.close)
+        copy = getattr(seed, 'independent_copy', None)
+        self.assertTrue(callable(copy))
+        seed.close()
+        owner = self.area / 'failed-copy'
+        owner.mkdir()
+        with patch.object(tempfile, 'tempdir', str(owner)):
+            with self.assertRaises(FileNotFoundError):
+                copy()
+        self.assertEqual(list(owner.iterdir()), [])
 
 
 if __name__ == '__main__':
