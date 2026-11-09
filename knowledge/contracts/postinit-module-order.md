@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: tests/test_ci_module_order.py
-tests_sha256: 'b7b326b45d6698305576fbcb8f70d18d024b7f4aa5a7fced79d4b5b6e98b0e8e'
+tests_sha256: '3455aa66dc065deb60ae7a3234ce7a897be4fa39d6c85fdfc1cf2c8fe57366fd'
 touch_only: ['scripts/init_post_apply_suite.py', 'tools/ci/postinit-module-order.json']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -26,7 +26,7 @@ Aplicar la [priorizacion medida](../postinit-module-order.md) mediante el
 ## Interface
 Windows agrega --module-order con la ruta de tools/ci/postinit-module-order.json
 relativa a la instalacion del lanzador, cuando ese archivo existe. Ubuntu
-conserva cuatro workers y el orden original. Windows conserva ocho workers.
+conserva cuatro workers y el orden original. Windows usa diez workers.
 Una instalacion sin el archivo opcional conserva la suite completa y su orden
 original; un perfil existente invalido falla, sin fallback silencioso.
 

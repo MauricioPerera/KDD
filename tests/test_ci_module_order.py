@@ -191,7 +191,7 @@ class ModuleOrder(unittest.TestCase):
     def test_launcher_without_optional_profile_keeps_the_complete_suite(self):
         self.launcher_files(self.root)
         report = self.complete(*self.invoke(launcher=True))
-        self.assertEqual(report['workers'], 8 if os.name == 'nt' else 4)
+        self.assertEqual(report['workers'], 10 if os.name == 'nt' else 4)
         self.assertEqual([m['module'] for m in report['modules']], ['test_a','test_b','test_c'])
 
     def test_invalid_existing_launcher_profile_fails_only_in_windows(self):

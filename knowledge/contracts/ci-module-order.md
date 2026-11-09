@@ -15,7 +15,7 @@ budget:
   lines_max: 180
   params_max: 5
 tests: tests/test_ci_module_order.py
-tests_sha256: 'b7b326b45d6698305576fbcb8f70d18d024b7f4aa5a7fced79d4b5b6e98b0e8e'
+tests_sha256: '3455aa66dc065deb60ae7a3234ce7a897be4fa39d6c85fdfc1cf2c8fe57366fd'
 touch_only: ['scripts/run_test_suite.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -36,7 +36,7 @@ Conservar por defecto el orden y la semantica existentes.
   origen. Priorizar coincidencias; conservar el orden relativo de los otros.
   Un nombre no descubierto se ignora y no se importa ni ejecuta por la lista.
 - Cada modulo conserva su proceso, cwd, entorno, fixtures y todos sus IDs.
-  Conservar el limite 1..8, deadlines, contencion y reconciliacion reales.
+  Conservar el limite 1..10, deadlines, contencion y reconciliacion reales.
 - Un perfil invalido, ilegible, con tipo distinto de array, nombres invalidos
   o duplicados falla con SUITE_ORDER antes de ejecutar casos. Una prioridad
   no vacia con workers1 falla; el modo serial ordinario no cambia.

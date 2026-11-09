@@ -34,7 +34,7 @@ conservando [validacion](../validacion.md) y [aprobacion](../quality-approval.md
   devuelve dict version1. La extension de [orden opt-in](ci-module-order.md)
   agrega prioridades sin cambiar inventarios, procesos ni el default serial.
 - CLI --start-directory (default tests), --pattern (default test_*.py),
-  --workers (entero1..8, default1) y --report-json PATH opcional.
+  --workers (entero1..10, default1) y --report-json PATH opcional.
   El cwd del hijo es el cwd original. Rutas con espacios/Unicode son validas.
 - workers1 ejecuta la suite completa con la semantica serial unittest.
   workers>1 descubre el inventario completo y despacha modulos completos
