@@ -971,7 +971,7 @@ def _scope_names(output, offset, width):
 def _scope_records(root, context):
     args = ('log', '--reverse', '--topo-order', '--format=%x00%H %P%x00',
             '--raw', '--no-abbrev', '-r', '-z', '--no-renames', '--no-ext-diff', '--no-textconv',
-            '--diff-merges=off', '--no-show-signature', '--no-notes', '--no-color',
+            '--diff-merges=first-parent', '--no-show-signature', '--no-notes', '--no-color',
             context.tested, '^' + context.base, '--')
     output, rows, offset = _output(root, args), {}, 0
     while offset < len(output):
@@ -1005,7 +1005,7 @@ def _scope_merge(rows, context):
             or set(rows) != set(owned) | set(public)):
         raise ValueError('unsupported scope graph')
     merge = merges[0]
-    if rows[merge][0][1] != context.tip or rows[merge][1]:
+    if rows[merge][0][1] != context.tip:
         raise ValueError('unrecognized scope integration')
     return owned, merge
 
@@ -1022,7 +1022,7 @@ def _batched_perimeter_paths(root, context):
         rows = _scope_records(root, context)
         owned, merge = _scope_merge(rows, context)
         changed = {name for ref in owned for name in rows[ref][1]}
-        changed.update(_perimeter_diff(root, rows[merge][0][0], merge))
+        changed.update(rows[merge][1])
         return changed
     except (TaskError, ValueError):
         # Unrecognized graphs and incomplete reads retain the original checks.
