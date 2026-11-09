@@ -62,5 +62,5 @@ errores, aborto, segunda invocacion y el lanzador post-init con/sin perfil.
 
 ## Constraints
 PARAR y reportar si falta baseline humano antes de implementar. El runtime final requiere revision del
-SHA y de sus seis hashes antes de registrarlo o publicarlo. No cambiar
+SHA y los hashes del manifiesto completo antes de registrarlo o publicarlo. No cambiar
 protecciones, timeout 600, presupuesto Git 62 ni las dos suites del workflow.

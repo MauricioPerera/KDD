@@ -58,5 +58,6 @@ anteriores conservan sus aserciones. El lanzador verifica el nuevo valor
 de Windows y el runner prueba once como primer valor fuera del rango.
 
 ## Constraints
-PARAR y reportar si falta el baseline, la revision exacta del cambio
-protegido o la revision del runtime confiable. La fusion exige evidencia.
+PARAR y reportar si falta el baseline aprobado. Revisar por separado el cambio
+protegido para KDD_TRUSTED_CHANGE_REVIEW y el SHA con su manifiesto completo
+para KDD_TRUSTED_RUNTIME_REF. La fusion exige evidencia.

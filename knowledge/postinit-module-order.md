@@ -26,8 +26,9 @@ contencion ni demuestra que el runner de GitHub cumpla 480 s.
 - [Orden opt-in](contracts/ci-module-order.md): ordenar exclusivamente jobs
   completos ya descubiertos; nunca seleccionar, omitir o importar por el perfil.
 - [Aplicacion post-init](contracts/postinit-module-order.md): datos opcionales
-  de prioridad solo en Windows, con ocho procesos. Ubuntu mantiene cuatro y
-  las dos suites generales mantienen sus comandos actuales.
+  de prioridad solo en Windows. El [ensayo de concurrencia](contracts/postinit-windows-concurrency.md)
+  define el perfil Windows. Ubuntu mantiene cuatro procesos y las dos suites
+  generales mantienen sus comandos actuales.
 
 El archivo de prioridad se deriva del promedio de duraciones de A1 y A2 del
 mismo f993e5e. Se puede regenerar con mediciones nuevas sin convertirlo en un
@@ -57,7 +58,7 @@ no permiten declarar el objetivo de 480 s sin las tres muestras completas.
 La [politica de calidad](quality-approval.md) exige revisar contratos y oraculos
 antes de implementar. El cambio de run_test_suite.py pertenece al bundle de
 [ejecucion confiable](contracts/ci-trusted-execution.md): presentar el SHA y los
-seis hashes finales para otra revision antes de registrar y publicar el runtime.
+hashes del manifiesto completo para otra revision antes de registrar y publicar el runtime.
 Conservar presupuesto Git 62, timeout 600, casos/aserciones, Ubuntu/Windows y
 ambas pasadas. El objetivo sigue requiriendo tres workflows completos y
 consecutivos del mismo head; las muestras fallidas permanecen en la evidencia.

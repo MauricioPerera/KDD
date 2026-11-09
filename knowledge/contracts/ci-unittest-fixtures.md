@@ -35,7 +35,8 @@ Extender [suite por procesos](ci-suite-processes.md) con el
 - En workers 1 y mayores, SkipTest de setUpClass, setUpModule o import conserva
   exito/omision de unittest. Un error de fixture o teardown conserva FAIL.
 - load_tests en modulo/paquete conserva FunctionTestCase, orden y hooks, workers
-  1..8; comparar descubrimiento del worker con el plan y fallar ante divergencia.
+  dentro del rango de la [suite por procesos](ci-suite-processes.md). Comparar
+  el discovery del worker con el plan y fallar ante divergencia.
 
 ## Invariants
 Cumplir [evidencia completa](../ci-audit-remediation.md). Suite vacia, abortos,
