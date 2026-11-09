@@ -196,6 +196,7 @@ jobs:
               raise SystemExit('FAIL: ' + str(error))
           with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
               output.write('KDD_APPROVED_BASELINE_REF=' + selected['baseline_ref'] + '\n')
+              output.write('KDD_ACCEPTANCE_APPROVED_REF=' + selected['baseline_ref'] + '\n')
               output.write('KDD_QUALITY_APPROVED_REF=' + (selected['quality_ref'] or '') + '\n')
           print(json.dumps(selected, sort_keys=True))
 
@@ -668,7 +669,6 @@ jobs:
         env:
           KDD_ACCEPTANCE_POLICY: ${{ inputs.acceptance_policy_path || 'acceptance.json' }}
           KDD_ACCEPTANCE_REQUIRED: ${{ inputs.acceptance_required || false }}
-          KDD_ACCEPTANCE_APPROVED_REF: ${{ inputs.approved_baseline_ref || vars.KDD_APPROVED_BASELINE_REF || '' }}
         run: |
           import os
           from pathlib import Path

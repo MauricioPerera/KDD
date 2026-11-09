@@ -1,0 +1,201 @@
+{
+  "record_kind": "documentary-observation",
+  "repository": "MauricioPerera/KDD",
+  "observed_at": "2026-11-09T02:02:10+00:00",
+  "main": {
+    "sha": "e9689aa4d903c87686f6b7a779ba9078d316b636",
+    "merged_pr": 171,
+    "original_commits": [
+      "669e1fe178323fdc5936600bf15ec6f80be09b6c",
+      "ee0d4e614dff81e09e971edbf727b7a3c0a31948",
+      "79aba0c339905a0714a33c8f061d0b85c1cff793"
+    ],
+    "approved_baseline": "ee0d4e614dff81e09e971edbf727b7a3c0a31948",
+    "trusted_runtime": "74d357f7099651b9b39dc8088f725183a672ec94",
+    "ci": {
+      "run_id": 42535919312,
+      "attempt": 1,
+      "conclusion": "success",
+      "url": "https://github.com/MauricioPerera/KDD/actions/runs/42535919312",
+      "contracts": 198,
+      "template_validated": true,
+      "product_quality_evaluated": false,
+      "acceptance_state": "NOT_EVALUATED",
+      "four_inventory_sha256": "c604648469c759d8f120ca0bea22bf9ed575ea5c764e4a913b4c1efb5f5809bf",
+      "platforms": {
+        "windows": {
+          "validate_job_id": 128900056762,
+          "validate_seconds": 2248.0,
+          "suite_passes": [
+            {
+              "tests_run": 2187,
+              "skipped": 9,
+              "duration_seconds": 538.5752592000001,
+              "ok": true
+            },
+            {
+              "tests_run": 2187,
+              "skipped": 9,
+              "duration_seconds": 543.5068284000001,
+              "ok": true
+            }
+          ],
+          "init_seconds": 486.52432289999996,
+          "postinit": {
+            "tests_run": 2083,
+            "modules": 192,
+            "skipped": 104,
+            "duration_seconds": 481.42920580000003
+          },
+          "board_job_id": 128900056594,
+          "board_cases_passed": 89,
+          "mcp_sdk_cases_passed": 8
+        },
+        "ubuntu": {
+          "validate_job_id": 128900056900,
+          "validate_seconds": 596.0,
+          "suite_passes": [
+            {
+              "tests_run": 2187,
+              "skipped": 10,
+              "duration_seconds": 164.043597557,
+              "ok": true
+            },
+            {
+              "tests_run": 2187,
+              "skipped": 10,
+              "duration_seconds": 163.80602668799997,
+              "ok": true
+            }
+          ],
+          "init_seconds": 169.897130973,
+          "postinit": {
+            "tests_run": 2083,
+            "modules": 192,
+            "skipped": 105,
+            "duration_seconds": 167.671938803
+          },
+          "board_job_id": 128900056778,
+          "board_cases_passed": 89,
+          "mcp_sdk_cases_passed": 8
+        }
+      }
+    },
+    "pages": {
+      "deployment_run_id": 42538987238,
+      "ci_run_id": 42535919312,
+      "url": "https://mauricioperera.github.io/KDD/",
+      "http_status": 200,
+      "published_test_ids": 2187,
+      "published_gates": 19,
+      "verified_public_files": 7,
+      "snapshot_sha256": "711f7240944b66aa23600e44a828e3609ce4e462d80aae693533984337973a8d"
+    },
+    "windows_performance": {
+      "threshold_seconds": 480,
+      "required_consecutive_same_sha": 3,
+      "latest_sample_seconds": 486.52432289999996,
+      "accepted": false
+    },
+    "complexity_diagnostic": {
+      "budget_excesses": 68,
+      "contracts_affected": 32
+    }
+  },
+  "audit": {
+    "sha": "e9689aa4d903c87686f6b7a779ba9078d316b636",
+    "existing_targeted_tests_passed": 10,
+    "probe_environment": "disposable Git repositories, local Windows",
+    "acceptance_routing": {
+      "observed_registry_ref": "ee0d4e614dff81e09e971edbf727b7a3c0a31948",
+      "observed_acceptance_ref": "034c9f3e93fc56e04f899c0cc3d993126e698fc6",
+      "approved_policy_removed": true,
+      "acceptance_required": false,
+      "registry_only_exit_code": 0,
+      "registry_only_state": "NOT_EVALUATED",
+      "selected_ref_exit_code": 1,
+      "selected_ref_state": "structure_invalid",
+      "selected_ref_error": "Protected file missing or symlink: acceptance.json",
+      "pr_guard_exercised": false
+    },
+    "oracle_strength": {
+      "undeclared_import": "audit_undeclared_dependency",
+      "state": "acceptance_approved",
+      "matrix": {
+        "oracle-integrity": "PASS",
+        "oracle-execution": "PASS",
+        "perimeter": "PASS",
+        "budget": "PASS",
+        "dependencies": "PASS",
+        "forbids": "PASS",
+        "invariants": "PASS",
+        "signature": "PASS"
+      },
+      "wrong_value_control_state": "structure_valid"
+    }
+  },
+  "odd_local": {
+    "head": "8a102badb7810bcf405885c8cc85a01a9d88239c",
+    "baseline": "f39220e9ea22b998f702ad4da12718c20e2f796f",
+    "runtime": "74d357f7099651b9b39dc8088f725183a672ec94",
+    "platforms": {
+      "windows": [
+        {
+          "pass_number": 1,
+          "ids": 2202,
+          "skips": 9,
+          "seconds": 627.1691935000126
+        },
+        {
+          "pass_number": 2,
+          "ids": 2202,
+          "skips": 9,
+          "seconds": 504.0815111999982
+        }
+      ],
+      "ubuntu": [
+        {
+          "pass_number": 1,
+          "ids": 2202,
+          "skips": 10,
+          "seconds": 156.9793136669905
+        },
+        {
+          "pass_number": 2,
+          "ids": 2202,
+          "skips": 10,
+          "seconds": 144.5864446950145
+        }
+      ]
+    },
+    "contracts": {
+      "windows_pass": 199,
+      "windows_retried": 12,
+      "ubuntu_pass": 199
+    },
+    "post_init_seconds": {
+      "windows": 429.70411859999876,
+      "ubuntu": 149.929326426005
+    },
+    "branch": "codex/odd-lightweight",
+    "published_pr": "https://github.com/MauricioPerera/KDD/pull/172",
+    "merged_sha": "159d9e1e5969acdeba3afae56fd51a546f50aefe",
+    "pr_ci": {
+      "run_id": 42549571792,
+      "attempt": 1,
+      "required_checks_passed": 5,
+      "suite_passes_per_os": 2,
+      "ids_per_pass": 2202,
+      "windows_init_seconds": 283.01086969999994
+    },
+    "prior_ids": 2187,
+    "new_integration_ids": 15,
+    "new_ids_skipped": 0,
+    "first_windows_attempt": {
+      "suite_1_failed": 12,
+      "suite_1_errors": 1,
+      "suite_2_interrupted": true,
+      "retry_python": "standalone CPython 3.11.15"
+    }
+  }
+}

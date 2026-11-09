@@ -7,12 +7,9 @@ tags: ['quality', 'baseline', 'board', 'integration']
 
 # Alcance definido antes de implementar
 
-La auditoria de main `71630f08229140c661e0c3b0ddd4412e06c6176e` reprodujo
-los tres defectos en Windows y Ubuntu. Esta rama implementa las garantias
-definidas abajo con el baseline aprobado
-`ee0d4e614dff81e09e971edbf727b7a3c0a31948`. Los resultados locales de verificacion
-se registran para el commit probado; no acreditan un CI remoto ni la integracion
-en main mientras no se publiquen y verifiquen por separado.
+La auditoría de `71630f0` reprodujo los tres defectos en Windows y Ubuntu.
+Las garantías se definieron antes de implementar y se congelaron en el
+baseline aprobado `ee0d4e614dff81e09e971edbf727b7a3c0a31948`.
 Aplicar la [aprobacion](quality-approval.md) y la
 [revision proporcional del candidato](baseline-risk-review.md) antes de adoptar
 el commit de contratos y oraculos.
@@ -57,11 +54,9 @@ Los casos nuevos cubren tambien binarios sin NUL y politicas JSON con CRLF.
 
 ## Perimetro y cierre
 
-Implementacion: scripts/verify_quality.py, scripts/quality_baseline.py y
-tools/kdd-board/src/server.ts. Las guias de calidad, Board y el nuevo corte de
-estado enlazan estas garantias y la evidencia que realmente haya terminado.
-No modificar workflows, locks, runtime confiable, protecciones ni registros
-externos en esta tarea. La publicacion y fusion no forman parte de este alcance.
+El cambio de producción se limitó a `scripts/verify_quality.py`,
+`scripts/quality_baseline.py` y `tools/kdd-board/src/server.ts`.
+Las guías de calidad y Board documentan las garantías de cada componente.
 
 Antes de implementar se exigieron: contratos validos, sellos exactos, fase roja equivalente
 en Windows/Ubuntu y copias inicializadas, inventario anterior conservado,
@@ -74,6 +69,14 @@ de mutacion pertinentes. Las pruebas Node de Board pueden omitirse unicamente
 en la copia Python inicializada que no incluye sus dependencias; en la plantilla
 deben ejecutarse y fallar si faltan esas dependencias.
 
-La deuda general de complejidad y la optimizacion del CI conservan su alcance
-separado. No elevar limites ni eliminar casos para presentar estas correcciones
-como completas.
+## Resultado integrado
+
+El PR #171 integró las tres correcciones en `e9689aa` con sus commits
+originales. El guard verificó la revisión externa exacta del cambio en
+`verify_quality.py` y el CI comprobó la selección del baseline aprobado.
+[PR #171](https://github.com/MauricioPerera/KDD/pull/171) ·
+[CI de main](https://github.com/MauricioPerera/KDD/actions/runs/42535919312)
+
+La regresión del SHA integrado pasó en Ubuntu y Windows. El corte vigente
+reúne los inventarios, la verificación de Pages y los resultados de
+rendimiento y complejidad. [Estado verificable de KDD](estado-actual-kdd.md)
