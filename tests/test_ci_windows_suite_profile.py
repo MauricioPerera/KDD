@@ -17,11 +17,28 @@ RUNTIME=('trusted_ci.py','run_test_suite.py','validate_test_commands.py','valida
 
 
 def copy_profile_source(destination):
+    from scripts.init_project import MANIFEST
+
     def ignore(directory,names):
         excluded={'.git','__pycache__','node_modules'}
         if Path(directory).name=='.agents':excluded.add('logs')
         return [name for name in names if name in excluded or name.endswith('.gate.md')]
-    shutil.copytree(ROOT,destination,ignore=ignore,dirs_exist_ok=True)
+
+    if any((ROOT / name).exists() for name in MANIFEST):
+        shutil.copytree(ROOT, destination, ignore=ignore, dirs_exist_ok=True)
+        return
+
+    dependencies = ('.github/workflows/validate.yml', 'tests/__init__.py',
+                    'tests/test_ci_windows_suite_profile.py', 'tests/test_fixture_preparation.py',
+                    'scripts/init_project.py', 'scripts/bootstrap_transaction.py',
+                    *('scripts/' + name for name in RUNTIME))
+    helper = 'tests/test_init_project.py'
+    if (ROOT / helper).is_file():
+        dependencies += (helper,)
+    for name in dependencies:
+        target = destination / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / name, target)
 
 
 def selected(name,platform='windows-latest',repository='MauricioPerera/KDD',reusable=False,explicit=''):
