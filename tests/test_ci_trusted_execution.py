@@ -16,19 +16,43 @@ FILES = ('trusted_ci.py', 'run_test_suite.py', 'validate_test_commands.py',
 
 
 class TrustedExecution(unittest.TestCase):
+    seed = None
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        seed = cls('runTest')
+        cls.addClassCleanup(seed.doCleanups)
+        seed.workspace()
+        seed.prepare()
+        cls.seed = seed.repo, seed.base
+        cls.addClassCleanup(setattr, cls, 'seed', None)
+
     def setUp(self):
+        self.workspace()
+        if self.seed is None:
+            self.prepare()
+            return
+        source, self.base = self.seed
+        self.repo.mkdir()
+        self.git('-c', 'core.autocrlf=false', 'clone', '-q', '--no-hardlinks', str(source), '.')
+        self.configure()
+
+    def workspace(self):
         case = tempfile.TemporaryDirectory(prefix='kdd trusted \u00f1 ')
         self.addCleanup(case.cleanup)
         self.outer = Path(case.name)
         self.repo = self.outer / 'candidate with spaces'
-        (self.repo / 'scripts').mkdir(parents=True)
-        (self.repo / 'tests').mkdir()
-        (self.repo / 'knowledge/contracts').mkdir(parents=True)
         self.env = dict(os.environ, PYTHONUTF8='1', GIT_CONFIG_NOSYSTEM='1',
                         GIT_CONFIG_GLOBAL=os.devnull)
         for key in ('GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR', 'PYTHONPATH'):
             self.env.pop(key, None)
         self.env['PATH'] = str(Path(sys.executable).parent) + os.pathsep + self.env.get('PATH', '')
+
+    def prepare(self):
+        (self.repo / 'scripts').mkdir(parents=True)
+        (self.repo / 'tests').mkdir()
+        (self.repo / 'knowledge/contracts').mkdir(parents=True)
         for name in FILES:
             source = ROOT / 'scripts' / name
             if source.is_file():
@@ -55,10 +79,13 @@ class TrustedExecution(unittest.TestCase):
             "## Do / Don't\nKeep assertions.\n## Tests\nReal oracle.\n"
             "## Constraints\nPARAR y reportar si no hay oracle.\n", encoding='utf-8')
         self.git('init', '-q', '-b', 'main')
+        self.configure()
+        self.base = self.commit('Reviewed runtime and oracle')
+
+    def configure(self):
         configure_git(self.repo, {'user.name': 'Fixture reviewer', 'user.email': 'reviewer@example.invalid',
             'core.autocrlf': 'false', 'commit.gpgsign': 'false',
             'maintenance.autoDetach': 'false', 'gc.autoDetach': 'false'}, ephemeral=True)
-        self.base = self.commit('Reviewed runtime and oracle')
 
     def run_command(self, argv, env=None):
         return subprocess.run(argv, cwd=self.repo, env=env or self.env,

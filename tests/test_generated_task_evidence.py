@@ -40,8 +40,9 @@ class TaskProject:
         if initialize:
             self.root.mkdir(parents=True, exist_ok=True)
             (self.root / 'scripts').mkdir(exist_ok=True)
-            for source in (ROOT / 'scripts').glob('*.py'):
-                shutil.copyfile(source, self.root / 'scripts' / source.name)
+            for name in (*TRUSTED_TASK_MODULES, 'tasks.py', 'verify_quality.py',
+                         'process_tree.py', 'oracle_inventory.py'):
+                shutil.copyfile(ROOT / 'scripts' / name, self.root / 'scripts' / name)
             self.write('.gitignore', '__pycache__/\n*.pyc\n.env.local\n.kdd-board/\n')
             self.write('knowledge/index.md', """---
 type: 'Concept'

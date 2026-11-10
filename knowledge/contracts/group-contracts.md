@@ -12,7 +12,7 @@ budget:
   cyclomatic_max: 20
   nesting_max: 4
 tests: 'tests/test_group_contracts.py'
-tests_sha256: 'b14c8f69cbd4baaae35fc3932fbe6bb9be99cac4632060290f9d59fd4de251e7'
+tests_sha256: '2f85ace51900bba420c0a041a56f32363a57e616df3badb2328b01f0644f323b'
 touch_only: ['scripts/group_contracts.py']
 deps_allowed: ['stdlib', 'scripts.validate_contracts', 'scripts.validate_test_commands']
 forbids: ['network', 'llm']
