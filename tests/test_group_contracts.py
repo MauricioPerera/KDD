@@ -25,10 +25,31 @@ def run(args, cwd):
 
 
 class GroupContractsIntegration(unittest.TestCase):
+    seed = None
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        directory = tempfile.TemporaryDirectory(prefix='kdd-group-seed-')
+        cls.addClassCleanup(directory.cleanup)
+        seed = cls('runTest')
+        seed.root = Path(directory.name)
+        seed.prepare()
+        cls.seed = seed.root, seed.approved
+        cls.addClassCleanup(setattr, cls, 'seed', None)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        if self.seed is None:
+            self.prepare()
+            return
+        source, self.approved = self.seed
+        self.git('-c', 'core.autocrlf=false', 'clone', '-q', '--no-hardlinks', str(source), '.')
+        configure_git(self.root, {'core.autocrlf': 'false'}, ephemeral=True)
+
+    def prepare(self):
         self.git('init', '-q')
         configure_git(self.root, {'core.autocrlf': 'false'}, ephemeral=True)
         self.write('.gitignore', 'events.log\n__pycache__/\n')
