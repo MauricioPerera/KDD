@@ -177,9 +177,16 @@ def _remember_blob_objects(root, revision, values, cache):
 def blobs(root, ref, names):
     if not names:
         return {}
-    revision = ref if _native_oid(root, ref) else commit_sha(root, ref)
     cache = _OBJECT_CACHE.get()
     names = list(dict.fromkeys(names))
+    if cache is None and len(names) == 1 and valid_sha(ref):
+        # Resolve and read this single path in the same fresh Git invocation.
+        # Non-commit objects and errors retain the original resolution path.
+        try:
+            return _batch_blobs(root, ref + '^{commit}', names)
+        except TaskError:
+            pass
+    revision = ref if _native_oid(root, ref) else commit_sha(root, ref)
     if cache is not None:
         _reuse_cached_blob_objects(root, revision, names, cache)
     missing = [name for name in names if cache is None or _key(root, 'blob', revision, name) not in cache]
