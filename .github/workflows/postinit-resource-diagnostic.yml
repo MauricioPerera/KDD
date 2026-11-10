@@ -1,4 +1,4 @@
-name: Windows post-init combined comparison
+name: Windows post-init critical path
 on:
   push:
     branches:
@@ -23,13 +23,6 @@ jobs:
         with:
           path: source
           ref: e07e404b4a8576f26cf9b6d3628f7ce5cd8ccaa8
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Checkout candidate SHA
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          path: candidate
-          ref: 5d06a7d643569a252b45d090cb189005c8061a1e
           fetch-depth: 0
           persist-credentials: false
       - name: Set up the measured Python
@@ -150,22 +143,9 @@ jobs:
           New-Item -ItemType Directory -Path $out -Force | Out-Null
           @{cpu=$env:PROCESSOR_IDENTIFIER; logical_cpus=[Environment]::ProcessorCount; image=$env:ImageVersion} |
             ConvertTo-Json | Set-Content -Encoding utf8 -LiteralPath (Join-Path $out 'environment.json')
-      - name: Measure baseline, first pair
-        if: ${{ !cancelled() && steps.runner-identity.outcome == 'success' }}
+      - name: Capture the ten-worker module timeline
         shell: pwsh
-        run: python ../control/.github/diagnostics/postinit_process_cost.py --source . --sha e07e404b4a8576f26cf9b6d3628f7ce5cd8ccaa8 --out (Join-Path $env:RUNNER_TEMP 'kdd-resource-evidence/A1') --official
-      - name: Measure candidate, first pair
-        if: ${{ !cancelled() && steps.runner-identity.outcome == 'success' }}
-        shell: pwsh
-        run: python ../control/.github/diagnostics/postinit_process_cost.py --source ../candidate --sha 5d06a7d643569a252b45d090cb189005c8061a1e --out (Join-Path $env:RUNNER_TEMP 'kdd-resource-evidence/B1') --official
-      - name: Measure candidate, second pair
-        if: ${{ !cancelled() && steps.runner-identity.outcome == 'success' }}
-        shell: pwsh
-        run: python ../control/.github/diagnostics/postinit_process_cost.py --source ../candidate --sha 5d06a7d643569a252b45d090cb189005c8061a1e --out (Join-Path $env:RUNNER_TEMP 'kdd-resource-evidence/B2') --official
-      - name: Measure baseline, second pair
-        if: ${{ !cancelled() && steps.runner-identity.outcome == 'success' }}
-        shell: pwsh
-        run: python ../control/.github/diagnostics/postinit_process_cost.py --source . --sha e07e404b4a8576f26cf9b6d3628f7ce5cd8ccaa8 --out (Join-Path $env:RUNNER_TEMP 'kdd-resource-evidence/A2') --official
+        run: python ../control/.github/diagnostics/postinit_timeline.py --source . --sha e07e404b4a8576f26cf9b6d3628f7ce5cd8ccaa8 --out (Join-Path $env:RUNNER_TEMP 'kdd-resource-evidence')
       - name: Upload diagnostic samples
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
