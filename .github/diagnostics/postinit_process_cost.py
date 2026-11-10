@@ -12,7 +12,7 @@ import threading
 
 from postinit_resource import check_report, load_module, require, save
 
-TARGETS = {'test_task_committed_artifacts', 'test_traceability_git', 'test_task_operation_controls'}
+TARGETS = {'test_task_committed_artifacts', 'test_traceability_git', 'test_task_operation_controls', 'test_validate_change_contract'}
 
 
 def stamp():
