@@ -15,7 +15,7 @@ budget:
   lines_max: 40
   params_max: 1
 tests: tests/test_postinit_initialized_profile_copy.py
-tests_sha256: 'b7478041d0b2748ecd6287de8b7f33e88373963dfa8b2c33d4a7d38019626009'
+tests_sha256: '762f4917e9af5e25b20f8d469c279feb75627e583b728ac6adf411dda3720f90'
 touch_only: ['tests/test_ci_windows_suite_profile.py']
 deps_allowed: ['stdlib', 'scripts']
 forbids: ['network', 'llm']
@@ -43,7 +43,8 @@ recursion pueda retirarlo.
   No compartir archivos modificables ni resultados entre invocaciones.
 - Un archivo requerido ausente en el origen se detecta al copiar.
 - La ruta de plantilla completa sigue ejecutando `init-project --apply`.
-  Una plantilla parcial conserva las entradas que existian.
+  Una plantilla parcial conserva las entradas que existian. Una entrada rota
+  usa el recorrido completo y mantiene su error.
 - Los doce metodos, sus aserciones y los procesos internos del oraculo
   anterior se conservan. Los dos controles de copia ejecutan el mismo
   conjunto interno de diez pruebas con sus seis procesos reales.
@@ -66,7 +67,7 @@ recursion pueda retirarlo.
 ## Tests
 
 Las pruebas de copia comprueban bytes, independencia, manifiesto parcial,
-exclusiones y fallo por dependencia ausente. El oraculo anterior sigue
+exclusiones, entrada rota y fallo por dependencia ausente. El oraculo anterior sigue
 ejecutando los procesos reales, sus dos invocaciones, el caso de fallo y la
 copia sin Git desde una plantilla y desde un proyecto inicializado.
 

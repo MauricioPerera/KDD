@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_ci_windows_suite_profile.py
-tests_sha256: '502583b70981b802a7deb963a8b11e3cd89e3f800227438578464833391bff84'
+tests_sha256: '6cba02bf87ac95f49a4c08e0131f416d247908f1d4dc567072b7c2414a9b21c2'
 touch_only: ['.github/workflows/validate.yml']
 deps_allowed: ['stdlib', 'git']
 forbids: ['llm']

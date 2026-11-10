@@ -24,7 +24,7 @@ def copy_profile_source(destination):
         if Path(directory).name=='.agents':excluded.add('logs')
         return [name for name in names if name in excluded or name.endswith('.gate.md')]
 
-    if any((ROOT / name).exists() for name in MANIFEST):
+    if any(os.path.lexists(ROOT / name) for name in MANIFEST):
         shutil.copytree(ROOT, destination, ignore=ignore, dirs_exist_ok=True)
         return
 
@@ -33,12 +33,12 @@ def copy_profile_source(destination):
                     'scripts/init_project.py', 'scripts/bootstrap_transaction.py',
                     *('scripts/' + name for name in RUNTIME))
     helper = 'tests/test_init_project.py'
-    if (ROOT / helper).is_file():
+    if os.path.lexists(ROOT / helper):
         dependencies += (helper,)
     for name in dependencies:
         target = destination / name
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(ROOT / name, target)
+        shutil.copyfile(ROOT / name, target)
 
 
 def selected(name,platform='windows-latest',repository='MauricioPerera/KDD',reusable=False,explicit=''):

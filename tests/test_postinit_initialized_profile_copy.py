@@ -1,5 +1,6 @@
 """Check the bounded profile fixture without replacing any of its real runs."""
 
+import os
 from pathlib import Path
 import shutil
 import tempfile
@@ -8,6 +9,7 @@ from unittest.mock import patch
 
 from scripts.init_project import MANIFEST
 from tests import test_ci_windows_suite_profile as profile
+from tests.test_fixture_preparation import directory_alias
 
 
 REQUIRED = (
@@ -73,6 +75,19 @@ class InitializedProfileCopy(unittest.TestCase):
         for name in ('.git', 'node_modules', '.agents/logs'):
             with self.subTest(path=name):
                 self.assertFalse((project / name).exists())
+
+    def test_dangling_manifest_entry_uses_the_full_copy_and_fails(self):
+        target = self.area / 'existing-target'
+        target.mkdir()
+        link = self.source / MANIFEST[0]
+        link.parent.mkdir(parents=True, exist_ok=True)
+        directory_alias(link, target, self.area)
+        self.addCleanup(link.rmdir if os.name == 'nt' else link.unlink)
+        target.rmdir()
+        self.assertTrue(os.path.lexists(link))
+        self.assertFalse(link.exists())
+        with self.assertRaises(shutil.Error):
+            self.copy('broken-template')
 
     def test_missing_required_file_in_initialized_source_fails_explicitly(self):
         for name in REQUIRED[1:]:
