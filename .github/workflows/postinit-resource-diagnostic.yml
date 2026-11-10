@@ -1,4 +1,4 @@
-name: Windows post-init process profile
+name: Windows post-init process comparison
 on:
   push:
     branches:
@@ -23,6 +23,13 @@ jobs:
         with:
           path: source
           ref: e07e404b4a8576f26cf9b6d3628f7ce5cd8ccaa8
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Checkout candidate SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: candidate
+          ref: ddfdbf3652b4ee9978d229eec18501eaa9ca4d73
           fetch-depth: 0
           persist-credentials: false
       - name: Set up the measured Python
@@ -135,23 +142,43 @@ jobs:
               directory.rmdir()
               raise
           print('KDD_WINDOWS_TEMP ' + json.dumps({'runner_temp': base.as_posix(), 'test_temp': directory.as_posix()}))
-      - name: Measure Windows process trees
+      - name: Compare baseline and candidate on one Windows runner
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $out = Join-Path $env:RUNNER_TEMP 'kdd-resource-evidence'
-          $trace = Join-Path $env:RUNNER_TEMP 'kdd-process-cost.etl'
-          $session = 'KDDProcessCost'
-          logman start $session -p Microsoft-Windows-Kernel-Process 0x10 5 -nb 32 128 -bs 64 -o $trace -ets
-          if ($LASTEXITCODE -ne 0) { throw 'Unable to start ETW trace' }
-          try {
-            python ../control/.github/diagnostics/postinit_process_cost.py --source . --sha e07e404b4a8576f26cf9b6d3628f7ce5cd8ccaa8 --out $out
-            if ($LASTEXITCODE -ne 0) { throw 'Profile run failed' }
-          } finally {
-            logman stop $session -ets
-            if ($LASTEXITCODE -ne 0) { throw 'Unable to flush ETW trace' }
+          New-Item -ItemType Directory -Path $out -Force | Out-Null
+          @{cpu=$env:PROCESSOR_IDENTIFIER; logical_cpus=[Environment]::ProcessorCount; image=$env:ImageVersion} |
+            ConvertTo-Json | Set-Content -Encoding utf8 -LiteralPath (Join-Path $out 'environment.json')
+
+          function Measure-Tree($name, $source, $sha) {
+            $phase = Join-Path $out $name
+            $trace = Join-Path $env:RUNNER_TEMP ($name + '.etl')
+            $session = 'KDDProcessCost-' + $name
+            logman start $session -p Microsoft-Windows-Kernel-Process 0x10 5 -nb 32 128 -bs 64 -o $trace -ets
+            if ($LASTEXITCODE -ne 0) { throw 'Unable to start ETW trace' }
+            try {
+              python ../control/.github/diagnostics/postinit_process_cost.py --source $source --sha $sha --out $phase
+              if ($LASTEXITCODE -ne 0) { throw 'Profile run failed' }
+            } finally {
+              logman stop $session -ets
+              if ($LASTEXITCODE -ne 0) { throw 'Unable to flush ETW trace' }
+            }
+            & ../control/.github/diagnostics/collect_process_cost.ps1 -Trace $trace -Evidence (Join-Path $phase 'profile.json')
           }
-          & ../control/.github/diagnostics/collect_process_cost.ps1 -Trace $trace -Evidence (Join-Path $out 'profile.json')
+
+          function Measure-Official($name, $source, $sha) {
+            $phase = Join-Path $out $name
+            python ../control/.github/diagnostics/postinit_process_cost.py --source $source --sha $sha --out $phase --official
+            if ($LASTEXITCODE -ne 0) { throw 'Official init command failed' }
+          }
+
+          $baseline = 'e07e404b4a8576f26cf9b6d3628f7ce5cd8ccaa8'
+          $candidate = 'ddfdbf3652b4ee9978d229eec18501eaa9ca4d73'
+          Measure-Tree 'A-profile' '.' $baseline
+          Measure-Tree 'B-profile' '../candidate' $candidate
+          Measure-Official 'B-official' '../candidate' $candidate
+          Measure-Official 'A-official' '.' $baseline
       - name: Upload diagnostic samples
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9

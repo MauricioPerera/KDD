@@ -63,16 +63,42 @@ def observe(runner):
     return records
 
 
+def official(source, out, actual):
+    containment = load_module(source / 'scripts/process_tree.py')
+    started = time.perf_counter()
+    run = containment.run([sys.executable, '-m', 'unittest', 'tests/test_init_project.py'],
+                          cwd=source, timeout=600, capture_output=True)
+    elapsed = time.perf_counter() - started
+    stdout = run.stdout.decode('utf-8', errors='replace')
+    if run.returncode:
+        print(stdout[-4000:], run.stderr.decode('utf-8', errors='replace')[-4000:], flush=True)
+        raise RuntimeError(f'init-project command exited {run.returncode}')
+    prefix = 'KDD_POST_INIT_PROFILE '
+    rows = [json.loads(line[len(prefix):]) for line in stdout.splitlines() if line.startswith(prefix)]
+    summary, = (item for item in rows if item['kind'] == 'summary')
+    require((summary['workers'], summary['tests_run'], summary['modules'], summary['skipped'],
+             summary['fixture_omitted_count']) == (10, 2130, 199, 104, 0), 'official inventory changed')
+    modules = {item['module']: item['duration_seconds'] for item in rows if item['kind'] == 'module'}
+    require(len(modules) == 199, 'missing module durations')
+    save(out / 'official.json', {'sha': actual, 'init_seconds': elapsed, 'summary': summary,
+                                 'module_seconds': modules})
+    print(f'OFFICIAL sha={actual} init={elapsed:.3f} suite={summary["duration_seconds"]:.3f}', flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--sha', required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--official', action='store_true')
     args = parser.parse_args()
     source, out = args.source.resolve(strict=True), args.out.resolve()
     actual = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip()
     require(actual == args.sha, 'unexpected checkout revision')
     out.mkdir(parents=True, exist_ok=True)
+    if args.official:
+        official(source, out, actual)
+        return
     sys.path.insert(0, str(source))
     fixture = load_module(source / 'tests/test_init_project.py')
     with tempfile.TemporaryDirectory(prefix='kdd-process-cost-') as scratch:
