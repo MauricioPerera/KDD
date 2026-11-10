@@ -271,6 +271,7 @@ def main():
                 time.sleep(8)
             save(out / 'smoke.json', monitor.result())
         return
+    sys.path.insert(0, str(source))
     fixture = load_module(source / 'tests/test_init_project.py')
     process_tree = load_module(source / 'scripts/process_tree.py')
     phases = []
