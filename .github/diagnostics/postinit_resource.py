@@ -198,7 +198,7 @@ def check_report(path, workers):
             'executed IDs differ from discovery')
     return {'suite_seconds': report['duration_seconds'], 'executed_sha256': digest(ids),
             'skip_sha256': digest(row['id'] for row in report['skipped']),
-            'pass_sha256': digest(row['id'] for row in report['passed']),
+            'expected_failure_sha256': digest(row['id'] for row in report['expected_failures']),
             'module_order_sha256': report['scheduling']['profile_sha256'],
             'module_sequence_sha256': hashlib.sha256('\n'.join(report['scheduling']['modules']).encode()).hexdigest(),
             'modules': {m['module']: m['duration_seconds'] for m in report['modules']},
@@ -275,7 +275,7 @@ def main():
     fixture = load_module(source / 'tests/test_init_project.py')
     process_tree = load_module(source / 'scripts/process_tree.py')
     phases = []
-    identity = ('executed_sha256', 'skip_sha256', 'pass_sha256', 'module_order_sha256', 'module_sequence_sha256')
+    identity = ('executed_sha256', 'skip_sha256', 'expected_failure_sha256', 'module_order_sha256', 'module_sequence_sha256')
     for index, workers in enumerate(ORDER, 1):
         phase = run_phase(fixture, process_tree, source, out, index, workers)
         if phases:
