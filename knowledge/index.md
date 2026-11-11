@@ -15,6 +15,10 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Estado verificable de KDD](./estado-actual-kdd.md) — capacidades integradas, evidencia de main/Pages, pendientes vigentes y cortes historicos.
 - [Piloto de KDD como complemento](./piloto-kdd-complemento.md) — instalación y release 1.1.0, validador fijado y política de calidad verificada en Ubuntu y Windows.
 - [Instalación reutilizable de KDD](./contracts/reusable-kdd-adoption.md)
+- [Referencia aprobada de calidad](./contracts/adoption-quality-reference.md)
+- [Validación confiable de PR del consumidor](./contracts/adoption-trusted-pr.md)
+- [Preparación de proyectos Python existentes](./contracts/adoption-python-preparation.md)
+- [Verificación y actualización del pin del validador](./contracts/adoption-validator-pin-lifecycle.md)
 - [Calidad de producto desde el arranque](./bootstrap-product-quality-ci.md) — CI obligatorio sobre politica propia y referencia revisada.
 - [Optimizacion de CI](./contracts/ci-execution-deduplication.md) — agrupacion local de comandos identicos, concurrencia de PR y medicion antes/despues.
 - [Tareas con Git](./git-tasks.md) — CLI local, nodos Task y estados registrados por commits en main.
