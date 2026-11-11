@@ -16,3 +16,20 @@ Use this skill for KDD repositories and task contracts.
 Use the repository's own approved tools only when they are already available in
 the user's environment. Do not configure a relay or lifecycle delivery from
 this package.
+
+## Adopt validation in an existing Python repository
+
+When a reviewed KDD checkout containing the adoption CLI is available, prepare the
+consumer's OKF index and approved contracts first. Use Python 3.11 and Git.
+
+Run the CLI from that KDD checkout with an explicit consumer root, contract
+directory and full reviewed KDD commit SHA. Start with the read-only plan.
+
+```text
+python scripts/adopt_project.py --repo-root CONSUMER --contracts-dir knowledge/contracts --validator-commit KDD_COMMIT_SHA --plan
+```
+
+After the user accepts those three file additions, use the same command with
+`--apply`. From the consumer root, run `python .kdd/validate.py`. The project's
+lock selects the KDD scripts used by the terminal, this skill and its generated
+GitHub Actions workflow. Report the actual `KDD_PILOT` record and exit code.
