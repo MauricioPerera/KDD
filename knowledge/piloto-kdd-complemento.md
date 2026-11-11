@@ -110,6 +110,11 @@ independiente la referencia de la demo original.
 
 ## Alcance del resultado
 
+Para nuevas adopciones, la [guía de instalación](../tools/kdd-adoption/README.md)
+describe cómo revisar el commit del consumidor, configurar el control de PR y
+preparar Python. También documenta la actualización y reversión del pin y la
+migración desde una referencia histórica de calidad.
+
 La evidencia de 1.1.0 cubre una instalación y actualización comprobadas con
 Codex CLI, y el caso de una política activa sobre el SHA del consumidor indicado.
 El lanzador selecciona la etapa de calidad cuando el proyecto tiene una
