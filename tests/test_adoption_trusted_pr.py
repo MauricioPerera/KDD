@@ -1,5 +1,8 @@
 """Execute the generated PR step against independent consumer revisions."""
 import hashlib
+import os
+from pathlib import Path
+import shutil
 import unittest
 
 import yaml
@@ -112,6 +115,15 @@ class TrustedAdoptionPullRequestTests(AdoptionIntegration, unittest.TestCase):
         self.assertIn(".kdd/validator.lock", run.stdout + run.stderr)
         self.assertFalse((self.root.parent / "oracle-executed").exists())
 
+    def test_independent_workflow_rejects_candidate_workflow_replacement(self):
+        path = ".github/workflows/kdd-validate.yml"
+        self.write(path, b"name: Candidate replacement\non: [pull_request]\n")
+        self.commit("Replace the checkout copy of the workflow")
+        run = self.run_step(self.approved)
+        self.assertNotEqual(run.returncode, 0, run.stdout + run.stderr)
+        self.assertIn(path, run.stdout + run.stderr)
+        self.assertFalse((self.root.parent / "oracle-executed").exists())
+
     def test_candidate_cannot_modify_an_inventoried_helper(self):
         marker = self.root.parent / "modified-helper-ran"
         self.write("tests/__init__.py",
@@ -120,6 +132,37 @@ class TrustedAdoptionPullRequestTests(AdoptionIntegration, unittest.TestCase):
         run = self.run_step(self.approved)
         self.assertNotEqual(run.returncode, 0, run.stdout + run.stderr)
         self.assertIn("tests/__init__.py", run.stdout + run.stderr)
+        self.assertFalse(marker.exists())
+        self.assertFalse((self.root.parent / "oracle-executed").exists())
+
+    def test_candidate_git_executable_is_not_resolved_from_checkout(self):
+        if os.name == "nt":
+            system_tool = Path(os.environ["SystemRoot"]) / "System32/findstr.exe"
+            shutil.copyfile(system_tool, self.root / "git.exe")
+        else:
+            self.write("git", b"#!/bin/sh\nprintf 'candidate git ran'\nexit 9\n")
+            (self.root / "git").chmod(0o755)
+        self.commit("Introduce a decoy Git executable in the candidate root")
+        run = self.run_step(self.approved)
+        self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+        self.assertEqual(self.evidence(run)["verified_kdd_sha"], self.first)
+        self.assertEqual(self.evidence(run)["oracle_passes"], [1, 1])
+
+    def test_historical_free_command_is_rejected_before_execution(self):
+        marker = self.root.parent / "free-command-ran"
+        self.write("legacy_hook.py",
+                   ("from pathlib import Path\nPath(" + repr(str(marker)) + ").touch()\n").encode())
+        path = "knowledge/contracts/label.md"
+        old = (self.root / path).read_bytes()
+        updated = old.replace(b"test_runner: python-unittest\n", b"").replace(
+            b"oracle_files: ['tests/test_product.py', 'tests/__init__.py']\n", b"").replace(
+            b"python -m unittest tests/test_product.py", b"python legacy_hook.py")
+        self.assertNotEqual(old, updated)
+        self.write(path, updated)
+        approved = self.commit("Register a historical unmanaged contract")
+        run = self.run_step(approved)
+        self.assertNotEqual(run.returncode, 0, run.stdout + run.stderr)
+        self.assertIn("python-unittest", run.stdout + run.stderr)
         self.assertFalse(marker.exists())
         self.assertFalse((self.root.parent / "oracle-executed").exists())
 

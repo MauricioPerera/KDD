@@ -15,7 +15,7 @@ budget:
   cyclomatic_max: 12
   nesting_max: 3
 tests: tests/test_adoption_quality_reference.py
-tests_sha256: 'c690d712b4fc6331b197275b8fff13a217f7add1e1069d451919e3db3c0179c0'
+tests_sha256: 'bdb3d4d153ea9c82874747489b0fca54ca4fb066c050a59ec3a57118d81d6582'
 touch_only: ['tools/kdd-adoption/validate.py', 'tools/kdd-adoption/README.md']
 deps_allowed: ['stdlib', 'git']
 forbids: ['llm']
@@ -40,7 +40,8 @@ ese commit. Registra la referencia efectiva en `KDD_PILOT` tras aprobarla.
   fallan en `quality` antes de ejecutar el oráculo. Git ignora reemplazos.
 - El verificador fijado conserva sus dos pasadas y la protección del perímetro.
   Un borrado en el índice, directorio de trabajo o commit se rechaza incluso
-  cuando los tests de producto todavía pasan.
+  cuando los tests de producto todavía pasan o el índice y el checkout
+  recuperan los bytes aprobados tras un borrado confirmado.
 - Sin referencia de calidad, una política detectada en el checkout, su HEAD
   o la referencia aprobada de adopción exige aprobación de calidad. Un
   consumidor sin política puede usar el flujo piloto.

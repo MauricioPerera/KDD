@@ -37,6 +37,15 @@ class ApprovedAdoptionQualityTests(AdoptionIntegration, unittest.TestCase):
         self.commit("Remove policy from candidate")
         self.check_quality(approved, False)
 
+    def test_restored_worktree_does_not_hide_policy_deletion_from_head(self):
+        approved = self.approved_quality()
+        original = (self.root / POLICY).read_bytes()
+        self.git("rm", "--", POLICY)
+        self.commit("Remove policy from candidate")
+        self.write(POLICY, original)
+        self.git("add", "--", POLICY)
+        self.check_quality(approved, False)
+
     def test_approved_reference_without_policy_fails(self):
         self.install()
         approved = self.commit("Consumer without a quality policy")
