@@ -13,7 +13,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contrato de barrera de terminacion](./contracts/process-exit-barrier.md)
 - [Coste de lectura del historial](./task-history-read-cost.md) — propuesta de cache por operacion y padres por lote, conservando la auditoria completa.
 - [Estado verificable de KDD](./estado-actual-kdd.md) — capacidades integradas, evidencia de main/Pages, pendientes vigentes y cortes historicos.
-- [Piloto de KDD como complemento](./piloto-kdd-complemento.md) — un contrato en un repositorio existente con el mismo SHA del validador en Codex, terminal y Actions.
+- [Piloto de KDD como complemento](./piloto-kdd-complemento.md) — instalación y release 1.1.0, validador fijado y política de calidad verificada en Ubuntu y Windows.
 - [Instalación reutilizable de KDD](./contracts/reusable-kdd-adoption.md)
 - [Calidad de producto desde el arranque](./bootstrap-product-quality-ci.md) — CI obligatorio sobre politica propia y referencia revisada.
 - [Optimizacion de CI](./contracts/ci-execution-deduplication.md) — agrupacion local de comandos identicos, concurrencia de PR y medicion antes/despues.

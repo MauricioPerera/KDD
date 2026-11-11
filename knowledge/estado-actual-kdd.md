@@ -13,7 +13,7 @@ Actualmente dispone de una plantilla inicializable, validadores, una CLI de
 tareas y KDD-Board integrados con Git. El flujo se ha comprobado desde un
 proyecto vacío hasta su calidad de producto en CI.
 
-El [piloto de KDD como complemento](piloto-kdd-complemento.md) verificó otra vía de adopción en un repositorio Python existente. Codex, la terminal y GitHub Actions ejecutaron un contrato con el mismo SHA fijado de KDD y detectaron la misma regresión.
+El complemento KDD for Codex 1.1.0 se distribuye por Git y ZIP. El piloto de adopción verificó un mismo SHA del validador en Codex, la terminal y GitHub Actions. Una demo posterior verificó calidad activa en Ubuntu y Windows con dos pasadas de sus cuatro comandos y 22 casos de slugs por sistema. [Instalación, release y evidencia](piloto-kdd-complemento.md)
 
 ## Corte integrado del 8 de noviembre de 2026 en e9689aa
 
