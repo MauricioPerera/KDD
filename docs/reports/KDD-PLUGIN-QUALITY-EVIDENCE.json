@@ -1,0 +1,64 @@
+{
+  "repository": "MauricioPerera/kdd-plugin-quality-e2e",
+  "head": "5db0353524d3f0ff89cc698c4c889f1f225d563c",
+  "run": 43031606724,
+  "attempt": 1,
+  "matrix": {
+    "ubuntu-latest": {
+      "url": "https://github.com/MauricioPerera/kdd-plugin-quality-e2e/actions/runs/43031606724/job/130559791070",
+      "job": 130559791070,
+      "quality_checks_twice": [
+        "contracts",
+        "functional",
+        "adversarial",
+        "cli"
+      ],
+      "result": {
+        "consumer_sha": "5db0353524d3f0ff89cc698c4c889f1f225d563c",
+        "contracts": [
+          {
+            "path": "knowledge/contracts/plugin-adoption/slug-adoption-quality.md",
+            "sha256": "5e07db0c7eaa7c570d28acbb8537f1deb2a01a6de6878cccdcb17ab731e9dcc1"
+          }
+        ],
+        "contracts_dir": "knowledge/contracts/plugin-adoption",
+        "dirty": false,
+        "executed_tests": 22,
+        "python": "3.11.18",
+        "quality_approved_ref": "5db0353524d3f0ff89cc698c4c889f1f225d563c",
+        "requested_kdd_sha": "ef5e1efab8e8cf99bb1060b07afab286f2f63f22",
+        "result": "pass",
+        "stage": "complete",
+        "verified_kdd_sha": "ef5e1efab8e8cf99bb1060b07afab286f2f63f22"
+      }
+    },
+    "windows-latest": {
+      "url": "https://github.com/MauricioPerera/kdd-plugin-quality-e2e/actions/runs/43031606724/job/130559791370",
+      "job": 130559791370,
+      "quality_checks_twice": [
+        "contracts",
+        "functional",
+        "adversarial",
+        "cli"
+      ],
+      "result": {
+        "consumer_sha": "5db0353524d3f0ff89cc698c4c889f1f225d563c",
+        "contracts": [
+          {
+            "path": "knowledge/contracts/plugin-adoption/slug-adoption-quality.md",
+            "sha256": "5e07db0c7eaa7c570d28acbb8537f1deb2a01a6de6878cccdcb17ab731e9dcc1"
+          }
+        ],
+        "contracts_dir": "knowledge/contracts/plugin-adoption",
+        "dirty": false,
+        "executed_tests": 22,
+        "python": "3.11.9",
+        "quality_approved_ref": "5db0353524d3f0ff89cc698c4c889f1f225d563c",
+        "requested_kdd_sha": "ef5e1efab8e8cf99bb1060b07afab286f2f63f22",
+        "result": "pass",
+        "stage": "complete",
+        "verified_kdd_sha": "ef5e1efab8e8cf99bb1060b07afab286f2f63f22"
+      }
+    }
+  }
+}
