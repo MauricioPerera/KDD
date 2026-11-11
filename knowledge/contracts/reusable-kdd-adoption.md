@@ -1,0 +1,64 @@
+---
+type: 'Task Contract'
+title: 'Instalación reutilizable de KDD en repositorios existentes'
+description: 'Instala el validador fijado de KDD con un plan reversible y repetible.'
+tags: ['adoption', 'plugin', 'git', 'validation']
+task: reusable-kdd-adoption
+intent: 'Incorporar la validación KDD a un repositorio Python existente.'
+target: 'scripts/adopt_project.py'
+signature: 'def main(argv=None) -> int:'
+test_command: 'python -m unittest tests/test_adopt_project.py'
+test_runner: python-unittest
+oracle_files: ['tests/test_adopt_project.py', 'tests/__init__.py', 'tools/context-v03/requirements.txt', 'scripts/validate_contracts.py', 'scripts/validate_okf.py', 'scripts/validate_test_commands.py', 'scripts/oracle_execution.py', 'scripts/oracle_inventory.py', 'scripts/validation_runtime.py', 'scripts/process_tree.py', 'scripts/unittest_oracle_runner.py']
+budget:
+  cyclomatic_max: 12
+  nesting_max: 3
+tests: 'tests/test_adopt_project.py'
+tests_sha256: '9e3a4e8ce1cfdbb56d3e60bacebc5ad96f5aab0e1a3a9763726fba23bf9b9eb5'
+touch_only: ['scripts/adopt_project.py', 'tools/kdd-adoption/**', 'plugins/kdd-codex/skills/kdd-workflow/SKILL.md', 'plugins/kdd-codex/README.md']
+deps_allowed: ['git']
+forbids: ['llm']
+---
+
+# Instalación reutilizable de KDD
+
+## Intent
+
+Convertir el [piloto](../piloto-kdd-complemento.md) en un paso de adopción que el responsable pueda previsualizar y repetir. El proyecto ya tiene Git, un índice OKF y un directorio explícito de contratos preparados por el responsable. Los contratos, los oráculos y el CI existente pertenecen al proyecto.
+
+## Interface
+
+```text
+python scripts/adopt_project.py --repo-root RUTA --contracts-dir knowledge/contracts --validator-commit SHA --plan
+python scripts/adopt_project.py --repo-root RUTA --contracts-dir knowledge/contracts --validator-commit SHA --apply
+```
+
+El plan enumera, en JSON, las rutas relativas en `create` y `keep` con estado `planned`. La aplicación devuelve las mismas listas con estado `applied`, o `unchanged` si no creó archivos. Las rutas están ordenadas. Los errores devuelven un código distinto de cero y un diagnóstico que empieza con `ADOPTION_`.
+
+El perímetro de escritura son tres archivos de texto. El lock `.kdd/validator.lock` contiene el SHA completo del validador. El lanzador `.kdd/validate.py` fija el directorio de contratos solicitado. El workflow `.github/workflows/kdd-validate.yml` invoca `python .kdd/validate.py` con Python 3.11 en Ubuntu y Windows sobre el commit del evento de push, con permisos de lectura. La skill de Codex guía al responsable para ejecutar el plan y después el mismo comando del proyecto.
+
+## Invariants
+
+- El destino es la raíz física de un repositorio Git con historial. El directorio de contratos es relativo, está bajo `knowledge/contracts`, contiene al menos un contrato real en ese directorio exacto y tiene un índice OKF existente. Los caminos deben mantenerse dentro del repositorio.
+- `--plan` deja intacto el árbol de trabajo. `--apply` conserva los archivos coincidentes, incluidos los checkouts con finales CRLF. Un SHA distinto, una colisión de contenido, un destino no regular o un ancestro enlazado se informa antes de escribir cualquier archivo. Una ruta administrada ausente del árbol de trabajo pero presente en HEAD o en el índice se trata como colisión y conserva su estado.
+- Una aplicación crea únicamente archivos ausentes. Si falla una escritura, recupera los archivos y directorios creados durante esa operación. El comando admite un solo escritor en el árbol de trabajo durante la aplicación.
+- La instalación opera localmente con la versión recibida. El lanzador obtiene el commit fijado del repositorio oficial de KDD y verifica su identidad y los archivos ejecutados según el diseño del piloto. Terminal, Codex y Actions usan la misma entrada. Este perfil ejecuta los validadores fijados de contratos y OKF y el runner gestionado `python-unittest` sobre el directorio seleccionado. Rechaza en la etapa de contrato cero archivos ejecutables, también después de instalar. El registro `KDD_PILOT` informa SHA solicitado, SHA comprobado, etapa, casos y resultado. Si existe `quality/product.json` o `quality.json`, se exige una referencia aprobada del consumidor antes de ejecutar el oráculo; el verificador se ejecuta con esa referencia.
+- La adopción preserva el producto, sus contratos, sus pruebas, sus workflows y sus modificaciones locales. La política de calidad del consumidor conserva su aprobación independiente.
+
+## Examples
+
+- Aplicar el mismo SHA dos veces -> la segunda aplicación devuelve `unchanged` con las tres rutas en `keep`.
+- Un workflow existente ocupa la ruta del plan con otros bytes -> devuelve `ADOPTION_CONFLICT` con su ruta y conserva todo el árbol de trabajo.
+
+## Do / Don't
+
+- DO usar la operación de previsualización y el [mecanismo de recuperación de escrituras](bootstrap-transaction.md) cuando se mantenga su perímetro.
+- DON'T usar el inicializador de una copia de la plantilla sobre el repositorio consumidor ni escribir encima de un archivo existente.
+
+## Tests
+
+Las pruebas del instalador crean repositorios con Git real en directorios temporales. El oráculo analiza el YAML con PyYAML del lock existente y verifica sus relaciones de jobs y pasos. El inventario protege los ocho módulos de KDD que copia el repositorio Git controlado. Un centinela verifica que los rechazos previos de sello o aprobación no ejecuten el oráculo. Ejercen previsualización, instalación, reaplicación, checkout con CRLF, colisiones, SHA inválido, rutas inválidas, borrados locales de destinos administrados y recuperación de una segunda escritura parcial. Un repositorio Git local con scripts reales de KDD verifica A → B → A, la regresión y la reversión desde el lanzador instalado. Prueba también commit inexistente, SHA resuelto discrepante, blob alterado, sello incorrecto y falta de referencia de calidad. La prueba posterior en un segundo repositorio debe conservar su suite original y ejecutar el lanzador instalado en Ubuntu y Windows.
+
+## Constraints
+
+PARAR y reportar si se necesita cambiar la aprobación del consumidor, publicar el complemento o ampliar el perímetro de escritura del instalador. La publicación y el caso positivo con una política KDD de calidad activa requieren sus propias comprobaciones.
