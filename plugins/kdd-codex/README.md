@@ -39,8 +39,9 @@ ZIP SHA-256 `736546710edeb0b5ae13db78c6d4b617da83661b292d6ec7601c400ac647ca7e`.
 ## Adopt validation in a Python project
 
 For a Python repository with existing contracts, a reviewed KDD checkout can
-provide the [adoption CLI](https://github.com/MauricioPerera/KDD/blob/3e8bbfaac5e78b61daf2bc5b66985a749bae5f66/tools/kdd-adoption/README.md). The skill guides
-a preview and explicit application. The installed project command records the
-KDD commit it actually executes.
+provide the adoption CLI. The [repository guide](https://github.com/MauricioPerera/KDD/blob/main/tools/kdd-adoption/README.md)
+covers the approved consumer reference for pull requests, optional Python
+preparation, the quality reference and explicit pin rollback. The installed
+project command records the KDD commit it executes.
 
 [Adoption and quality pilot evidence](https://github.com/MauricioPerera/KDD/blob/main/knowledge/piloto-kdd-complemento.md)

@@ -91,7 +91,20 @@ class AdoptExistingProjectTests(unittest.TestCase):
                 "--contracts-dir", contracts, "--validator-commit", pin, mode]
 
     def run_cli(self, mode, **kwargs):
-        return subprocess.run([sys.executable, "-B", str(CLI), *self.args(mode, **kwargs)],
+        harness = """
+from pathlib import Path
+import sys
+from unittest.mock import patch
+entry, *arguments = sys.argv[1:]
+sys.path.insert(0, str(Path(entry).parent))
+import adopt_project
+# The filesystem cases use fixed pins. Real fetch and pin verification are
+# covered independently by test_adoption_validator_pin.
+with patch.object(adopt_project, 'verify_validator_commit', create=True):
+    raise SystemExit(adopt_project.main(arguments))
+"""
+        return subprocess.run([sys.executable, "-B", "-c", harness, str(CLI),
+                               *self.args(mode, **kwargs)],
                               capture_output=True, encoding="utf-8", timeout=30)
 
     def success(self, process):
@@ -138,8 +151,9 @@ class AdoptExistingProjectTests(unittest.TestCase):
         self.assertEqual(checkout[0]["with"]["ref"], "${{ github.sha }}")
         self.assertEqual(checkout[0]["with"]["persist-credentials"], "false")
         self.assertEqual(python[0]["with"]["python-version"], "3.11")
-        validation = [step for step in steps if step.get("run", "").strip() == "python .kdd/validate.py"]
+        validation = [step for step in steps if step.get("name") == "Validate the selected contracts"]
         self.assertEqual(len(validation), 1)
+        self.assertIn(".kdd/validate.py", validation[0]["run"])
         self.assertLess(steps.index(checkout[0]), steps.index(validation[0]))
         self.assertLess(steps.index(python[0]), steps.index(validation[0]))
         self.assertNotIn(PIN, workflow)
@@ -229,7 +243,6 @@ class AdoptExistingProjectTests(unittest.TestCase):
         harness = """
 import errno
 from pathlib import Path
-import runpy
 import sys
 from unittest.mock import patch
 target = Path(sys.argv[1]).resolve()
@@ -246,9 +259,9 @@ def fail(path, mode='r', *args, **kwargs):
             raise OSError(errno.EIO, 'simulated write failure', str(path))
     return original(path, mode, *args, **kwargs)
 sys.path.insert(0, str(Path(entry).parent))
-sys.argv = [entry, *sys.argv[3:]]
-with patch.object(Path, 'open', fail):
-    runpy.run_path(entry, run_name='__main__')
+import adopt_project
+with patch.object(Path, 'open', fail), patch.object(adopt_project, 'verify_validator_commit', create=True):
+    raise SystemExit(adopt_project.main(sys.argv[3:]))
 """
         before = self.snapshot()
         process = subprocess.run(
