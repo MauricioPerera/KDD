@@ -10,7 +10,7 @@ language: python
 signature: 'def quality_check(validator):'
 test_command: 'python -m unittest tests/test_adoption_quality_reference.py'
 test_runner: python-unittest
-oracle_files: ['tests/test_adoption_quality_reference.py', 'tests/adoption_remediation_support.py', 'tests/__init__.py']
+oracle_files: ['tests/test_adoption_quality_reference.py', 'tests/adoption_remediation_support.py', 'tests/test_adopt_project.py', 'tests/__init__.py', 'tools/context-v03/requirements.txt', 'scripts/validate_contracts.py', 'scripts/validate_okf.py', 'scripts/validate_test_commands.py', 'scripts/validate_baseline.py', 'scripts/verify_quality.py', 'scripts/oracle_execution.py', 'scripts/oracle_inventory.py', 'scripts/validation_runtime.py', 'scripts/process_tree.py', 'scripts/unittest_oracle_runner.py']
 budget:
   cyclomatic_max: 12
   nesting_max: 3

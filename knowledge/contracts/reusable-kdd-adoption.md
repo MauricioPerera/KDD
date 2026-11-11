@@ -40,13 +40,13 @@ python scripts/adopt_project.py --repo-root RUTA --contracts-dir knowledge/contr
 
 El plan enumera, en JSON, las rutas relativas en `create` y `keep` con estado `planned`. La aplicación devuelve las mismas listas con estado `applied`, o `unchanged` si no creó archivos. Las rutas están ordenadas. Los errores devuelven un código distinto de cero y un diagnóstico que empieza con `ADOPTION_`.
 
-El perímetro de escritura son tres archivos de texto. El lock `.kdd/validator.lock` contiene el SHA completo del validador. El lanzador `.kdd/validate.py` fija el directorio de contratos solicitado. El workflow `.github/workflows/kdd-validate.yml` invoca `python .kdd/validate.py` con Python 3.11 en Ubuntu y Windows sobre el commit del evento de push, con permisos de lectura. La skill de Codex guía al responsable para ejecutar el plan y después el mismo comando del proyecto.
+El perímetro de escritura son tres archivos de texto. El lock `.kdd/validator.lock` contiene el SHA completo del validador. El lanzador `.kdd/validate.py` fija el directorio de contratos solicitado. El workflow `.github/workflows/kdd-validate.yml` usa Python 3.11 en Ubuntu y Windows con permisos de lectura. El perfil piloto ejecuta el lanzador del checkout en push y ejecución manual. El control aprobado de PR aplica el contrato enlazado arriba.
 
 ## Invariants
 
 - El destino es la raíz física de un repositorio Git con historial. El directorio de contratos es relativo, está bajo `knowledge/contracts`, contiene al menos un contrato real en ese directorio exacto y tiene un índice OKF existente. Los caminos deben mantenerse dentro del repositorio.
 - `--plan` deja intacto el árbol de trabajo. `--apply` conserva los archivos coincidentes, incluidos los checkouts con finales CRLF. Un SHA distinto, una colisión de contenido, un destino no regular o un ancestro enlazado se informa antes de escribir cualquier archivo. Una ruta administrada ausente del árbol de trabajo pero presente en HEAD o en el índice se trata como colisión y conserva su estado.
-- Una aplicación crea únicamente archivos ausentes. Si falla una escritura, recupera los archivos y directorios creados durante esa operación. El comando admite un solo escritor en el árbol de trabajo durante la aplicación.
+- La aplicación por defecto crea únicamente archivos ausentes. El cambio explícito de pin actualiza el lock según su contrato. Si falla una escritura, se recuperan las rutas administradas afectadas. El comando admite un solo escritor en el árbol de trabajo durante la aplicación.
 - El lanzador obtiene el commit fijado del repositorio oficial de KDD y verifica su identidad y los archivos ejecutados según el diseño del piloto. Terminal, Codex y Actions usan la misma entrada. Este perfil ejecuta los validadores fijados de contratos y OKF y el runner gestionado `python-unittest` sobre el directorio seleccionado. Rechaza en la etapa de contrato cero archivos ejecutables, también después de instalar. El registro `KDD_PILOT` informa SHA solicitado, SHA comprobado, etapa, casos y resultado. La selección de política se rige por el contrato de referencia de calidad.
 - La adopción preserva el producto, sus contratos, sus pruebas, sus workflows y sus modificaciones locales. La política de calidad del consumidor conserva su aprobación independiente.
 
@@ -70,4 +70,4 @@ Git locales en el oráculo del ciclo del pin.
 
 ## Constraints
 
-PARAR y reportar si se necesita cambiar la aprobación del consumidor, publicar el complemento o ampliar el perímetro de escritura del instalador. La publicación y el caso positivo con una política KDD de calidad activa requieren sus propias comprobaciones.
+PARAR y reportar si se necesita cambiar la aprobación del consumidor, publicar el complemento o ampliar el perímetro de escritura del instalador. La publicación y la comprobación del workflow sobre un consumidor remoto requieren su propia verificación.

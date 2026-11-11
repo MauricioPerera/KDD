@@ -10,12 +10,12 @@ language: yaml
 signature: 'name: KDD validation'
 test_command: 'python -m unittest tests/test_adoption_trusted_pr.py'
 test_runner: python-unittest
-oracle_files: ['tests/test_adoption_trusted_pr.py', 'tests/adoption_remediation_support.py', 'tests/__init__.py', 'tools/context-v03/requirements.txt']
+oracle_files: ['tests/test_adoption_trusted_pr.py', 'tests/adoption_remediation_support.py', 'tests/test_adopt_project.py', 'tests/__init__.py', 'tools/context-v03/requirements.txt', 'scripts/validate_contracts.py', 'scripts/validate_okf.py', 'scripts/validate_test_commands.py', 'scripts/validate_baseline.py', 'scripts/verify_quality.py', 'scripts/oracle_execution.py', 'scripts/oracle_inventory.py', 'scripts/validation_runtime.py', 'scripts/process_tree.py', 'scripts/unittest_oracle_runner.py']
 budget:
   cyclomatic_max: 16
   nesting_max: 3
 tests: tests/test_adoption_trusted_pr.py
-tests_sha256: 'd7ca1ae14904bf4aac82080b8671972a849c91355056b63565220ade55a98648'
+tests_sha256: 'ab47243c41d3350294e25db8972cf118f6db00ac903ee03bc78e8fd412974a6d'
 touch_only: ['tools/kdd-adoption/kdd-validate.yml', 'tools/kdd-adoption/validate.py', 'tools/kdd-adoption/README.md']
 deps_allowed: ['stdlib', 'git']
 forbids: ['llm']
@@ -55,10 +55,14 @@ El lanzador local admite la misma referencia con `--approved-ref` o la variable.
   de adopción siguen disponibles como piloto.
 - El workflow usa `pull_request` sobre la integración del evento, permisos
   `contents: read`, checkout sin credenciales persistentes y sin pasar secretos.
-  Se ejecuta en runners efímeros hospedados. La guía exige que la política
-  externa de fusión proteja el origen del workflow, todos los workflows
-  capaces de suplantar sus checks y las reglas de revisión. El código de
-  producto se ejecuta como en CI; esta comprobación no constituye un sandbox.
+  Se ejecuta en runners efímeros hospedados. Para exigir la identidad del
+  workflow automáticamente, una ruleset de organización o empresa exige
+  el workflow desde un repositorio y revisión protegidos. En repositorios
+  con checks por nombre, se exige además revisión independiente de
+  `.github/workflows/**` y las rutas de CODEOWNERS, invalidación de revisiones
+  anteriores y prohibición de bypass a contribuyentes. El workflow candidato
+  puede cambiar su propio resultado y un check por nombre no acredita su
+  identidad. El producto se ejecuta como en CI, sin aislamiento de seguridad.
 
 ## Examples
 
@@ -76,8 +80,9 @@ El lanzador local admite la misma referencia con `--approved-ref` o la variable.
 
 Workflow generado y ejecución de su paso contra Git real: referencia ausente,
 no ancestral y aprobada, pin y lanzador sustituidos, oráculo resellado y dos
-pasadas de la misma suite. GitHub Actions se verifica posteriormente con un PR
-de consumidor autorizado.
+pasadas de la misma suite con dos identificadores de proceso escritos por el oráculo. Un helper
+inventariado alterado falla sin ejecutar su código. GitHub Actions se verifica
+posteriormente con un PR de consumidor autorizado.
 
 ## Constraints
 

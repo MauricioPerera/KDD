@@ -10,6 +10,10 @@ from tests.adoption_remediation_support import AdoptionIntegration
 class TrustedAdoptionPullRequestTests(AdoptionIntegration, unittest.TestCase):
     def setUp(self):
         super().setUp()
+        path = "knowledge/contracts/label.md"
+        contract = (self.root / path).read_bytes()
+        self.write(path, contract.replace(b"oracle_files: ['tests/test_product.py']",
+                                         b"oracle_files: ['tests/test_product.py', 'tests/__init__.py']"))
         self.install()
         self.workflow = yaml.load((self.root / ".github/workflows/kdd-validate.yml").read_text(
             encoding="utf-8"), Loader=yaml.BaseLoader)
@@ -29,7 +33,7 @@ class TrustedAdoptionPullRequestTests(AdoptionIntegration, unittest.TestCase):
     def run_step(self, approved):
         steps = self.workflow["jobs"]["validate"]["steps"]
         step, = (step for step in steps if step.get("name") == "Validate the selected contracts")
-        self.assertEqual(step.get("shell"), "python", "The PR step must run the trusted extraction.")
+        self.assertEqual(step.get("shell"), "python -I {0}", "The PR step must isolate trusted extraction.")
         self.assertEqual(step["env"]["KDD_ADOPTION_APPROVED_REF"], "\u0024{{ vars.KDD_ADOPTION_APPROVED_REF }}")
         self.assertNotIn("\u0024{{", step["run"])
         entry = self.root.parent / "workflow-step.py"
@@ -43,6 +47,17 @@ class TrustedAdoptionPullRequestTests(AdoptionIntegration, unittest.TestCase):
         })
 
     def test_approved_merge_candidate_runs_the_same_oracle_twice(self):
+        path = "tests/test_product.py"
+        old = (self.root / path).read_bytes()
+        append = b"            with Path(os.environ['KDD_ADOPTION_TEST_SENTINEL']).open('a') as marker:\n"
+        new = old.replace(b"            Path(os.environ['KDD_ADOPTION_TEST_SENTINEL']).write_text('executed')\n",
+                          append + b"                marker.write(str(os.getpid()) + '\\n')\n")
+        self.assertNotEqual(old, new)
+        self.write(path, new)
+        contract = "knowledge/contracts/label.md"
+        self.write(contract, (self.root / contract).read_bytes().replace(
+            hashlib.sha256(old).hexdigest().encode(), hashlib.sha256(new).hexdigest().encode()))
+        self.approved = self.commit("Approve an oracle with a mark per execution")
         self.git("checkout", "-qb", "change")
         self.write("product.py", b"def label(text):\n    return text.strip().casefold()\n")
         self.commit("Compatible product change")
@@ -57,6 +72,10 @@ class TrustedAdoptionPullRequestTests(AdoptionIntegration, unittest.TestCase):
         self.assertEqual(evidence["executed_tests"], 1)
         self.assertEqual(evidence["oracle_passes"], [1, 1])
         self.assertEqual(run.stdout.count("oracle_execution: runner=python-unittest executed_tests=1"), 2)
+        marks = (self.root.parent / "oracle-executed").read_text(encoding="utf-8").splitlines()
+        self.assertEqual(len(marks), 2)
+        self.assertTrue(all(mark.isdecimal() for mark in marks), marks)
+        self.assertEqual(len(set(marks)), 2)
 
     def test_pr_requires_approved_ref(self):
         for invalid in ("", "HEAD"):
@@ -91,6 +110,17 @@ class TrustedAdoptionPullRequestTests(AdoptionIntegration, unittest.TestCase):
         run = self.run_step(self.approved)
         self.assertNotEqual(run.returncode, 0, run.stdout + run.stderr)
         self.assertIn(".kdd/validator.lock", run.stdout + run.stderr)
+        self.assertFalse((self.root.parent / "oracle-executed").exists())
+
+    def test_candidate_cannot_modify_an_inventoried_helper(self):
+        marker = self.root.parent / "modified-helper-ran"
+        self.write("tests/__init__.py",
+                   ("from pathlib import Path\nPath(" + repr(str(marker)) + ").touch()\n").encode())
+        self.commit("Change the inventoried Python package initializer")
+        run = self.run_step(self.approved)
+        self.assertNotEqual(run.returncode, 0, run.stdout + run.stderr)
+        self.assertIn("tests/__init__.py", run.stdout + run.stderr)
+        self.assertFalse(marker.exists())
         self.assertFalse((self.root.parent / "oracle-executed").exists())
 
     def test_resealed_regression_is_rejected_before_oracle_execution(self):

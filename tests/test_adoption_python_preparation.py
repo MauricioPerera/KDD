@@ -6,24 +6,6 @@ import zipfile
 from tests.adoption_remediation_support import AdoptionIntegration
 
 
-WHEEL_BUILDER = """
-def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
-    from pathlib import Path
-    import zipfile
-    name = 'kdd_fixture_product-0.0.1-py3-none-any.whl'
-    dist = 'kdd_fixture_product-0.0.1.dist-info/'
-    output = Path(wheel_directory) / name
-    files = {'product.py': Path('src/product.py').read_bytes(),
-             dist + 'METADATA': b'Metadata-Version: 2.1\\nName: kdd-fixture-product\\nVersion: 0.0.1\\n',
-             dist + 'WHEEL': b'Wheel-Version: 1.0\\nRoot-Is-Purelib: true\\nTag: py3-none-any\\n'}
-    files[dist + 'RECORD'] = '\\n'.join(path + ',,' for path in (*files, dist + 'RECORD')) + '\\n'
-    with zipfile.ZipFile(output, 'w') as wheel:
-        for path, content in files.items():
-            wheel.writestr(path, content)
-    return name
-"""
-
-
 class AdoptionPythonEnvironmentTests(AdoptionIntegration, unittest.TestCase):
     def require_wheel(self, valid_hash=True):
         dist = "kdd_fixture_dependency-0.0.1.dist-info/"
@@ -80,7 +62,7 @@ class AdoptionPythonEnvironmentTests(AdoptionIntegration, unittest.TestCase):
         self.assertIn("hash", (run.stdout + run.stderr).lower())
         self.assertFalse((self.root.parent / "oracle-executed").exists())
 
-    def src_project(self, backend):
+    def src_project(self):
         (self.root / "src").mkdir()
         (self.root / "product.py").rename(self.root / "src/product.py")
         contract = "knowledge/contracts/label.md"
@@ -88,15 +70,17 @@ class AdoptionPythonEnvironmentTests(AdoptionIntegration, unittest.TestCase):
         self.write(contract, text.replace(b"'product.py'", b"'src/product.py'"))
         self.write("pyproject.toml", b'[build-system]\nrequires = []\n'
                    b'build-backend = "fixture_backend"\nbackend-path = ["."]\n')
-        self.write("fixture_backend.py", backend.encode("utf-8"))
+        self.write("fixture_backend.py", b"raise AssertionError('Candidate backend must not load')\n")
 
-    def test_installs_src_layout_project_with_local_backend(self):
-        self.src_project(WHEEL_BUILDER)
-        self.install(("--install-project",))
-        self.commit("Install the existing src-layout project")
-        run = self.launch()
+    def test_imports_src_layout_project_without_running_backend(self):
+        self.src_project()
+        self.install(("--source-dir", "src"))
+        approved = self.commit("Approve the existing src-layout project")
+        run = self.launch({"KDD_ADOPTION_APPROVED_REF": approved})
         self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
         self.assertEqual(self.evidence(run)["executed_tests"], 1)
+        self.assertEqual(self.evidence(run)["oracle_passes"], [1, 1])
+        self.assertEqual(self.git("status", "--porcelain"), "")
 
     def test_plan_rejects_requirements_path_outside_consumer(self):
         external = self.root.parent / "requirements.txt"
@@ -119,18 +103,29 @@ class AdoptionPythonEnvironmentTests(AdoptionIntegration, unittest.TestCase):
         self.assertIn(lock, run.stdout + run.stderr)
         self.assertFalse((self.root.parent / "oracle-executed").exists())
 
-    def test_build_backend_cannot_change_the_oracle_after_baseline_check(self):
-        backend = WHEEL_BUILDER.replace(
-            "    import zipfile",
-            "    import zipfile\n"
-            "    oracle = Path('tests/test_product.py')\n"
-            "    oracle.write_bytes(oracle.read_bytes() + b'\\n# backend changed oracle\\n')",
-        )
-        self.src_project(backend)
-        self.install(("--install-project",))
-        approved = self.commit("Approve the consumer before preparation")
+    def test_rejects_python_startup_module_in_candidate_source_path(self):
+        self.src_project()
+        self.install(("--source-dir", "src"))
+        approved = self.commit("Approve the project before startup injection")
+        marker = self.root.parent / "startup-ran"
+        self.write("src/sitecustomize.py",
+                   ("from pathlib import Path\nPath(" + repr(str(marker)) + ").touch()\n").encode())
+        self.commit("Introduce a Python startup module in the source directory")
         run = self.launch({"KDD_ADOPTION_APPROVED_REF": approved})
         self.assertEqual(run.returncode, 1, run.stdout + run.stderr)
-        self.assertIn("differs from approved reference", run.stdout + run.stderr)
-        self.assertIn(b"# backend changed oracle", (self.root / "tests/test_product.py").read_bytes())
+        self.assertIn("sitecustomize", run.stdout + run.stderr)
+        self.assertFalse(marker.exists())
+        self.assertFalse((self.root.parent / "oracle-executed").exists())
+
+    def test_dependency_lock_cannot_include_another_manifest(self):
+        self.require_wheel()
+        name = "requirements-kdd.txt"
+        self.write("nested.txt", (self.root / name).read_bytes())
+        self.write(name, b"--requirement nested.txt\n")
+        self.install(("--requirements-file", name))
+        self.commit("Try to follow an undeclared manifest")
+        run = self.launch()
+        self.assertEqual(run.returncode, 1, run.stdout + run.stderr)
+        self.assertEqual(self.evidence(run)["stage"], "prepare")
+        self.assertIn("--requirement", run.stdout + run.stderr)
         self.assertFalse((self.root.parent / "oracle-executed").exists())
