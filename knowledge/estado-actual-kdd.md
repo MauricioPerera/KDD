@@ -13,6 +13,8 @@ Actualmente dispone de una plantilla inicializable, validadores, una CLI de
 tareas y KDD-Board integrados con Git. El flujo se ha comprobado desde un
 proyecto vacío hasta su calidad de producto en CI.
 
+El [piloto de KDD como complemento](piloto-kdd-complemento.md) verificó otra vía de adopción en un repositorio Python existente. Codex, la terminal y GitHub Actions ejecutaron un contrato con el mismo SHA fijado de KDD y detectaron la misma regresión.
+
 ## Corte integrado del 8 de noviembre de 2026 en e9689aa
 
 El corte verificado de `main` integra el PR #171 y conserva sus tres commits
