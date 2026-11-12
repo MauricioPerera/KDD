@@ -81,7 +81,8 @@ def _invocation(metadata, root):
 def _command(runner, names, root, temp, interpreter):
     scripts = Path(__file__).resolve().parent
     if runner == 'python-unittest':
-        return [interpreter or sys.executable, '-I', '-B', '-X', 'pycache_prefix=' + str(temp / 'cache'),
+        utf8 = ['-X', 'utf8'] if interpreter is not None else []
+        return [interpreter or sys.executable, '-I', '-B', *utf8, '-X', 'pycache_prefix=' + str(temp / 'cache'),
                 str(scripts / 'unittest_oracle_runner.py'), str(root), str(temp / 'result.json'), *names]
     node = shutil.which('node')
     if not node:
@@ -89,14 +90,28 @@ def _command(runner, names, root, temp, interpreter):
     return [node, '--test', '--test-reporter=' + (scripts / 'node_oracle_reporter.mjs').as_uri(), *names]
 
 
+def _node_summaries(stdout):
+    summaries = [json.loads(line) for line in stdout.splitlines() if line.strip()]
+    return {item['file']: item for item in summaries}
+
+
+def _failed_node_counts(stdout, oracle):
+    try:
+        counts = _node_summaries(stdout)[str(oracle)]['counts']
+        totals = {name: counts[name] for name in ('passed', 'failed')}
+    except (ValueError, KeyError, TypeError):
+        return None
+    if all(type(count) is int and count >= 0 for count in totals.values()):
+        return totals
+
+
 def _evidence(runner, completed, temp):
     if runner == 'python-unittest':
         return json.loads((temp / 'result.json').read_text(encoding='utf-8'))
-    summaries = [json.loads(line) for line in completed.stdout.splitlines() if line.strip()]
-    return {'files': {item['file']: {'executed': item['counts']['passed'],
-                                   'skipped': item['counts']['skipped'] + item['counts']['todo'],
-                                   'ok': item['success']}
-                      for item in summaries}}
+    return {'files': {name: {'executed': item['counts']['passed'],
+                            'skipped': item['counts']['skipped'] + item['counts']['todo'],
+                            'ok': item['success']}
+                      for name, item in _node_summaries(completed.stdout).items()}}
 
 
 def _verified_count(evidence, files, root):
@@ -135,6 +150,10 @@ def _execute(selection, root, timeout, run, result):
             evidence = _evidence(runner, completed, temp)
             result['executed_tests'] = _verified_count(evidence, files, root)
             result.update(ok=True, evidence=evidence)
+        elif runner == 'node-test' and len(files) == 1:
+            counts = _failed_node_counts(completed.stdout, (root / files[0]).resolve())
+            if counts is not None:
+                result['diagnostic_counts'] = counts
     return result
 
 

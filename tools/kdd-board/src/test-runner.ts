@@ -68,10 +68,12 @@ function executeVerifiedOracle(invocation: Invocation, cwd: string, env: NodeJS.
         const status = timedOut ? 'TIMEOUT' : verified ? 'PASS' : unverifiedNodeExit ? 'SKIP' : 'FAIL';
         const output = outcome ? [outcome.stdout, outcome.stderr, outcome.error].filter(Boolean).join('\n')
           : stderr || error?.message || 'Missing runner evidence';
+        const diagnostics = status === 'FAIL' ? outcome?.diagnostic_counts : undefined;
         resolve({lastRun: new Date().toISOString(), durationMs: performance.now() - start,
           success: verified || unverifiedNodeExit, status,
           verifiedOracle: verified, oracleRunner: verified ? invocation.runner : undefined,
-          passedTests: verified ? outcome.executed_tests : 0, failedTests: 0, output: redact(output, secrets)});
+          passedTests: verified ? outcome.executed_tests : diagnostics?.passed ?? 0,
+          failedTests: diagnostics?.failed ?? 0, output: redact(output, secrets)});
       });
   });
 }

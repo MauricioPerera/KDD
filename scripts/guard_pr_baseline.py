@@ -282,7 +282,11 @@ def main(argv=None):
         _require_event_merge(candidate, base, args.head_ref)
         if args.approval_registry is not None:
             from approval_registry import resolve
-            approved = resolve('.', candidate, args.approval_registry)['baseline_ref']
+            selected = resolve('.', candidate, args.approval_registry)
+            tree = _git('rev-parse', candidate + '^{tree}').decode('ascii').strip()
+            if selected['candidate_tree'] != tree:
+                raise ValueError('APPROVAL_TREE_MISMATCH: registry selected a different merge tree')
+            approved = selected['baseline_ref']
         else:
             approved = args.approved_ref
             try:
