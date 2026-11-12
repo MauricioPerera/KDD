@@ -14,7 +14,7 @@ budget:
   nesting_max: 4
   params_max: 6
 tests: tests/test_trusted_pr_event_binding.py
-tests_sha256: 'b976663415fbeaf8b30ff24de265bdd0f8067ae1ad00572d0840aa56c3775b6f'
+tests_sha256: 'b87c69d690a246e32c917ed713b01927dbbca5065878cc5cc8693c6395e8db5c'
 oracle_files: ['tests/test_trusted_pr_event_binding.py', 'tests/test_approval_registry.py', 'tests/__init__.py']
 touch_only: ['scripts/guard_pr_baseline.py', '.github/workflows/trusted-pr-gate.yml']
 deps_allowed: ['stdlib']

@@ -51,12 +51,14 @@ class TrustedPREventBinding(GitApprovalFixture, unittest.TestCase):
         return yaml.safe_load(WORKFLOW.read_text(encoding='utf-8'))['jobs']['trusted-pr-gate']['steps']
 
     def test_workflow_supplies_exact_trusted_base_and_event_head(self):
-        parsed = yaml.safe_load(WORKFLOW.read_text(encoding='utf-8'))
+        parsed = yaml.load(WORKFLOW.read_text(encoding='utf-8'), Loader=yaml.BaseLoader)
         checkout, _, compare = self.workflow_steps()
         self.assertTrue(checkout['uses'].startswith('actions/checkout@'))
         self.assertEqual(checkout['with'].get('ref'), '${{ github.event.pull_request.base.sha }}')
         self.assertEqual(compare['env'].get('BASE_SHA'), '${{ github.event.pull_request.base.sha }}')
         self.assertEqual(compare['env'].get('HEAD_SHA'), '${{ github.event.pull_request.head.sha }}')
+        self.assertEqual(parsed['on']['pull_request_target']['types'], ['opened', 'synchronize', 'reopened'])
+        self.assertIn('--base-ref "$BASE_SHA"', compare['run'])
         self.assertIn('--head-ref "$HEAD_SHA"', compare['run'])
         self.assertEqual(parsed['permissions'], {'contents': 'read'})
 

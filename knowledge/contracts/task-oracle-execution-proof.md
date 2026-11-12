@@ -14,8 +14,8 @@ budget:
   nesting_max: 4
   params_max: 6
 tests: tests/test_task_oracle_execution_proof.py
-tests_sha256: '7b837acef4cbd299098277949e4693fc0f642f2c9df4a5e6e535e0196832a3a4'
-oracle_files: ['tests/test_task_oracle_execution_proof.py', 'tests/test_task_git.py', 'tests/test_fixture_preparation.py', 'tests/test_generated_task_evidence.py', 'tests/__init__.py', 'tools/kdd-board/tests/task-oracle-execution-proof.test.ts']
+tests_sha256: '7d3e33a9bcdbea4f2ca20e1ceacf1222156619a12e02c75648479626d906b72f'
+oracle_files: ['tests/test_task_oracle_execution_proof.py', 'tests/test_task_git.py', 'tests/test_fixture_preparation.py', 'tests/test_generated_task_evidence.py', 'tests/__init__.py', 'tools/kdd-board/tests/task-oracle-execution-proof.test.ts', 'tools/kdd-board/tests/node-legacy-proof.test.ts']
 touch_only: ['scripts/task_evidence.py', 'scripts/task_git.py', 'scripts/validate_tasks.py', 'scripts/oracle_execution.py', 'scripts/unittest_oracle_runner.py', 'scripts/node_oracle_reporter.mjs', 'tools/kdd-board/src/test-runner.ts', 'tools/kdd-board/src/task-execution.ts', 'tools/kdd-board/src/types.ts', 'tools/kdd-board/src/input-validation.ts', 'knowledge/git-tasks.md', 'knowledge/board-git.md', 'knowledge/data_models/git-task.md']
 deps_allowed: ['stdlib', 'oracle_inventory', 'oracle_execution', 'process_tree']
 forbids: ['network', 'llm']
@@ -80,6 +80,7 @@ cada archivo seleccionado, por ruta exacta relativa al repo, a
 
 El oraculo crea tareas y merges con Git real, ejecuta Python y Node, audita el
 recibo historico y comprueba el runner de Board con rutas anidadas.
+La suite Node verifica la recarga de reportes con el esquema real del Board.
 Los fixtures acotados copian los cuatro archivos existentes del instrumento
 solo para la ejecucion viva, sin ampliar el bundle historico de auditoria.
 

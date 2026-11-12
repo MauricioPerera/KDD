@@ -1,4 +1,5 @@
 """Exercise the composite's real checkout and quality steps with local Git."""
+from hashlib import sha256
 import json
 import os
 from pathlib import Path
@@ -69,6 +70,21 @@ class CompositeQualityCheckout(unittest.TestCase):
             "marker = Path('rounds.txt')\n"
             "marker.write_text((marker.read_text() if marker.exists() else '') + 'x')\n",
             encoding='utf-8')
+        contracts = self.consumer / 'project contracts'
+        contracts.mkdir()
+        oracle = self.consumer / 'oracle.py'
+        seal = sha256(oracle.read_text(encoding='utf-8').encode()).hexdigest()
+        (contracts / 'caller.md').write_text(
+            "---\ntype: 'Task Contract'\ntitle: 'Caller contract'\ndescription: 'Caller test'\n"
+            "tags: ['fixture']\ntask: caller\nintent: 'Validate the caller oracle'\n"
+            "target: oracle.py\nsignature: 'def oracle():'\n"
+            "test_command: 'python oracle.py'\nbudget:\n  cyclomatic_max: 4\n  nesting_max: 2\n"
+            "tests: oracle.py\ntests_sha256: '" + seal + "'\n"
+            "touch_only: ['oracle.py']\ndeps_allowed: ['stdlib']\nforbids: ['network']\n---\n"
+            "## Intent\nFixture.\n## Interface\nFixture.\n## Invariants\nFixture.\n"
+            "## Examples\nFixture.\n## Do / Don't\nFixture.\n## Tests\nFixture.\n"
+            "## Constraints\nPARAR y reportar si falta el oraculo.\n",
+            encoding='utf-8')
         self.policy = {
             'protected': ['oracle.py', 'scripts/process_tree.py'],
             'implementation': [], 'pm': ['rounds.txt'],
@@ -87,7 +103,8 @@ class CompositeQualityCheckout(unittest.TestCase):
                         GIT_CONFIG_VALUE_0=OFFICIAL_URL + '.git',
                         GITHUB_OUTPUT=str(self.output), GITHUB_WORKSPACE=str(self.consumer),
                         RUNNER_TEMP=str(self.runner_temp), KDD_REF=self.tooling_ref,
-                        KDD_QUALITY_POLICY='quality.json', KDD_QUALITY_APPROVED_REF=self.ref)
+                        KDD_QUALITY_POLICY='quality.json', KDD_QUALITY_APPROVED_REF=self.ref,
+                        KDD_CONTRACTS_DIR='project contracts')
         self.env['PATH'] = str(Path(sys.executable).parent) + os.pathsep + self.env.get('PATH', '')
 
     def run_step(self, name):
@@ -135,6 +152,9 @@ class CompositeQualityCheckout(unittest.TestCase):
 
     def test_action_keeps_tools_outside_consumer_and_executes_quality_twice(self):
         root = self.assert_tools_installed()
+        validation = self.run_step('Validate contracts (REQUIRED)')
+        self.assertEqual(validation.returncode, 0, validation.stdout + validation.stderr)
+        self.assertIn('1 archivo(s)', validation.stdout)
         result = self.quality()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual((self.consumer / 'rounds.txt').read_text(), 'xx')
