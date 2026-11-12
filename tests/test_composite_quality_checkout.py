@@ -167,7 +167,7 @@ class CompositeQualityCheckout(unittest.TestCase):
         nested = self.consumer / 'nested'
         nested.mkdir()
         alias = self.scratch / 'alias'
-        directory_alias(alias, nested, self)
+        directory_alias(alias, nested, self.scratch)
         for location in (self.consumer, nested, alias):
             with self.subTest(location=location):
                 self.env['RUNNER_TEMP'] = str(location)

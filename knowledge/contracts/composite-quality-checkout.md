@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 12
   nesting_max: 4
 tests: tests/test_composite_quality_checkout.py
-tests_sha256: '7723d999f591961662846ee99fd9417786a80aa509c5683c1e925119bde3be8d'
+tests_sha256: 'c7fbb480ec8fbb9c918809f106c3982196240106f25ecf1351b7fa4733784480'
 oracle_files: ['tests/test_composite_quality_checkout.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py']
 touch_only: ['.github/actions/validate-contracts/action.yml', 'README.md']
 deps_allowed: ['stdlib', 'git']
