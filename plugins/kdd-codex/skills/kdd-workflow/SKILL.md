@@ -44,5 +44,29 @@ python .kdd/validate.py --approved-ref CONSUMER_SHA
 ```
 
 Compare the full `verified_kdd_sha` in `KDD_PILOT` with `.kdd/validator.lock`.
-Check both `oracle_passes` and the exit code before reporting success. For a
+Check the exit code, both `oracle_passes` and the per-contract
+`oracle_inventory` when using the launcher that supports case receipts. For a
 project using the historical profile, report the validation it actually ran.
+
+## Review a change in an adopted project
+
+Answer read-only questions from the repository and its evidence. For a change,
+use the trusted checkout and inspect the base and candidate commits with the
+same approved adoption pin as validation.
+
+```text
+python -I .kdd/validate.py review --approved-ref ADOPTION_SHA --base-ref BASE_SHA --candidate-ref CANDIDATE_SHA
+```
+
+For a single editorial commit, add `--small-change` and read the diff and the
+project policy. Add `--editorial-only` when both confirm an editorial change.
+If the route is `lightweight`, record the reason, commit and verification.
+Any change to a guarantee follows the project's contracts and oracle review.
+
+Use the project's risk review protocol before asking for a new baseline. Give
+independent readers the exact candidate, diff and relevant sources. Cover
+simplicity, the oracle and feasibility. Record unavailable reviewers as pending.
+Pass the record to the command with `--review FILE`. Compare
+`verified_kdd_sha` with the lock and present the candidate to the responsible
+reviewer when `review_ready` is true. The human reviewer approves the baseline
+before implementation.

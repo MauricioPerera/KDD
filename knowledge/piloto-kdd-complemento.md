@@ -156,6 +156,21 @@ Al cierre del 11 de noviembre de 2026, 1.1.0 era la versión publicada. El ZIP d
 independiente en Entire Gates, la integración del PR #183 y la publicación de la
 release. El PR del consumidor seguía en borrador. [Revisión en Entire Gates](https://entire.com/gh/mauricioperera/-/trails/47/changes/KDD/45)
 
+## Piloto de revisión ODD y EGM
+
+En un proyecto adoptado, `python -I .kdd/validate.py review` usa el pin de la
+adopción aprobada. Codex y la terminal pueden inspeccionar el mismo candidato.
+La ruta editorial exige un único commit elegible y confirmación después de
+leer el diff y la política. Los cambios de garantías conservan el contrato, el
+oráculo y la aprobación humana del baseline. El modo de revisión valida el
+registro de lectores independientes y lo vincula al árbol exacto.
+[Contrato de revisión](./contracts/plugin-odd-egm-review.md)
+
+La validación aprobada del consumidor compara los IDs por contrato en cada
+pasada. El comprobante distingue dos selecciones distintas con el mismo
+conteo y exige evidencia fresca de ambas pasadas. La salida conserva los
+conteos y añade `oracle_inventory`. [Contrato de identidad de casos](./contracts/adoption-oracle-pass-identity.md)
+
 ## Alcance del resultado
 
 Para nuevas adopciones, la [guía de instalación](../tools/kdd-adoption/README.md)

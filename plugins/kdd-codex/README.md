@@ -60,3 +60,11 @@ preparation, the quality reference and explicit pin rollback. The installed
 project command records the KDD commit it executes.
 
 [Adoption and quality pilot evidence](https://github.com/MauricioPerera/KDD/blob/main/knowledge/piloto-kdd-complemento.md)
+
+## Review in an adopted project
+
+The pilot launcher exposes the installed validator's editorial classification
+and independent baseline review. Use the approved adoption commit and the exact
+base and candidate SHAs from a trusted checkout. The same command is available
+from Codex and the terminal. The adopted workflow verifies the case IDs for
+each contract across both passes. [Consumer guide](https://github.com/MauricioPerera/KDD/blob/main/tools/kdd-adoption/README.md#review-a-change)

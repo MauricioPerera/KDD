@@ -368,12 +368,63 @@ def oracle_pass(validator, contracts, python):
     return sum(int(count) for _, count in results)
 
 
-def validate_checkout(record, directory, reference):
-    record["stage"] = "consumer"
+def unique_receipt_object(pairs):
+    value = dict(pairs)
+    if len(value) != len(pairs):
+        raise ValueError("Repeated key in oracle receipt")
+    return value
+
+
+def receipt_contracts(path, contracts):
+    try:
+        receipt = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_receipt_object)
+    except (OSError, ValueError) as error:
+        raise Rejected("Missing or invalid oracle receipt; use a reviewed validator pin with receipt support") from error
+    if (not isinstance(receipt, dict) or set(receipt) != {"schema_version", "contracts"}
+            or type(receipt["schema_version"]) is not int or receipt["schema_version"] != 1
+            or not isinstance(receipt["contracts"], list)):
+        raise Rejected("Invalid oracle receipt schema")
+    expected = set(contracts)
+    inventory = {}
+    for item in receipt["contracts"]:
+        if not isinstance(item, dict) or set(item) != {"path", "ids"}:
+            raise Rejected("Invalid contract entry in oracle receipt")
+        name, ids = item["path"], item["ids"]
+        if not isinstance(name, str) or name not in expected or name in inventory:
+            raise Rejected("Unexpected or repeated contract in oracle receipt")
+        if (not isinstance(ids, list) or not ids
+                or any(not isinstance(identity, str) or not identity.strip() for identity in ids)
+                or ids != sorted(set(ids))):
+            raise Rejected("Invalid case IDs in oracle receipt: " + name)
+        inventory[name] = ids
+    if inventory.keys() != expected:
+        raise Rejected("Oracle receipt does not cover the selected contracts")
+    return [{"path": name, "ids": inventory[name]} for name in sorted(inventory)]
+
+
+def approved_oracle_passes(validator, contracts, python, reference, directory):
+    inventories = []
+    for number in (1, 2):
+        receipt = directory / f"oracle-pass-{number}.json"
+        run_gate(validator, "validate_test_commands.py", str(ROOT / CONTRACTS), str(ROOT),
+                 "--oracle-receipt", str(receipt), python=python)
+        check_contracts(validator, contracts, reference)
+        inventories.append(receipt_contracts(receipt, contracts))
+    if inventories[0] != inventories[1]:
+        raise Rejected("Managed oracle passes executed different case IDs per contract")
+    return inventories[0]
+
+
+def check_consumer():
     if sys.version_info[:2] != (3, 11):
         raise Rejected("The pilot requires Python 3.11")
     if Path(consumer_git("rev-parse", "--show-toplevel")).resolve() != ROOT:
         raise Rejected("The launcher is outside the consumer Git root")
+
+
+def validate_checkout(record, directory, reference):
+    record["stage"] = "consumer"
+    check_consumer()
     record["consumer_sha"] = consumer_git("rev-parse", "--verify", "HEAD")
     record["dirty"] = bool(consumer_git("status", "--porcelain"))
     record["stage"] = "pin"
@@ -403,15 +454,13 @@ def validate_checkout(record, directory, reference):
     record["stage"] = "quality"
     record["quality_approved_ref"] = quality_check(validator, adoption=reference, python=python)
     record["stage"] = "oracle"
-    passes = []
-    for _ in range(2 if reference else 1):
-        passes.append(oracle_pass(validator, contracts, python))
-        if reference:
-            check_contracts(validator, contracts, reference)
-    if len(set(passes)) != 1:
-        raise Rejected("Managed oracle passes executed different numbers of tests")
-    record["oracle_passes"] = passes
-    record["executed_tests"] = passes[0]
+    if reference:
+        inventory = approved_oracle_passes(validator, contracts, python, reference, directory)
+        count = sum(len(item["ids"]) for item in inventory)
+        record.update(oracle_inventory=inventory, oracle_passes=[count, count], executed_tests=count)
+    else:
+        count = oracle_pass(validator, contracts, python)
+        record.update(oracle_passes=[count], executed_tests=count)
 
 
 def validate(record):
@@ -424,8 +473,66 @@ def validate(record):
             validate_checkout(record, directory, reference)
 
 
+def review_from_pin(args, directory):
+    check_consumer()
+    pin = validator_pin(args.approved_ref)
+    actual, validator = prepare_validator(directory, pin)
+    script = validator / "scripts/baseline_review.py"
+    if not script.is_file():
+        raise Rejected("The pin lacks baseline_review.py; upgrade to a reviewed validator pin with review support")
+    command = [sys.executable, "-I", "-B", "-X", "utf8", str(script),
+               "--repo-root", str(ROOT), "--base-ref", args.base_ref, "--candidate-ref", args.candidate_ref]
+    if args.review:
+        command.extend(("--review", str(args.review)))
+    if args.small_change:
+        command.append("--small-change")
+    if args.editorial_only:
+        command.append("--editorial-only")
+    completed = subprocess.run(command, env=python_environment(sys.executable), capture_output=True,
+                               encoding="utf-8", timeout=180, check=False)
+    if completed.returncode not in (0, 1):
+        raise Rejected(completed.stderr.strip() or "The pinned reviewer did not return a verdict")
+    result = json.loads(completed.stdout)
+    if not isinstance(result, dict) or type(result.get("review_ready")) is not bool:
+        raise Rejected("The pinned reviewer returned an invalid verdict")
+    result["verified_kdd_sha"] = actual
+    print(json.dumps(result, sort_keys=True))
+    return completed.returncode
+
+
+def review_main(argv):
+    global ROOT
+    parser = argparse.ArgumentParser(description="Inspect a change with the approved KDD pin")
+    parser.add_argument("--repo-root", type=Path, default=ROOT)
+    parser.add_argument("--approved-ref", required=True)
+    parser.add_argument("--base-ref", required=True)
+    parser.add_argument("--candidate-ref", required=True)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--small-change", action="store_true")
+    mode.add_argument("--review", type=Path)
+    parser.add_argument("--editorial-only", action="store_true")
+    args = parser.parse_args(argv)
+    if args.editorial_only and not args.small_change:
+        parser.error("--editorial-only requires --small-change")
+    ROOT = args.repo_root.resolve()
+    try:
+        if args.review:
+            args.review = args.review.resolve()
+        with tempfile.TemporaryDirectory(prefix="kdd-review-") as temporary:
+            directory = Path(temporary).resolve()
+            if directory.is_relative_to(ROOT):
+                raise Rejected("Reviewer temporary directory must be outside the consumer checkout")
+            with chdir(directory):
+                return review_from_pin(args, directory)
+    except (OSError, ValueError, IndexError, subprocess.SubprocessError, tarfile.TarError) as error:
+        print(str(error), file=sys.stderr)
+        return 2
+
+
 def main():
     global ROOT
+    if sys.argv[1:2] == ["review"]:
+        return review_main(sys.argv[2:])
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-root", type=Path, default=ROOT)
     parser.add_argument("--approved-ref", default=os.environ.get("KDD_ADOPTION_APPROVED_REF", ""))

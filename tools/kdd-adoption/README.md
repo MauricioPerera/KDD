@@ -52,7 +52,10 @@ The CI run checks GitHub's integration commit. It extracts the launcher from
 the approved consumer commit, verifies the installed paths and oracle
 inventory, and runs two independent managed passes. The `KDD_PILOT` record
 reports `adoption_approved_ref`, `verified_kdd_sha`, `oracle_passes` and
-`executed_tests` per pass. Push and manual runs without an adoption
+`executed_tests` per pass. A launcher with receipt support reports
+`oracle_inventory`, the exact case IDs by contract that agreed in both
+passes. If the pin lacks receipt support, review a compatible pin before
+running the approved profile. Push and manual runs without an adoption
 reference retain the one-pass pilot profile.
 
 For a required check, configure branch or organization controls outside the
@@ -72,6 +75,25 @@ must contain exactly one regular policy at `quality/product.json` or
 the working tree, then delegates its two passes to the pinned quality verifier.
 If an older reference lacks a required helper, review and commit the policy,
 oracles, helper and inventory together before registering a new reference.
+
+## Review a change
+
+From a trusted checkout with the reviewed launcher and pin, inspect the
+committed change between two exact Git SHAs.
+
+```text
+python -I .kdd/validate.py review --approved-ref ADOPTION_SHA --base-ref BASE_SHA --candidate-ref CANDIDATE_SHA
+```
+
+Use `--small-change` to check the editorial route. Read the diff and project
+policy before adding `--editorial-only`. An eligible one-commit correction
+returns `lightweight`. Changes to guarantees require the contract and baseline
+process.
+
+Use `--review FILE` to check the independent review record for the candidate.
+An incomplete record returns exit 1 and `review_ready: false`. Check
+`verified_kdd_sha` against the lock and present a ready record with the exact
+SHA for human approval. [Risk review protocol](../../knowledge/baseline-risk-review.md)
 
 ## Change or roll back the pin
 
