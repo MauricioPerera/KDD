@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 12
   nesting_max: 4
 tests: tests/test_composite_quality_checkout.py
-tests_sha256: '894e0d1b453ed0897d2e7877b3986582ccd0858e8f866530a3c7e0d302b2cfe2'
+tests_sha256: '27aa282523521710bd3f74030e71351c2f4956f7f1b3bcf9d55c1eb0de0329a4'
 oracle_files: ['tests/test_composite_quality_checkout.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py']
 touch_only: ['.github/actions/validate-contracts/action.yml', 'README.md']
 deps_allowed: ['stdlib', 'git']
@@ -67,7 +67,9 @@ repositorio del consumidor y su SHA aprobado.
 ## Tests
 
 El oraculo ejecuta los cuerpos reales Bash de preparacion y calidad contra
-repositorios Git descartables. La URL publica de KDD se redirige a un remoto
+repositorios Git descartables. En Windows, el fixture resuelve Bash del
+mismo Git for Windows desde el lanzador o el binario directo de CI.
+La URL publica de KDD se redirige a un remoto
 local para ejercitar fetch real sin depender de GitHub. Conserva dos rondas,
 rechazo del perimetro y un control del temporal interno.
 

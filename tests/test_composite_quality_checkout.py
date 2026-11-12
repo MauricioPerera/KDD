@@ -37,7 +37,10 @@ class CompositeQualityCheckout(unittest.TestCase):
         cls.commit(cls.tooling, 'Newer tool fixture must not be selected')
         cls.steps = {step['name']: step for step in yaml.safe_load(ACTION.read_text(encoding='utf-8'))['runs']['steps']}
         git = Path(shutil.which('git')).resolve()
-        cls.bash = git.parent.parent / 'bin/bash.exe' if os.name == 'nt' else shutil.which('bash')
+        home = git.parent.parent
+        if git.parent.name.casefold() == 'bin' and home.name.casefold() in ('mingw64', 'ucrt64'):
+            home = home.parent
+        cls.bash = home / 'bin/bash.exe' if os.name == 'nt' else shutil.which('bash')
         if not cls.bash or not Path(cls.bash).is_file():
             raise RuntimeError('The composite action integration requires Git Bash')
 
