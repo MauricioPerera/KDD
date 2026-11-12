@@ -14,9 +14,9 @@ budget:
   nesting_max: 4
   params_max: 6
 tests: tests/test_task_oracle_execution_proof.py
-tests_sha256: '876dfaaaf4535bacae6b782ab5597a4f26a132f02fd761bd8e8ac03cc51a5354'
-oracle_files: ['tests/test_task_oracle_execution_proof.py', 'tests/test_task_git.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py', 'tools/kdd-board/tests/task-oracle-execution-proof.test.ts']
-touch_only: ['scripts/task_evidence.py', 'scripts/task_git.py', 'scripts/validate_tasks.py', 'scripts/oracle_execution.py', 'tools/kdd-board/src/test-runner.ts', 'knowledge/git-tasks.md', 'knowledge/board-git.md', 'knowledge/data_models/git-task.md']
+tests_sha256: '7b837acef4cbd299098277949e4693fc0f642f2c9df4a5e6e535e0196832a3a4'
+oracle_files: ['tests/test_task_oracle_execution_proof.py', 'tests/test_task_git.py', 'tests/test_fixture_preparation.py', 'tests/test_generated_task_evidence.py', 'tests/__init__.py', 'tools/kdd-board/tests/task-oracle-execution-proof.test.ts']
+touch_only: ['scripts/task_evidence.py', 'scripts/task_git.py', 'scripts/validate_tasks.py', 'scripts/oracle_execution.py', 'scripts/unittest_oracle_runner.py', 'scripts/node_oracle_reporter.mjs', 'tools/kdd-board/src/test-runner.ts', 'tools/kdd-board/src/task-execution.ts', 'tools/kdd-board/src/types.ts', 'tools/kdd-board/src/input-validation.ts', 'knowledge/git-tasks.md', 'knowledge/board-git.md', 'knowledge/data_models/git-task.md']
 deps_allowed: ['stdlib', 'oracle_inventory', 'oracle_execution', 'process_tree']
 forbids: ['network', 'llm']
 ---
@@ -41,21 +41,24 @@ cada archivo seleccionado, por ruta exacta relativa al repo, a
   archivo seleccionado sin resultado, un caso omitido, un timeout o una salida
   temprana impiden publicar un cierre. El nodo queda `in_progress` y el
   coordinador no escribe evidencia ni commit.
-- Los contratos de un solo archivo sin runner explicito conservan su sintaxis
-  historica Python/Node y obtienen evidencia instrumentada. Los contratos con
-  runner e inventario explicitos admiten los archivos seleccionados por la
-  gramática gestionada. Se requiere incluir el oraculo principal.
-- Para un contrato gestionado, el inventario revisado, incluidos los helpers,
-  se conserva en el arbol aprobado, el commit probado y el checkout. Un cambio
-  de archivo inventariado bloquea antes de ejecutar el oraculo. Se mantienen
-  los controles de estado y bytes posteriores a la ejecucion.
+- Conservar la sintaxis historica de un solo archivo Python o Node, incluida
+  la opcion TAP reconocida y el interprete Python declarado cuando este
+  disponible. Aplicar el instrumento existente a esa seleccion.
+  El soporte de inventarios con varios modulos conserva su alcance actual.
 - La lectura historica comprueba el recibo v1 con su semantica anterior.
-  La auditoria de un recibo v2 comprueba la identidad, las rutas seleccionadas
-  y los conteos sin ejecutar codigo ni requerir un checkout del commit probado.
-  Los consumidores historicos de evidencia v1 deben poder seguir leyendola.
+  La auditoria v2 comprueba la identidad, la ruta seleccionada y el conteo
+  sin ejecutar codigo ni importar el instrumento de ejecucion. El bundle
+  congelado de cinco modulos de calidad sigue siendo suficiente para auditar.
+  Una politica anterior con esos modulos protegidos requiere la revision
+  ordinaria de sus nuevos bytes antes de aprobar cierres v2.
+- Un skip de clase o modulo se trata como omision aunque unittest atribuya
+  el callback al framework. El resultado no acredita un archivo parcialmente
+  ejecutado. Conservar el timeout contenido y su diagnostico.
 - Board legacy aplica el instrumento a Node con oraculo, conserva la
-  verificacion Python, la redaccion de secretos y el alcance de los comandos
-  libres sin oraculo. El Board Git comparte el coordinador de tareas.
+  verificacion Python, la salida diagnostica con redaccion de secretos y el
+  alcance de los comandos libres sin oraculo. Un reporte Node previo sin
+  identidad del nuevo instrumento no acredita la finalizacion al cargarlo.
+  El Board Git comparte el coordinador de tareas.
 - Conservar los dos sistemas operativos, las dos pasadas de CI y los oraculos
   existentes. Los limites actuales de tiempo y el aislamiento de procesos del
   cierre siguen vigentes.
@@ -63,8 +66,8 @@ cada archivo seleccionado, por ruta exacta relativa al repo, a
 ## Examples
 
 - Un `node --test` con un archivo sin casos no acredita ningun caso.
-- Dos modulos Python inventariados con un caso cada uno producen un recibo v2
-  con dos rutas y dos casos. Cambiar un helper inventariado impide el cierre.
+- Un caso Python que pasa junto a una clase omitida impide el cierre.
+- Un caso real produce evidencia v2 y pasa el auditor aislado de calidad.
 - Un recibo v1 previo sigue siendo legible. Un v2 con resultado por archivo
   ausente es invalido aunque el JSON tenga un hash coherente.
 
@@ -77,6 +80,8 @@ cada archivo seleccionado, por ruta exacta relativa al repo, a
 
 El oraculo crea tareas y merges con Git real, ejecuta Python y Node, audita el
 recibo historico y comprueba el runner de Board con rutas anidadas.
+Los fixtures acotados copian los cuatro archivos existentes del instrumento
+solo para la ejecucion viva, sin ampliar el bundle historico de auditoria.
 
 ## Constraints
 

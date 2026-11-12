@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 12
   nesting_max: 4
 tests: tests/test_composite_quality_checkout.py
-tests_sha256: '095790a6b9966a89eba8368ad751f66607c74c02dd1d9e992350e5d4a545f69d'
+tests_sha256: '7723d999f591961662846ee99fd9417786a80aa509c5683c1e925119bde3be8d'
 oracle_files: ['tests/test_composite_quality_checkout.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py']
 touch_only: ['.github/actions/validate-contracts/action.yml', 'README.md']
 deps_allowed: ['stdlib', 'git']
@@ -30,7 +30,8 @@ del consumidor sin que su propio checkout altere el perimetro.
 Se conservan los inputs de la accion compuesta, la exigencia de SHA completo
 en `kdd-ref`, la opcion `run-test-commands`, la resolucion repo-relativa de
 las rutas y el checkout previo del consumidor. El paso `Check out KDD tooling repo`
-comunica la ruta privada del checkout a los validadores. El paso
+comunica la ruta privada a los validadores por su salida `root`, leida
+mediante el entorno `KDD_TOOLING_ROOT` de cada paso consumidor. El paso
 `Approve project quality (when configured)` ejecuta el verificador contra el
 repositorio del consumidor y su SHA aprobado.
 
@@ -39,7 +40,8 @@ repositorio del consumidor y su SHA aprobado.
 - El checkout de `MauricioPerera/KDD` se fija al commit solicitado y vive en
   un directorio privado de `RUNNER_TEMP`, fisicamente fuera del arbol Git
   del consumidor. Un temporal que cae dentro de ese arbol se rechaza antes
-  de crear archivos. Un SHA erroneo no permite ejecutar validadores.
+  de crear archivos, incluidos aliases al mismo directorio. Un SHA erroneo
+  no permite ejecutar validadores ni el resumen que necesita ese checkout.
 - Los validadores, comandos y resumen resuelven sus herramientas en ese
   checkout fijado. Las rutas de entrada y la auditoria de calidad siguen
   referidas al consumidor. Un fallo de preparacion bloquea la ejecucion.

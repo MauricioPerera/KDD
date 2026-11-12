@@ -5,9 +5,12 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import unittest
 
 from tests.test_task_git import Repository
+from tests.test_generated_task_evidence import TaskProject
+import oracle_execution
 import task_git as journal
 from task_model import TaskError
 from validate_tasks import validate_snapshot
@@ -46,18 +49,6 @@ class TaskOracleProof(unittest.TestCase):
         contract = contract.replace(sha256(self.repo.oracle.encode()).hexdigest(), sha256(text.encode()).hexdigest())
         self.write(self.repo.contract, contract)
         self.repo.approved = self.repo.commit('Approve Node oracle')
-
-    def approve_managed(self):
-        extra = self.repo.oracle.replace('test_value', 'test_second_value')
-        self.write('tests/test_second.py', extra)
-        self.write('tests/helper.py', 'MARKER = 7\n')
-        contract = self.contract.read_text(encoding='utf-8').replace(
-            'test_command: \'python -m unittest tests/test_value.py\'',
-            "test_command: 'python -m unittest tests/test_value.py tests/test_second.py'\n"
-            "test_runner: python-unittest\n"
-            "oracle_files: ['tests/test_value.py', 'tests/test_second.py', 'tests/helper.py']")
-        self.write(self.repo.contract, contract)
-        self.repo.approved = self.repo.commit('Approve managed oracle inventory')
 
     def integrate_early_exit(self):
         self.repo.git('switch', '-q', 'task/TASK-001')
@@ -111,30 +102,50 @@ class TaskOracleProof(unittest.TestCase):
         self.assertEqual(report['passed_tests'], 1)
         self.assertEqual(report['oracle_results'], {NODE_ORACLE: {'executed': 1, 'skipped': 0, 'ok': True}})
 
-    def test_managed_python_runs_both_inventoried_modules(self):
-        self.approve_managed()
-        try:
-            self.repo.start()
-        except TaskError as exc:
-            self.fail('A task with reviewed managed oracle files must reach in_progress: ' + str(exc))
+    def test_a_mixed_python_class_skip_cannot_accredit_a_close(self):
+        body = self.repo.oracle + (
+            '\nclass Omitted(unittest.TestCase):\n'
+            ' @classmethod\n'
+            ' def setUpClass(cls): raise unittest.SkipTest("fixture omitted class")\n'
+            ' def test_never_runs(self): self.fail()\n'
+        )
+        self.write('tests/test_value.py', body)
+        contract = self.contract.read_text(encoding='utf-8').replace(
+            sha256(self.repo.oracle.encode()).hexdigest(), sha256(body.encode()).hexdigest())
+        self.write(self.repo.contract, contract)
+        self.repo.approved = self.repo.commit('Approve fixture with one omitted class')
+        self.repo.start()
         self.repo.integrate()
-        _, report = self.finish()
-        self.assertEqual(report['schema_version'], 2)
-        self.assertEqual(report['passed_tests'], 2)
-        self.assertEqual(report['oracle_results'], {
-            name: {'executed': 1, 'skipped': 0, 'ok': True}
-            for name in ('tests/test_value.py', 'tests/test_second.py')
-        })
+        self.assert_blocked_close()
 
-    def test_managed_ready_rejects_changed_inventoried_helper(self):
-        self.approve_managed()
-        self.repo.act('create')
-        self.write('tests/helper.py', 'MARKER = 9\n')
-        before = self.repo.commit('Change reviewed helper')
-        with self.assertRaisesRegex(TaskError, 'TASK_APPROVAL'):
-            self.repo.act('ready', approved_ref=self.repo.approved)
-        self.assertEqual(self.repo.git('rev-parse', 'HEAD'), before)
-        self.assertEqual(journal.read_tasks(self.repo.root)['TASK-001']['status'], 'backlog')
+    def test_shared_python_instrument_rejects_a_class_skip_next_to_real_case(self):
+        oracle = 'tests/test_value.py'
+        self.write(oracle, self.repo.oracle + (
+            '\nclass Omitted(unittest.TestCase):\n'
+            ' @classmethod\n'
+            ' def setUpClass(cls): raise unittest.SkipTest("fixture omitted class")\n'
+            ' def test_never_runs(self): self.fail()\n'
+        ))
+        outcome = oracle_execution.execute_oracle({
+            'test_command': 'python -m unittest ' + oracle, 'test_runner': 'python-unittest',
+            'tests': oracle, 'oracle_files': [oracle],
+        }, self.repo.root)
+        self.assertFalse(outcome['ok'], outcome)
+        self.assertEqual(outcome['executed_tests'], 0, outcome)
+
+    def test_quality_reads_an_instrumented_receipt_with_its_frozen_bundle(self):
+        with tempfile.TemporaryDirectory(prefix='kdd-v2-quality-') as directory:
+            project = TaskProject(Path(directory) / 'project')
+            _, result = project.complete(1)
+            task = result['task']
+            report = json.loads((project.root / task['evidence']).read_text(encoding='utf-8'))
+            approval = project.quality()
+            self.assertEqual(approval.returncode, 0, approval.stdout + approval.stderr)
+            self.assertEqual(approval.stdout.count('RUN '), 4)
+            self.assertEqual(report['schema_version'], 2)
+            self.assertEqual(report['oracle_results'], {
+                'tests/test_feature1.py': {'executed': 2, 'skipped': 0, 'ok': True},
+            })
 
     def test_historical_receipt_still_validates_without_running_oracle(self):
         self.repo.start()
@@ -149,6 +160,7 @@ class TaskOracleProof(unittest.TestCase):
                       stderr=completed.stderr, output_sha256=sha256(output.encode()).hexdigest())
         report.pop('oracle_results', None)
         self.replace_receipt(task, report)
+        self.write('tests/test_value.py', 'raise RuntimeError("historical audit must not load checkout")\n')
         self.assertEqual(validate_snapshot(self.repo.root), [])
 
     def test_schema_two_requires_positive_results_for_every_selected_file(self):

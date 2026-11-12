@@ -16,7 +16,8 @@ from tests import test_group_contracts as groups
 TASK_SCRIPTS = {
     'task_git.py', 'task_model.py', 'task_evidence.py', 'tasks.py',
     'validate_tasks.py', 'validate_contracts.py', 'oracle_inventory.py',
-    'process_tree.py', 'verify_quality.py',
+    'process_tree.py', 'verify_quality.py', 'oracle_execution.py',
+    'unittest_oracle_runner.py', 'node_oracle_reporter.mjs',
 }
 
 

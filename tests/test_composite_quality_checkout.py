@@ -10,7 +10,7 @@ import unittest
 
 import yaml
 
-from tests.test_fixture_preparation import configure_git
+from tests.test_fixture_preparation import configure_git, directory_alias
 
 ROOT = Path(__file__).resolve().parents[1]
 ACTION = ROOT / '.github/actions/validate-contracts/action.yml'
@@ -29,7 +29,7 @@ class CompositeQualityCheckout(unittest.TestCase):
         configure_git(cls.tooling, {'user.name': 'KDD fixture', 'user.email': 'fixture@example.invalid',
                                     'core.autocrlf': 'false'}, ephemeral=True)
         (cls.tooling / 'scripts').mkdir()
-        for name in ('verify_quality.py', 'oracle_inventory.py', 'process_tree.py', 'validate_contracts.py'):
+        for name in ('verify_quality.py', 'oracle_inventory.py', 'process_tree.py', 'validate_contracts.py', 'optional_evidence.py'):
             shutil.copyfile(ROOT / 'scripts' / name, cls.tooling / 'scripts' / name)
         cls.tooling_ref = cls.commit(cls.tooling, 'Pinned tool fixture')
         (cls.tooling / 'scripts/verify_quality.py').write_text('raise SystemExit(17)\n', encoding='utf-8')
@@ -91,8 +91,15 @@ class CompositeQualityCheckout(unittest.TestCase):
         self.env['PATH'] = str(Path(sys.executable).parent) + os.pathsep + self.env.get('PATH', '')
 
     def run_step(self, name):
+        step = self.steps[name]
+        env = dict(self.env)
+        binding = step.get('env', {}).get('KDD_TOOLING_ROOT')
+        if binding is not None:
+            step_id = self.steps['Check out KDD tooling repo']['id']
+            self.assertEqual(binding, '${{ steps.' + step_id + '.outputs.root }}')
+            env['KDD_TOOLING_ROOT'] = str(self.tools_root)
         return subprocess.run([str(self.bash), '--noprofile', '--norc', '-e', '-o', 'pipefail',
-                               '-c', self.steps[name]['run']], cwd=self.consumer, env=self.env,
+                               '-c', step['run']], cwd=self.consumer, env=env,
                               capture_output=True, text=True, encoding='utf-8', timeout=45)
 
     def install_tools(self):
@@ -103,7 +110,7 @@ class CompositeQualityCheckout(unittest.TestCase):
             if result.returncode == 0:
                 rows = dict(line.split('=', 1) for line in self.output.read_text(encoding='utf-8').splitlines())
                 self.assertIn('root', rows)
-                self.env['KDD_TOOLING_ROOT'] = rows['root']
+                self.tools_root = Path(rows['root'])
             return result
         # Before the change checkout v7 ran on the consumer's relative path.
         # Reproduce that step with an actual checkout at the pinned object.
@@ -113,7 +120,7 @@ class CompositeQualityCheckout(unittest.TestCase):
                                 text=True, encoding='utf-8', timeout=30)
         if result.returncode == 0:
             self.git(nested, 'checkout', '-q', '--detach', self.env['KDD_REF'])
-            self.env['KDD_TOOLING_ROOT'] = str(nested)
+            self.tools_root = nested
         return result
 
     def quality(self):
@@ -122,7 +129,7 @@ class CompositeQualityCheckout(unittest.TestCase):
     def assert_tools_installed(self):
         result = self.install_tools()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        root = Path(self.env['KDD_TOOLING_ROOT']).resolve()
+        root = self.tools_root.resolve()
         self.assertEqual(self.git(root, 'rev-parse', 'HEAD'), self.tooling_ref)
         return root
 
@@ -157,11 +164,49 @@ class CompositeQualityCheckout(unittest.TestCase):
         self.assertFalse((self.consumer / 'rounds.txt').exists())
 
     def test_runner_temp_inside_consumer_is_rejected_without_writes(self):
-        self.env['RUNNER_TEMP'] = str(self.consumer)
-        result = self.install_tools()
-        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(self.git(self.consumer, 'status', '--porcelain'), '')
-        self.assertFalse(self.output.exists())
+        nested = self.consumer / 'nested'
+        nested.mkdir()
+        alias = self.scratch / 'alias'
+        directory_alias(alias, nested, self)
+        for location in (self.consumer, nested, alias):
+            with self.subTest(location=location):
+                self.env['RUNNER_TEMP'] = str(location)
+                result = self.install_tools()
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(self.git(self.consumer, 'status', '--porcelain'), '')
+                self.assertFalse(self.output.exists())
+                self.assertEqual(list(nested.iterdir()), [])
+
+    def test_all_script_steps_take_the_checkout_output_from_yaml(self):
+        checkout = self.steps['Check out KDD tooling repo']
+        self.assertIn('id', checkout)
+        binding = '${{ steps.' + checkout['id'] + '.outputs.root }}'
+        validators = {name: step for name, step in self.steps.items()
+                      if '/scripts/' in step.get('run', '')}
+        self.assertIn('Approve project quality (when configured)', validators)
+        self.assertIn('Validate contracts (REQUIRED)', validators)
+        self.assertIn("Run each contract's test_command (OPTIONAL — gated by run-test-commands)", validators)
+        self.assertIn('Summarize optional evidence', validators)
+        for name, step in validators.items():
+            with self.subTest(step=name):
+                self.assertEqual(step.get('env', {}).get('KDD_TOOLING_ROOT'), binding)
+                self.assertIn('"$KDD_TOOLING_ROOT/scripts/', step['run'])
+                self.assertNotIn('_kdd/scripts/', step['run'])
+        self.assertIn('steps.' + checkout['id'] + ".outcome == 'success'",
+                      self.steps['Summarize optional evidence']['if'])
+
+    def test_missing_approval_or_consumer_helper_never_executes_checks(self):
+        self.assert_tools_installed()
+        self.env['KDD_QUALITY_APPROVED_REF'] = ''
+        missing_ref = self.quality()
+        self.assertNotEqual(missing_ref.returncode, 0)
+        self.assertIn('quality-approved-ref', missing_ref.stdout + missing_ref.stderr)
+        (self.consumer / 'scripts/process_tree.py').unlink()
+        self.env['KDD_QUALITY_APPROVED_REF'] = self.commit(self.consumer, 'Policy without approved helper')
+        missing_helper = self.quality()
+        self.assertNotEqual(missing_helper.returncode, 0)
+        self.assertIn('scripts/process_tree.py', (missing_helper.stdout + missing_helper.stderr).replace('\\', '/'))
+        self.assertFalse((self.consumer / 'rounds.txt').exists())
 
     def test_unavailable_pin_fails_before_quality(self):
         self.env['KDD_REF'] = '0' * 40
