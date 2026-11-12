@@ -52,11 +52,10 @@ The CI run checks GitHub's integration commit. It extracts the launcher from
 the approved consumer commit, verifies the installed paths and oracle
 inventory, and runs two independent managed passes. The `KDD_PILOT` record
 reports `adoption_approved_ref`, `verified_kdd_sha`, `oracle_passes` and
-`executed_tests` per pass. A launcher with receipt support reports
-`oracle_inventory`, the exact case IDs by contract that agreed in both
-passes. If the pin lacks receipt support, review a compatible pin before
-running the approved profile. Push and manual runs without an adoption
-reference retain the one-pass pilot profile.
+`executed_tests` per pass. With the ODD/EGM pilot launcher and pin, validation
+also compares bound-method receipts and reports the matching unittest
+labels in `oracle_inventory` by contract. Push and manual runs without an
+adoption reference retain the one-pass pilot profile.
 
 For a required check, configure branch or organization controls outside the
 consumer workflow. A [GitHub organization ruleset](https://docs.github.com/en/rest/orgs/rules#update-an-organization-repository-ruleset)
@@ -78,8 +77,12 @@ oracles, helper and inventory together before registering a new reference.
 
 ## Review a change
 
-From a trusted checkout with the reviewed launcher and pin, inspect the
-committed change between two exact Git SHAs.
+The ODD/EGM pilot needs a compatible launcher and a reviewed validator pin
+identified by its full SHA. Generate the launcher from the pilot checkout.
+The pin provides the baseline reviewer and bound-method receipts. Review the
+managed file migration and approve the resulting consumer commit before
+registering it for CI. From a trusted checkout, inspect the committed change
+between two exact Git SHAs.
 
 ```text
 python -I .kdd/validate.py review --approved-ref ADOPTION_SHA --base-ref BASE_SHA --candidate-ref CANDIDATE_SHA

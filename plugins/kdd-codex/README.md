@@ -47,9 +47,11 @@ full SHA as `KDD_ADOPTION_APPROVED_REF`. Review and register a quality reference
 separately if the project's protected files changed. To validate from Codex or
 the terminal, run `python .kdd/validate.py --approved-ref CONSUMER_SHA` from the
 consumer root with the same quality reference in the environment. Compare the
-full `verified_kdd_sha` and `oracle_passes` in each `KDD_PILOT` record with the
-GitHub Actions results. To roll back a pin, reverse the two SHAs in the installer
-and review the resulting consumer commit before changing any approval references.
+full `verified_kdd_sha` and the two `oracle_passes` counts in each `KDD_PILOT`
+record with GitHub Actions. This is the 1.2.0 validation profile. The
+ODD/EGM pilot below requires a separate launcher and validator migration.
+To roll back a pin, reverse the two SHAs in the installer and review the
+resulting consumer commit before changing any approval references.
 
 ## Adopt validation in a Python project
 
@@ -63,8 +65,13 @@ project command records the KDD commit it executes.
 
 ## Review in an adopted project
 
-The pilot launcher exposes the installed validator's editorial classification
-and independent baseline review. Use the approved adoption commit and the exact
-base and candidate SHAs from a trusted checkout. The same command is available
-from Codex and the terminal. The adopted workflow verifies the case IDs for
-each contract across both passes. [Consumer guide](https://github.com/MauricioPerera/KDD/blob/main/tools/kdd-adoption/README.md#review-a-change)
+The ODD/EGM pilot needs a compatible launcher generated from the pilot
+checkout and a reviewed validator pin identified by its full commit SHA.
+The pin provides the baseline reviewer and bound-method receipts. Review
+the generated files and approve the new consumer commit before using the
+pilot in CI.
+
+Use that approved adoption commit and the exact base and candidate SHAs
+to run `review` from Codex or the terminal. The pilot workflow compares
+the recorded methods per contract across both passes.
+[Consumer guide](https://github.com/MauricioPerera/KDD/blob/main/tools/kdd-adoption/README.md#review-a-change)

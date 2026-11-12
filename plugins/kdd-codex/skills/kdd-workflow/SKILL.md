@@ -50,9 +50,11 @@ project using the historical profile, report the validation it actually ran.
 
 ## Review a change in an adopted project
 
-Answer read-only questions from the repository and its evidence. For a change,
-use the trusted checkout and inspect the base and candidate commits with the
-same approved adoption pin as validation.
+Use the pilot from a trusted checkout with a compatible launcher and a
+reviewed validator pin identified by its full SHA. The pin provides the
+baseline reviewer and bound-method receipts. Review the managed file
+migration and register the approved consumer commit before running in CI.
+Inspect the base and candidate commits with that same pin.
 
 ```text
 python -I .kdd/validate.py review --approved-ref ADOPTION_SHA --base-ref BASE_SHA --candidate-ref CANDIDATE_SHA
