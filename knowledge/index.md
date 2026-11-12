@@ -3,7 +3,7 @@
 Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está especificado en [OKF-SPEC](./OKF-SPEC.md).
 
 ## Referencia
-- [Revision proporcional antes del baseline](./baseline-risk-review.md) — propuesta de riesgo, fuentes exactas y hallazgos previos a la aprobacion humana.
+- [Revision proporcional antes del baseline](./baseline-risk-review.md)
 - [Contrato de revision proporcional](./contracts/baseline-risk-review.md)
 - [Entrada previa al baseline](./contracts/baseline-review-entrypoint.md)
 - [Flujo ligero para cambios pequenos](./odd-lightweight.md)
@@ -11,7 +11,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Referencia aprobada de aceptación en CI](./contracts/acceptance-baseline-routing.md)
 - [Barrera de terminacion de procesos](./process-exit-barrier.md) — handles propios senalados y limpieza acotada antes de liberar comandos.
 - [Contrato de barrera de terminacion](./contracts/process-exit-barrier.md)
-- [Coste de lectura del historial](./task-history-read-cost.md) — propuesta de cache por operacion y padres por lote, conservando la auditoria completa.
+- [Coste de lectura del historial](./task-history-read-cost.md)
 - [Estado verificable de KDD](./estado-actual-kdd.md) — capacidades integradas, evidencia de main/Pages, pendientes vigentes y cortes historicos.
 - [Piloto de KDD como complemento](./piloto-kdd-complemento.md)
 - [Instalación reutilizable de KDD](./contracts/reusable-kdd-adoption.md)
