@@ -30,6 +30,19 @@ python scripts/adopt_project.py --repo-root CONSUMER --contracts-dir knowledge/c
 ```
 
 After the user accepts those three file additions, use the same command with
-`--apply`. From the consumer root, run `python .kdd/validate.py`. The project's
-lock selects the KDD scripts used by the terminal, this skill and its generated
-GitHub Actions workflow. Report the actual `KDD_PILOT` record and exit code.
+`--apply`. For an existing installation, use its current lock and the reviewed
+new SHA in the installer's update plan. Review legacy launcher and workflow
+changes separately before changing the pin.
+
+For a project with an approved adoption commit, run the same consumer entry point
+as the terminal and its GitHub Actions workflow. Use Python 3.11 from the
+consumer root and supply the reviewed quality reference through the environment
+when its policy requires one.
+
+```text
+python .kdd/validate.py --approved-ref CONSUMER_SHA
+```
+
+Compare the full `verified_kdd_sha` in `KDD_PILOT` with `.kdd/validator.lock`.
+Check both `oracle_passes` and the exit code before reporting success. For a
+project using the historical profile, report the validation it actually ran.
