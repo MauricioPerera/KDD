@@ -408,6 +408,10 @@ def approved_oracle_passes(validator, contracts, python, reference, directory):
         receipt = directory / f"oracle-pass-{number}.json"
         run_gate(validator, "validate_test_commands.py", str(ROOT / CONTRACTS), str(ROOT),
                  "--oracle-receipt", str(receipt), python=python)
+        check_approved_paths(reference, adoption_paths())
+        current = [path.relative_to(ROOT).as_posix() for path in selected_contracts()]
+        if current != contracts:
+            raise Rejected("Selected contracts changed during oracle execution")
         check_contracts(validator, contracts, reference)
         inventories.append(receipt_contracts(receipt, contracts))
     if inventories[0] != inventories[1]:
@@ -475,6 +479,8 @@ def validate(record):
 
 def review_from_pin(args, directory):
     check_consumer()
+    if not args.approved_ref:
+        raise Rejected("--approved-ref must identify a full approved consumer commit")
     pin = validator_pin(args.approved_ref)
     actual, validator = prepare_validator(directory, pin)
     script = validator / "scripts/baseline_review.py"

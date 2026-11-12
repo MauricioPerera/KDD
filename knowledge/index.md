@@ -17,6 +17,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Instalación reutilizable de KDD](./contracts/reusable-kdd-adoption.md)
 - [Revision ODD y EGM](./contracts/plugin-odd-egm-review.md)
 - [IDs por pasada](./contracts/adoption-oracle-pass-identity.md)
+- [Bateria adversarial](./contracts/adoption-adversarial.md)
 - [Referencia aprobada de calidad](./contracts/adoption-quality-reference.md)
 - [Validación confiable de PR del consumidor](./contracts/adoption-trusted-pr.md)
 - [Preparación de proyectos Python existentes](./contracts/adoption-python-preparation.md)

@@ -37,7 +37,8 @@ class IdentifiedResult(RecordedResult):
 
     def startTest(self, test):
         super().startTest(test)
-        self.case_ids.setdefault(source_path(test), []).append(test.id())
+        identity = unittest.TestCase.id(test)
+        self.case_ids.setdefault(source_path(test), []).append(identity)
 
 
 def main():
