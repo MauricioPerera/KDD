@@ -173,8 +173,10 @@ def execute_oracle(metadata, repo_root, timeout=180):
 
 
 def execute_task_oracle(runner, interpreter, oracle, repo_root, timeout, run):
-    """Instrument the caller's validated single-file invocation and process runner."""
+    """Instrument explicit files using the caller's interpreter and process runner."""
     root = Path(repo_root).resolve(strict=True)
-    if not local_file(root, oracle).is_file():
-        raise ValueError('Task oracle is not a regular file: ' + oracle)
-    return _execute((runner, [oracle], [oracle], interpreter), root, timeout, run, _result())
+    files = [oracle] if isinstance(oracle, str) else oracle
+    for name in files:
+        if not local_file(root, name).is_file():
+            raise ValueError('Task oracle is not a regular file: ' + name)
+    return _execute((runner, files, files, interpreter), root, timeout, run, _result())

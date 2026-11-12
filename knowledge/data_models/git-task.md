@@ -41,8 +41,8 @@ No se guardan credenciales ni un historial duplicado dentro del nodo.
 ## Transiciones
 
 - Creacion -> backlog.
-- backlog -> ready: contrato y oraculo actuales validos e iguales al commit
-  aprobado, que debe existir y ser ancestro de main.
+- backlog -> ready: contrato e inventario de oraculos actuales validos e
+  iguales al commit aprobado, que debe existir y ser ancestro de main.
 - ready -> in_progress: responsable y rama asociada; dependencias done.
 - in_progress -> needs_human_input: motivo del bloqueo.
 - needs_human_input -> ready: motivo de resolucion; se conserva la rama.
@@ -55,13 +55,15 @@ revision indicada, no que futuros cambios del producto sigan pasando esos tests.
 
 ## Evidencia
 
-finish ejecuta en main limpio el oraculo de un archivo con python -m unittest
-o node --test. El recibo v2 registra la ruta en `oracle_results` con los
-campos `executed`, `skipped` y `ok`. Exige casos instrumentados positivos,
-cero omisiones y exit 0. Conserva stdout, stderr, conteos, comando, SHA
-probado, tip integrado y hashes del contrato, target, oraculo y salida.
-Los recibos v1 previos conservan su validacion historica. El JSON se guarda
-fuera de knowledge/. [Contrato de evidencia](../contracts/task-oracle-execution-proof.md).
+finish ejecuta en main limpio los archivos seleccionados por python -m unittest
+o node --test. El recibo v2 registra cada ruta seleccionada en `oracle_results`
+con los campos `executed`, `skipped` y `ok`. Exige casos instrumentados
+positivos por archivo, cero omisiones y exit 0. Conserva stdout, stderr,
+conteos, comando, SHA probado, tip integrado y hashes del contrato, target,
+oraculo primario y salida. Los recibos v1 de un archivo conservan su validacion
+historica. El JSON se guarda fuera de knowledge/.
+[Contrato de evidencia](../contracts/task-oracle-execution-proof.md).
+[Inventario multiarchivo](../contracts/git-task-multi-oracle.md).
 El commit de cierre solo cambia el nodo y agrega su evidencia; verified_ref
 apunta al padre, evitando una referencia al propio hash futuro.
 

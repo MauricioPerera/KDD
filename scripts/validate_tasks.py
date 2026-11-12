@@ -31,12 +31,7 @@ def _dependencies(tasks):
     return errors
 
 
-def _instrumented_count(report, metadata):
-    rows = report.get('oracle_results')
-    path = proof.oracle_path(metadata)
-    if not isinstance(rows, dict) or set(rows) != {path}:
-        return 0
-    result = rows[path]
+def _oracle_count(result):
     if not isinstance(result, dict) or set(result) != {'executed', 'skipped', 'ok'}:
         return 0
     if result['ok'] is not True or type(result['skipped']) is not int or result['skipped'] != 0:
@@ -45,8 +40,24 @@ def _instrumented_count(report, metadata):
     return count if type(count) is int and count > 0 else 0
 
 
+def _instrumented_count(report, files):
+    rows = report.get('oracle_results')
+    if not isinstance(rows, dict) or set(rows) != set(files):
+        return 0
+    counts = [_oracle_count(rows[name]) for name in files]
+    return sum(counts) if all(counts) else 0
+
+
+def _receipt_count(report, runner, files):
+    if report['schema_version'] == 2:
+        return _instrumented_count(report, files)
+    if len(files) == 1:
+        return proof.passed_tests(runner, report['stdout'], report['stderr'])
+    return 0
+
+
 def _proof_output(report, metadata):
-    _, runner = proof.invocation(metadata)
+    _, runner, files = proof.selection(metadata)
     version = report.get('schema_version')
     if type(version) is not int or version not in (1, 2):
         return ['TASK_EVIDENCE: unsupported receipt schema version']
@@ -54,10 +65,7 @@ def _proof_output(report, metadata):
              and report['exit_code'] == 0 and type(report.get('passed_tests')) is int)
     if not valid or not all(isinstance(report.get(k), str) for k in ('stdout', 'stderr')):
         return ['TASK_EVIDENCE: invalid runner result']
-    if version == 1:
-        expected = proof.passed_tests(runner, report['stdout'], report['stderr'])
-    else:
-        expected = _instrumented_count(report, metadata)
+    expected = _receipt_count(report, runner, files)
     if expected < 1 or report['passed_tests'] != expected:
         return ['TASK_EVIDENCE: missing or inconsistent passing oracle cases']
     if report.get('output_sha256') != proof.digest(report['stdout'] + report['stderr']):
@@ -92,11 +100,20 @@ def _proof_perimeter(root, task, report):
     return []
 
 
+def _receipt_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('TASK_EVIDENCE: duplicate JSON key: ' + key)
+        result[key] = value
+    return result
+
+
 def _evidence(root, ref, task, metadata):
     content = journal.blob(root, ref, task['evidence'])
     if proof.digest(content) != task['evidence_sha256']:
         return ['TASK_EVIDENCE: artifact digest mismatch']
-    report = json.loads(content)
+    report = json.loads(content, object_pairs_hook=_receipt_object)
     if not isinstance(report, dict):
         return ['TASK_EVIDENCE: expected an object']
     if not journal.ancestor(root, task['verified_ref'], journal.commit_sha(root, ref)):

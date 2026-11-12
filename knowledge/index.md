@@ -336,7 +336,5 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 - [Correcciones prioritarias de la auditoria EGM](egm-p1-remediation.md)
 - [Evidencia instrumentada para tareas](contracts/task-oracle-execution-proof.md)
-- [Oraculos multiarchivo en tareas Git](contracts/git-task-multi-oracle.md)
-- [Calidad con evidencia multiarchivo](contracts/quality-git-task-multi-oracle.md)
 - [Vinculo del guard con el evento](contracts/trusted-pr-event-binding.md)
 - [Checkout aislado de la accion compuesta](contracts/composite-quality-checkout.md)
