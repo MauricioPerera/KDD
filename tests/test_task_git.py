@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from scripts.trusted_ci import MANAGED_RUNTIME_FILES
 from tests.test_fixture_preparation import configure_git
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,7 +25,7 @@ class Repository:
             (self.root / folder).mkdir(parents=True, exist_ok=True)
         for name in ['task_model.py', 'task_git.py', 'task_evidence.py', 'tasks.py',
                      'validate_tasks.py', 'validate_contracts.py', 'validate_baseline.py',
-                     'validate_test_commands.py']:
+                     'validate_test_commands.py', 'process_tree.py', *MANAGED_RUNTIME_FILES]:
             shutil.copyfile(ROOT / 'scripts' / name, self.root / 'scripts' / name)
         (self.root / '.gitignore').write_text('__pycache__/\n*.pyc\n')
         (self.root / 'knowledge/index.md').write_text('[Contracts](contracts/)\n')

@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 20
   nesting_max: 4
 tests: tests/test_approval_routing.py
-tests_sha256: 'a31fe8f13e834c7608bcf085d5609f2c15542d10595f81d4dc2c12a1a20bfc16'
+tests_sha256: 'a9ac07313a5235ec04f7bbc97c6947ead3d10c30bfc45e0cf5bb7bff44e16d82'
 touch_only: ['scripts/guard_pr_baseline.py', '.github/workflows/validate.yml', '.github/workflows/trusted-pr-gate.yml', 'scripts/init_project.py', 'scripts/bootstrap_project.py']
 deps_allowed: ['stdlib']
 forbids: ['llm']

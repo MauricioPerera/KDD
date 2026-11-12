@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { executeTaskTest } from './test-runner.ts';
+import { executeTaskTest, oracleRunnerForCommand } from './test-runner.ts';
 import type { TaskStore } from './task-store.ts';
 import type { BlindVault } from './blind-vault.ts';
 import type { Task } from './types.ts';
@@ -19,8 +19,8 @@ export function digest(file: string): string {
 export function evidenceCurrent(task: Task): boolean {
   const r = task.testReport;
   if (!task.contractId || !r?.success || !r.verifiedOracle || !r.evidence || r.passedTests < 1 || r.failedTests !== 0) return false;
-  if (/^["']?python(?:3(?:\.\d+)?)?["']?\s+-m\s+unittest(?:\s|$)/.test(r.command?.trim() ?? '')
-      && r.oracleRunner !== 'python-unittest-recorder-v1') return false;
+  const runner = oracleRunnerForCommand(r.command ?? '');
+  if (!runner || r.oracleRunner !== runner) return false;
   if (!r.cwd || Object.keys(r.evidence).length < 2) return false;
   if (r.command !== task.testCommand || r.contractId !== task.contractId) return false;
   try { return Object.entries(r.evidence).every(([file, hash]) => digest(file) === hash); }

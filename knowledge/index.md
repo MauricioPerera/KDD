@@ -333,3 +333,8 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Objetos originales del baseline de calidad](contracts/quality-approved-objects.md)
 - [Hashes exactos del manifiesto](contracts/quality-manifest-bytes.md)
 - [Reinicio con requisitos secretos](contracts/board-secret-restart.md)
+
+- [Correcciones prioritarias de la auditoria EGM](egm-p1-remediation.md)
+- [Evidencia instrumentada para tareas](contracts/task-oracle-execution-proof.md)
+- [Vinculo del guard con el evento](contracts/trusted-pr-event-binding.md)
+- [Checkout aislado de la accion compuesta](contracts/composite-quality-checkout.md)

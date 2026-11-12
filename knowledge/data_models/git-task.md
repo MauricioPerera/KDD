@@ -55,11 +55,13 @@ revision indicada, no que futuros cambios del producto sigan pasando esos tests.
 
 ## Evidencia
 
-finish ejecuta en main limpio el test_command del contrato aprobado.
-V1 reconoce una invocacion exacta del oraculo con python -m unittest o
-node --test; exige al menos un test aprobado y exit 0. Registra stdout,
-stderr, conteos, comando, SHA probado, tip integrado y hashes del contrato,
-target, oraculo y salida. Guarda JSON versionado fuera de knowledge/.
+finish ejecuta en main limpio el oraculo de un archivo con python -m unittest
+o node --test. El recibo v2 registra la ruta en `oracle_results` con los
+campos `executed`, `skipped` y `ok`. Exige casos instrumentados positivos,
+cero omisiones y exit 0. Conserva stdout, stderr, conteos, comando, SHA
+probado, tip integrado y hashes del contrato, target, oraculo y salida.
+Los recibos v1 previos conservan su validacion historica. El JSON se guarda
+fuera de knowledge/. [Contrato de evidencia](../contracts/task-oracle-execution-proof.md).
 El commit de cierre solo cambia el nodo y agrega su evidencia; verified_ref
 apunta al padre, evitando una referencia al propio hash futuro.
 

@@ -15,7 +15,7 @@ budget:
   lines_max: 120
   params_max: 5
 tests: tests/test_traceability_model.py
-tests_sha256: '12678a153ebe9ef8ff7a32aa131cfe0b331d35893afbdf730253a9c5339a9751'
+tests_sha256: 'b845c38e389d075d41f8f2826d221c879365c8701f2c4a98130120c0c4ce3edb'
 touch_only: ['scripts/traceability_model.py']
 deps_allowed: ['stdlib', 'validate_contracts']
 forbids: ['network', 'subprocess', 'llm']

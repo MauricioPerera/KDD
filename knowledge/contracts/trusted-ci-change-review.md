@@ -12,7 +12,7 @@ budget:
   cyclomatic_max: 20
   nesting_max: 4
 tests: tests/test_trusted_change_review.py
-tests_sha256: '058051cd3633d552de748f4778f219643587718fd65d4111495f3755862e3c89'
+tests_sha256: '2bc14f0e82efadadfb8f7cb731e9f9b8a80ff2296a80571bca8700028649f251'
 touch_only: ['scripts/guard_pr_baseline.py', '.github/workflows/trusted-pr-gate.yml']
 deps_allowed: ['stdlib']
 forbids: ['llm']

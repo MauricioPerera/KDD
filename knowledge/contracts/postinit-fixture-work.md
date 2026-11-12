@@ -15,7 +15,7 @@ budget:
   lines_max: 100
   params_max: 5
 tests: tests/test_postinit_fixture_work.py
-tests_sha256: '1d4e27505718cd0d9f884c795cb7ab870821055014f924784fb7b3975de39749'
+tests_sha256: '1e12b8960a8ab79f4933a5c786d3eea346fc6341ea3e35c6e7ac14d791734b91'
 oracle_files: ['tests/test_postinit_fixture_work.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py']
 touch_only: ['tests/test_generated_task_evidence.py', 'tests/test_group_contracts.py', 'tests/test_ci_trusted_execution.py', 'tools/ci/postinit-module-order.json']
 deps_allowed: ['stdlib', 'tests']

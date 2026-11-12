@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from scripts.trusted_ci import MANAGED_RUNTIME_FILES
 from tests.test_fixture_preparation import configure_git
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,7 +53,8 @@ IMPLEMENTATION = """def value(item):
 """
 NEW_MODULES = ['traceability.py', 'traceability_model.py', 'traceability_git.py']
 TASK_MODULES = ['task_model.py', 'task_git.py', 'task_evidence.py', 'validate_tasks.py', 'validate_contracts.py']
-SCRIPT_FILES = [*NEW_MODULES, *TASK_MODULES, 'tasks.py', 'process_tree.py', 'verify_quality.py']
+SCRIPT_FILES = [*NEW_MODULES, *TASK_MODULES, 'tasks.py', 'process_tree.py', 'verify_quality.py',
+                *MANAGED_RUNTIME_FILES]
 
 
 def dump(value):

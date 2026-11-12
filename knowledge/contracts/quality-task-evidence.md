@@ -15,7 +15,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_generated_task_evidence.py
-tests_sha256: '7e327a1826a3a916c0c709f140b9028dd7aa70586ce288bdaecf23f1e874b43a'
+tests_sha256: '5e1b8865d18d1710577c8a55f2175d6db0bfa8863ef1d2e32b94e7ba3b58d408'
 touch_only: ['scripts/verify_quality.py']
 deps_allowed: ['stdlib']
 forbids: ['llm']

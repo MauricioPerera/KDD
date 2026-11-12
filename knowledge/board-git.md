@@ -55,7 +55,10 @@ es backlog->ready=`ready`, ready->in_progress=`start`,
 in_progress->needs_human_input=`block`, needs_human_input->ready=`resume`,
 in_progress->done=`finish`. Se rechaza toda otra arista, incluido repetir
 estado. `ready` requiere SHA aprobado explicito; no se completa con HEAD.
-`finish` ejecuta el oraculo canonico y conserva su evidencia durable.
+`finish` ejecuta el oraculo canonico y conserva su evidencia instrumentada.
+En modo legacy, el runner Node registra la procedencia de sus casos. Los
+reportes Node anteriores que carecen de esa procedencia necesitan volver
+a ejecutar el oraculo para acreditar un cierre. [Contrato de evidencia](contracts/task-oracle-execution-proof.md).
 
 HTTP y WebMCP usan la misma instancia del adaptador. Las tools en modo Git
 son `list_tasks`, `get_task`, `create_task`, `update_task_status` y

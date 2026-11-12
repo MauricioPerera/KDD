@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from scripts.trusted_ci import MANAGED_RUNTIME_FILES
 from tests.test_fixture_preparation import configure_git
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,7 +42,7 @@ class TaskProject:
             self.root.mkdir(parents=True, exist_ok=True)
             (self.root / 'scripts').mkdir(exist_ok=True)
             for name in (*TRUSTED_TASK_MODULES, 'tasks.py', 'verify_quality.py',
-                         'process_tree.py', 'oracle_inventory.py'):
+                         'process_tree.py', *MANAGED_RUNTIME_FILES):
                 shutil.copyfile(ROOT / 'scripts' / name, self.root / 'scripts' / name)
             self.write('.gitignore', '__pycache__/\n*.pyc\n.env.local\n.kdd-board/\n')
             self.write('knowledge/index.md', """---

@@ -2,16 +2,16 @@ name: validate-contracts
 description: |
   Run the KDD contract gates against a CALLER repo that did NOT clone this
   template (no vendored `scripts/`). It checks out THIS repo
-  (MauricioPerera/KDD) at a pinned ref into `_kdd/` and runs the validators
+  (MauricioPerera/KDD) at a pinned ref in RUNNER_TEMP and runs the validators
   against the caller's own paths.
 
   IMPORTANT — caller responsibility: this composite action does NOT checkout
   the caller's repo. The caller is expected to check out its OWN
   repo (so its working tree is at `github.workspace`) BEFORE invoking this
   action. All path inputs below are interpreted relative to that caller
-  checkout (`github.workspace`). This action only adds the KDD tooling repo on
-  top, at `_kdd/`, without overwriting the caller's files. A quality-approved-ref
-  must exist in the caller checkout; use fetch-depth: 0 for an older commit.
+  checkout (`github.workspace`). KDD tooling is stored outside that worktree.
+  A quality-approved-ref must exist in the caller checkout and contain the
+  approved scripts/process_tree.py helper; use fetch-depth: 0 for an older commit.
 
   Optional gates (rules / skills / ux-page / diagrams / security findings /
   compliance findings / privacy findings / accessibility findings /
@@ -125,31 +125,53 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Require immutable KDD tooling ref
-      shell: bash
-      env:
-        KDD_REF: ${{ inputs.kdd-ref }}
-      run: |
-        if [[ ! "$KDD_REF" =~ ^[0-9a-fA-F]{40}$ ]]; then
-          echo 'kdd-ref must be a full commit SHA' >&2
-          exit 1
-        fi
-
-    - name: Check out KDD tooling repo
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        repository: MauricioPerera/KDD
-        ref: ${{ inputs.kdd-ref }}
-        path: _kdd
-
     - name: Set up Python 3.11
       uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
       with:
         python-version: '3.11'
 
+    - name: Check out KDD tooling repo
+      id: kdd_tooling
+      shell: bash
+      env:
+        KDD_REF: ${{ inputs.kdd-ref }}
+      run: |
+        python - <<'PY'
+        import os
+        from pathlib import Path
+        import re
+        import subprocess
+        import tempfile
+
+        ref = os.environ['KDD_REF']
+        if not re.fullmatch(r'[0-9a-fA-F]{40}', ref):
+            raise SystemExit('kdd-ref must be a full commit SHA')
+        checkout_root = subprocess.check_output(
+            ['git', 'rev-parse', '--show-toplevel'], encoding='utf-8').rstrip('\r\n')
+        consumer = Path(checkout_root).resolve(strict=True)
+        scratch = Path(os.environ['RUNNER_TEMP']).resolve(strict=True)
+        if not scratch.is_dir() or scratch.is_relative_to(consumer):
+            raise SystemExit('RUNNER_TEMP must be outside the consumer Git worktree')
+        if any(char in str(scratch) for char in '\r\n'):
+            raise SystemExit('RUNNER_TEMP must have a single-line path')
+
+        tooling = Path(tempfile.mkdtemp(prefix='kdd-tooling-', dir=scratch))
+        git = ['git', '--no-replace-objects', '-C', str(tooling)]
+        subprocess.run([*git, 'init', '--quiet'], check=True)
+        subprocess.run([*git, 'fetch', '--quiet', '--no-tags', '--depth=1',
+                        'https://github.com/MauricioPerera/KDD.git', ref.lower()], check=True)
+        subprocess.run([*git, 'checkout', '--quiet', '--detach', 'FETCH_HEAD'], check=True)
+        resolved = subprocess.check_output([*git, 'rev-parse', 'HEAD'], encoding='ascii').strip()
+        if resolved != ref.lower():
+            raise SystemExit('KDD tooling checkout does not match kdd-ref')
+        with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8', newline='\n') as output:
+            output.write('root=' + tooling.as_posix() + '\n')
+        PY
+
     - name: Check required optional evidence
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_REQUIRED_EVIDENCE: ${{ inputs.required-evidence }}
         KDD_SECURITY_SCAN_DIR: ${{ inputs.security-scan-dir }}
         KDD_COMPLIANCE_SCAN_DIR: ${{ inputs.compliance-scan-dir }}
@@ -159,27 +181,30 @@ runs:
         KDD_OBSERVABILITY_SCAN_DIR: ${{ inputs.observability-scan-dir }}
         KDD_TEST_COVERAGE_SCAN_DIR: ${{ inputs.test-coverage-scan-dir }}
         KDD_QUALITY_POLICY: ${{ inputs.quality-policy-path }}
-      run: python _kdd/scripts/optional_evidence.py check --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage,quality
+      run: python "$KDD_TOOLING_ROOT/scripts/optional_evidence.py" check --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage,quality
 
     - name: Validate contracts (REQUIRED)
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_CONTRACTS_DIR: ${{ inputs.contracts-dir }}
-      run: python _kdd/scripts/validate_contracts.py "$KDD_CONTRACTS_DIR"
+      run: python "$KDD_TOOLING_ROOT/scripts/validate_contracts.py" "$KDD_CONTRACTS_DIR"
 
     - name: Validate OKF nodes (REQUIRED)
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_OKF_DIR: ${{ inputs.okf-dir }}
-      run: python _kdd/scripts/validate_okf.py "$KDD_OKF_DIR"
+      run: python "$KDD_TOOLING_ROOT/scripts/validate_okf.py" "$KDD_OKF_DIR"
 
     - name: Validate specs contracts (OPTIONAL — guarded)
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_SPECS_DIR: ${{ inputs.specs-dir }}
       run: |
         if [ -d "$KDD_SPECS_DIR" ]; then
-          python _kdd/scripts/validate_specs.py "$KDD_SPECS_DIR"
+          python "$KDD_TOOLING_ROOT/scripts/validate_specs.py" "$KDD_SPECS_DIR"
         else
           echo "SKIP: no specs dir at $KDD_SPECS_DIR"
         fi
@@ -187,11 +212,12 @@ runs:
     - name: Validate project completion evidence
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_COMPLETION_POLICY: ${{ inputs.completion-policy-path }}
         KDD_SPECS_DIR: ${{ inputs.specs-dir }}
         KDD_REPOSITORY: ${{ github.repository }}
       run: >-
-        python _kdd/scripts/validate_completion.py
+        python "$KDD_TOOLING_ROOT/scripts/validate_completion.py"
         --repo-root .
         --specs-dir "$KDD_SPECS_DIR"
         --policy "$KDD_COMPLETION_POLICY"
@@ -200,88 +226,101 @@ runs:
     - name: Validate rule contracts (OPTIONAL — auto-skip)
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_RULES_DIR: ${{ inputs.rules-dir }}
-      run: python _kdd/scripts/validate_rules.py "$KDD_RULES_DIR"
+      run: python "$KDD_TOOLING_ROOT/scripts/validate_rules.py" "$KDD_RULES_DIR"
 
     - name: Validate behavior contracts (OPTIONAL — auto-skip)
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_BEHAVIOR_DIR: ${{ inputs.behavior-dir }}
-      run: python _kdd/scripts/validate_behavior.py "$KDD_BEHAVIOR_DIR"
+      run: python "$KDD_TOOLING_ROOT/scripts/validate_behavior.py" "$KDD_BEHAVIOR_DIR"
 
     - name: Validate agent skills (OPTIONAL — auto-skip)
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_SKILLS_DIRS: ${{ inputs.skills-dirs }}
       run: |
         read -r -a skill_dirs <<< "$KDD_SKILLS_DIRS"
-        python _kdd/scripts/validate_skills.py "${skill_dirs[@]}"
+        python "$KDD_TOOLING_ROOT/scripts/validate_skills.py" "${skill_dirs[@]}"
 
     - name: Validate UX/accessibility (OPTIONAL — auto-skip)
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_UX_PAGE_DIR: ${{ inputs.ux-page-dir }}
-      run: python _kdd/scripts/validate_ux_page.py "$KDD_UX_PAGE_DIR"
+      run: python "$KDD_TOOLING_ROOT/scripts/validate_ux_page.py" "$KDD_UX_PAGE_DIR"
 
     - name: Validate Mermaid diagrams (OPTIONAL — auto-skip)
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_DIAGRAMS_DIR: ${{ inputs.diagrams-dir }}
-      run: python _kdd/scripts/validate_diagrams.py "$KDD_DIAGRAMS_DIR"
+      run: python "$KDD_TOOLING_ROOT/scripts/validate_diagrams.py" "$KDD_DIAGRAMS_DIR"
 
     - name: Validate security findings (OPTIONAL — auto-skip, vendored codex-security)
       id: security_scan
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_SECURITY_SCAN_DIR: ${{ inputs.security-scan-dir }}
-      run: python _kdd/scripts/validate_security_findings.py "$KDD_SECURITY_SCAN_DIR"
+      run: python "$KDD_TOOLING_ROOT/scripts/validate_security_findings.py" "$KDD_SECURITY_SCAN_DIR"
 
     - name: Validate compliance/license findings (OPTIONAL — auto-skip)
       id: compliance_scan
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_COMPLIANCE_SCAN_DIR: ${{ inputs.compliance-scan-dir }}
-      run: python _kdd/scripts/validate_compliance_findings.py "$KDD_COMPLIANCE_SCAN_DIR"
+      run: python "$KDD_TOOLING_ROOT/scripts/validate_compliance_findings.py" "$KDD_COMPLIANCE_SCAN_DIR"
 
     - name: Validate privacy/PII findings (OPTIONAL — auto-skip)
       id: privacy_scan
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_PRIVACY_SCAN_DIR: ${{ inputs.privacy-scan-dir }}
-      run: python _kdd/scripts/validate_privacy_findings.py "$KDD_PRIVACY_SCAN_DIR"
+      run: python "$KDD_TOOLING_ROOT/scripts/validate_privacy_findings.py" "$KDD_PRIVACY_SCAN_DIR"
 
     - name: Validate accessibility findings (OPTIONAL — auto-skip)
       id: accessibility_scan
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_ACCESSIBILITY_SCAN_DIR: ${{ inputs.accessibility-scan-dir }}
-      run: python _kdd/scripts/validate_accessibility_findings.py "$KDD_ACCESSIBILITY_SCAN_DIR"
+      run: python "$KDD_TOOLING_ROOT/scripts/validate_accessibility_findings.py" "$KDD_ACCESSIBILITY_SCAN_DIR"
 
     - name: Validate dependency EOL findings (OPTIONAL — auto-skip)
       id: dependency_eol_scan
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_DEPENDENCY_EOL_SCAN_DIR: ${{ inputs.dependency-eol-scan-dir }}
-      run: python _kdd/scripts/validate_dependency_eol_findings.py "$KDD_DEPENDENCY_EOL_SCAN_DIR"
+      run: python "$KDD_TOOLING_ROOT/scripts/validate_dependency_eol_findings.py" "$KDD_DEPENDENCY_EOL_SCAN_DIR"
 
     - name: Validate observability findings (OPTIONAL — auto-skip)
       id: observability_scan
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_OBSERVABILITY_SCAN_DIR: ${{ inputs.observability-scan-dir }}
-      run: python _kdd/scripts/validate_observability_findings.py "$KDD_OBSERVABILITY_SCAN_DIR"
+      run: python "$KDD_TOOLING_ROOT/scripts/validate_observability_findings.py" "$KDD_OBSERVABILITY_SCAN_DIR"
 
     - name: Validate test-coverage findings (OPTIONAL — auto-skip)
       id: test_coverage_scan
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_TEST_COVERAGE_SCAN_DIR: ${{ inputs.test-coverage-scan-dir }}
-      run: python _kdd/scripts/validate_test_coverage_findings.py "$KDD_TEST_COVERAGE_SCAN_DIR"
+      run: python "$KDD_TOOLING_ROOT/scripts/validate_test_coverage_findings.py" "$KDD_TEST_COVERAGE_SCAN_DIR"
 
     - name: Approve project quality (when configured)
       id: quality
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_QUALITY_POLICY: ${{ inputs.quality-policy-path }}
         KDD_QUALITY_APPROVED_REF: ${{ inputs.quality-approved-ref }}
       run: |
@@ -290,7 +329,7 @@ runs:
             echo 'quality-approved-ref requires an explicitly approved reference (full commit SHA)' >&2
             exit 1
           fi
-          python _kdd/scripts/verify_quality.py --policy "$KDD_QUALITY_POLICY" --approved-ref "$KDD_QUALITY_APPROVED_REF"
+          python "$KDD_TOOLING_ROOT/scripts/verify_quality.py" --policy "$KDD_QUALITY_POLICY" --approved-ref "$KDD_QUALITY_APPROVED_REF"
         else
           echo 'SKIP: no project quality policy configured'
         fi
@@ -298,20 +337,23 @@ runs:
     - name: Scan for leaked secrets (OPTIONAL — auto-skip)
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_SRC_DIR: ${{ inputs.src-dir }}
-      run: python _kdd/scripts/scan_secrets.py "$KDD_SRC_DIR"
+      run: python "$KDD_TOOLING_ROOT/scripts/scan_secrets.py" "$KDD_SRC_DIR"
 
     - name: Run each contract's test_command (OPTIONAL — gated by run-test-commands)
       if: ${{ inputs.run-test-commands == 'true' }}
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_CONTRACTS_DIR: ${{ inputs.contracts-dir }}
-      run: python _kdd/scripts/validate_test_commands.py "$KDD_CONTRACTS_DIR" .
+      run: python "$KDD_TOOLING_ROOT/scripts/validate_test_commands.py" "$KDD_CONTRACTS_DIR" .
 
     - name: Summarize optional evidence
-      if: always()
+      if: ${{ always() && steps.kdd_tooling.outcome == 'success' }}
       shell: bash
       env:
+        KDD_TOOLING_ROOT: ${{ steps.kdd_tooling.outputs.root }}
         KDD_REQUIRED_EVIDENCE: ${{ inputs.required-evidence }}
         KDD_SECURITY_SCAN_DIR: ${{ inputs.security-scan-dir }}
         KDD_COMPLIANCE_SCAN_DIR: ${{ inputs.compliance-scan-dir }}
@@ -329,4 +371,4 @@ runs:
         KDD_OBSERVABILITY_OUTCOME: ${{ steps.observability_scan.outcome }}
         KDD_TEST_COVERAGE_OUTCOME: ${{ steps.test_coverage_scan.outcome }}
         KDD_QUALITY_OUTCOME: ${{ steps.quality.outcome }}
-      run: python _kdd/scripts/optional_evidence.py summary --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage,quality
+      run: python "$KDD_TOOLING_ROOT/scripts/optional_evidence.py" summary --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage,quality
