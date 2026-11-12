@@ -1,6 +1,8 @@
 """Run a recognized sealed oracle; this executor is trusted, not a sandbox."""
+from functools import partial
 import hashlib
 import os
+from pathlib import Path
 import re
 import shlex
 import subprocess as _process_api
@@ -37,7 +39,7 @@ def normalized(content):
 def invocation(metadata):
     tokens = shlex.split(metadata['test_command'], posix=os.name != 'nt')
     tokens = [t[1:-1] if len(t) > 1 and t[0] == t[-1] and t[0] in "\"'" else t for t in tokens]
-    oracle = metadata['tests'].replace('\\', '/').removeprefix('./')
+    oracle = oracle_path(metadata)
     if len(tokens) == 4 and re.fullmatch(r'python(?:3(?:\.\d+)?)?', tokens[0]):
         accepted = {oracle, oracle.removesuffix('.py').replace('/', '.')}
         if tokens[1:3] == ['-m', 'unittest'] and tokens[3] in accepted:
@@ -47,6 +49,10 @@ def invocation(metadata):
         if rest == [oracle]:
             return ['node', '--test', '--test-reporter=tap', oracle], 'node'
     raise TaskError('TASK_RUNNER: use python -m unittest or node --test with the exact sealed oracle')
+
+
+def oracle_path(metadata):
+    return metadata['tests'].replace('\\', '/').removeprefix('./')
 
 
 def passed_tests(runner, stdout, stderr):
@@ -65,18 +71,20 @@ def passed_tests(runner, stdout, stderr):
 
 def execute(metadata, root, timeout=120):
     try:
+        # The frozen task auditor imports this module without its live runners.
+        from oracle_execution import execute_task_oracle
         argv, runner = invocation(metadata)
-        result = subprocess.run(argv, cwd=root, stdin=subprocess.DEVNULL,
-                                capture_output=True, text=True, encoding='utf-8',
-                                errors='replace', timeout=timeout,
-                                env=dict(os.environ, PYTHONUTF8='1'))
-    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        oracle = oracle_path(metadata)
+        instrument = 'python-unittest' if runner == 'unittest' else 'node-test'
+        run = partial(subprocess.run, stdin=subprocess.DEVNULL)
+        result = execute_task_oracle(instrument, argv[0], oracle, root, timeout, run)
+    except (OSError, ValueError, ImportError, KeyError, TypeError, subprocess.SubprocessError) as exc:
         raise TaskError('TASK_TESTS: oracle could not complete: ' + str(exc)) from exc
-    count = passed_tests(runner, result.stdout, result.stderr)
-    if result.returncode or not count:
-        detail = (result.stdout + result.stderr)[-1500:]
-        raise TaskError('TASK_TESTS: failing or zero recognized tests\n' + detail)
-    return {'command': metadata['test_command'], 'runner': runner,
-            'exit_code': result.returncode, 'passed_tests': count,
-            'stdout': result.stdout, 'stderr': result.stderr,
-            'output_sha256': digest(result.stdout + result.stderr)}
+    output = result['stdout'] + result['stderr']
+    if not result['ok']:
+        raise TaskError('TASK_TESTS: failing or zero recognized tests\n' + output[-1500:])
+    recorded = result['evidence']['files'][str((Path(root) / oracle).resolve())]
+    return {'schema_version': 2, 'command': metadata['test_command'], 'runner': runner,
+            'exit_code': result['exit_code'], 'passed_tests': result['executed_tests'],
+            'stdout': result['stdout'], 'stderr': result['stderr'],
+            'oracle_results': {oracle: recorded}, 'output_sha256': digest(output)}

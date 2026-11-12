@@ -31,15 +31,35 @@ def _dependencies(tasks):
     return errors
 
 
+def _instrumented_count(report, metadata):
+    rows = report.get('oracle_results')
+    path = proof.oracle_path(metadata)
+    if not isinstance(rows, dict) or set(rows) != {path}:
+        return 0
+    result = rows[path]
+    if not isinstance(result, dict) or set(result) != {'executed', 'skipped', 'ok'}:
+        return 0
+    if result['ok'] is not True or type(result['skipped']) is not int or result['skipped'] != 0:
+        return 0
+    count = result['executed']
+    return count if type(count) is int and count > 0 else 0
+
+
 def _proof_output(report, metadata):
     _, runner = proof.invocation(metadata)
+    version = report.get('schema_version')
+    if type(version) is not int or version not in (1, 2):
+        return ['TASK_EVIDENCE: unsupported receipt schema version']
     valid = (report.get('runner') == runner and type(report.get('exit_code')) is int
              and report['exit_code'] == 0 and type(report.get('passed_tests')) is int)
     if not valid or not all(isinstance(report.get(k), str) for k in ('stdout', 'stderr')):
         return ['TASK_EVIDENCE: invalid runner result']
-    expected = proof.passed_tests(runner, report['stdout'], report['stderr'])
+    if version == 1:
+        expected = proof.passed_tests(runner, report['stdout'], report['stderr'])
+    else:
+        expected = _instrumented_count(report, metadata)
     if expected < 1 or report['passed_tests'] != expected:
-        return ['TASK_EVIDENCE: missing recognized passing tests']
+        return ['TASK_EVIDENCE: missing or inconsistent passing oracle cases']
     if report.get('output_sha256') != proof.digest(report['stdout'] + report['stderr']):
         return ['TASK_EVIDENCE: output digest mismatch']
     return []
@@ -55,7 +75,7 @@ def _proof_refs(root, task, report):
 
 
 def _proof_fields(root, task, report, metadata):
-    expected = {'schema_version': 1, 'task_id': task['task_id'],
+    expected = {'task_id': task['task_id'],
                 'tested_commit': task['verified_ref'], 'approved_ref': task['approved_ref'],
                 'command': metadata['test_command']}
     for field, path in [('contract_sha256', task['contract']),

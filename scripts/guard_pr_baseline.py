@@ -68,7 +68,7 @@ def _shadows_runtime(path):
 
 def _git(*args):
     try:
-        return subprocess.check_output(['git', *args], stderr=subprocess.PIPE,
+        return subprocess.check_output(['git', '--no-replace-objects', *args], stderr=subprocess.PIPE,
                                        timeout=30)
     except (OSError, subprocess.SubprocessError) as exc:
         raise ValueError('Git operation failed: {}'.format(' '.join(args))) from exc
@@ -240,10 +240,29 @@ def check(base_ref, candidate_ref, approved_ref, *, reviewed_changes=None):
     return sorted(set(findings))
 
 
+def _event_shas(base, head):
+    object_format = _git('rev-parse', '--show-object-format').decode('ascii').strip()
+    lengths = {'sha1': 40, 'sha256': 64}
+    length = lengths.get(object_format)
+    if length is None or not all(re.fullmatch('[0-9a-f]{%d}' % length, oid) for oid in (base, head)):
+        raise ValueError('PR_EVENT_MISMATCH: base and head must be full native commit SHAs')
+
+
+def _require_event_merge(candidate, base, head):
+    headers, separator, _ = _git('cat-file', 'commit', candidate).partition(b'\n\n')
+    parents = [line.removeprefix(b'parent ') for line in headers.splitlines()
+               if line.startswith(b'parent ')]
+    if not separator or parents != [base.encode('ascii'), head.encode('ascii')]:
+        raise ValueError('PR_EVENT_MISMATCH: fetched merge parents differ from event base and head')
+    if _commit(head) != head:
+        raise ValueError('PR_EVENT_MISMATCH: head does not identify the event commit')
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--pr-number', required=True, type=int)
     parser.add_argument('--base-ref', required=True)
+    parser.add_argument('--head-ref', required=True)
     approvals = parser.add_mutually_exclusive_group(required=True)
     approvals.add_argument('--approved-ref')
     approvals.add_argument('--approval-registry')
@@ -253,10 +272,14 @@ def main(argv=None):
     if args.approved_ref is not None and not re.fullmatch(r'[0-9a-fA-F]{40}|[0-9a-fA-F]{64}', args.approved_ref):
         parser.error('--approved-ref must be a full commit SHA')
     try:
+        _event_shas(args.base_ref, args.head_ref)
         base = _commit(args.base_ref)
+        if base != args.base_ref:
+            raise ValueError('PR_EVENT_MISMATCH: base does not identify the event commit')
         _git('fetch', '--no-tags', 'origin',
              'refs/pull/{}/merge'.format(args.pr_number))
         candidate = _commit('FETCH_HEAD')
+        _require_event_merge(candidate, base, args.head_ref)
         if args.approval_registry is not None:
             from approval_registry import resolve
             approved = resolve('.', candidate, args.approval_registry)['baseline_ref']

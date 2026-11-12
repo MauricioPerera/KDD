@@ -1114,7 +1114,7 @@ def _finish(root, task, options, head):
         raise TaskError('TASK_RACE: implementation tip changed during verification')
     contract_metadata(root, task, head)
     _finish_artifacts(root, task, metadata, head)
-    report.update(schema_version=1, task_id=task['task_id'], tested_commit=head,
+    report.update(task_id=task['task_id'], tested_commit=head,
                   branch_tip=tip, approved_ref=task['approved_ref'], perimeter=perimeter,
                   contract_sha256=proof.digest(proof.normalized(blob(root, head, task['contract']))),
                   target_sha256=proof.digest(proof.normalized(blob(root, head, metadata['target']))),

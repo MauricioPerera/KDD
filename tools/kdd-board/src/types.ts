@@ -35,7 +35,7 @@ export interface TaskTestReport {
   passedTests: number;
   failedTests: number;
   verifiedOracle?: boolean;
-  oracleRunner?: 'python-unittest-recorder-v1';
+  oracleRunner?: 'python-unittest-recorder-v1' | 'node-test-reporter-v1';
   output: string;
   reportPath?: string;
   command?: string;

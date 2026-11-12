@@ -21,8 +21,10 @@ class RecordedResult(unittest.TextTestResult):
 
     def addSkip(self, test, reason):
         super().addSkip(test, reason)
-        self._item(test)['skipped'] += 1
-        self._item(test)['executed'] -= 1
+        if isinstance(test, unittest.TestCase):
+            item = self._item(test)
+            item['skipped'] += 1
+            item['executed'] -= 1
 
 
 def main():
@@ -31,7 +33,7 @@ def main():
     names = [name[:-3].replace('/', '.') if name.endswith('.py') else name for name in names]
     suite = unittest.defaultTestLoader.loadTestsFromNames(names)
     result = unittest.TextTestRunner(resultclass=RecordedResult, verbosity=1).run(suite)
-    ok = result.wasSuccessful() and not result.expectedFailures and not result.unexpectedSuccesses
+    ok = result.wasSuccessful() and not result.skipped and not result.expectedFailures
     for item in result.files.values():
         item['ok'] = bool(ok)
     Path(output).write_text(json.dumps({'files': result.files}), encoding='utf-8')

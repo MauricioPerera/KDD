@@ -55,8 +55,12 @@ python scripts/validate_tasks.py --base-ref SHA_INICIAL --head-ref main
 ```
 
 finish usa el HEAD limpio actual como revision probada, ejecuta el oraculo
-aprobado y crea un commit posterior de cierre. No acepta un PASS escrito a
-mano. Los errores de pruebas no cambian el estado ni generan un cierre.
+aprobado y crea un commit posterior de cierre. El recibo v2 identifica el
+archivo y el conteo de casos del runner instrumentado. Un archivo Node sin
+casos, un resumen impreso por el producto, una omision o un error impiden
+el cierre. Los recibos v1 conservan su lectura historica. Si la politica
+de calidad congela los modulos de tareas, revisar y aprobar los modulos
+actualizados antes de exigir calidad sobre un cierre v2.
 Las consultas leen blobs de main, incluso ejecutadas desde task/TASK-001.
 
 ## Operacion y limites
@@ -86,6 +90,7 @@ una copia y puede superar el timeout predeterminado de 180 segundos en Windows.
 
 - [Modelo puro](contracts/task-model.md).
 - [Diario y evidencia](contracts/task-journal.md).
+- [Oraculos instrumentados y recibo v2](contracts/task-oracle-execution-proof.md).
 - [Validador de historial](contracts/task-validation.md).
 - [Publicacion mediante merge](contracts/task-publication.md).
 - [CLI](contracts/task-cli.md).

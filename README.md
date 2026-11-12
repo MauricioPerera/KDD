@@ -134,7 +134,7 @@ There are two complementary ways to run the KDD gates against your repo without 
         # run-test-commands: 'true' also runs each contract's test_command.
   ```
 
-  The action checks out `MauricioPerera/KDD` into `_kdd/` (not the root, so it does not overwrite your files) and runs the validators against your paths. `validate_contracts` and `validate_okf` are logically required (a missing dir is a real ERROR — it means there are no KDD contracts to validate); `validate_specs` is guarded so a repo without `specs/` stays green; the rest auto-skip. If a quality policy exists, the action requires a full approved project commit SHA and runs its checks. It deliberately does not run `lint_ascii`, the KDD unit-test suite, or `assemble_context` (those are specific to this repo's own tooling).
+  The action checks out the requested `MauricioPerera/KDD` commit in `RUNNER_TEMP`, outside the consumer Git worktree, and runs the validators against your paths. `validate_contracts` and `validate_okf` are logically required (a missing dir is a real ERROR — it means there are no KDD contracts to validate); `validate_specs` is guarded so a repo without `specs/` stays green; the rest auto-skip. If a quality policy exists, the action requires a full approved project commit SHA containing the project policy and `scripts/process_tree.py`. It runs the policy twice. It deliberately does not run `lint_ascii`, the KDD unit-test suite, or `assemble_context` (those are specific to this repo's own tooling).
 
 #### Instantiating for a non-Python project
 

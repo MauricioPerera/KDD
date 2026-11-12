@@ -75,10 +75,10 @@ def _invocation(metadata, root):
     return runner, names, files
 
 
-def _command(runner, names, root, temp):
+def _command(runner, names, root, temp, interpreter):
     scripts = Path(__file__).resolve().parent
     if runner == 'python-unittest':
-        return [sys.executable, '-I', '-B', '-X', 'pycache_prefix=' + str(temp / 'cache'),
+        return [interpreter or sys.executable, '-I', '-B', '-X', 'pycache_prefix=' + str(temp / 'cache'),
                 str(scripts / 'unittest_oracle_runner.py'), str(root), str(temp / 'result.json'), *names]
     node = shutil.which('node')
     if not node:
@@ -109,31 +109,50 @@ def _verified_count(evidence, files, root):
     return total
 
 
-def execute_oracle(metadata, repo_root, timeout=180):
-    """Return fail-closed execution results and counts from managed runners."""
-    result = {'exit_code': None, 'ok': False, 'error': None,
-              'stdout': '', 'stderr': '', 'executed_tests': 0}
-    try:
-        root = Path(repo_root).resolve(strict=True)
-        runner, names, files = _invocation(metadata, root)
-        with tempfile.TemporaryDirectory(prefix='kdd-oracle-') as directory:
-            temp = Path(directory)
-            env = dict(os.environ)
-            env.pop('NODE_OPTIONS', None)
-            argv = _command(runner, names, root, temp)
-            result.update(instrumented_argv=argv,
-                          runtime_version=sys.version.split()[0] if runner == 'python-unittest' else None)
-            completed = subprocess.run(argv, cwd=root,
-                                       env=env, capture_output=True, text=True,
-                                       encoding='utf-8', errors='replace', timeout=timeout)
-            result.update(exit_code=completed.returncode, stdout=completed.stdout, stderr=completed.stderr)
-            if completed.returncode:
-                return result
+def _result():
+    return {'exit_code': None, 'ok': False, 'error': None,
+            'stdout': '', 'stderr': '', 'executed_tests': 0}
+
+
+def _execute(selection, root, timeout, run, result):
+    runner, names, files, interpreter = selection
+    with tempfile.TemporaryDirectory(prefix='kdd-oracle-') as directory:
+        temp = Path(directory)
+        env = dict(os.environ)
+        env.pop('NODE_OPTIONS', None)
+        if interpreter is not None:
+            env['PYTHONUTF8'] = '1'
+        argv = _command(runner, names, root, temp, interpreter)
+        result['instrumented_argv'] = argv
+        completed = run(argv, cwd=root, env=env, capture_output=True, text=True,
+                        encoding='utf-8', errors='replace', timeout=timeout)
+        result.update(exit_code=completed.returncode, process_exit_code=completed.returncode,
+                      stdout=completed.stdout, stderr=completed.stderr)
+        if not completed.returncode:
             evidence = _evidence(runner, completed, temp)
             result['executed_tests'] = _verified_count(evidence, files, root)
             result.update(ok=True, evidence=evidence)
+    return result
+
+
+def execute_oracle(metadata, repo_root, timeout=180):
+    """Return fail-closed execution results and counts from managed runners."""
+    result = _result()
+    try:
+        root = Path(repo_root).resolve(strict=True)
+        runner, names, files = _invocation(metadata, root)
+        result['runtime_version'] = sys.version.split()[0] if runner == 'python-unittest' else None
+        return _execute((runner, names, files, None), root, timeout, subprocess.run, result)
     except subprocess.TimeoutExpired:
         result['error'] = 'timeout'
     except (ValueError, OSError, KeyError, TypeError) as exc:
         result.update(exit_code=1, error=str(exc))
     return result
+
+
+def execute_task_oracle(runner, interpreter, oracle, repo_root, timeout, run):
+    """Instrument the caller's validated single-file invocation and process runner."""
+    root = Path(repo_root).resolve(strict=True)
+    if not local_file(root, oracle).is_file():
+        raise ValueError('Task oracle is not a regular file: ' + oracle)
+    return _execute((runner, [oracle], [oracle], interpreter), root, timeout, run, _result())

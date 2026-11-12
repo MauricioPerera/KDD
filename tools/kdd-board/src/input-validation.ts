@@ -31,7 +31,7 @@ const requirementSchema = z.object({
 const reportSchema = z.object({
   lastRun: z.string(), success: z.boolean(), durationMs: z.number().nonnegative(),
   passedTests: z.number().int().nonnegative(), failedTests: z.number().int().nonnegative(),
-  oracleRunner: z.literal('python-unittest-recorder-v1').optional(),
+  oracleRunner: z.enum(['python-unittest-recorder-v1', 'node-test-reporter-v1']).optional(),
   verifiedOracle: z.boolean().optional(), status: z.enum(['PASS', 'FAIL', 'SKIP', 'TIMEOUT']).optional(),
   output: z.string(), reportPath: z.string().optional(), command: z.string().optional(),
   cwd: z.string().optional(), contractId: z.string().optional(), evidence: z.record(z.string(), z.string()).optional(),
