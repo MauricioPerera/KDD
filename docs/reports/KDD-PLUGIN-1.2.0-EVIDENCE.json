@@ -1,0 +1,273 @@
+{
+  "as_of": "2026-11-11",
+  "published_plugin": "1.1.0",
+  "candidate": {
+    "version": "1.2.0",
+    "package_commit": "2156df9c9f19b5c2299bb1c54399c5952dcfe065",
+    "zip_sha256": "a06196b499d7be0a8b4ee38ee634ca8df984c2cf956a30637cbcb2430d693c34",
+    "validator_sha": "144168d168410c28315f07d53e87638a4a10b81c"
+  },
+  "consumer": {
+    "pull_request": "https://github.com/MauricioPerera/kdd-plugin-quality-e2e/pull/2",
+    "approved_commit": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+    "actions_run": "https://github.com/MauricioPerera/kdd-plugin-quality-e2e/actions/runs/43094761659/attempts/2",
+    "quality_checks_per_pass": [
+      "contracts",
+      "functional",
+      "adversarial",
+      "cli"
+    ],
+    "quality_passes": 2,
+    "runs": {
+      "codex-windows": {
+        "adoption_approved_ref": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "consumer_sha": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "contracts": [
+          {
+            "path": "knowledge/contracts/plugin-adoption/slug-adoption-quality.md",
+            "sha256": "5e07db0c7eaa7c570d28acbb8537f1deb2a01a6de6878cccdcb17ab731e9dcc1"
+          }
+        ],
+        "contracts_dir": "knowledge/contracts/plugin-adoption",
+        "dirty": false,
+        "executed_tests": 22,
+        "oracle_passes": [
+          22,
+          22
+        ],
+        "python": "3.11.15",
+        "quality_approved_ref": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "requested_adoption_ref": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "requested_kdd_sha": "144168d168410c28315f07d53e87638a4a10b81c",
+        "result": "pass",
+        "stage": "complete",
+        "verified_kdd_sha": "144168d168410c28315f07d53e87638a4a10b81c"
+      },
+      "terminal-ubuntu": {
+        "adoption_approved_ref": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "consumer_sha": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "contracts": [
+          {
+            "path": "knowledge/contracts/plugin-adoption/slug-adoption-quality.md",
+            "sha256": "5e07db0c7eaa7c570d28acbb8537f1deb2a01a6de6878cccdcb17ab731e9dcc1"
+          }
+        ],
+        "contracts_dir": "knowledge/contracts/plugin-adoption",
+        "dirty": false,
+        "executed_tests": 22,
+        "oracle_passes": [
+          22,
+          22
+        ],
+        "python": "3.11.15",
+        "quality_approved_ref": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "requested_adoption_ref": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "requested_kdd_sha": "144168d168410c28315f07d53e87638a4a10b81c",
+        "result": "pass",
+        "stage": "complete",
+        "verified_kdd_sha": "144168d168410c28315f07d53e87638a4a10b81c"
+      },
+      "terminal-windows": {
+        "adoption_approved_ref": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "consumer_sha": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "contracts": [
+          {
+            "path": "knowledge/contracts/plugin-adoption/slug-adoption-quality.md",
+            "sha256": "5e07db0c7eaa7c570d28acbb8537f1deb2a01a6de6878cccdcb17ab731e9dcc1"
+          }
+        ],
+        "contracts_dir": "knowledge/contracts/plugin-adoption",
+        "dirty": false,
+        "executed_tests": 22,
+        "oracle_passes": [
+          22,
+          22
+        ],
+        "python": "3.11.15",
+        "quality_approved_ref": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "requested_adoption_ref": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "requested_kdd_sha": "144168d168410c28315f07d53e87638a4a10b81c",
+        "result": "pass",
+        "stage": "complete",
+        "verified_kdd_sha": "144168d168410c28315f07d53e87638a4a10b81c"
+      },
+      "github-actions-ubuntu-latest": {
+        "adoption_approved_ref": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "consumer_sha": "f315ddfecead03944ea72b9d1b93a5eb402ddf5a",
+        "contracts": [
+          {
+            "path": "knowledge/contracts/plugin-adoption/slug-adoption-quality.md",
+            "sha256": "5e07db0c7eaa7c570d28acbb8537f1deb2a01a6de6878cccdcb17ab731e9dcc1"
+          }
+        ],
+        "contracts_dir": "knowledge/contracts/plugin-adoption",
+        "dirty": false,
+        "executed_tests": 22,
+        "oracle_passes": [
+          22,
+          22
+        ],
+        "python": "3.11.18",
+        "quality_approved_ref": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "requested_adoption_ref": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "requested_kdd_sha": "144168d168410c28315f07d53e87638a4a10b81c",
+        "result": "pass",
+        "stage": "complete",
+        "verified_kdd_sha": "144168d168410c28315f07d53e87638a4a10b81c"
+      },
+      "github-actions-windows-latest": {
+        "adoption_approved_ref": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "consumer_sha": "f315ddfecead03944ea72b9d1b93a5eb402ddf5a",
+        "contracts": [
+          {
+            "path": "knowledge/contracts/plugin-adoption/slug-adoption-quality.md",
+            "sha256": "5e07db0c7eaa7c570d28acbb8537f1deb2a01a6de6878cccdcb17ab731e9dcc1"
+          }
+        ],
+        "contracts_dir": "knowledge/contracts/plugin-adoption",
+        "dirty": false,
+        "executed_tests": 22,
+        "oracle_passes": [
+          22,
+          22
+        ],
+        "python": "3.11.9",
+        "quality_approved_ref": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "requested_adoption_ref": "03931080ac6300aa29ee9cc04c6cf931109d3d5e",
+        "requested_kdd_sha": "144168d168410c28315f07d53e87638a4a10b81c",
+        "result": "pass",
+        "stage": "complete",
+        "verified_kdd_sha": "144168d168410c28315f07d53e87638a4a10b81c"
+      }
+    },
+    "codex_windows_sandbox": "Two rehearsal attempts with the command sandbox denied temporary access. The successful isolated CLI run used no command sandbox."
+  },
+  "kdd_pull_request_ci": {
+    "pr": "https://github.com/MauricioPerera/KDD/pull/183",
+    "base": "144168d168410c28315f07d53e87638a4a10b81c",
+    "head": "2156df9c9f19b5c2299bb1c54399c5952dcfe065",
+    "checkout": "8f7df16daf47c140d3d9665151d0eca91fe25457",
+    "current_test_merge": "cb5a5c806c09cbaea62bbf7636ab937a9949b8d2",
+    "tree": "84eff1a87e5f3d31e4e1edf77b926645c51c6da5",
+    "approved_baseline": "da215a9494e6e6940a59d74a91d404dae793aa11",
+    "trusted_runtime": "74d357f7099651b9b39dc8088f725183a672ec94",
+    "run": "https://github.com/MauricioPerera/KDD/actions/runs/43118387774",
+    "attempt": 1,
+    "trusted_pr_gate": "https://github.com/MauricioPerera/KDD/actions/runs/43118388266",
+    "platforms": {
+      "ubuntu-latest": {
+        "validate": "https://github.com/MauricioPerera/KDD/actions/runs/43118387774/job/130852212426",
+        "board": "https://github.com/MauricioPerera/KDD/actions/runs/43118387774/job/130852212247",
+        "tests": 2287,
+        "passes": [
+          {
+            "duration_seconds": 189.39306490300004,
+            "errors": 0,
+            "executed_ids_sha256": "1f4b6b2b26c3349af96fbacf13ad915c5e1da1e78f8b47aa51eda61cf95cdd34",
+            "expected_count": 2287,
+            "expected_failures": 0,
+            "expected_ids_sha256": "1f4b6b2b26c3349af96fbacf13ad915c5e1da1e78f8b47aa51eda61cf95cdd34",
+            "failures": 0,
+            "fixture_omitted_count": 0,
+            "fixture_skips": 0,
+            "ok": true,
+            "skipped": 10,
+            "tests_run": 2287,
+            "unexpected_successes": 0,
+            "version": 1,
+            "workers": 4
+          },
+          {
+            "duration_seconds": 189.886320318,
+            "errors": 0,
+            "executed_ids_sha256": "1f4b6b2b26c3349af96fbacf13ad915c5e1da1e78f8b47aa51eda61cf95cdd34",
+            "expected_count": 2287,
+            "expected_failures": 0,
+            "expected_ids_sha256": "1f4b6b2b26c3349af96fbacf13ad915c5e1da1e78f8b47aa51eda61cf95cdd34",
+            "failures": 0,
+            "fixture_omitted_count": 0,
+            "fixture_skips": 0,
+            "ok": true,
+            "skipped": 10,
+            "tests_run": 2287,
+            "unexpected_successes": 0,
+            "version": 1,
+            "workers": 4
+          }
+        ],
+        "init_timing": {
+          "contract": "knowledge/contracts/init-project.md",
+          "duration_seconds": 203.78461017700002,
+          "error": null,
+          "exit_code": 0,
+          "head_sha": "8f7df16daf47c140d3d9665151d0eca91fe25457",
+          "ok": true,
+          "run_attempt": "1",
+          "run_id": "43118387774",
+          "schema_version": 1,
+          "trusted_runtime_ref": "74d357f7099651b9b39dc8088f725183a672ec94"
+        },
+        "log_sha256": "e5681e2589d4afc27c43664666887e67b3fc9d65c7c600021670a68a6baa071d"
+      },
+      "windows-latest": {
+        "validate": "https://github.com/MauricioPerera/KDD/actions/runs/43118387774/job/130852212402",
+        "board": "https://github.com/MauricioPerera/KDD/actions/runs/43118387774/job/130852211985",
+        "tests": 2287,
+        "passes": [
+          {
+            "duration_seconds": 531.7938452999999,
+            "errors": 0,
+            "executed_ids_sha256": "1f4b6b2b26c3349af96fbacf13ad915c5e1da1e78f8b47aa51eda61cf95cdd34",
+            "expected_count": 2287,
+            "expected_failures": 0,
+            "expected_ids_sha256": "1f4b6b2b26c3349af96fbacf13ad915c5e1da1e78f8b47aa51eda61cf95cdd34",
+            "failures": 0,
+            "fixture_omitted_count": 0,
+            "fixture_skips": 0,
+            "ok": true,
+            "skipped": 9,
+            "tests_run": 2287,
+            "unexpected_successes": 0,
+            "version": 1,
+            "workers": 6
+          },
+          {
+            "duration_seconds": 535.0681719999998,
+            "errors": 0,
+            "executed_ids_sha256": "1f4b6b2b26c3349af96fbacf13ad915c5e1da1e78f8b47aa51eda61cf95cdd34",
+            "expected_count": 2287,
+            "expected_failures": 0,
+            "expected_ids_sha256": "1f4b6b2b26c3349af96fbacf13ad915c5e1da1e78f8b47aa51eda61cf95cdd34",
+            "failures": 0,
+            "fixture_omitted_count": 0,
+            "fixture_skips": 0,
+            "ok": true,
+            "skipped": 9,
+            "tests_run": 2287,
+            "unexpected_successes": 0,
+            "version": 1,
+            "workers": 6
+          }
+        ],
+        "init_timing": {
+          "contract": "knowledge/contracts/init-project.md",
+          "duration_seconds": 476.6583879,
+          "error": null,
+          "exit_code": 0,
+          "head_sha": "8f7df16daf47c140d3d9665151d0eca91fe25457",
+          "ok": true,
+          "run_attempt": "1",
+          "run_id": "43118387774",
+          "schema_version": 1,
+          "trusted_runtime_ref": "74d357f7099651b9b39dc8088f725183a672ec94"
+        },
+        "log_sha256": "f108ca2b87ad5377619ab47c7cab5cf8fe5ee18a81a972f6d02cc8c7b6336073"
+      }
+    }
+  },
+  "pending": {
+    "kdd_pr_state": "open",
+    "release_published": false,
+    "entire_gates": "independent review pending"
+  }
+}
