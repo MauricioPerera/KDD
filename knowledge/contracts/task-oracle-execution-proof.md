@@ -14,7 +14,7 @@ budget:
   nesting_max: 4
   params_max: 6
 tests: tests/test_task_oracle_execution_proof.py
-tests_sha256: 'f2bd417ed239da1a9e74ba89f196cdb85b56ce8b6203d092725fbd6e9794e9b6'
+tests_sha256: 'e361f8b3f0047bb39cf13ba369eb5f4983cd3270100627f200463ae9cc6916a5'
 oracle_files: ['tests/test_task_oracle_execution_proof.py', 'tests/test_task_git.py', 'tests/test_fixture_preparation.py', 'tests/test_generated_task_evidence.py', 'tests/__init__.py', 'tools/kdd-board/tests/task-oracle-execution-proof.test.ts', 'tools/kdd-board/tests/node-legacy-proof.test.ts']
 touch_only: ['scripts/task_evidence.py', 'scripts/task_git.py', 'scripts/validate_tasks.py', 'scripts/oracle_execution.py', 'scripts/unittest_oracle_runner.py', 'scripts/node_oracle_reporter.mjs', 'tools/kdd-board/src/test-runner.ts', 'tools/kdd-board/src/task-execution.ts', 'tools/kdd-board/src/types.ts', 'tools/kdd-board/src/input-validation.ts', 'knowledge/git-tasks.md', 'knowledge/board-git.md', 'knowledge/data_models/git-task.md']
 deps_allowed: ['stdlib', 'oracle_inventory', 'oracle_execution', 'process_tree']
@@ -44,6 +44,8 @@ cada archivo seleccionado, por ruta exacta relativa al repo, a
 - Conservar la sintaxis historica de un solo archivo Python o Node, incluida
   la opcion TAP reconocida y el interprete Python declarado cuando este
   disponible. Aplicar el instrumento existente a esa seleccion.
+  El modo UTF-8 explicito del interprete Python de tareas se conserva en el
+  proceso aislado, incluida la lectura de archivos sin encoding declarado.
   El soporte de inventarios con varios modulos conserva su alcance actual.
 - La lectura historica comprueba el recibo v1 con su semantica anterior.
   La auditoria v2 comprueba la identidad, la ruta seleccionada y el conteo
@@ -58,6 +60,8 @@ cada archivo seleccionado, por ruta exacta relativa al repo, a
   verificacion Python, la salida diagnostica con redaccion de secretos y el
   alcance de los comandos libres sin oraculo. Un reporte Node previo sin
   identidad del nuevo instrumento no acredita la finalizacion al cargarlo.
+  Si el reporter de Node registra casos aprobados y fallidos, el reporte de
+  Board conserva esos conteos diagnosticos sin acreditar el cierre.
   El Board Git comparte el coordinador de tareas.
 - Conservar los dos sistemas operativos, las dos pasadas de CI y los oraculos
   existentes. Los limites actuales de tiempo y el aislamiento de procesos del
@@ -80,7 +84,9 @@ cada archivo seleccionado, por ruta exacta relativa al repo, a
 
 El oraculo crea tareas y merges con Git real, ejecuta Python y Node, audita el
 recibo historico y comprueba el runner de Board con rutas anidadas.
-La suite Node verifica la recarga de reportes con el esquema real del Board.
+Un cierre Python aislado lee UTF-8 de forma implicita. La suite Node
+verifica la recarga de reportes y los conteos de un oraculo con un caso
+aprobado y uno fallido usando el runner real de Board.
 Los fixtures acotados copian los cuatro archivos existentes del instrumento
 solo para la ejecucion viva, sin ampliar el bundle historico de auditoria.
 

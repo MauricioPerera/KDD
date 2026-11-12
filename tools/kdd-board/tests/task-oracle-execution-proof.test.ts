@@ -57,3 +57,21 @@ test('a persisted Node result needs recorder provenance to count as current', as
     rmSync(root, {recursive: true, force: true});
   }
 });
+
+test('Board preserves counts from a failed recorded Node oracle', async () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'kdd-node-failure-'));
+  try {
+    const oracle = path.join(root, 'oracle.mjs');
+    writeFileSync(oracle, "import {test} from 'node:test';\n" +
+      "test('passes', () => {});\n" +
+      "test('fails', () => { throw Error('real oracle failure'); });\n");
+    const report = await executeTaskTest('node --test oracle.mjs', root, {}, oracle);
+    assert.equal(report.status, 'FAIL', report.output);
+    assert.equal(report.success, false);
+    assert.equal(report.verifiedOracle, false);
+    assert.deepEqual([report.passedTests, report.failedTests], [1, 1]);
+    assert.match(report.output, /real oracle failure/);
+  } finally {
+    rmSync(root, {recursive: true, force: true});
+  }
+});

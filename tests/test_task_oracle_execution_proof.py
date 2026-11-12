@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from tests.test_task_git import Repository
 from tests.test_generated_task_evidence import TaskProject
@@ -101,6 +102,30 @@ class TaskOracleProof(unittest.TestCase):
         self.assertEqual(report['schema_version'], 2)
         self.assertEqual(report['passed_tests'], 1)
         self.assertEqual(report['oracle_results'], {NODE_ORACLE: {'executed': 1, 'skipped': 0, 'ok': True}})
+
+    def test_python_close_keeps_utf8_mode_in_the_isolated_oracle(self):
+        oracle_path = 'tests/test_value.py'
+        body = self.repo.oracle + (
+            '\nimport sys\nfrom pathlib import Path\n'
+            'class Encoding(unittest.TestCase):\n'
+            ' def test_utf8(self):\n'
+            '  self.assertEqual(sys.flags.isolated, 1)\n'
+            '  self.assertEqual(sys.flags.utf8_mode, 1)\n'
+            '  self.assertEqual(Path("src/label.txt").read_text(), chr(0x2603))\n'
+        )
+        self.write(oracle_path, body)
+        self.write('src/label.txt', chr(0x2603))
+        contract = self.contract.read_text(encoding='utf-8').replace(
+            sha256(self.repo.oracle.encode()).hexdigest(), sha256(body.encode()).hexdigest())
+        self.write(self.repo.contract, contract)
+        self.repo.approved = self.repo.commit('Approve oracle that reads UTF-8')
+        self.repo.start()
+        self.repo.integrate()
+        with patch.dict(os.environ, {'LC_ALL': 'C.UTF-8'}):
+            _, report = self.finish()
+        self.assertEqual(report['oracle_results'], {
+            oracle_path: {'executed': 2, 'skipped': 0, 'ok': True},
+        })
 
     def test_a_mixed_python_class_skip_cannot_accredit_a_close(self):
         body = self.repo.oracle + (

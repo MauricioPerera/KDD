@@ -14,7 +14,7 @@ budget:
   nesting_max: 4
   params_max: 6
 tests: tests/test_trusted_pr_event_binding.py
-tests_sha256: 'b87c69d690a246e32c917ed713b01927dbbca5065878cc5cc8693c6395e8db5c'
+tests_sha256: 'b2f2e2f719b6b39d0d5a802b9f0e6775590affba691e64c9f070e03972da65eb'
 oracle_files: ['tests/test_trusted_pr_event_binding.py', 'tests/test_approval_registry.py', 'tests/__init__.py']
 touch_only: ['scripts/guard_pr_baseline.py', '.github/workflows/trusted-pr-gate.yml']
 deps_allowed: ['stdlib']
@@ -45,7 +45,9 @@ contrato de comparacion de objetos y revision externa.
   por el OID resuelto, incluso si el ref remoto cambia despues de la lectura.
 - Los cambios protegidos de un merge correcto conservan su veredicto previo.
   Se conserva la validacion por arbol del registro externo y la revision
-  exacta de cambios protegidos. Ningun codigo del candidato se ejecuta.
+  exacta de cambios protegidos. El arbol seleccionado por el registro debe
+  coincidir con el arbol original del merge leido sin reemplazos.
+  Ningun codigo del candidato se ejecuta.
 - El workflow conserva `pull_request_target` y permisos de lectura.
 
 ## Examples
@@ -64,6 +66,8 @@ contrato de comparacion de objetos y revision externa.
 
 El oraculo usa remotos bare y merges Git reales. Comprueba coincidencia,
 desfase de head y base, commit no merge, orden y referencias incompletas.
+Tambien rechaza un merge de padres correctos y arbol ajeno al registro
+aunque un reemplazo local le atribuya un arbol aprobado.
 Los fixtures de routing y revision externa suministran ambos SHA y conservan
 las aserciones sobre aprobaciones y cambios protegidos.
 

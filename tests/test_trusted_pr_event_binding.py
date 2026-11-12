@@ -96,6 +96,27 @@ class TrustedPREventBinding(GitApprovalFixture, unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
         self.assertIn('PR_EVENT_MISMATCH', result.stdout)
 
+    def test_replacement_cannot_select_approval_for_another_tree(self):
+        self.command('git', 'checkout', '-q', '--detach', self.refs['one'])
+        try:
+            self.write('app.py', 'def answer():\n    return "unreviewed proposal"\n')
+            head = self.commit('Candidate with the same frozen oracle')
+        finally:
+            self.command('git', 'checkout', '-q', 'main')
+        tree = self.command('git', 'rev-parse', head + '^{tree}')
+        candidate = self.command('git', 'commit-tree', tree, '-p', self.refs['main'],
+                                 '-p', head, '-m', 'Proposal matching both event parents')
+        self.candidates['unreviewed_tree'] = candidate
+        self.addCleanup(self.candidates.pop, 'unreviewed_tree')
+        result = self.invoke('unreviewed_tree', head=head)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn('APPROVAL_UNKNOWN_TREE', result.stdout)
+        self.command('git', 'replace', candidate, self.candidates['event'])
+        self.addCleanup(self.command, 'git', 'replace', '-d', candidate)
+        result = self.invoke('unreviewed_tree', head=head)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertNotIn('PASS:', result.stdout)
+
     def test_symbolic_base_abbreviated_head_and_missing_head_are_rejected(self):
         for inputs in ({'base': 'main'}, {'head': self.refs['one'][:12]}, {'workflow': False}):
             with self.subTest(inputs=inputs):
