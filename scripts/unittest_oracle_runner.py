@@ -6,6 +6,7 @@ import json
 import marshal
 from pathlib import Path
 import sys
+import sysconfig
 from types import CodeType, FunctionType, MethodType
 import unittest
 
@@ -34,40 +35,56 @@ class RecordedResult(unittest.TextTestResult):
             item['executed'] -= 1
 
 
-def code_source(filename, root):
+def runtime_origins():
+    paths = sysconfig.get_paths()
+    return [(name, Path(paths[name]).resolve()) for name in ('purelib', 'platlib', 'stdlib', 'platstdlib')]
+
+
+def code_source(filename, root, origins):
     path = (root / filename).resolve()
     if path.is_relative_to(root):
         return path.relative_to(root).as_posix()
-    for index, location in enumerate(sys.path):
-        if location:
-            base = Path(location).resolve()
-            if path.is_relative_to(base):
-                return '<import-{0}>/{1}'.format(index, path.relative_to(base).as_posix())
-    return '<external>/' + path.name
+    for name, base in origins:
+        if path.is_relative_to(base):
+            return '<{0}>/{1}'.format(name, path.relative_to(base).as_posix())
+    raise ValueError('Unsupported Python source for oracle receipt: ' + path.name)
 
 
-def portable_code(code, root):
-    constants = tuple(portable_code(value, root) if isinstance(value, CodeType) else value
+def portable_code(code, root, origins):
+    constants = tuple(portable_code(value, root, origins) if isinstance(value, CodeType) else value
                       for value in code.co_consts)
-    return code.replace(co_filename=code_source(code.co_filename, root), co_consts=constants)
+    return code.replace(co_filename=code_source(code.co_filename, root, origins), co_consts=constants)
 
 
-def bound_method_fingerprint(method, root):
-    digest = hashlib.sha256()
-    seen = set()
-    while method is not None:
-        if isinstance(method, partial):
-            digest.update(b'partial:')
-            method = method.func
-            continue
-        function = method.__func__ if isinstance(method, MethodType) else method
-        if not isinstance(function, FunctionType) or function in seen:
-            raise ValueError('Unsupported Python method for oracle receipt')
-        seen.add(function)
+def record_definition(method, root, origins, digest, stack):
+    function = method.__func__ if isinstance(method, MethodType) else method
+    identity = id(function)
+    if identity in stack:
+        raise ValueError('Circular Python method for oracle receipt')
+    stack.add(identity)
+    wrapped = getattr(function, '__wrapped__', None)
+    if isinstance(function, partial):
+        digest.update(b'partial:')
+        record_definition(function.func, root, origins, digest, stack)
+    elif isinstance(function, FunctionType):
         # Format 2 excludes reference tracking and preserves stable code fields.
         module = function.__globals__.get('__name__', '')
-        digest.update(marshal.dumps((module, portable_code(function.__code__, root)), 2))
-        method = getattr(function, '__wrapped__', None)
+        code = portable_code(function.__code__, root, origins)
+        digest.update(marshal.dumps((module, code), 2))
+    elif callable(function) and wrapped is not None:
+        wrapper_type = type(function)
+        digest.update(marshal.dumps((wrapper_type.__module__, wrapper_type.__qualname__), 2))
+    else:
+        raise ValueError('Unsupported Python method for oracle receipt')
+    if wrapped is not None:
+        digest.update(b'wrapped:')
+        record_definition(wrapped, root, origins, digest, stack)
+    stack.remove(identity)
+
+
+def bound_method_fingerprint(method, root, origins):
+    digest = hashlib.sha256()
+    record_definition(method, root, origins, digest, set())
     return digest.hexdigest()
 
 
@@ -75,6 +92,7 @@ class IdentifiedResult(RecordedResult):
     def __init__(self, *args, root):
         super().__init__(*args)
         self.root = root
+        self.origins = runtime_origins()
         self.case_ids = {}
         self.restore = {}
 
@@ -88,7 +106,7 @@ class IdentifiedResult(RecordedResult):
         path = source_path(test)
 
         def record_and_invoke(method):
-            fingerprint = bound_method_fingerprint(method, self.root)
+            fingerprint = bound_method_fingerprint(method, self.root, self.origins)
             self.case_ids.setdefault(path, []).append(label + ':' + fingerprint)
             return invoke(method)
 
