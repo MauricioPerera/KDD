@@ -31,14 +31,18 @@ class TestApprovalRouting(GitApprovalFixture, unittest.TestCase):
         cls.command('git', 'checkout', '-qb', 'integration-two', cls.refs['main'])
         cls.command('git', 'merge', '--no-ff', '-qm', 'merge proposal two', cls.refs['two'])
         cls.refs['merge-two'] = cls.command('git', 'rev-parse', 'HEAD')
+        cls.refs['merge-poison'] = cls.command(
+            'git', 'commit-tree', cls.trees['poison'], '-p', cls.refs['main'],
+            '-p', cls.refs['poison'], '-m', 'merge poison proposal')
         cls.command('git', 'checkout', '-q', 'main')
-        for number, name in ((17, 'merge'), (18, 'merge-two'), (19, 'poison')):
+        for number, name in ((17, 'merge'), (18, 'merge-two'), (19, 'merge-poison')):
             cls.command('git', 'push', '-q', 'origin', cls.refs[name] + ':refs/pull/' + str(number) + '/merge')
 
     def invoke_guard(self, number, records, **extra):
+        head = self.refs[{17: 'one', 18: 'two', 19: 'poison'}[number]]
         env = dict(os.environ, PYTHONUTF8='1', **extra)
         return subprocess.run([sys.executable, str(ROOT / 'scripts/guard_pr_baseline.py'),
-            '--pr-number', str(number), '--base-ref', self.refs['main'],
+            '--pr-number', str(number), '--base-ref', self.refs['main'], '--head-ref', head,
             '--approval-registry', json.dumps(records)], cwd=self.root, env=env,
             capture_output=True, text=True, encoding='utf-8', timeout=60)
 

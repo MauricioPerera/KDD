@@ -126,12 +126,14 @@ class TrustedChangeReview(unittest.TestCase):
         self.assertEqual(self.check(json.dumps(review)), [])
 
     def test_cli_reads_external_review_and_fetches_real_proposed_merge(self):
-        self.git('update-ref', 'refs/pull/42/merge', self.candidate)
+        tree = self.git('rev-parse', self.candidate + '^{tree}')
+        merge = self.git('commit-tree', tree, '-p', self.base, '-p', self.candidate, '-m', 'proposed merge')
+        self.git('update-ref', 'refs/pull/42/merge', merge)
         self.git('remote', 'add', 'origin', str(self.root))
         env = dict(os.environ, KDD_TRUSTED_CHANGE_REVIEW=json.dumps(self.review()),
                    PYTHONUTF8='1', GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull)
         command = [sys.executable, str(ROOT / 'scripts/guard_pr_baseline.py'), '--pr-number', '42',
-                   '--base-ref', self.base, '--approved-ref', self.base]
+                   '--base-ref', self.base, '--head-ref', self.candidate, '--approved-ref', self.base]
         result = subprocess.run(command, cwd=self.root, env=env, capture_output=True,
                                 text=True, encoding='utf-8', timeout=60)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
