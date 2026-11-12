@@ -82,7 +82,7 @@ class CompositeQualityCheckout(unittest.TestCase):
             "tests: oracle.py\ntests_sha256: '" + seal + "'\n"
             "touch_only: ['oracle.py']\ndeps_allowed: ['stdlib']\nforbids: ['network']\n---\n"
             "## Intent\nFixture.\n## Interface\nFixture.\n## Invariants\nFixture.\n"
-            "## Examples\nFixture.\n## Do / Don't\nFixture.\n## Tests\nFixture.\n"
+            "## Examples\n- A valid oracle is read.\n- A missing oracle is rejected.\n## Do / Don't\nFixture.\n## Tests\nFixture.\n"
             "## Constraints\nPARAR y reportar si falta el oraculo.\n",
             encoding='utf-8')
         self.policy = {

@@ -14,7 +14,7 @@ budget:
   nesting_max: 4
   params_max: 6
 tests: tests/test_task_oracle_execution_proof.py
-tests_sha256: '7d3e33a9bcdbea4f2ca20e1ceacf1222156619a12e02c75648479626d906b72f'
+tests_sha256: 'f2bd417ed239da1a9e74ba89f196cdb85b56ce8b6203d092725fbd6e9794e9b6'
 oracle_files: ['tests/test_task_oracle_execution_proof.py', 'tests/test_task_git.py', 'tests/test_fixture_preparation.py', 'tests/test_generated_task_evidence.py', 'tests/__init__.py', 'tools/kdd-board/tests/task-oracle-execution-proof.test.ts', 'tools/kdd-board/tests/node-legacy-proof.test.ts']
 touch_only: ['scripts/task_evidence.py', 'scripts/task_git.py', 'scripts/validate_tasks.py', 'scripts/oracle_execution.py', 'scripts/unittest_oracle_runner.py', 'scripts/node_oracle_reporter.mjs', 'tools/kdd-board/src/test-runner.ts', 'tools/kdd-board/src/task-execution.ts', 'tools/kdd-board/src/types.ts', 'tools/kdd-board/src/input-validation.ts', 'knowledge/git-tasks.md', 'knowledge/board-git.md', 'knowledge/data_models/git-task.md']
 deps_allowed: ['stdlib', 'oracle_inventory', 'oracle_execution', 'process_tree']

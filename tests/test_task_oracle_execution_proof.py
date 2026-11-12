@@ -178,9 +178,9 @@ class TaskOracleProof(unittest.TestCase):
                 report.update(schema_version=2, oracle_results=rows)
                 self.replace_receipt(task, report)
                 findings = validate_snapshot(self.repo.root)
+                task = journal.read_tasks(self.repo.root)['TASK-001']
                 self.assertTrue(any('TASK_EVIDENCE' in item and 'oracle' in item.lower()
                                     for item in findings), findings)
-                task = journal.read_tasks(self.repo.root)['TASK-001']
 
     def test_board_executes_real_node_oracle_and_rejects_empty_wrapper(self):
         env = dict(os.environ)
