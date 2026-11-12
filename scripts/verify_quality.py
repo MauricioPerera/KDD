@@ -117,6 +117,7 @@ def unique_object(pairs):
 
 TASK_MODULES = ('validate_tasks.py', 'task_git.py', 'task_model.py',
                 'task_evidence.py', 'validate_contracts.py')
+TASK_INVENTORY_MODULE = 'scripts/oracle_inventory.py'
 ORACLE_MODULES = ('mutation_audit.py', 'audit_seals.py', 'validate_contracts.py', 'process_tree.py')
 CONTROL_MODULES = ('validate_budgets.py', 'validate_contracts.py')
 
@@ -280,33 +281,67 @@ def changed_paths(root, commit):
 
 _TASK_AUDIT = """import json,sys
 from pathlib import Path
-sys.path.insert(0,sys.argv[1])
+sys.path.insert(0, sys.argv[1])
 import task_git as journal
 from validate_contracts import parse_frontmatter
 from validate_tasks import validate_range
-root,approved,head=Path(sys.argv[2]),sys.argv[3],sys.argv[4]
-policy=json.loads(sys.stdin.read())
-tasks=journal.read_tasks(root,head)
-artifacts,nodes=[],[]
-for entry in policy['generated_task_evidence']:
-    contract=entry['contract']
-    metadata,_=parse_frontmatter(journal.blob(root,approved,contract))
-    if not isinstance(metadata,dict) or metadata.get('tests') not in policy['protected']:
+
+root, approved, head = Path(sys.argv[2]), sys.argv[3], sys.argv[4]
+policy = json.loads(sys.stdin.read())
+protected = set(policy['protected'])
+
+def contract_at(contract, revision):
+    metadata, _ = parse_frontmatter(journal.blob(root, revision, contract))
+    if not isinstance(metadata, dict):
+        raise SystemExit('Invalid generated task contract: ' + contract)
+    return metadata
+
+def inventory_for(contract, task):
+    metadata = contract_at(contract, approved)
+    if metadata.get('tests') not in protected:
         raise SystemExit('Generated task oracle must be protected')
-    identifier=entry['task_id']
-    node='knowledge/tasks/'+identifier+'.md'
-    task=tasks.get(identifier)
+    refs = ()
+    task_metadata = metadata
+    if task and task['status'] == 'done':
+        refs = task['approved_ref'], task['verified_ref']
+        task_metadata = contract_at(contract, refs[0])
+    if 'oracle_files' not in metadata and 'oracle_files' not in task_metadata:
+        return set()
+    helper = 'scripts/oracle_inventory.py'
+    if helper not in protected:
+        raise SystemExit('Generated task inventory helper must be protected: ' + helper)
+    from oracle_inventory import inventory_paths
+    names = sorted(set(inventory_paths(metadata)) | set(inventory_paths(task_metadata)))
+    missing = sorted(set(names) - protected)
+    if missing:
+        raise SystemExit('Generated task inventory must be protected: ' + ', '.join(missing))
+    expected = journal._oracle_artifacts(root, approved, [contract, *names])
+    binary = journal._oracle_binary_paths(root, approved, names)
+    for revision in dict.fromkeys(refs):
+        if revision != approved:
+            current = journal._oracle_artifacts(root, revision, expected)
+            different = journal._different_oracle(current, expected, binary)
+            if different:
+                raise SystemExit('Generated task differs from quality approval: ' + different)
+    return binary
+
+tasks = journal.read_tasks(root, head)
+artifacts, nodes, binary = [], [], set()
+for entry in policy['generated_task_evidence']:
+    contract, identifier = entry['contract'], entry['task_id']
+    task = tasks.get(identifier)
     if task is not None:
-        nodes.append(node)
-        if task['contract']!=contract:
+        nodes.append('knowledge/tasks/' + identifier + '.md')
+        if task['contract'] != contract:
             raise SystemExit('Generated task contract mismatch')
-        if task['status']=='done':
+        if task['status'] == 'done':
             artifacts.append(task['evidence'])
-chain=journal.git(root,'rev-list','--first-parent','--reverse',head).splitlines()
-findings=validate_range(root,chain[0],head)
+    binary.update(inventory_for(contract, task))
+chain = journal.git(root, 'rev-list', '--first-parent', '--reverse', head).splitlines()
+findings = validate_range(root, chain[0], head)
 if findings:
-    raise SystemExit('Generated task history rejected: '+'; '.join(findings))
-print(json.dumps({'artifacts':artifacts,'nodes':nodes}))
+    raise SystemExit('Generated task history rejected: ' + '; '.join(findings))
+print(json.dumps({'artifacts': artifacts, 'nodes': nodes, 'binary': sorted(binary)}))
 """
 
 
@@ -320,7 +355,11 @@ def _task_manifest(root, commit, policy, approved, cache):
             raise Rejected('Trusted task bundle must be outside the checkout')
         for name in TASK_MODULES:
             (bundle / name).write_bytes(approved['scripts/' + name])
-        env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1', PYTHONUTF8='1')
+        if TASK_INVENTORY_MODULE in approved:
+            _approved_regular(root, commit, TASK_INVENTORY_MODULE, 'task inventory module')
+            (bundle / Path(TASK_INVENTORY_MODULE).name).write_bytes(approved[TASK_INVENTORY_MODULE])
+        env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1', PYTHONUTF8='1',
+                   GIT_NO_REPLACE_OBJECTS='1')
         for name in ('PYTHONPATH', 'GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR'):
             env.pop(name, None)
         result = subprocess.run([sys.executable, '-I', '-c', _TASK_AUDIT,
@@ -331,20 +370,20 @@ def _task_manifest(root, commit, policy, approved, cache):
         raise Rejected('Task evidence audit failed: ' + result.stderr.strip())
     try:
         report = json.loads(result.stdout)
-        artifacts, nodes = report['artifacts'], report['nodes']
+        artifacts, nodes, binary = report['artifacts'], report['nodes'], report['binary']
         names = artifacts + nodes
         blobs = _objects(root, [head + ':' + name for name in names])
         manifest = {name: blobs[head + ':' + name] for name in names}
     except (ValueError, KeyError, TypeError) as exc:
         raise Rejected('Invalid trusted task manifest') from exc
-    cache[head] = (artifacts, manifest)
+    cache[head] = (artifacts, manifest, set(binary))
     return cache[head]
 
 
 def _generated_integrity(root, commit, policy, approved, cache):
     if 'generated_task_evidence' not in policy:
-        return set()
-    artifacts, manifest = _task_manifest(root, commit, policy, approved, cache)
+        return set(), set()
+    artifacts, manifest, binary = _task_manifest(root, commit, policy, approved, cache)
     indices = _objects(root, [':' + name for name in manifest], allow_missing=True)
     for name, expected in manifest.items():
         path = safe_path(root, name)
@@ -361,7 +400,7 @@ def _generated_integrity(root, commit, policy, approved, cache):
     for name in declared - manifest.keys():
         if safe_path(root, name).exists():
             raise Rejected('Generated task node must be committed: ' + name)
-    return set(artifacts)
+    return set(artifacts), binary
 
 
 def _protected_integrity(root, approved, exact_paths=()):
@@ -382,9 +421,8 @@ def integrity(root, commit, policy, approved, cache=None):
         for name in policy[field]:
             safe_path(root, name)
     cache = {} if cache is None else cache
-    _protected_integrity(root, approved, cache.get('oracle_exact_paths', ()))
-    generated = _generated_integrity(root, commit, policy, approved,
-                                     cache if cache is not None else {})
+    generated, binary = _generated_integrity(root, commit, policy, approved, cache)
+    _protected_integrity(root, approved, binary.union(cache.get('oracle_exact_paths', ())))
     allowed = set(policy['implementation']) | set(policy['pm']) | generated
     for name in changed_paths(root, commit):
         safe_path(root, name)

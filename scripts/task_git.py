@@ -279,11 +279,12 @@ def _raw_object_record(output, offset, specification):
     return record, start + size + 1
 
 
-def _raw_objects(root, specifications):
+def _raw_objects(root, specifications, *, no_replace=False):
     if not specifications:
         return {}
+    options = ['--no-replace-objects'] if no_replace else []
     try:
-        result = subprocess.run(['git', '-C', str(root), 'cat-file', '--batch'],
+        result = subprocess.run(['git', *options, '-C', str(root), 'cat-file', '--batch'],
             input=('\n'.join(specifications) + '\n').encode('utf-8'),
             capture_output=True, timeout=30, check=False)
         if result.returncode:
@@ -782,6 +783,65 @@ def _require_valid_contract(root, name):
         raise TaskError('TASK_CONTRACT: ' + '; '.join(map(str, findings)))
 
 
+def _oracle_artifacts(root, revision, paths):
+    names = tuple(dict.fromkeys(paths))
+    if not all(_cacheable_git_path(name) for name in names):
+        raise TaskError('TASK_PATH: invalid oracle inventory path')
+    listing = git(root, '--no-replace-objects', 'ls-tree', '-z', revision, '--', *names)
+    entries = _regular_paths(listing)
+    if set(entries) != set(names):
+        missing = sorted(set(names) - set(entries))
+        raise TaskError('TASK_PATH: missing regular Git file: ' + ', '.join(missing))
+    records = _raw_objects(root, sorted(set(entries.values())), no_replace=True)
+    for oid, record in records.items():
+        if record is None or record[:2] != (b'blob', oid):
+            raise TaskError('TASK_GIT: invalid oracle blob: ' + oid)
+    return {name: records[oid][2] for name, oid in entries.items()}
+
+
+def _oracle_binary_paths(root, revision, files):
+    from oracle_inventory import approved_binary_paths
+    return approved_binary_paths(
+        lambda *args: _output(root, ('--no-replace-objects', *args)).encode('utf-8'),
+        revision, files)
+
+
+def _different_oracle(current, approved, binary):
+    from oracle_inventory import oracle_equal
+    return next((name for name in approved
+                 if not oracle_equal(current[name], approved[name], name in binary)), None)
+
+
+def _checkout_oracles(root, expected):
+    result = {}
+    for name in expected:
+        try:
+            result[name] = safe_path(root, name).read_bytes()
+        except OSError as exc:
+            raise TaskError('TASK_PATH: required oracle inventory file unavailable: ' + name) from exc
+    return result
+
+
+def _check_inventory(root, data, metadata, revision):
+    files = proof.inventory(metadata)
+    contract, approved = data['contract'], data['approved_ref']
+    expected = _oracle_artifacts(root, approved, (contract, *files))
+    if proof.normalized(expected[contract].decode('utf-8')) != blob(root, approved, contract):
+        raise TaskError('TASK_APPROVAL: contract differs from approved object: ' + contract)
+    binary = _oracle_binary_paths(root, approved, files)
+    actual = expected if revision == approved else _oracle_artifacts(root, revision, expected)
+    different = _different_oracle(actual, expected, binary)
+    if different:
+        raise TaskError('TASK_APPROVAL: inventory differs from approved reference: ' + different)
+    return expected, binary
+
+
+def _check_live_inventory(root, expected, binary):
+    different = _different_oracle(_checkout_oracles(root, expected), expected, binary)
+    if different:
+        raise TaskError('TASK_APPROVAL: checkout inventory differs from approval: ' + different)
+
+
 def _approved_contract_schema(root, data, metadata):
     cache = _OBJECT_CACHE.get()
     approved = data['approved_ref']
@@ -796,6 +856,9 @@ def _approved_contract_schema(root, data, metadata):
     artifacts = {metadata['target']: '',
                  data['contract']: blob(root, approved, data['contract']),
                  metadata['tests']: blob(root, approved, metadata['tests'])}
+    if 'oracle_files' in metadata:
+        for name in proof.inventory(metadata):
+            artifacts.setdefault(name, '')
     with tempfile.TemporaryDirectory(prefix='kdd-contract-schema-', dir=scratch) as directory:
         destination = Path(directory)
         for name, content in artifacts.items():
@@ -834,7 +897,12 @@ def contract_metadata(root, data, revision, *, committed_only=False):
     required = ('target', 'tests', 'test_command', 'tests_sha256')
     if not all(isinstance(metadata.get(k), str) and metadata[k] for k in required):
         raise TaskError('TASK_CONTRACT: approved contract has invalid oracle metadata')
+    _require_runner(metadata, not committed_only)
     _metadata_paths(root, data, metadata, revision)
+    if 'oracle_files' in metadata:
+        expected, binary = _check_inventory(root, data, metadata, revision)
+        if not committed_only:
+            _check_live_inventory(root, expected, binary)
     for path in (data['contract'], metadata['tests']):
         _artifact_path(root, path, committed_only)
         if proof.normalized(blob(root, revision, path)) != proof.normalized(blob(root, approved, path)):
@@ -845,7 +913,6 @@ def contract_metadata(root, data, revision, *, committed_only=False):
     _approved_contract_schema(root, data, metadata)
     if not committed_only:
         _live_contract(root, data, metadata)
-    _require_runner(metadata, not committed_only)
     return metadata
 
 
@@ -1058,6 +1125,8 @@ def _perimeter_check(metadata, contract, changed):
     protected = {contract}
     if metadata['tests'] != metadata['target']:
         protected.add(metadata['tests'])
+    if 'oracle_files' in metadata:
+        protected.update(proof.inventory(metadata))
     outside = sorted(path for path in changed
                      if path in protected or not any(fnmatch.fnmatch(path, p) for p in patterns))
     if outside:

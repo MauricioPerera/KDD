@@ -54,14 +54,36 @@ python scripts/validate_tasks.py
 python scripts/validate_tasks.py --base-ref SHA_INICIAL --head-ref main
 ```
 
-finish usa el HEAD limpio actual como revision probada, ejecuta el oraculo
-aprobado y crea un commit posterior de cierre. El recibo v2 identifica el
-archivo y el conteo de casos del runner instrumentado. Un archivo Node sin
-casos, un resumen impreso por el producto, una omision o un error impiden
-el cierre. Los recibos v1 conservan su lectura historica. Si la politica
-de calidad congela los modulos de tareas, revisar y aprobar los modulos
-actualizados antes de exigir calidad sobre un cierre v2.
+finish usa el HEAD limpio actual como revision probada, ejecuta los oraculos
+aprobados y crea un commit posterior de cierre. El recibo v2 registra una
+fila por archivo seleccionado con el conteo del runner instrumentado.
+Un archivo seleccionado sin casos, una omision o un error impiden el cierre.
+Los recibos v1 de un archivo conservan su lectura historica.
 Las consultas leen blobs de main, incluso ejecutadas desde task/TASK-001.
+
+### Seleccionar varios oraculos
+
+El contrato incluye el archivo primario en `tests` y en el comando una sola
+vez. Declara el runner y el inventario completo, incluidos los auxiliares
+necesarios para ejecutar las pruebas. El sello `tests_sha256` sigue
+correspondiendo al archivo primario.
+
+```yaml
+tests: tests/test_price.py
+test_runner: python-unittest
+test_command: 'python -m unittest tests/test_price.py tests.test_rounding'
+oracle_files: ['tests/test_price.py', 'tests/test_rounding.py', 'tests/__init__.py']
+```
+
+Para Node, usar `test_runner: node-test` y `node --test` con los archivos
+explicitos. El inventario completo queda ligado a la aprobacion de la tarea.
+Solo los archivos seleccionados aportan filas al recibo.
+
+Si la politica de calidad verifica evidencia generada de esa tarea, proteger
+tambien todos los auxiliares inventariados y `scripts/oracle_inventory.py`.
+La referencia de calidad debe contener los validadores actualizados y los
+mismos artefactos aprobados que acreditaron el cierre. Ver
+[calidad multiarchivo](contracts/quality-git-task-multi-oracle.md).
 
 ## Operacion y limites
 
@@ -91,6 +113,7 @@ una copia y puede superar el timeout predeterminado de 180 segundos en Windows.
 - [Modelo puro](contracts/task-model.md).
 - [Diario y evidencia](contracts/task-journal.md).
 - [Oraculos instrumentados y recibo v2](contracts/task-oracle-execution-proof.md).
+- [Cierre con oraculos multiarchivo](contracts/git-task-multi-oracle.md).
 - [Validador de historial](contracts/task-validation.md).
 - [Publicacion mediante merge](contracts/task-publication.md).
 - [CLI](contracts/task-cli.md).
