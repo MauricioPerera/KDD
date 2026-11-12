@@ -1,0 +1,126 @@
+name: Windows post-init timeout probe
+
+on:
+  push:
+    branches: [codex/postinit-timeout-probe]
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    if: github.repository == 'MauricioPerera/KDD'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: source
+    env:
+      KDD_APPROVED_BASELINE_REF: 225cedab0ad362a834b69ce02339062037f218d9
+      KDD_ACCEPTANCE_APPROVED_REF: 225cedab0ad362a834b69ce02339062037f218d9
+      KDD_TRUSTED_RUNTIME_REF: 74d357f7099651b9b39dc8088f725183a672ec94
+      PYTHONUTF8: '1'
+    steps:
+      - name: Check out probe and collector
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: control
+          persist-credentials: false
+
+      - name: Check out exact PR 187 merge tree
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: source
+          ref: e7af3bffd3cb54db39974eff4b0bde0cfe3d7c60
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11'
+
+      - name: Select native Git on Windows
+        shell: python -I {0}
+        run: |
+          import os
+          from pathlib import Path
+          import shutil
+          import subprocess
+          launcher = Path(shutil.which('git')).resolve()
+          home = launcher.parent.parent
+          candidates = [home / layout / 'bin' / 'git.exe' for layout in ('ucrt64', 'mingw64')]
+          native = next((path for path in candidates if path.is_file()), launcher)
+          if subprocess.check_output([str(native), '--version']) != subprocess.check_output([str(launcher), '--version']):
+              raise SystemExit('Native Git version differs from the installed launcher')
+          with open(os.environ['GITHUB_PATH'], 'a', encoding='utf-8') as stream:
+              stream.write(str(native.parent) + '\n')
+
+      - name: Install pinned change-audit parsers
+        run: |
+          python -m pip install --only-binary=:all: -r requirements-change-audit.txt
+
+      - name: Install pinned context compatibility dependencies
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r tools/context-v03/requirements.txt
+
+      - name: Install pinned workflow checker
+        shell: python -I {0}
+        run: |
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          subprocess.run([
+              sys.executable, 'scripts/validate_workflows.py', 'install',
+              '--cache-dir', str(Path(os.environ['RUNNER_TEMP']) / 'kdd-actionlint'),
+              '--github-env', os.environ['GITHUB_ENV'], '--github-path', os.environ['GITHUB_PATH'],
+          ], check=True)
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      - name: Install measured Board dependencies
+        run: npm ci --prefix tools/kdd-board --ignore-scripts
+
+      - name: Install measured Pages dependencies
+        run: npm ci --prefix site --ignore-scripts --no-audit --no-fund
+
+      - name: Prepare pinned MCP SDK environment
+        shell: python -I {0}
+        run: |
+          import os
+          from pathlib import Path
+          import subprocess
+          import tempfile
+          import venv
+          root = Path.cwd().resolve()
+          directory = Path(tempfile.mkdtemp(prefix='kdd-mcp-sdk-', dir=os.environ['RUNNER_TEMP'])).resolve()
+          if directory.is_relative_to(root):
+              raise SystemExit('SDK environment must be outside the measured checkout')
+          venv.EnvBuilder(with_pip=True).create(directory / 'venv')
+          python = directory / 'venv/Scripts/python.exe'
+          environment = dict(os.environ, PIP_CONFIG_FILE=os.devnull, PIP_INDEX_URL='https://pypi.org/simple',
+                             PIP_EXTRA_INDEX_URL='', PIP_FIND_LINKS='', PIP_DISABLE_PIP_VERSION_CHECK='1')
+          subprocess.run([str(python), '-I', '-m', 'pip', 'install', '--only-binary=:all:',
+                          '--require-hashes', '--index-url', 'https://pypi.org/simple',
+                          '-r', str(root / 'tools/mcp-sdk/windows.txt')],
+                         env=environment, check=True, timeout=300)
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as stream:
+              stream.write('KDD_MCP_SDK_PYTHON=' + python.as_posix() + '\n')
+
+      - name: Run initialized Windows suite and capture its outcome
+        shell: pwsh
+        run: |
+          python -I ../control/.github/diagnostics/postinit_timeout_probe.py --source . --out (Join-Path $env:RUNNER_TEMP 'kdd-timeout-probe-evidence')
+
+      - name: Upload bounded diagnostic summary
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kdd-timeout-probe-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kdd-timeout-probe-evidence/summary.json
+          if-no-files-found: error
+          retention-days: 7
