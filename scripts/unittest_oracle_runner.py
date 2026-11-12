@@ -1,5 +1,5 @@
 """Trusted unittest recorder invoked by oracle_execution in an isolated Python."""
-from functools import partial
+from functools import lru_cache, partial
 import hashlib
 import inspect
 import json
@@ -56,6 +56,9 @@ def portable_code(code, root, origins):
     return code.replace(co_filename=code_source(code.co_filename, root, origins), co_consts=constants)
 
 
+CACHE_WRAPPER_TYPE = type(lru_cache()(lambda: None))
+
+
 def record_definition(method, root, origins, digest, stack):
     function = method.__func__ if isinstance(method, MethodType) else method
     identity = id(function)
@@ -63,7 +66,7 @@ def record_definition(method, root, origins, digest, stack):
         raise ValueError('Circular Python method for oracle receipt')
     stack.add(identity)
     wrapped = getattr(function, '__wrapped__', None)
-    if isinstance(function, partial):
+    if type(function) is partial:
         digest.update(b'partial:')
         record_definition(function.func, root, origins, digest, stack)
     elif isinstance(function, FunctionType):
@@ -71,9 +74,11 @@ def record_definition(method, root, origins, digest, stack):
         module = function.__globals__.get('__name__', '')
         code = portable_code(function.__code__, root, origins)
         digest.update(marshal.dumps((module, code), 2))
-    elif callable(function) and wrapped is not None:
-        wrapper_type = type(function)
-        digest.update(marshal.dumps((wrapper_type.__module__, wrapper_type.__qualname__), 2))
+    elif type(function) is CACHE_WRAPPER_TYPE and wrapped is not None:
+        digest.update(b'lru_cache:')
+    elif wrapped is not None and isinstance(type(function).__call__, FunctionType):
+        digest.update(b'callable:')
+        record_definition(type(function).__call__, root, origins, digest, stack)
     else:
         raise ValueError('Unsupported Python method for oracle receipt')
     if wrapped is not None:
