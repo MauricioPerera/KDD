@@ -72,7 +72,14 @@ def passed_tests(runner, stdout, stderr):
 def execute(metadata, root, timeout=120):
     try:
         # The frozen task auditor imports this module without its live runners.
-        from oracle_execution import execute_task_oracle
+        try:
+            from oracle_execution import execute_task_oracle
+        except ImportError as error:
+            if error.name != 'oracle_execution':
+                raise
+            # An isolated suite can load this file by path while only the
+            # repository root is available to normal package imports.
+            from scripts.oracle_execution import execute_task_oracle
         argv, runner = invocation(metadata)
         oracle = oracle_path(metadata)
         instrument = 'python-unittest' if runner == 'unittest' else 'node-test'

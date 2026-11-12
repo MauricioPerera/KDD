@@ -13,7 +13,10 @@ import subprocess
 import sys
 import tempfile
 
-from oracle_inventory import inventory_paths, local_file
+if __package__:
+    from .oracle_inventory import inventory_paths, local_file
+else:
+    from oracle_inventory import inventory_paths, local_file
 
 
 def declared_timeout(metadata, fallback=180):
