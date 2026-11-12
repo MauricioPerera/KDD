@@ -34,23 +34,39 @@ class RecordedResult(unittest.TextTestResult):
             item['executed'] -= 1
 
 
+def code_source(filename, root):
+    path = (root / filename).resolve()
+    if path.is_relative_to(root):
+        return path.relative_to(root).as_posix()
+    for index, location in enumerate(sys.path):
+        if location:
+            base = Path(location).resolve()
+            if path.is_relative_to(base):
+                return '<import-{0}>/{1}'.format(index, path.relative_to(base).as_posix())
+    return '<external>/' + path.name
+
+
 def portable_code(code, root):
-    source = Path(code.co_filename).resolve().relative_to(root).as_posix()
     constants = tuple(portable_code(value, root) if isinstance(value, CodeType) else value
                       for value in code.co_consts)
-    return code.replace(co_filename=source, co_consts=constants)
+    return code.replace(co_filename=code_source(code.co_filename, root), co_consts=constants)
 
 
 def bound_method_fingerprint(method, root):
     digest = hashlib.sha256()
     seen = set()
     while method is not None:
+        if isinstance(method, partial):
+            digest.update(b'partial:')
+            method = method.func
+            continue
         function = method.__func__ if isinstance(method, MethodType) else method
         if not isinstance(function, FunctionType) or function in seen:
             raise ValueError('Unsupported Python method for oracle receipt')
         seen.add(function)
         # Format 2 excludes reference tracking and preserves stable code fields.
-        digest.update(marshal.dumps(portable_code(function.__code__, root), 2))
+        module = function.__globals__.get('__name__', '')
+        digest.update(marshal.dumps((module, portable_code(function.__code__, root)), 2))
         method = getattr(function, '__wrapped__', None)
     return digest.hexdigest()
 
@@ -66,13 +82,14 @@ class IdentifiedResult(RecordedResult):
         super().startTest(test)
         name = '_callTestMethod'
         attributes = vars(test)
-        self.restore[test] = {name: attributes[name]} if name in attributes else {}
+        self.restore[id(test)] = {name: attributes[name]} if name in attributes else {}
         invoke = test._callTestMethod
+        label = unittest.TestCase.id(test).encode('utf-8').hex()
+        path = source_path(test)
 
         def record_and_invoke(method):
-            label = unittest.TestCase.id(test)
             fingerprint = bound_method_fingerprint(method, self.root)
-            self.case_ids.setdefault(source_path(test), []).append(label + '#' + fingerprint)
+            self.case_ids.setdefault(path, []).append(label + ':' + fingerprint)
             return invoke(method)
 
         attributes[name] = record_and_invoke
@@ -80,7 +97,7 @@ class IdentifiedResult(RecordedResult):
     def stopTest(self, test):
         attributes = vars(test)
         attributes.pop('_callTestMethod', None)
-        attributes.update(self.restore.pop(test))
+        attributes.update(self.restore.pop(id(test)))
         super().stopTest(test)
 
 

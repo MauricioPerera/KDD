@@ -21,7 +21,7 @@ CONTRACTS = Path("knowledge/contracts")
 REQUIREMENTS = None
 SOURCE_DIR = None
 PIN = re.compile(r"[0-9a-f]{40}")
-METHOD_FINGERPRINT = re.compile(r"[0-9a-f]{64}")
+METHOD_EVIDENCE = re.compile(r"((?:[0-9a-f]{2})+):[0-9a-f]{64}")
 MANAGED = (".github/workflows/kdd-validate.yml", ".kdd/validate.py", ".kdd/validator.lock")
 POLICIES = ("quality/product.json", "quality.json")
 REGULAR = {b"100644", b"100755"}
@@ -403,16 +403,23 @@ def receipt_contracts(path, contracts):
     return [{"path": name, "ids": inventory[name]} for name in sorted(inventory)]
 
 
+def oracle_case_label(identity):
+    evidence = METHOD_EVIDENCE.fullmatch(identity)
+    if evidence:
+        try:
+            label = bytes.fromhex(evidence[1]).decode("utf-8")
+        except UnicodeError:
+            label = ""
+        if label.strip():
+            return label
+    raise Rejected("Invalid case IDs in oracle receipt: missing bound-method fingerprint; "
+                   "use a reviewed validator pin with receipt support")
+
+
 def public_oracle_inventory(inventory):
     result = []
     for item in inventory:
-        labels = []
-        for identity in item["ids"]:
-            label, _, fingerprint = identity.rpartition("#")
-            if not label.strip() or not METHOD_FINGERPRINT.fullmatch(fingerprint):
-                raise Rejected("Invalid case IDs in oracle receipt: missing bound-method fingerprint; "
-                               "use a reviewed validator pin with receipt support")
-            labels.append(label)
+        labels = [oracle_case_label(identity) for identity in item["ids"]]
         if len(labels) != len(set(labels)):
             raise Rejected("Duplicate oracle case IDs in " + item["path"])
         result.append({"path": item["path"], "ids": sorted(labels)})
