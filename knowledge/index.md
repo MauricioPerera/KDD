@@ -35,10 +35,10 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Guia humana de supervision](./supervision-humana.md) — checklist para quien revisa un PR producido con KDD sin haber leido todo el proceso interno.
 - [MCP server propio](./mcp-server.md) — como instalar y registrar los gates de KDD como tools MCP (opt-in, no Nivel 1).
 - [Especificación OKF](./OKF-SPEC.md) — spec normativa de nodos OKF.
-- [Metodología de ejecución por contratos](./metodologia-ejecucion.md) — proceso operativo de nivel proyecto (specs/, docs/reports/, delegación y verificación).
+- [Metodología de ejecución por contratos](./metodologia-ejecucion.md)
 - [Validación de contratos](./validacion.md) — nodo canónico: niveles 1 y 2, gate multi-lenguaje, export, precedencia del budget y ciclo de vida.
-- [Casos reales de la metodología](./casos-reales.md) — incidentes verificados que motivaron las reglas; evidencia separada del proceso normativo.
-- [Upgrade de la plantilla](./plantilla-upgrade.md) — qué es infraestructura sobreescribible desde upstream vs. propiedad del proyecto; procedimiento manual de upgrade.
+- [Casos reales de la metodología](./casos-reales.md)
+- [Upgrade de la plantilla](./plantilla-upgrade.md)
 - [Rule contract](./rule-contract-spec.md) — vertiente que valida reglas de negocio como datos declarativos (no solo código); familias, golden set y frontera dato/lógica.
 - [Behavior contracts v1](./behavior-contract-spec.md) — propiedades ejecutables opcionales, evidencia estructurada y frontera explícita de garantía.
 - [Puente GAME Protocol](./game-data-bridge.md) — receta canónica para poner datos de juego (gameplay as data) bajo contratos KDD: toolchain vendoreado, perfil propio, oráculo sellado con lint/export/no-drift.
