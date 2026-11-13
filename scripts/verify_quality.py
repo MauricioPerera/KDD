@@ -741,7 +741,7 @@ def _checks(root, commit, policy, approved, run):
             _run_check(root, context, check, iteration)
 
 
-def approve(root, policy_path, reference):
+def approve(root, policy_path, reference, *, require_oracle_reviews=False):
     root = root.resolve(strict=True)
     actual = Path(git(root, 'rev-parse', '--show-toplevel').decode().strip()).resolve()
     if actual != root:
@@ -750,6 +750,8 @@ def approve(root, policy_path, reference):
     commit = approved_commit(root, reference)
     raw = git(root, 'show', commit + ':' + policy_path)
     policy = validate_policy(root, json.loads(raw, object_pairs_hook=unique_object))
+    if require_oracle_reviews and 'oracle_reviews' not in policy:
+        raise Rejected('ORACLE_REQUIRED: approved quality policy must declare oracle_reviews')
     helper = commit + ':scripts/process_tree.py'
     objects = _objects(root, [commit + ':' + name for name in policy['protected']] + [helper])
     approved = {name: objects[commit + ':' + name] for name in policy['protected']}
@@ -764,9 +766,11 @@ def main():
     parser.add_argument('--repo-root', default='.')
     parser.add_argument('--policy', required=True)
     parser.add_argument('--approved-ref', required=True)
+    parser.add_argument('--require-oracle-reviews', action='store_true')
     args = parser.parse_args()
     try:
-        approve(Path(args.repo_root), args.policy, args.approved_ref)
+        approve(Path(args.repo_root), args.policy, args.approved_ref,
+                require_oracle_reviews=args.require_oracle_reviews)
     except (ValueError, OSError, RuntimeError, subprocess.SubprocessError) as error:
         print('REJECT quality: ' + str(error), file=sys.stderr)
         return 1

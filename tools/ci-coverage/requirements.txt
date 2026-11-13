@@ -1,0 +1,5 @@
+# Coverage.py wheels for the CPython 3.11 Ubuntu/Windows CI matrix.
+coverage==7.13.5 \
+    --hash=sha256:ec10e2a42b41c923c2209b846126c6582db5e43a33157e9870ba9fb70dc7854b \
+    --hash=sha256:258354455f4e86e3e9d0d17571d522e13b4e1e19bf0f8596bcf9476d61e7d8a9 \
+    --hash=sha256:34b02417cf070e173989b3db962f7ed56d2f644307b2cf9d5a0f258e13084a61

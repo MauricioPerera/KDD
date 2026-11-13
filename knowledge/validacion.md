@@ -96,6 +96,18 @@ suma a `PASS`.
 
 Enforcement local opt-in de budgets Python: `python scripts/validate_budgets.py knowledge/contracts --repo-root . --contract <task>` mide el target de una tarea contra `cyclomatic_max`, `nesting_max`, `lines_max` y `params_max`. Exit 1 significa exceso. La ejecución global, sin `--contract`, es diagnóstica para revelar la deuda de budgets históricos sin convertirla silenciosamente en un gate de CI. Los targets no Python se omiten explícitamente hasta incorporar un medidor equivalente. Este paso no sustituye al gate CCDD multi-lenguaje; permite avanzar con una comprobación determinista aunque no esté disponible el servidor MCP.
 
+El CI nativo de KDD audita tambien las funciones Python nuevas y modificadas
+de objetivos con contrato. Usa los topes del commit base para contratos
+preexistentes y bloquea excesos nuevos o mayores. Cada medida identifica
+contrato, objetivo, funcion y metrica. Ver
+[presupuestos del diff](contracts/changed-python-budgets.md).
+
+En Ubuntu y Windows, la primera pasada nativa mide lineas y ramas Python de
+`scripts`, `src`, `site` y `tools/kdd-adoption`, incluidos los procesos
+aislados. El informe JSON por SO, SHA e intento conserva los denominadores
+y se publica como artefacto. La segunda pasada conserva la ejecucion normal.
+Ver [cobertura medida](contracts/ci-measured-coverage.md).
+
 Auditoria opt-in del diff de implementacion: `python scripts/validate_change_contract.py
 --contract knowledge/contracts/<task>.md --base-ref <SHA-aprobado>
 --head-ref <SHA-candidato>` lee el contrato desde el commit base y compara

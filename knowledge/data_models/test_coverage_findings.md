@@ -95,6 +95,11 @@ aplanado que `scripts/validate_test_coverage_findings.py` deriva de
 la familia `bounds` del rule engine sobre la calidad del texto de
 remediacion.
 
+El validador comprueba primero los campos requeridos del esquema. Un informe
+presente con findings ausente, null o de otro tipo devuelve exit 2. Un arreglo
+vacio explicito es valido. Las mediciones de lineas y ramas del CI se publican
+aparte, segun el [contrato de cobertura](../contracts/ci-measured-coverage.md).
+
 ## Politica activa (examples/rules/test-coverage-findings.rules.json)
 
 - Todo finding necesita `findingId`, `gapType`, `severity` validos.

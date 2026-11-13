@@ -15,8 +15,8 @@ codigo que nunca paso por un task contract y gaps de TIPO de cobertura
 Ver knowledge/data_models/test_coverage_findings.md para la frontera
 completa.
 
-NO revalida el JSON Schema completo. Este script solo aplana el
-findings.json sellado a la forma {findings: [...]} que consume el rule-set
+Valida la estructura del informe antes de aplanar el
+findings.json a la forma {findings: [...]} que consume el rule-set
 y corre el motor. Sin LLM, sin red, solo stdlib.
 
 Capa opcional (mismo patron que validate_security_findings.py /
@@ -57,7 +57,7 @@ def flatten(findings_doc: dict) -> dict:
     rule engine los trata como violaciones de 'required'/'bounds' segun
     corresponda."""
     flat = []
-    for finding in findings_doc.get("findings", []) or []:
+    for finding in findings_doc["findings"]:
         remediation = finding.get("remediation") or ""
         flat.append({
             "findingId": finding.get("findingId"),
@@ -66,6 +66,45 @@ def flatten(findings_doc: dict) -> dict:
             "remediationLength": len(remediation) if isinstance(remediation, str) else 0,
         })
     return {"findings": flat}
+
+
+_GAP_TYPES = {
+    "untested-critical-path", "no-error-case-coverage", "no-regression-test",
+    "flaky-test-untracked", "other",
+}
+_SEVERITIES = {"critical", "high", "medium", "low", "informational"}
+
+
+def schema_error(document):
+    """Check the data model before flattening it for the remediation policy."""
+    if not isinstance(document, dict):
+        return "expected a JSON object"
+    if document.get("documentType") != "kdd-test-coverage.findings":
+        return "unexpected documentType"
+    if document.get("schemaVersion") != "1.0":
+        return "schemaVersion must be 1.0"
+    if not isinstance(document.get("scanId"), str) or not document["scanId"]:
+        return "scanId must be a nonempty string"
+    if not isinstance(document.get("findings"), list):
+        return "findings must be an explicit array"
+    for index, item in enumerate(document["findings"]):
+        error = finding_error(item)
+        if error:
+            return f"findings[{index}]: {error}"
+    return None
+
+
+def finding_error(item):
+    if not isinstance(item, dict):
+        return "expected an object"
+    for field in ("findingId", "location", "remediation", "source", "gapType", "severity"):
+        if not isinstance(item.get(field), str) or not item[field]:
+            return field + " must be a nonempty string"
+    if item["gapType"] not in _GAP_TYPES or item["severity"] not in _SEVERITIES:
+        return "unknown gapType or severity"
+    if "criticalPath" in item and type(item["criticalPath"]) is not bool:
+        return "criticalPath must be a boolean"
+    return None
 
 
 def main(argv=None):
@@ -83,21 +122,17 @@ def main(argv=None):
     try:
         with open(findings_path, "r", encoding="utf-8") as fh:
             findings_doc = json.load(fh)
-    except json.JSONDecodeError as exc:
+    except (json.JSONDecodeError, UnicodeError, OSError) as exc:
         print(
             f"ERROR [PARSE_ERROR] {findings_path}: JSON invalido/corrupto -- "
             f"no se pudo parsear el artefacto sellado ({exc})",
             file=sys.stderr,
         )
         return 2
-    if findings_doc.get("documentType") != "kdd-test-coverage.findings":
-        print(
-            f"ERROR [DOCUMENT_TYPE] {findings_path}: documentType inesperado -- "
-            "no parece un artefacto sellado del dominio de cobertura de tests",
-            file=sys.stderr,
-        )
+    error = schema_error(findings_doc)
+    if error:
+        print(f"ERROR [COVERAGE_SCHEMA] {findings_path}: {error}", file=sys.stderr)
         return 2
-
     if not os.path.isfile(_RULES_PATH):
         print(f"ERROR [RULES_MISSING] rule-set no encontrado: {_RULES_PATH}", file=sys.stderr)
         return 2

@@ -367,27 +367,44 @@ _PRODUCT_CI_REPLACEMENTS = (
 """,
     ),
     (
-        """          import sys
-          policy = os.environ['KDD_QUALITY_POLICY']
+        """      quality_require_oracle_reviews:
+        type: boolean
+        default: false
 """,
-        """          import sys
-          import tempfile
-          policy = os.environ['KDD_QUALITY_POLICY']
+        """      quality_require_oracle_reviews:
+        type: boolean
+        default: true
 """,
     ),
     (
-        """              raise SystemExit(subprocess.call([sys.executable, 'scripts/verify_quality.py', '--policy', policy, '--approved-ref', approved]))
+        """      KDD_QUALITY_REQUIRE_ORACLE_REVIEWS: ${{ inputs.quality_require_oracle_reviews && 'true' || 'false' }}
 """,
-        """              # The approved runner is stdlib-only; apply it to the current checkout.
+        """      KDD_QUALITY_REQUIRE_ORACLE_REVIEWS: ${{ (toJSON(inputs.quality_require_oracle_reviews) == 'true' || toJSON(inputs.quality_require_oracle_reviews) == 'false') && toJSON(inputs.quality_require_oracle_reviews) || (vars.KDD_QUALITY_REQUIRE_ORACLE_REVIEWS == 'false' && 'false' || 'true') }}
+""",
+    ),
+    (
+        """              if strict:
+                  with tempfile.TemporaryDirectory(prefix='kdd-approved-quality-') as directory:
+""",
+        """              # Both strict and migration modes use the runner from the approved commit.
               with tempfile.TemporaryDirectory(prefix='kdd-approved-quality-') as directory:
-                  runner = Path(directory) / 'verify_quality.py'
+""",
+    ),
+    (
+        """                      runner = Path(directory) / 'verify_quality.py'
+                      if runner.resolve().is_relative_to(Path.cwd().resolve()):
+                          raise SystemExit('FAIL: the trusted runner must be outside the checkout')
+                      runner.write_bytes(subprocess.check_output([
+                          'git', '--no-replace-objects', 'show', approved + ':scripts/verify_quality.py']))
+                      raise SystemExit(subprocess.call([sys.executable, '-I', str(runner), *args]))
+              raise SystemExit(subprocess.call([sys.executable, 'scripts/verify_quality.py', *args]))
+""",
+        """                  runner = Path(directory) / 'verify_quality.py'
                   if runner.resolve().is_relative_to(Path.cwd().resolve()):
                       raise SystemExit('FAIL: the trusted runner must be outside the checkout')
                   runner.write_bytes(subprocess.check_output([
-                      'git', 'show', approved + ':scripts/verify_quality.py']))
-                  raise SystemExit(subprocess.call([
-                      sys.executable, str(runner), '--repo-root', '.',
-                      '--policy', policy, '--approved-ref', approved]))
+                      'git', '--no-replace-objects', 'show', approved + ':scripts/verify_quality.py']))
+                  raise SystemExit(subprocess.call([sys.executable, '-I', str(runner), *args]))
 """,
     ),
 )

@@ -194,6 +194,9 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contrato de CLI y calidad](./contracts/traceability-cli.md)
 
 - [Aprobacion integrada de calidad](quality-approval.md)
+- [Evidencia de oraculos en aprobaciones](contracts/quality-required-oracle-evidence.md)
+- [Presupuestos Python de funciones modificadas](contracts/changed-python-budgets.md)
+- [Cobertura de Python en CI](contracts/ci-measured-coverage.md)
 - [Objetivo de cierre operativo de KDD](operational-closure.md)
 - [Aprobaciones externas aisladas](approval-registry.md)
 - [Contrato del selector de referencias](contracts/approval-registry.md)
