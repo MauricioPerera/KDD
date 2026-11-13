@@ -175,14 +175,17 @@ def run_test_command(cmd, cwd, timeout, capture=False, *, trusted_bundle=None):
     return result
 
 
-def _run_item(item, repo_root, timeout, *, trusted_bundle=None):
+def _run_item(item, repo_root, timeout, *, trusted_bundle=None, record_ids=False):
     try:
         if 'test_timeout' in item:
             from oracle_execution import declared_timeout
             timeout = declared_timeout(item, timeout)
         if 'oracle_metadata' in item:
             from oracle_execution import execute_oracle
-            return execute_oracle(item['oracle_metadata'], repo_root, timeout)
+            options = {'record_ids': True} if record_ids else {}
+            return execute_oracle(item['oracle_metadata'], repo_root, timeout, **options)
+        if record_ids:
+            raise ValueError('Oracle receipts require a managed python-unittest contract')
         options = {'trusted_bundle': trusted_bundle} if trusted_bundle is not None else {}
         return run_test_command(item['test_command'], cwd=repo_root, timeout=timeout, capture=True, **options)
     except (ValueError, ImportError) as exc:
@@ -231,10 +234,13 @@ def _item_key(item, index, deduplicate):
     return item['test_command'], item.get('test_timeout')
 
 
-def run_all(contracts_dir, repo_root, timeout=600, deduplicate=False, workers=1, *, trusted_bundle=None, exclusive_commands=()):
+def run_all(contracts_dir, repo_root, timeout=600, deduplicate=False, workers=1, *,
+            trusted_bundle=None, exclusive_commands=(), record_ids=False):
     """Run every command with opt-in concurrency and per-call exact grouping."""
     if type(workers) is not int or not 1 <= workers <= 8:
         raise ValueError('workers must be an integer between 1 and 8')
+    if record_ids and deduplicate:
+        raise ValueError('Oracle receipts require independent execution of each contract')
     items = collect_contracts(contracts_dir)
     exclusive = _exclusive_commands(exclusive_commands, items)
     representatives = {}
@@ -247,7 +253,8 @@ def run_all(contracts_dir, repo_root, timeout=600, deduplicate=False, workers=1,
 
     def execute(index):
         started = time.perf_counter()
-        outcome = _run_item(items[index], repo_root, timeout, trusted_bundle=trusted_bundle)
+        options = {'record_ids': True} if record_ids else {}
+        outcome = _run_item(items[index], repo_root, timeout, trusted_bundle=trusted_bundle, **options)
         return outcome, time.perf_counter() - started
 
     exclusive_indices = {index for index in scheduled if items[index]['test_command'] in exclusive}
@@ -274,6 +281,8 @@ def run_all(contracts_dir, repo_root, timeout=600, deduplicate=False, workers=1,
             results[-1].update(executed_tests=ran['executed_tests'],
                                runner=item['oracle_metadata'].get('test_runner'),
                                runner_evidence=ran.get('evidence'))
+        if record_ids:
+            results[-1]['case_ids'] = ran.get('case_ids')
     return results
 
 
@@ -354,6 +363,40 @@ def _save_timings(argv, results):
         return False
 
 
+def _receipt_path(argv):
+    flag = '--oracle-receipt'
+    if flag not in argv:
+        return None
+    offset = argv.index(flag) + 1
+    if argv.count(flag) != 1 or offset >= len(argv) or argv[offset].startswith('--'):
+        raise ValueError('--oracle-receipt requires one output path')
+    return Path(argv[offset])
+
+
+def _write_receipt(path, results, repo_root):
+    root = Path(repo_root).resolve()
+    contracts = []
+    for item in results:
+        ids = item['case_ids']
+        if not ids or len(ids) != item['executed_tests'] or item['shared_from']:
+            raise ValueError('Incomplete oracle case IDs: ' + item['path'])
+        relative = Path(item['path']).resolve().relative_to(root).as_posix()
+        contracts.append({'path': relative, 'ids': ids})
+    with path.open('x', encoding='utf-8') as output:
+        json.dump({'schema_version': 1, 'contracts': contracts}, output, sort_keys=True)
+
+
+def _save_receipt(path, results, repo_root, status):
+    if path is None or status:
+        return 0
+    try:
+        _write_receipt(path, results, repo_root)
+    except (OSError, ValueError) as error:
+        print('FAIL: cannot write oracle receipt: ' + str(error))
+        return 1
+    return 0
+
+
 def main(argv):
     """Entry point CLI. Devuelve 0 si todos PASS, 1 si alguno FAIL o no hay."""
     from validation_runtime import prepare_runtime
@@ -387,6 +430,7 @@ def main(argv):
     started = time.perf_counter()
     try:
         exclusive = ()
+        receipt = _receipt_path(argv)
         if '--exclusive-commands-json' in argv:
             index = argv.index('--exclusive-commands-json')
             if index + 1 >= len(argv):
@@ -394,7 +438,7 @@ def main(argv):
             exclusive = parse_exclusive_commands(argv[index + 1])
         results = run_all(contracts_dir, repo_root, timeout=timeout,
                          deduplicate='--deduplicate' in argv, workers=workers,
-                         exclusive_commands=exclusive)
+                         exclusive_commands=exclusive, record_ids=receipt is not None)
     except ValueError as exc:
         print('FAIL: ' + str(exc))
         return 1
@@ -404,7 +448,8 @@ def main(argv):
     status = _print_results(results)
     print('Scheduling: workers={} wall_seconds={:.3f}'.format(
         workers, time.perf_counter() - started))
-    return max(status, int(not _save_timings(argv, results)))
+    return max(status, _save_receipt(receipt, results, repo_root, status),
+               int(not _save_timings(argv, results)))
 
 
 if __name__ == '__main__':

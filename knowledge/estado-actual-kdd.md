@@ -13,9 +13,21 @@ Actualmente dispone de una plantilla inicializable, validadores, una CLI de
 tareas y KDD-Board integrados con Git. El flujo se ha comprobado desde un
 proyecto vacío hasta su calidad de producto en CI.
 
-El complemento KDD for Codex 1.1.0 se distribuye por Git y ZIP. El piloto de adopción verificó un mismo SHA del validador en Codex, la terminal y GitHub Actions. Una demo posterior verificó calidad activa en Ubuntu y Windows con dos pasadas de sus cuatro comandos y 22 casos de slugs por sistema. [Instalación, release y evidencia](piloto-kdd-complemento.md)
+## Corte verificado del 11 de noviembre de 2026
 
-## Corte integrado del 8 de noviembre de 2026 en e9689aa
+`main` en `144168d` integra las cuatro correcciones de adopción del PR #182.
+Pasaron Ubuntu y Windows con 2.287 IDs en cada una de las dos pasadas, y Pages
+publicó el inventario de ese CI. [PR #182](https://github.com/MauricioPerera/KDD/pull/182) ·
+[CI de main](https://github.com/MauricioPerera/KDD/actions/runs/43085217500) ·
+[Despliegue de Pages](https://github.com/MauricioPerera/KDD/actions/runs/43091930833)
+
+KDD for Codex 1.1.0 está publicado. El candidato 1.2.0 del PR #183 pasó el CI
+completo y el piloto de actualización en un proyecto existente. El piloto
+confirmó que Codex, la terminal y GitHub Actions usaron el validador `144168d`
+con dos pasadas de los 22 casos de slugs y de los cuatro controles de calidad.
+La publicación de 1.2.0 sigue pendiente. [Instalación, evidencia y pendientes del complemento](piloto-kdd-complemento.md#actualización-verificada-de-110-a-120)
+
+## Corte histórico del 8 de noviembre de 2026 en e9689aa
 
 El corte verificado de `main` integra el PR #171 y conserva sus tres commits
 originales. El árbol selecciona el baseline aprobado

@@ -30,6 +30,45 @@ python scripts/adopt_project.py --repo-root CONSUMER --contracts-dir knowledge/c
 ```
 
 After the user accepts those three file additions, use the same command with
-`--apply`. From the consumer root, run `python .kdd/validate.py`. The project's
-lock selects the KDD scripts used by the terminal, this skill and its generated
-GitHub Actions workflow. Report the actual `KDD_PILOT` record and exit code.
+`--apply`. For an existing installation, use its current lock and the reviewed
+new SHA in the installer's update plan. Review legacy launcher and workflow
+changes separately before changing the pin.
+
+For a project with an approved adoption commit, run the same consumer entry point
+as the terminal and its GitHub Actions workflow. Use Python 3.11 from the
+consumer root and supply the reviewed quality reference through the environment
+when its policy requires one.
+
+```text
+python .kdd/validate.py --approved-ref CONSUMER_SHA
+```
+
+Compare the full `verified_kdd_sha` in `KDD_PILOT` with `.kdd/validator.lock`.
+Check the exit code, both `oracle_passes` and the per-contract
+`oracle_inventory` when using the launcher that supports case receipts. For a
+project using the historical profile, report the validation it actually ran.
+
+## Review a change in an adopted project
+
+Use the pilot from a trusted checkout with a compatible launcher and a
+reviewed validator pin identified by its full SHA. The pin provides the
+baseline reviewer and bound-method receipts. Review the managed file
+migration and register the approved consumer commit before running in CI.
+Inspect the base and candidate commits with that same pin.
+
+```text
+python -I .kdd/validate.py review --approved-ref ADOPTION_SHA --base-ref BASE_SHA --candidate-ref CANDIDATE_SHA
+```
+
+For a single editorial commit, add `--small-change` and read the diff and the
+project policy. Add `--editorial-only` when both confirm an editorial change.
+If the route is `lightweight`, record the reason, commit and verification.
+Any change to a guarantee follows the project's contracts and oracle review.
+
+Use the project's risk review protocol before asking for a new baseline. Give
+independent readers the exact candidate, diff and relevant sources. Cover
+simplicity, the oracle and feasibility. Record unavailable reviewers as pending.
+Pass the record to the command with `--review FILE`. Compare
+`verified_kdd_sha` with the lock and present the candidate to the responsible
+reviewer when `review_ready` is true. The human reviewer approves the baseline
+before implementation.

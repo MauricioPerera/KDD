@@ -78,12 +78,13 @@ def _invocation(metadata, root):
     return runner, names, files
 
 
-def _command(runner, names, root, temp, interpreter):
+def _command(runner, names, root, temp, interpreter, *, record_ids=False):
     scripts = Path(__file__).resolve().parent
     if runner == 'python-unittest':
         utf8 = ['-X', 'utf8'] if interpreter is not None else []
+        options = ['--record-ids'] if record_ids else []
         return [interpreter or sys.executable, '-I', '-B', *utf8, '-X', 'pycache_prefix=' + str(temp / 'cache'),
-                str(scripts / 'unittest_oracle_runner.py'), str(root), str(temp / 'result.json'), *names]
+                str(scripts / 'unittest_oracle_runner.py'), str(root), str(temp / 'result.json'), *options, *names]
     node = shutil.which('node')
     if not node:
         raise ValueError('Node runtime not found')
@@ -127,12 +128,32 @@ def _verified_count(evidence, files, root):
     return total
 
 
+def _verified_ids(evidence, files, root):
+    expected = {str((root / name).resolve()) for name in files}
+    recorded = evidence['files']
+    unexpected = sorted(recorded.keys() - expected)
+    if unexpected:
+        raise ValueError('Unexpected test case source: ' + ', '.join(unexpected))
+    case_ids = evidence.get('case_ids')
+    if not isinstance(case_ids, dict) or case_ids.keys() != expected:
+        raise ValueError('Missing or invalid oracle case IDs')
+    ids = []
+    for path, identities in case_ids.items():
+        if (not isinstance(identities, list) or len(identities) != recorded[path]['executed']
+                or any(not isinstance(value, str) or not value.strip() for value in identities)):
+            raise ValueError('Invalid oracle case IDs: ' + path)
+        ids.extend(identities)
+    if len(ids) != len(set(ids)):
+        raise ValueError('Duplicate oracle case IDs')
+    return sorted(ids)
+
+
 def _result():
     return {'exit_code': None, 'ok': False, 'error': None,
             'stdout': '', 'stderr': '', 'executed_tests': 0}
 
 
-def _execute(selection, root, timeout, run, result):
+def _execute(selection, root, timeout, run, result, *, record_ids=False):
     runner, names, files, interpreter = selection
     with tempfile.TemporaryDirectory(prefix='kdd-oracle-') as directory:
         temp = Path(directory)
@@ -140,7 +161,7 @@ def _execute(selection, root, timeout, run, result):
         env.pop('NODE_OPTIONS', None)
         if interpreter is not None:
             env['PYTHONUTF8'] = '1'
-        argv = _command(runner, names, root, temp, interpreter)
+        argv = _command(runner, names, root, temp, interpreter, record_ids=record_ids)
         result['instrumented_argv'] = argv
         completed = run(argv, cwd=root, env=env, capture_output=True, text=True,
                         encoding='utf-8', errors='replace', timeout=timeout)
@@ -149,6 +170,8 @@ def _execute(selection, root, timeout, run, result):
         if not completed.returncode:
             evidence = _evidence(runner, completed, temp)
             result['executed_tests'] = _verified_count(evidence, files, root)
+            if record_ids:
+                result['case_ids'] = _verified_ids(evidence, files, root)
             result.update(ok=True, evidence=evidence)
         elif runner == 'node-test' and len(files) == 1:
             counts = _failed_node_counts(completed.stdout, (root / files[0]).resolve())
@@ -157,14 +180,17 @@ def _execute(selection, root, timeout, run, result):
     return result
 
 
-def execute_oracle(metadata, repo_root, timeout=180):
+def execute_oracle(metadata, repo_root, timeout=180, *, record_ids=False):
     """Return fail-closed execution results and counts from managed runners."""
     result = _result()
     try:
         root = Path(repo_root).resolve(strict=True)
         runner, names, files = _invocation(metadata, root)
+        if record_ids and runner != 'python-unittest':
+            raise ValueError('Oracle receipts require python-unittest')
         result['runtime_version'] = sys.version.split()[0] if runner == 'python-unittest' else None
-        return _execute((runner, names, files, None), root, timeout, subprocess.run, result)
+        return _execute((runner, names, files, None), root, timeout, subprocess.run, result,
+                        record_ids=record_ids)
     except subprocess.TimeoutExpired:
         result['error'] = 'timeout'
     except (ValueError, OSError, KeyError, TypeError) as exc:
