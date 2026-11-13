@@ -28,6 +28,22 @@ retroactivamente como revisadas con este protocolo.
 5. El verificador lee la política desde Git, compara los archivos protegidos, calcula el perímetro real y ejecuta todos los comandos dos veces. Recomprueba archivos y perímetro al terminar.
 6. Los cambios de oráculo necesitan otra revisión y baseline explícito. No se resellan para encubrir un fallo. Conservar la evidencia anterior permite evaluar si aumentó la fuerza del oráculo.
 
+### Nuevas aprobaciones
+
+El workflow de un proyecto recien inicializado exige oraculos revisados. Para
+una aprobacion manual usar el mismo ejecutor aprobado y agregar
+`--require-oracle-reviews` a la CLI. La politica incluye `oracle_reviews` con
+oraculos, contramuestras y casos esperados. El ejecutor rechaza la ausencia del
+inventario antes de los comandos libres y conserva los recibos de las dos
+pasadas.
+
+El workflow reutilizable permite solicitar esta garantia con
+`quality_require_oracle_reviews: true`. Para migrar temporalmente un proyecto
+inicializado con una politica anterior, el modo nativo admite la variable
+`KDD_QUALITY_REQUIRE_ORACLE_REVIEWS=false` y el reusable admite el valor
+`false` explicito. El modo compatible ejecuta los checks historicos y registra
+el limite de la evidencia. Ver [contrato](contracts/quality-required-oracle-evidence.md).
+
 ## Política
 
 - `protected`: oráculos, contratos, dependencias de pruebas y configuración que deben conservarse. Incluir helpers importados por las pruebas y cualquier archivo cuya edición permita falsearlas. La política se protege automáticamente.

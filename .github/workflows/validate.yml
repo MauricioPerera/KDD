@@ -97,6 +97,9 @@ on:
       quality_policy_path:
         type: string
         default: 'quality.json'
+      quality_require_oracle_reviews:
+        type: boolean
+        default: false
       quality_approved_ref:
         type: string
         default: ''
@@ -164,6 +167,7 @@ jobs:
       KDD_SRC_DIR_SECRETS: ${{ inputs.src_dir_secrets || 'src' }}
       KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
       KDD_REQUIRED_EVIDENCE: ${{ inputs.required_evidence || '' }}
+      KDD_QUALITY_REQUIRE_ORACLE_REVIEWS: ${{ inputs.quality_require_oracle_reviews && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -185,6 +189,8 @@ jobs:
           sys.path.insert(0, str(Path('scripts').resolve()))
           from approval_registry import ApprovalError, resolve
           required = {item.strip() for item in os.environ['KDD_REQUIRED_EVIDENCE'].split(',')}
+          if os.environ.get('KDD_QUALITY_REQUIRE_ORACLE_REVIEWS') == 'true':
+              required.add('quality')
           try:
               selected = resolve(
                   '.', 'HEAD', os.environ['KDD_APPROVAL_REGISTRY'],
@@ -409,6 +415,25 @@ jobs:
       - name: Execute normative documentation examples
         run: python scripts/validate_documentation_examples.py
 
+      - name: Audit changed Python budgets
+        if: ${{ !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: python
+        env:
+          KDD_BUDGET_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+          KDD_BUDGET_HEAD_REF: ${{ github.sha }}
+        run: |
+          import os
+          import subprocess
+          import sys
+          expected = os.environ['KDD_BUDGET_HEAD_REF']
+          actual = subprocess.check_output(['git', 'rev-parse', '--verify', 'HEAD']).decode('ascii').strip()
+          if actual != expected:
+              raise SystemExit('BUDGET_REF: checkout does not match the CI commit')
+          raise SystemExit(subprocess.call([
+              sys.executable, 'scripts/validate_changed_budgets.py',
+              os.environ['KDD_CONTRACTS_DIR'], '--repo-root', '.',
+              '--base-ref', os.environ['KDD_BUDGET_BASE_REF'], '--head-ref', expected]))
+
       - name: Audit implementation diff against approved contract (when configured)
         shell: bash
         env:
@@ -615,12 +640,28 @@ jobs:
         shell: bash
         run: python scripts/scan_secrets.py "$KDD_SRC_DIR_SECRETS"
 
+      - name: Prepare Python suite coverage
+        if: ${{ !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: bash
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r tools/ci-coverage/requirements.txt
+          python -m venv "$RUNNER_TEMP/kdd-coverage-probe"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            probe_python="$RUNNER_TEMP/kdd-coverage-probe/Scripts/python.exe"
+          else
+            probe_python="$RUNNER_TEMP/kdd-coverage-probe/bin/python"
+          fi
+          "$probe_python" -m pip install --require-hashes --only-binary=:all: -r tools/ci-coverage/requirements.txt
+          "$probe_python" -I tests/coverage_isolated_probe.py
+          python scripts/ci_coverage.py prepare --repo-root . --output "$RUNNER_TEMP/kdd-python-coverage-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+
       # The suite runs twice on purpose (identical command): the second run
       # detects flaky tests / verifies determinism. See specs/CONTRACT-11-ci-windows-suite2x.md.
       - name: Run unit tests (1/2)
         shell: bash
         env:
           KDD_SKIP_INIT_POST_APPLY_SUITE: '1'
+          COVERAGE_PROCESS_START: ${{ (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD') && format('{0}/kdd-python-coverage-{1}-{2}/coverage.ini', runner.temp, github.run_id, github.run_attempt) || '' }}
         run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" --report-dir "$RUNNER_TEMP/kdd-suite-reports"
 
       - name: Run unit tests (2/2)
@@ -628,6 +669,23 @@ jobs:
         env:
           KDD_SKIP_INIT_POST_APPLY_SUITE: '1'
         run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" --report-dir "$RUNNER_TEMP/kdd-suite-reports"
+
+      - name: Report Python suite coverage
+        if: ${{ !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: bash
+        run: |
+          test "$(git rev-parse --verify HEAD)" = "$GITHUB_SHA"
+          python scripts/ci_coverage.py report --repo-root . --output "$RUNNER_TEMP/kdd-python-coverage-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" --head-sha "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT" --platform "${{ matrix.os }}"
+
+      - name: Upload Python suite coverage
+        if: ${{ !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kdd-coverage-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.os }}
+          path: ${{ runner.temp }}/kdd-python-coverage-${{ github.run_id }}-${{ github.run_attempt }}/coverage.json
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 7
 
       - name: Export Pages CI inventory
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
@@ -655,12 +713,25 @@ jobs:
           import re
           import subprocess
           import sys
+          import tempfile
           policy = os.environ['KDD_QUALITY_POLICY']
           approved = os.environ['KDD_QUALITY_APPROVED_REF']
-          if Path(policy).exists() or approved:
+          strict = os.environ.get('KDD_QUALITY_REQUIRE_ORACLE_REVIEWS') == 'true'
+          if strict or Path(policy).exists() or approved:
               if not re.fullmatch(r'[0-9a-fA-F]{40}', approved):
                   raise SystemExit('FAIL: project policy requires an explicitly approved reference (full commit SHA)')
-              raise SystemExit(subprocess.call([sys.executable, 'scripts/verify_quality.py', '--policy', policy, '--approved-ref', approved]))
+              args = ['--repo-root', '.', '--policy', policy, '--approved-ref', approved]
+              if strict:
+                  args.append('--require-oracle-reviews')
+              if strict:
+                  with tempfile.TemporaryDirectory(prefix='kdd-approved-quality-') as directory:
+                      runner = Path(directory) / 'verify_quality.py'
+                      if runner.resolve().is_relative_to(Path.cwd().resolve()):
+                          raise SystemExit('FAIL: the trusted runner must be outside the checkout')
+                      runner.write_bytes(subprocess.check_output([
+                          'git', '--no-replace-objects', 'show', approved + ':scripts/verify_quality.py']))
+                      raise SystemExit(subprocess.call([sys.executable, '-I', str(runner), *args]))
+              raise SystemExit(subprocess.call([sys.executable, 'scripts/verify_quality.py', *args]))
           print('SKIP: no project quality policy configured; template validation does not approve a project')
 
       - name: Verify required contract acceptance
