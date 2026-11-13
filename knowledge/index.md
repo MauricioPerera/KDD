@@ -195,6 +195,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 - [Aprobacion integrada de calidad](quality-approval.md)
 - [Evidencia de oraculos en aprobaciones](contracts/quality-required-oracle-evidence.md)
+- [Perimetro Git en la aprobacion de calidad](contracts/quality-approval-perimeter.md)
 - [Presupuestos Python de funciones modificadas](contracts/changed-python-budgets.md)
 - [Cobertura de Python en CI](contracts/ci-measured-coverage.md)
 - [Objetivo de cierre operativo de KDD](operational-closure.md)
