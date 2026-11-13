@@ -4,6 +4,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 ## Referencia
 - [Revision proporcional antes del baseline](./baseline-risk-review.md)
+- [Delegación efímera con Goldfish](./delegacion-efimera-goldfish.md)
 - [Contrato de revision proporcional](./contracts/baseline-risk-review.md)
 - [Entrada previa al baseline](./contracts/baseline-review-entrypoint.md)
 - [Flujo ligero para cambios pequenos](./odd-lightweight.md)

@@ -43,6 +43,10 @@ configurado con el mismo system prompt. Con `DEFINITION.md` cerrado, recién ah�
 
 Para cambios editoriales acotados, consultar el [flujo ligero](./odd-lightweight.md).
 
+Para tareas asignadas a un agente efímero, seguir el [flujo de delegación con
+Goldfish](./delegacion-efimera-goldfish.md) al preparar la spec, decidir la revisión
+y verificar la entrega. La política del proyecto fija las aprobaciones aplicables.
+
 En proyectos que adopten el [protocolo de sprints](./sprints.md), seleccionar el resultado
 y el backlog del sprint antes de PLAN. El sprint referencia entregas de los contratos;
 no reemplaza sus criterios de aceptación. Su admisión y presupuesto son controles
