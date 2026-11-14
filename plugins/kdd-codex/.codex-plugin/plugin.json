@@ -12,7 +12,7 @@
   "license": "MIT",
   "interface": {
     "displayName": "KDD for Codex",
-    "shortDescription": "Plan, build, and verify work with deterministic KDD contracts.",
+    "shortDescription": "Contract-driven development",
     "longDescription": "Guides developers through Knowledge-Driven Development with scoped contracts, deterministic validation, and evidence-led completion. This version is skill-only and does not send data or connect to external services.",
     "developerName": "Mauricio Perera",
     "category": "Productivity",
@@ -30,6 +30,7 @@
       "Prepare this task using KDD contracts and verification.",
       "Create a KDD contract and a frozen regression test for this change.",
       "Audit this implementation against its KDD evidence."
-    ]
+    ],
+    "supportURL": "https://mauricioperera.github.io/KDD/support.html"
   }
 }

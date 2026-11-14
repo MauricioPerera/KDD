@@ -1,0 +1,43 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "kdd-codex",
+  "version": "1.2.0",
+  "description": "A deterministic KDD workflow skill for planning, implementation, and verification.",
+  "author": {
+    "name": "Mauricio Perera",
+    "url": "https://github.com/MauricioPerera/KDD"
+  },
+  "homepage": "https://mauricioperera.github.io/KDD/",
+  "repository": "https://github.com/MauricioPerera/KDD",
+  "license": "MIT",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "KDD for Codex",
+        "shortDescription": "Contract-driven development",
+        "longDescription": "Guides developers through Knowledge-Driven Development with scoped contracts, deterministic validation, and evidence-led completion. This version is skill-only and does not send data or connect to external services.",
+        "developerName": "Mauricio Perera",
+        "category": "Productivity",
+        "capabilities": [
+          "Interactive"
+        ],
+        "websiteURL": "https://mauricioperera.github.io/KDD/",
+        "privacyPolicyURL": "https://github.com/MauricioPerera/KDD/blob/main/plugins/kdd-codex/PRIVACY.md",
+        "termsOfServiceURL": "https://github.com/MauricioPerera/KDD/blob/main/plugins/kdd-codex/TERMS.md",
+        "brandColor": "#B58D3F",
+        "composerIcon": "./assets/kdd-logo.png",
+        "logo": "./assets/kdd-logo.png",
+        "logoDark": "./assets/kdd-logo.png",
+        "defaultPrompt": [
+          "Prepare this task using KDD contracts and verification.",
+          "Create a KDD contract and a frozen regression test for this change.",
+          "Audit this implementation against its KDD evidence."
+        ],
+        "supportURL": "https://mauricioperera.github.io/KDD/support.html"
+      },
+      "publication": {
+        "release_notes": "Documents the upgrade for existing Python projects, including the approved validator pin, quality checks, and rollback. Adds public support information."
+      }
+    }
+  }
+}
