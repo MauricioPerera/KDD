@@ -146,9 +146,11 @@ resultado:
 3. El CI del commit de cierre comprueba el run anterior mediante la API de
    GitHub y rechaza cualquier cambio fuera de esos artefactos de cierre desde
    el SHA validado. Un run fallido, en curso, ajeno o del propio commit no
-   puede cerrar el contrato. El verificador remoto inspecciona los manifiestos
-   agregados o modificados desde el commit base de este PR o push; los cierres
-   previos siguen sujetos al validador estructural local. El workflow
+   puede cerrar el contrato. Al publicar o cambiar un reporte o manifiesto,
+   se compara el [bloque de criterios](contracts/completion-tested-criteria.md)
+   con el que existia en el SHA citado. Se pueden marcar las casillas sin
+   reescribir los criterios. Editar solo el spec de un cierre con manifiesto
+   vuelve a comparar el bloque, sin otra consulta remota. El workflow
    reutilizable acepta `completion_workflow_path` y
    `completion_workflow_name` para identificar el workflow del proyecto. El
    workflow llamador debe conceder `actions: read` al token de GitHub.
