@@ -783,20 +783,32 @@ def _require_valid_contract(root, name):
         raise TaskError('TASK_CONTRACT: ' + '; '.join(map(str, findings)))
 
 
-def _oracle_artifacts(root, revision, paths):
-    names = tuple(dict.fromkeys(paths))
-    if not all(_cacheable_git_path(name) for name in names):
-        raise TaskError('TASK_PATH: invalid oracle inventory path')
+def _oracle_entries(root, revision, names):
     listing = git(root, '--no-replace-objects', 'ls-tree', '-z', revision, '--', *names)
     entries = _regular_paths(listing)
     if set(entries) != set(names):
         missing = sorted(set(names) - set(entries))
         raise TaskError('TASK_PATH: missing regular Git file: ' + ', '.join(missing))
-    records = _raw_objects(root, sorted(set(entries.values())), no_replace=True)
+    return entries
+
+
+def _oracle_artifact_batch(root, revisions, paths):
+    names = tuple(dict.fromkeys(paths))
+    if not all(_cacheable_git_path(name) for name in names):
+        raise TaskError('TASK_PATH: invalid oracle inventory path')
+    entries = {revision: _oracle_entries(root, revision, names)
+               for revision in dict.fromkeys(revisions)}
+    oids = sorted({oid for listing in entries.values() for oid in listing.values()})
+    records = _raw_objects(root, oids, no_replace=True)
     for oid, record in records.items():
         if record is None or record[:2] != (b'blob', oid):
             raise TaskError('TASK_GIT: invalid oracle blob: ' + oid)
-    return {name: records[oid][2] for name, oid in entries.items()}
+    return {revision: {name: records[oid][2] for name, oid in listing.items()}
+            for revision, listing in entries.items()}
+
+
+def _oracle_artifacts(root, revision, paths):
+    return _oracle_artifact_batch(root, (revision,), paths)[revision]
 
 
 def _oracle_binary_paths(root, revision, files):
@@ -825,12 +837,12 @@ def _checkout_oracles(root, expected):
 def _check_inventory(root, data, metadata, revision):
     files = proof.inventory(metadata)
     contract, approved = data['contract'], data['approved_ref']
-    expected = _oracle_artifacts(root, approved, (contract, *files))
+    artifacts = _oracle_artifact_batch(root, (approved, revision), (contract, *files))
+    expected = artifacts[approved]
     if proof.normalized(expected[contract].decode('utf-8')) != blob(root, approved, contract):
         raise TaskError('TASK_APPROVAL: contract differs from approved object: ' + contract)
     binary = _oracle_binary_paths(root, approved, files)
-    actual = expected if revision == approved else _oracle_artifacts(root, revision, expected)
-    different = _different_oracle(actual, expected, binary)
+    different = _different_oracle(artifacts[revision], expected, binary)
     if different:
         raise TaskError('TASK_APPROVAL: inventory differs from approved reference: ' + different)
     return expected, binary

@@ -47,6 +47,10 @@ define el perfil que se medira en el siguiente candidato.
   los datos existentes del runtime revisado, sin inferir el tiempo de init
   del paso que ejecuta todos los contratos ni de stdout del producto.
 
+## Seguimiento del PR 186
+
+- [Lectura agrupada de inventarios](contracts/task-oracle-inventory-batch.md).
+- [Prioridad de los modulos rezagados](contracts/postinit-multi-oracle-priority.md).
 ## Verificacion y limites
 
 Conservar los metodos y aserciones anteriores, sus IDs y los SKIP aplicables.
