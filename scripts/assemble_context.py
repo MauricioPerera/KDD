@@ -625,6 +625,8 @@ def _finish_sources(state):
 def _apply_regex(state, config):
     patterns = config.get('patterns', [])
     hit = _regex_deny(state['context'], patterns) if patterns else None
+    if hit is None and patterns:
+        hit = _regex_deny(state['task'], patterns)
     if hit is not None:
         _finding(state, 'regex_deny: patron matcheado: {!r}'.format(hit),
                  config.get('on_fail', 'abort') == 'abort')
