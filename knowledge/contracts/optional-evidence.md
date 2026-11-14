@@ -17,7 +17,7 @@ tests: 'tests/test_optional_evidence.py'
 tests_sha256: '3d08ae6316c800b58919c914a0650367d50682b94a82c0ea20479ad9c25d8cca'
 touch_only: ['scripts/optional_evidence.py']
 deps_allowed: ['stdlib']
-forbids: ['network', 'subprocess', 'llm']
+forbids: ['network', 'llm']
 ---
 
 ## Intent
@@ -50,10 +50,13 @@ shell. `summary` escribe tambien en `GITHUB_STEP_SUMMARY` cuando existe.
   opcional es SKIP y requerida es FAIL, incluso con outcome success; JSON
   invalido es FAIL. Ver [procedencia](bootstrap-scan-provenance.md).
   Para quality, significa el archivo de politica declarado.
+  Para compliance, la [procedencia revisada](compliance-scan-provenance.md)
+  amplía esta regla antes de declarar un PASS y en el precheck requerido.
 - `check`: capa requerida sin archivo -> FAIL; opcional ausente -> SKIP;
   presente -> PRESENT (todavia no significa que el validador paso).
 - `summary`: archivo presente y validador success -> PASS; ausente y no
   requerido -> SKIP; requerido ausente o validador sin success -> FAIL.
+  Las reglas de procedencia de compliance se aplican a ambos estados.
 - Un nombre de capa desconocido o requerido fuera de `--layers` falla.
 - El script no ejecuta validadores ni interpreta rutas como comandos.
 
@@ -76,6 +79,8 @@ obligatoria ausente, success/failure/skipped, quality y nombres invalidos.
 
 ## Constraints
 
-- Python stdlib, sin red ni procesos externos.
+- Python stdlib, sin red. Los únicos procesos externos permitidos son las
+  lecturas Git acotadas de procedencia de compliance, dentro de este script
+  protegido por el guard existente.
 - PARAR y reportar si el workflow no puede distinguir el outcome de una
   capa; no convertir un paso no ejecutado con evidencia presente en PASS.

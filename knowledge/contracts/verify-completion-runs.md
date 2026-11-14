@@ -16,7 +16,7 @@ budget:
 tests: 'tests/test_verify_completion_runs.py'
 tests_sha256: '764cb956b203af952aa184697e230b2ee31145bca2c4cd3e963a71a9b762526d'
 touch_only: ['scripts/verify_completion_runs.py']
-deps_allowed: ['stdlib']
+deps_allowed: ['stdlib', 'validate_completion']
 forbids: ['llm']
 ---
 
@@ -43,8 +43,9 @@ CLI: `python scripts/verify_completion_runs.py --repository OWNER/REPO
 --current-run-id ID --candidate-sha SHA [--repo-root DIR]
 [--workflow-path .github/workflows/validate.yml]`. Lee `GITHUB_TOKEN` del
 entorno; no recibe ni imprime el token. Procesa los manifiestos de evidencia
-de cierres nuevos y falla cerrado ante errores de Git, API o JSON. Sin cierres
-nuevos termina en PASS sin llamadas remotas.
+de cierres publicados o actualizados y falla cerrado ante errores de Git, API
+o JSON. Sin cambios de reporte o manifiesto, no hace llamadas remotas. Una
+edición del spec de un cierre v1 todavía debe conservar sus criterios.
 
 ## Invariants
 
@@ -61,6 +62,8 @@ nuevos termina en PASS sin llamadas remotas.
   candidato solo puede contener archivos de cierre (`specs/CONTRACT-*.md`,
   `docs/reports/CONTRACT-*-REPORT.md`, `docs/reports/CONTRACT-*-EVIDENCE.json`,
   `CHANGELOG.md`). Un cambio posterior de codigo u oraculos exige otro run.
+  El [bloque de criterios](completion-tested-criteria.md) queda vinculado al
+  contenido del spec en el SHA que se cita.
 - El token necesita solo `actions: read`; no se ejecuta codigo del run citado.
 
 ## Examples
