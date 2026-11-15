@@ -33,10 +33,10 @@ class Rejected(ValueError):
     """A precondition or a validation stage failed."""
 
 
-def git(root, env, *args, binary=False):
+def git(root, env, *args, binary=False, data=None):
     result = subprocess.run(
         ["git", "--no-replace-objects", "-C", str(root), *args],
-        env=env, capture_output=True, timeout=120, check=False,
+        env=env, input=data, capture_output=True, timeout=120, check=False,
     )
     if result.returncode:
         detail = result.stderr.decode("utf-8", "replace").strip()
@@ -169,8 +169,8 @@ def selected_contracts():
     return files
 
 
-def consumer_git(*args, binary=False):
-    return git(ROOT, git_environment(), "--literal-pathspecs", *args, binary=binary)
+def consumer_git(*args, binary=False, data=None):
+    return git(ROOT, git_environment(), "--literal-pathspecs", *args, binary=binary, data=data)
 
 
 def tree_entries(reference, *paths):
@@ -195,16 +195,41 @@ def index_entries(paths):
     return entries
 
 
+def _approved_blob_contents(ids):
+    if not ids:
+        return {}
+    raw = consumer_git("cat-file", "--batch", binary=True, data=b"\n".join(ids) + b"\n")
+    contents, offset = {}, 0
+    for oid in ids:
+        boundary = raw.find(b"\n", offset)
+        fields = raw[offset:boundary].split() if boundary >= 0 else []
+        if len(fields) != 3 or fields[:2] != [oid, b"blob"] or not fields[2].isdigit():
+            raise Rejected(f"Missing or invalid approved blob: {oid.decode('ascii')}")
+        start = boundary + 1
+        end = start + int(fields[2])
+        if raw[end:end + 1] != b"\n":
+            raise Rejected(f"Truncated approved blob: {oid.decode('ascii')}")
+        contents[oid] = raw[start:end]
+        offset = end + 1
+    if offset != len(raw):
+        raise Rejected("Unexpected approved Git blob output")
+    return contents
+
+
 def check_approved_paths(reference, paths):
     approved = tree_entries(reference, *paths)
     committed = tree_entries("HEAD", *paths)
     index = index_entries(paths)
-    contents = {}
+    ids = {}
     for path in paths:
         entry = approved.get(path)
         if not entry or entry[0] not in REGULAR or entry != committed.get(path) or entry != index.get(path):
             raise Rejected(f"{path} must match its regular file in the approved reference")
-        raw = consumer_git("cat-file", "blob", entry[1].decode("ascii"), binary=True)
+        ids[path] = entry[1]
+    blobs = _approved_blob_contents(sorted(set(ids.values())))
+    contents = {}
+    for path, oid in ids.items():
+        raw = blobs[oid]
         if local_path(path).read_bytes().replace(b"\r\n", b"\n") != raw.replace(b"\r\n", b"\n"):
             raise Rejected(f"{path} differs from the approved reference in the worktree")
         contents[path] = raw
