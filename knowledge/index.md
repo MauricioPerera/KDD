@@ -5,6 +5,9 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 ## Referencia
 - [Revision proporcional antes del baseline](./baseline-risk-review.md)
 - [Delegación efímera con Goldfish](./delegacion-efimera-goldfish.md)
+- [Vigencia de oráculos](./contracts/traceability-oracle-freshness.md)
+- [Criterios de cierre en CI](./contracts/completion-tested-criteria.md)
+- [Procedencia de licencias](./contracts/compliance-scan-provenance.md)
 - [Contrato de revision proporcional](./contracts/baseline-risk-review.md)
 - [Entrada previa al baseline](./contracts/baseline-review-entrypoint.md)
 - [Flujo ligero para cambios pequenos](./odd-lightweight.md)
@@ -29,10 +32,10 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Tareas con Git](./git-tasks.md) — CLI local, nodos Task y estados registrados por commits en main.
 - [Perfiles de adopción KDD](./adoption-profiles.md) — perfiles minimal, standard, strict y acceptance para incorporar controles progresivamente.
 - [Sprints orientados a resultados](./sprints.md) — protocolo piloto opt-in para seleccionar backlog, admitir tareas y medir consumo por resultado aceptado.
-- [Por que KDD](./por-que-kdd.md) — posicionamiento honesto frente a Spec Kit, BMAD-METHOD y un AGENTS.md solo: que verifica distinto KDD, y en que casos no conviene.
-- [Quickstart](./quickstart.md) — tutorial paso a paso y ejecutable: de clonar la plantilla a tu primer task contract propio en verde.
-- [Glosario](./glosario.md) — indice unico de los ~20 terminos propios de OKF+CCDD, con link al nodo normativo de cada uno.
-- [Guia humana de supervision](./supervision-humana.md) — checklist para quien revisa un PR producido con KDD sin haber leido todo el proceso interno.
+- [Por que KDD](./por-que-kdd.md) — comparacion con Spec Kit, BMAD-METHOD y AGENTS.md.
+- [Quickstart](./quickstart.md) — clonar la plantilla y validar el primer contrato.
+- [Glosario](./glosario.md) — terminos de OKF y CCDD.
+- [Guia humana de supervision](./supervision-humana.md) — checklist para revisar un PR.
 - [MCP server propio](./mcp-server.md) — como instalar y registrar los gates de KDD como tools MCP (opt-in, no Nivel 1).
 - [Especificación OKF](./OKF-SPEC.md) — spec normativa de nodos OKF.
 - [Metodología de ejecución por contratos](./metodologia-ejecucion.md)
@@ -42,7 +45,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Rule contract](./rule-contract-spec.md) — vertiente que valida reglas de negocio como datos declarativos (no solo código); familias, golden set y frontera dato/lógica.
 - [Behavior contracts v1](./behavior-contract-spec.md) — propiedades ejecutables opcionales, evidencia estructurada y frontera explícita de garantía.
 - [Puente GAME Protocol](./game-data-bridge.md) — receta canónica para poner datos de juego (gameplay as data) bajo contratos KDD: toolchain vendoreado, perfil propio, oráculo sellado con lint/export/no-drift.
-- [Patrón de estructura para paneles admin](./patron-panel-admin.md) — convención de sidebar por entidad, listados sin ID crudo y rutas separadas para auth/recuperación/verificación, contra la tendencia del LLM a apilar todo en una vista. Sin gate propio (no es un dominio de Capa 3): es referencia a aplicar y verificar a mano.
+- [Patrón de estructura para paneles admin](./patron-panel-admin.md) — navegacion por entidad y rutas de autenticacion, con revision manual.
 - [Diagram contract](./diagram-contract-spec.md) — convención para referenciar diagramas Mermaid verificables desde un concept doc OKF; formato del `.diagram-contract.json`; alcance (solo flowchart) y relación con el proyecto hermano `mermaid-gate`.
 - [Mermaid como DSL: tradeoffs](./mermaid-dsl-tradeoffs.md) — por qué Mermaid generado por IA es mal fit como DSL de una plataforma de automatización (sintaxis frágil, sin semántica nativa, sin round-trip), y por qué esas mismas propiedades invertidas son justo las tres que KDD exige a todo artefacto (diffable, escribible por agente sin GUI, verificable por máquina).
 

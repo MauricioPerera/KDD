@@ -47,8 +47,10 @@ reescribe retroactivamente para acomodar requisitos nuevos.
 
 El contrato y el oraculo conservan sus comprobaciones canonicas de aprobacion.
 Una evidencia done conserva su significado historico. Solo se muestra vigente
-para el alcance observado si contrato, target y oraculo actuales siguen siendo
-iguales a sus blobs probados, normalizando LF como el coordinador existente.
+si el contrato y el target siguen coincidiendo con sus blobs probados. Si el
+contrato declara `oracle_files`, cada archivo del inventario debe seguir siendo
+un blob regular con los mismos bytes Git. La [consulta de vigencia](contracts/traceability-oracle-freshness.md)
+conserva la comparacion con LF normalizado para contratos legacy de un archivo.
 
 ## Diario y evidencia
 
