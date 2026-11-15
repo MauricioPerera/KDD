@@ -53,6 +53,26 @@ reporte real de la pasada post-init que ya existe, sin agregar otra ejecucion.
 Primero se revisa el nuevo baseline del fixture; los tiempos son diagnosticos y
 no permiten declarar el objetivo de 480 s sin las tres muestras completas.
 
+## Prioridades tras los dos timeouts del PR #194
+
+Los intentos 2 y 3 del run 43653208864 agotaron 600 s en el comando
+`init-project` de Windows. Su salida no conservó el reporte por módulo
+al interrumpirse. Comparamos los 511,623 s del post-init de main
+(run 43556589559) con los 370,956 s del candidato `6c2606d` en Windows
+local. Se asignó a cada módulo el mayor de los dos costes observados,
+escalando la muestra local por la razón 511,623 / 370,956.
+
+Según el [contrato de prioridades](contracts/postinit-goldfish-priorities.md),
+los 17 módulos omitidos que superan 30 s se insertan entre trabajos de
+coste comparable. Se preserva el orden relativo de las 199 prioridades
+anteriores. Los seis más costosos comienzan en las seis primeras
+posiciones. Con diez procesos, la simulación pasa de 572,29 a 547,63 s en
+el perfil conservador y de 367,77 a 347,32 s con las duraciones locales.
+Estos valores son simulaciones y el resultado de CI se mide por separado.
+El [agrupamiento de lecturas de licencias](contracts/compliance-scan-git-batches.md)
+reduce arranques de Git dentro de un módulo sin alterar el orden de
+las fases que verifican su procedencia.
+
 ## Revision y aceptacion
 
 La [politica de calidad](quality-approval.md) exige revisar contratos y oraculos

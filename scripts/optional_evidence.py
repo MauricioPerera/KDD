@@ -26,6 +26,8 @@ LAYERS = {
 _SCAN_KEYS = {'schema_version', 'source_ref', 'tool', 'inputs', 'findings_sha256'}
 _SHA256 = re.compile(r'[0-9a-f]{64}')
 _UNSAFE_PATH = re.compile(r'[\\:\x00-\x1f*?\[\]<>|\"]')
+_SCAN_ARG_BYTES = 4096
+_SCAN_BLOB_BATCH = 64
 
 
 def _scan_path(path):
@@ -49,10 +51,10 @@ def _regular_scan_file(root, name):
     return local.read_bytes()
 
 
-def _git_scan(root, *args):
+def _git_scan(root, *args, data=None):
     env = dict(os.environ, GIT_NO_LAZY_FETCH='1', GIT_TERMINAL_PROMPT='0')
     result = subprocess.run(['git', '--no-replace-objects', '--literal-pathspecs',
-                             '-C', str(root), *args], env=env, capture_output=True, timeout=30)
+                             '-C', str(root), *args], input=data, env=env, capture_output=True, timeout=30)
     if result.returncode:
         raise ValueError('cannot verify Git scan provenance: git ' + args[0])
     return result.stdout
@@ -66,14 +68,78 @@ def _scan_commit(root, ref, width):
     return ref
 
 
-def _scan_blob(root, commit, name):
-    listing = _git_scan(root, 'ls-tree', '-z', commit, '--', name)
-    header, _, path = listing.partition(b'\t')
-    fields = header.split()
-    if (len(fields) != 3 or fields[0] not in (b'100644', b'100755') or fields[1] != b'blob'
-            or path != name.encode('utf-8') + b'\0'):
-        raise ValueError('missing regular Git scan file: ' + name)
-    return _git_scan(root, 'cat-file', 'blob', fields[2].decode('ascii'))
+def _scan_path_batches(names):
+    batch, used = [], 0
+    for name in names:
+        length = len(name.encode('utf-8')) + 3
+        if batch and used + length > _SCAN_ARG_BYTES:
+            yield batch
+            batch, used = [], 0
+        batch.append(name)
+        used += length
+    if batch:
+        yield batch
+
+
+def _scan_tree_entries(raw, names, width):
+    if raw and not raw.endswith(b'\0'):
+        raise ValueError('truncated Git scan tree')
+    entries = {}
+    expected = {name.encode('utf-8'): name for name in names}
+    object_id = re.compile(rb'[0-9a-f]{%d}' % width)
+    for row in raw.split(b'\0'):
+        header, _, path = row.partition(b'\t')
+        if path not in expected:
+            continue
+        name = expected[path]
+        fields = header.split()
+        if (name in entries or len(fields) != 3 or fields[0] not in (b'100644', b'100755')
+                or fields[1] != b'blob' or not object_id.fullmatch(fields[2])):
+            raise ValueError('not a regular Git scan file: ' + name)
+        entries[name] = fields[2]
+    if set(entries) != set(names):
+        raise ValueError('missing regular Git scan file: ' + ', '.join(sorted(set(names) - entries.keys())))
+    return entries
+
+
+def _scan_tree(root, commit, names):
+    args = ('ls-tree', '-r', '-z', '--full-tree', commit)
+    names = tuple(map(_scan_path, names))
+    if any(len(name.encode('utf-8')) + 3 > _SCAN_ARG_BYTES for name in names):
+        return _scan_tree_entries(_git_scan(root, *args), names, len(commit))
+    entries = {}
+    for batch in _scan_path_batches(names):
+        raw = _git_scan(root, *args, '--', *batch)
+        entries.update(_scan_tree_entries(raw, batch, len(commit)))
+    return entries
+
+
+def _read_scan_blob_batch(root, ids):
+    raw = _git_scan(root, 'cat-file', '--batch', data=b'\n'.join(ids) + b'\n')
+    values, offset = {}, 0
+    for oid in ids:
+        boundary = raw.find(b'\n', offset)
+        fields = raw[offset:boundary].split() if boundary >= offset else []
+        if len(fields) != 3 or fields[:2] != [oid, b'blob'] or not fields[2].isdigit():
+            raise ValueError('missing or invalid scan blob: ' + oid.decode('ascii'))
+        start = boundary + 1
+        end = start + int(fields[2])
+        if raw[end:end + 1] != b'\n':
+            raise ValueError('truncated scan blob: ' + oid.decode('ascii'))
+        values[oid] = raw[start:end]
+        offset = end + 1
+    if offset != len(raw):
+        raise ValueError('unexpected scan blob data')
+    return values
+
+
+def _scan_blobs(root, revisions, names):
+    trees = [_scan_tree(root, ref, names) for ref in dict.fromkeys(revisions)]
+    ids = sorted({oid for tree in trees for oid in tree.values()})
+    values = {}
+    for start in range(0, len(ids), _SCAN_BLOB_BATCH):
+        values.update(_read_scan_blob_batch(root, ids[start:start + _SCAN_BLOB_BATCH]))
+    return [{name: values[oid] for name, oid in tree.items()} for tree in trees]
 
 
 def _json_bytes(raw):
@@ -100,10 +166,9 @@ def _scan_document(raw):
     return data
 
 
-def _reviewed_json(root, revisions, name):
-    approved, candidate = revisions
-    expected = _json_bytes(_scan_blob(root, approved, name))
-    if candidate != approved and _json_bytes(_scan_blob(root, candidate, name)) != expected:
+def _reviewed_json(root, trees, name):
+    expected = _json_bytes(trees[0][name])
+    if any(_json_bytes(tree[name]) != expected for tree in trees[1:]):
         raise ValueError('candidate differs from reviewed scan: ' + name)
     if _json_bytes(_regular_scan_file(root, name)) != expected:
         raise ValueError('checkout differs from reviewed scan: ' + name)
@@ -147,13 +212,13 @@ def _verify_scan_document(document, report):
         raise ValueError('expected an explicit compliance findings array')
 
 
-def _verify_input(root, revisions, entry, text):
+def _verify_input(root, trees, entry, text):
     name, digest = entry
-    raw = _scan_blob(root, revisions[0], name)
+    raw = trees[0][name]
     if hashlib.sha256(raw).hexdigest() != digest:
         raise ValueError('scan input digest differs: ' + name)
-    for commit in revisions[1:]:
-        if _scan_blob(root, commit, name) != raw:
+    for tree in trees[1:]:
+        if tree[name] != raw:
             raise ValueError('scan input changed in Git: ' + name)
     local = _regular_scan_file(root, name)
     if text:
@@ -175,16 +240,16 @@ def _verify_compliance(source, manifest, environ):
     approved = _scan_commit(root, ref, len(candidate))
     _git_scan(root, 'merge-base', '--is-ancestor', approved, candidate)
     names = [path.absolute().relative_to(root).as_posix() for path in (source, manifest)]
-    revisions = (approved, candidate)
-    report, attestation = (_reviewed_json(root, revisions, name) for name in names)
+    evidence = _scan_blobs(root, (approved, candidate), names)
+    report, attestation = (_reviewed_json(root, evidence, name) for name in names)
     document = _scan_document(attestation)
     _verify_scan_document(document, report)
     scanned = _scan_commit(root, document['source_ref'], len(candidate))
     _git_scan(root, 'merge-base', '--is-ancestor', scanned, approved)
     inputs, text = _input_inventory(document, names)
-    commits = tuple(dict.fromkeys((scanned, approved, candidate)))
+    input_blobs = _scan_blobs(root, (scanned, approved, candidate), inputs)
     for entry in inputs.items():
-        _verify_input(root, commits, entry, entry[0] in text)
+        _verify_input(root, input_blobs, entry, entry[0] in text)
 
 
 def _compliance_status(source, required, environ, status):
