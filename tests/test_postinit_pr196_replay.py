@@ -1,4 +1,5 @@
 """Integration controls for a full init-command replay and its evidence."""
+import hashlib
 import importlib.util
 import json
 import os
@@ -11,6 +12,7 @@ import unittest
 
 import yaml
 
+from scripts.trusted_ci import MANAGED_RUNTIME_FILES, RUNTIME_FILES
 from tests.test_fixture_preparation import configure_git
 from tests.test_postinit_timeout_observation import write_plan
 
@@ -48,11 +50,14 @@ class RealReplay(unittest.TestCase):
         self.env = dict(os.environ, RUNNER_TEMP=str(self.runner), TEMP=str(self.private),
                         TMP=str(self.private), TMPDIR=str(self.private),
                         GITHUB_WORKSPACE=str(self.source), GITHUB_SHA=PROBE,
-                        GITHUB_RUN_ID="19601", GITHUB_RUN_ATTEMPT="2",
-                        KDD_TRUSTED_RUNTIME_REF=RUNTIME)
+                        GITHUB_RUN_ID="19601", GITHUB_RUN_ATTEMPT="2")
         git(self.source, "init", "-q", "-b", "main")
         configure_git(self.source, {"user.name": "Replay fixture", "user.email": "replay@example.invalid"},
                       ephemeral=True)
+        for name in (*RUNTIME_FILES, *MANAGED_RUNTIME_FILES):
+            shutil.copyfile(ROOT / "scripts" / name, self.source / "scripts" / name)
+        self.runtime, _ = self.commit_fixture()
+        self.env["KDD_TRUSTED_RUNTIME_REF"] = self.runtime
 
     def commit_fixture(self):
         git(self.source, "add", "-A")
@@ -67,14 +72,90 @@ class RealReplay(unittest.TestCase):
 
     def make_bundle(self):
         stage = self.area / "trusted_ci.py"
-        content = subprocess.check_output(["git", "--no-replace-objects", "-C", str(ROOT),
-                                           "show", RUNTIME + ":scripts/trusted_ci.py"], timeout=30)
-        stage.write_bytes(content)
+        shutil.copyfile(self.source / "scripts/trusted_ci.py", stage)
         bundle = self.area / "bundle"
-        subprocess.run([sys.executable, "-I", str(stage), "prepare", "--repo-root", str(ROOT),
-                        "--trusted-ref", RUNTIME, "--bundle-dir", str(bundle)],
+        subprocess.run([sys.executable, "-I", str(stage), "prepare", "--repo-root", str(self.source),
+                        "--trusted-ref", self.runtime, "--bundle-dir", str(bundle)],
                        check=True, capture_output=True, timeout=40)
         return bundle
+
+    def run_cli(self, sha, tree, bundle):
+        # Only replace the three exact reviewed identities at the boundary.
+        script = (
+            "import runpy,sys;"
+            "namespace=runpy.run_path(sys.argv[1]);"
+            "assert 'main' in namespace, 'replay CLI is pending';"
+            "main=namespace['main'];"
+            "main.__globals__.update(SOURCE_SHA=sys.argv[2], SOURCE_TREE=sys.argv[3], "
+            "RUNTIME_SHA=sys.argv[4]);"
+            "raise SystemExit(main(['--source',sys.argv[5],'--bundle',sys.argv[6]]))"
+        )
+        return subprocess.run([sys.executable, "-I", "-c", script, str(REPLAY), sha, tree, self.runtime,
+                               str(self.source), str(bundle)],
+                              env=self.env, capture_output=True, text=True, encoding="utf-8", timeout=35)
+
+    def profile_fixture(self, cases):
+        marker = self.area / "bootstrap-witness"
+        profile = dict(kind="summary", platform="win32", workers=10, tests_run=cases,
+                       expected_count=cases, fixture_omitted_count=0, skipped=106,
+                       duration_seconds=0.01, modules=227)
+        self.oracle.write_text(
+            "import unittest\nfrom pathlib import Path\nclass Bootstrap(unittest.TestCase):\n"
+            " def test_run(self):\n"
+            f"  Path({str(marker)!r}).open('a').write('1')\n"
+            f"  print({('KDD_POST_INIT_PROFILE ' + json.dumps(profile))!r})\n",
+            encoding="utf-8",
+        )
+        return marker
+
+    def test_cli_writes_verified_success_and_refuses_reusing_its_receipt(self):
+        witness = self.profile_fixture(2374)
+        sha, tree = self.commit_fixture()
+        bundle = self.make_bundle()
+        wrong = self.run_cli(PROBE, tree, bundle)
+        self.assertEqual(wrong.returncode, 2, wrong.stderr)
+        self.assertFalse(witness.exists())
+        self.assertFalse((self.runner / "kdd-postinit-pr196-replay.json").exists())
+        proc = self.run_cli(sha, tree, bundle)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        output = self.runner / "kdd-postinit-pr196-replay.json"
+        raw = output.read_bytes()
+        result = json.loads(raw)
+        self.assertEqual(result["outcome"], dict(ok=True, error=None, exit_code=0))
+        self.assertEqual(result["profile"], {"cases": 2374, "workers": 10})
+        self.assertIsNone(result["observation"])
+        self.assertEqual((result["source_sha"], result["probe_sha"]), (sha, PROBE))
+        self.assertEqual(witness.read_text(), "1")
+        self.assertNotEqual(self.run_cli(sha, tree, bundle).returncode, 0)
+        self.assertEqual(output.read_bytes(), raw)
+        self.assertEqual(witness.read_text(), "1")
+
+    def test_cli_rejects_wrong_success_profile_and_preserves_raw_outcome(self):
+        self.profile_fixture(2373)
+        sha, tree = self.commit_fixture()
+        proc = self.run_cli(sha, tree, self.make_bundle())
+        self.assertEqual(proc.returncode, 2, proc.stderr)
+        result = json.loads((self.runner / "kdd-postinit-pr196-replay.json").read_bytes())
+        self.assertEqual(result["outcome"], dict(ok=True, error=None, exit_code=0))
+        self.assertIsNone(result["profile"])
+
+    def test_cli_rejects_an_internally_consistent_tampered_bundle_before_import(self):
+        self.profile_fixture(2374)
+        sha, tree = self.commit_fixture()
+        bundle = self.make_bundle()
+        witness = self.area / "untrusted-module-executed"
+        target = bundle / "validate_test_commands.py"
+        content = target.read_bytes() + f"\nfrom pathlib import Path\nPath({str(witness)!r}).touch()\n".encode()
+        target.write_bytes(content)
+        manifest = bundle / "manifest.json"
+        declared = json.loads(manifest.read_bytes())
+        declared["files"][target.name] = hashlib.sha256(content).hexdigest()
+        manifest.write_text(json.dumps(declared), encoding="utf-8")
+        process = self.run_cli(sha, tree, bundle)
+        self.assertEqual(process.returncode, 2, process.stderr)
+        self.assertIn("runtime", process.stderr.lower())
+        self.assertFalse(witness.exists())
+        self.assertFalse((self.runner / "kdd-postinit-pr196-replay.json").exists())
 
     def test_real_git_checkout_checks_commit_tree_and_dirty_state(self):
         self.oracle.write_text("# Git fixture\n", encoding="utf-8")
@@ -129,10 +210,12 @@ class RealReplay(unittest.TestCase):
         self.assertEqual(report["outcome"], dict(ok=False, error="timeout", exit_code=None))
         self.assertTrue((tests / "test_pending.witness").is_file())
         self.assertEqual((report["source_sha"], report["source_tree"], report["probe_sha"]), (sha, tree, PROBE))
-        self.assertEqual((report["run_id"], report["run_attempt"], report["runtime_sha"]), ("19601", "2", RUNTIME))
+        self.assertEqual((report["run_id"], report["run_attempt"], report["runtime_sha"]), ("19601", "2", self.runtime))
         observed = report["observation"]
         self.assertEqual(observed["head_sha"], sha)
         self.assertEqual(observed["state"], "partial")
+        self.assertGreaterEqual(report["handoff_seconds"], 0)
+        self.assertLess(report["handoff_seconds"], report["duration_seconds"])
         self.assertEqual({row["name"]:row["phase"] for row in observed["modules"]},
                          {"test_completed": "completed", "test_pending": "incomplete"})
         serialized = json.dumps(report)
@@ -163,6 +246,23 @@ class RealReplay(unittest.TestCase):
         self.assertEqual(report["outcome"], dict(ok=False, error="timeout", exit_code=None))
         self.assertEqual(report["observation"]["state"], "not_found")
         self.assertEqual(report["observation"]["modules"], [])
+        self.assertIsNone(report["handoff_seconds"])
+
+    def test_corrupt_collector_output_still_preserves_real_timeout(self):
+        self.oracle.write_text(
+            "import time,unittest\nclass Bootstrap(unittest.TestCase):\n def test_run(self):\n"
+            "  time.sleep(90)\n", encoding="utf-8")
+        self.collector.write_text(
+            "import os\nfrom pathlib import Path\n"
+            "(Path(os.environ['RUNNER_TEMP'])/'kdd-postinit-progress.json').write_text('invalid JSON')\n",
+            encoding="utf-8")
+        self.commit_fixture()
+        code, report = self.use(probe.replay, self.source, self.make_bundle(), self.env, timeout=5)
+        self.assertEqual(code, 124)
+        self.assertEqual(report["outcome"], dict(ok=False, error="timeout", exit_code=None))
+        self.assertEqual(report["observation"]["state"], "inconclusive")
+        self.assertEqual(report["observation"]["modules"], [])
+        self.assertIsNone(report["handoff_seconds"])
 
 
 class ReplayWorkflow(unittest.TestCase):
@@ -174,16 +274,30 @@ class ReplayWorkflow(unittest.TestCase):
         self.assertEqual(workflow["permissions"], {"contents": "read"})
         job, = workflow["jobs"].values()
         self.assertEqual(job["runs-on"], "windows-latest")
-        self.assertIn("github.repository == 'MauricioPerera/KDD'", job["if"])
+        self.assertEqual(job["if"], "github.repository == 'MauricioPerera/KDD'")
         checkouts = [step["with"] for step in job["steps"] if step.get("uses","").startswith("actions/checkout@")]
         control, measured = checkouts
         self.assertFalse(control["persist-credentials"])
         self.assertFalse(measured["persist-credentials"])
         self.assertEqual(measured["ref"], SOURCE)
         self.assertNotEqual(control["path"], measured["path"])
+        self.assertEqual(job["defaults"]["run"]["working-directory"], measured["path"])
+        self.assertEqual(job["env"]["KDD_TRUSTED_RUNTIME_REF"], RUNTIME)
+        names = [step.get("name") for step in job["steps"]]
+        operation = "Replay complete init command and collect after timeout"
+        target = job["steps"][names.index(operation)]
+        self.assertEqual(target["shell"], "bash")
+        self.assertEqual(target["run"].strip(), "python -I ../control/.github/diagnostics/"
+                         "postinit_pr196_replay.py --source . --bundle " + '"$KDD_TRUSTED_BUNDLE"')
+        for setup in ("Select native Git on Windows", "Materialize reviewed isolated CI runtime",
+                      "Install pinned context compatibility dependencies", "Install pinned workflow checker",
+                      "Install measured Board dependencies", "Install measured Pages dependencies",
+                      "Prepare pinned MCP SDK environment", "Run required MCP SDK protocol smoke",
+                      "Prepare native Windows test temp", "Build and validate Pages for PR"):
+            self.assertLess(names.index(setup), names.index(operation))
         uploads = [step for step in job["steps"] if step.get("uses","").startswith("actions/upload-artifact@")]
         upload, = uploads
-        self.assertIn("always()", upload["if"])
+        self.assertEqual(upload["if"], "${{ always() }}")
         self.assertEqual(upload["uses"], "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9")
         self.assertEqual(upload["with"]["path"], "${{ runner.temp }}/kdd-postinit-pr196-replay.json")
         self.assertEqual(upload["with"]["if-no-files-found"], "error")

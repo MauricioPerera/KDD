@@ -14,8 +14,8 @@ budget:
   nesting_max: 4
   params_max: 4
 tests: tests/test_postinit_pr196_replay.py
-tests_sha256: '1bee338abf527008b14fe7e64029316883061aa2297fff658dc76a5a814640ee'
-oracle_files: ['tests/test_postinit_pr196_replay.py', 'tests/test_postinit_timeout_observation.py', 'tests/test_fixture_preparation.py']
+tests_sha256: '0b8e2181dec7ba7f6a69eb9b12e54a160c10a2bf6eff712922cb88a5ef478f9e'
+oracle_files: ['tests/test_postinit_pr196_replay.py', 'tests/test_postinit_timeout_observation.py', 'tests/test_fixture_preparation.py', 'scripts/trusted_ci.py']
 touch_only: ['.github/diagnostics/postinit_pr196_replay.py', '.github/workflows/postinit-pr196-replay.yml']
 deps_allowed: ['stdlib', 'Git', 'GitHub Actions']
 forbids: ['llm']
@@ -45,7 +45,10 @@ El objeto medido esta fijado al merge de prueba
 arbol y limpieza antes de ejecutar. Usa el baseline
 `47afa8d45e6139e4ce8939fd4e8f07d65f85f7cb` en los dos entornos de aprobacion
 local del comando. Valida el bundle externo materializado desde el runtime
-fijado `74d357f7099651b9b39dc8088f725183a672ec94`.
+fijado `74d357f7099651b9b39dc8088f725183a672ec94`. Antes de importar el
+bundle, verificar manifiesto y blobs regulares contra ese commit Git,
+sin reemplazos. Un manifiesto coherente con codigo ajeno no autoriza
+ejecutarlo. Los controles poseen sus repositorios Git y su propio bundle.
 
 Ejecuta `python -m unittest tests/test_init_project.py` desde el objeto
 medido con el ejecutor de comandos del bundle y timeout exterior de 600 s.
@@ -60,13 +63,18 @@ checkout medido y el marcador viven en ubicaciones separadas.
 Ante timeout, ejecuta el colector del objeto medido antes de limpiar el
 temporal. Se publica unicamente `RUNNER_TEMP/kdd-postinit-pr196-replay.json`.
 El resumen versionado contiene `source_sha`, `source_tree`, `probe_sha`,
-`run_id`, `run_attempt`, `runtime_sha`, `duration_seconds`, `outcome` y
-`observation`. Outcome conserva las tres claves `ok`, `error`, `exit_code`
+`run_id`, `run_attempt`, `runtime_sha`, `duration_seconds`,
+`handoff_seconds`, `outcome`, `observation` y `profile`. Outcome conserva las tres claves `ok`, `error`, `exit_code`
 del ejecutor. Observation contiene el resumen acotado del colector en timeout
 y null si el comando no agoto el limite. Si el colector no ofrece un resumen
 valido en timeout, emitir `inconclusive` con modulos vacios. El proceso
 devuelve 124 al agotar el limite, el codigo real en un fallo ordinario
-con codigo, y 0 en exito.
+con codigo, y 0 con un perfil final valido. En caso de exito sin el perfil
+exacto, conservar el resultado exitoso del comando en outcome y salir con 2.
+Profile contiene solo cases y workers si se valida el perfil, o null.
+Handoff_seconds aproxima el intervalo hasta la marca de la copia cuando
+el colector confirma evidencia parcial y el sello de tiempo cae dentro de
+la medicion. Usar null si no hay una marca validada y acotada.
 
 La funcion `check_checkout(source, sha, tree)` permite comprobar Git real.
 `replay(source, bundle, env, timeout=600)` permite probar el reloj y la
@@ -108,7 +116,10 @@ archivo que el supervisor no llego a escribir.
 Usar Git y procesos reales para conservar el codigo de fallo, interrumpir un
 descendiente y recuperar resultados parciales de la copia seleccionada.
 Comprobar los metadatos, el rechazo de un checkout sucio y el alcance estatico
-del workflow. El ensayo remoto conserva su propio resultado junto con los
+del workflow. Ejecutar el CLI completo para una matriz de exito, perfil
+invalido y runtime alterado. Un resultado existente bloquea el lanzamiento
+antes de tocarlo. Probar la salida inconclusa del colector sin cambiar el
+veredicto del comando. El ensayo remoto conserva su propio resultado junto con los
 dos timeouts originales.
 
 ## Constraints
