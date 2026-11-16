@@ -175,9 +175,41 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python 3.11
+        id: postinit-python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
+
+      - name: Bind Windows post-init tools
+        id: postinit-tools
+        if: >-
+          ${{ matrix.os == 'windows-latest' && github.repository == 'MauricioPerera/KDD' &&
+          !inputs.reusable_execution && github.workflow_ref ==
+          format('{0}/.github/workflows/validate.yml@{1}', github.repository, github.ref) &&
+          (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref ==
+          'refs/heads/main')) }}
+        shell: C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoLogo -NoProfile -NonInteractive -Command "& $env:KDD_POSTINIT_PYTHON -I -X utf8 '{0}'; exit $LASTEXITCODE"
+        working-directory: ${{ runner.temp }}
+        env:
+          KDD_POSTINIT_PYTHON: ${{ steps.postinit-python.outputs.python-path }}
+        run: |
+          import os
+          from pathlib import Path
+          import shutil
+          root = Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          if Path.cwd().resolve().is_relative_to(root):
+              raise SystemExit('post-init tool capture requires an external directory')
+          paths = [Path(value) for value in os.environ['PATH'].split(os.pathsep)]
+          path = os.pathsep.join(str(folder) for folder in paths if folder.is_absolute()
+                               and not folder.resolve().is_relative_to(root))
+          git, gh = (Path(shutil.which(name, path=path)).resolve(strict=True) for name in ('git', 'gh'))
+          home = git.parent.parent
+          options = [home / layout / 'bin/git.exe' for layout in ('ucrt64', 'mingw64')]
+          git = next((candidate.resolve() for candidate in options if candidate.is_file()), git)
+          if any(executable.is_relative_to(root) for executable in (git, gh)):
+              raise SystemExit('post-init tools must be installed outside the checkout')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write(f'git={git}\ngh={gh}\npath={path}\n')
 
       - name: Select approved references
         shell: python
@@ -732,9 +764,13 @@ jobs:
           format('{0}/.github/workflows/validate.yml@{1}', github.repository, github.ref) &&
           (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref ==
           'refs/heads/main')) }}
-        shell: python -I {0}
+        shell: C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoLogo -NoProfile -NonInteractive -Command "& $env:KDD_POSTINIT_PYTHON -I -X utf8 '{0}'; exit $LASTEXITCODE"
         env:
-          KDD_POSTINIT_DRIVER_SHA256: '10d7462e59de7382071bd8f2eed2c43717798d36a7624673015f6c56829532b2'
+          KDD_POSTINIT_PYTHON: ${{ steps.postinit-python.outputs.python-path }}
+          KDD_POSTINIT_DRIVER_SHA256: '1b0fbea9cd310256f84c694b7d335602be10bc0377a29b007d919ddd62a7d05d'
+          KDD_POSTINIT_GIT: ${{ steps.postinit-tools.outputs.git }}
+          KDD_POSTINIT_GH: ${{ steps.postinit-tools.outputs.gh }}
+          KDD_POSTINIT_TOOL_PATH: ${{ steps.postinit-tools.outputs.path }}
           GH_TOKEN: ${{ github.token }}
         run: |
           import hashlib
@@ -746,11 +782,20 @@ jobs:
           base = Path(os.environ['RUNNER_TEMP']).resolve(strict=True)
           if base.is_relative_to(Path.cwd().resolve()):
               raise SystemExit('post-init driver needs an external temporary directory')
-          driver = subprocess.check_output(['git', '--no-replace-objects', 'show',
-                                            'HEAD:scripts/ci_postinit_shards.py'])
-          if hashlib.sha256(driver).hexdigest() != os.environ['KDD_POSTINIT_DRIVER_SHA256']:
-              raise SystemExit('post-init driver differs from the reviewed digest')
+          root = Path.cwd().resolve()
+          git = Path(os.environ['KDD_POSTINIT_GIT'])
+          if not git.is_absolute() or git.resolve().is_relative_to(root):
+              raise SystemExit('post-init requires the bound Git')
+          tool_env = {key: os.environ[key] for key in ('SYSTEMROOT', 'WINDIR', 'TMP', 'TEMP')
+                      if key in os.environ}
+          tool_env.update(PATH=os.environ['KDD_POSTINIT_TOOL_PATH'],
+                          GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM='1')
           with tempfile.TemporaryDirectory(prefix='kdd-postinit-driver-', dir=base) as directory:
+              driver = subprocess.check_output([str(git), '-C', str(root), '--no-replace-objects',
+                                                'show', 'HEAD:scripts/ci_postinit_shards.py'],
+                                               cwd=directory, env=tool_env, timeout=30)
+              if hashlib.sha256(driver).hexdigest() != os.environ['KDD_POSTINIT_DRIVER_SHA256']:
+                  raise SystemExit('post-init driver differs from the reviewed digest')
               path = Path(directory) / 'ci_postinit_shards.py'
               path.write_bytes(driver)
               result = subprocess.run([sys.executable, '-I', '-X', 'utf8', str(path), 'collect', '--repo-root', '.'])
@@ -913,9 +958,35 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python 3.11 for post-init
+        id: postinit-python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
+
+      - name: Bind Windows post-init tools
+        id: postinit-tools
+        shell: C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoLogo -NoProfile -NonInteractive -Command "& $env:KDD_POSTINIT_PYTHON -I -X utf8 '{0}'; exit $LASTEXITCODE"
+        working-directory: ${{ runner.temp }}
+        env:
+          KDD_POSTINIT_PYTHON: ${{ steps.postinit-python.outputs.python-path }}
+        run: |
+          import os
+          from pathlib import Path
+          import shutil
+          root = Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          if Path.cwd().resolve().is_relative_to(root):
+              raise SystemExit('post-init tool capture requires an external directory')
+          paths = [Path(value) for value in os.environ['PATH'].split(os.pathsep)]
+          path = os.pathsep.join(str(folder) for folder in paths if folder.is_absolute()
+                               and not folder.resolve().is_relative_to(root))
+          git, gh = (Path(shutil.which(name, path=path)).resolve(strict=True) for name in ('git', 'gh'))
+          home = git.parent.parent
+          options = [home / layout / 'bin/git.exe' for layout in ('ucrt64', 'mingw64')]
+          git = next((candidate.resolve() for candidate in options if candidate.is_file()), git)
+          if any(executable.is_relative_to(root) for executable in (git, gh)):
+              raise SystemExit('post-init tools must be installed outside the checkout')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write(f'git={git}\ngh={gh}\npath={path}\n')
 
       - name: Select native Git on Windows for post-init
         if: ${{ runner.os == 'Windows' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
@@ -1097,9 +1168,13 @@ jobs:
 
       - name: Run post-init shard
         id: shard-command
-        shell: python -I {0}
+        shell: C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoLogo -NoProfile -NonInteractive -Command "& $env:KDD_POSTINIT_PYTHON -I -X utf8 '{0}'; exit $LASTEXITCODE"
         env:
-          KDD_POSTINIT_DRIVER_SHA256: '10d7462e59de7382071bd8f2eed2c43717798d36a7624673015f6c56829532b2'
+          KDD_POSTINIT_PYTHON: ${{ steps.postinit-python.outputs.python-path }}
+          KDD_POSTINIT_DRIVER_SHA256: '1b0fbea9cd310256f84c694b7d335602be10bc0377a29b007d919ddd62a7d05d'
+          KDD_POSTINIT_GIT: ${{ steps.postinit-tools.outputs.git }}
+          KDD_POSTINIT_GH: ${{ steps.postinit-tools.outputs.gh }}
+          KDD_POSTINIT_TOOL_PATH: ${{ steps.postinit-tools.outputs.path }}
           KDD_POSTINIT_SHARD_INDEX: ${{ matrix.shard }}
           KDD_OBSERVE_POSTINIT: '1'
         run: |
@@ -1112,11 +1187,20 @@ jobs:
           base = Path(os.environ['RUNNER_TEMP']).resolve(strict=True)
           if base.is_relative_to(Path.cwd().resolve()):
               raise SystemExit('post-init driver needs an external temporary directory')
-          driver = subprocess.check_output(['git', '--no-replace-objects', 'show',
-                                            'HEAD:scripts/ci_postinit_shards.py'])
-          if hashlib.sha256(driver).hexdigest() != os.environ['KDD_POSTINIT_DRIVER_SHA256']:
-              raise SystemExit('post-init driver differs from the reviewed digest')
+          root = Path.cwd().resolve()
+          git = Path(os.environ['KDD_POSTINIT_GIT'])
+          if not git.is_absolute() or git.resolve().is_relative_to(root):
+              raise SystemExit('post-init requires the bound Git')
+          tool_env = {key: os.environ[key] for key in ('SYSTEMROOT', 'WINDIR', 'TMP', 'TEMP')
+                      if key in os.environ}
+          tool_env.update(PATH=os.environ['KDD_POSTINIT_TOOL_PATH'],
+                          GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM='1')
           with tempfile.TemporaryDirectory(prefix='kdd-postinit-driver-', dir=base) as directory:
+              driver = subprocess.check_output([str(git), '-C', str(root), '--no-replace-objects',
+                                                'show', 'HEAD:scripts/ci_postinit_shards.py'],
+                                               cwd=directory, env=tool_env, timeout=30)
+              if hashlib.sha256(driver).hexdigest() != os.environ['KDD_POSTINIT_DRIVER_SHA256']:
+                  raise SystemExit('post-init driver differs from the reviewed digest')
               path = Path(directory) / 'ci_postinit_shards.py'
               path.write_bytes(driver)
               result = subprocess.run([sys.executable, '-I', '-X', 'utf8', str(path), 'run', '--repo-root', '.', '--shard', os.environ['KDD_POSTINIT_SHARD_INDEX'],

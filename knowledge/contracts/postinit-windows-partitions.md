@@ -14,7 +14,7 @@ budget:
   nesting_max: 4
   params_max: 4
 tests: tests/test_ci_postinit_shards.py
-tests_sha256: '47e7fc3f217ab18dbbfefe79c762337e7865894338a3faaf02c5dc800cce74b6'
+tests_sha256: '763cd35fbc775185277ca648b36da39c38b45023beebc8b83c46fa95030873a4'
 oracle_files: ['tests/test_ci_postinit_shards.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py', 'scripts/init_project.py', 'scripts/bootstrap_transaction.py', 'scripts/run_test_suite.py', 'scripts/process_tree.py', 'scripts/validate_contracts.py', 'scripts/validate_okf.py']
 touch_only: ['scripts/ci_postinit_shards.py', 'scripts/init_post_apply_suite.py', 'tools/ci/postinit-windows-shards.json']
 deps_allowed: ['stdlib']

@@ -15,7 +15,7 @@ budget:
   nesting_max: 4
   params_max: 4
 tests: tests/test_ci_postinit_shards.py
-tests_sha256: '47e7fc3f217ab18dbbfefe79c762337e7865894338a3faaf02c5dc800cce74b6'
+tests_sha256: '763cd35fbc775185277ca648b36da39c38b45023beebc8b83c46fa95030873a4'
 oracle_files: ['tests/test_ci_postinit_shards.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py', 'scripts/init_project.py', 'scripts/bootstrap_transaction.py', 'scripts/run_test_suite.py', 'scripts/process_tree.py', 'scripts/validate_contracts.py', 'scripts/validate_okf.py']
 touch_only: ['.github/workflows/validate.yml', 'scripts/ci_postinit_shards.py']
 deps_allowed: ['stdlib', 'GitHub Actions']
@@ -67,8 +67,9 @@ con espera acotada si el check existente alcanza el paso antes de los jobs.
 El workflow protegido fija el SHA-256 del driver como literal local de cada
 paso y ejecuta los bytes comprobados desde un temporal externo. Antes de
 ejecutar codigo candidato, resuelve Git y GitHub CLI desde el temporal del
-runner y fuera del checkout. Guarda las rutas absolutas en outputs del paso,
-y elige Python desde el output del setup fijado. El
+runner y fuera del checkout. Guarda las rutas absolutas en outputs del paso.
+El shell literal de Windows invoca Python desde el output del setup fijado,
+recibido por el entorno del paso. El
 verificador no consulta el PATH del checkout para resolver esos ejecutables.
 Git no recibe el token. GitHub CLI recibe el token solo para API y descarga
 del host github.com, sin configuracion ni PATH del candidato. El discovery

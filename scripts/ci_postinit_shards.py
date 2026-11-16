@@ -54,8 +54,12 @@ def _object(pairs):
     return value
 
 
+def _invalid_constant(value):
+    raise ValueError('invalid JSON constant: ' + value)
+
+
 def _json(raw):
-    return json.loads(raw, object_pairs_hook=_object)
+    return json.loads(raw, object_pairs_hook=_object, parse_constant=_invalid_constant)
 
 
 def _write(path, value, limit=None):
@@ -135,7 +139,8 @@ def discover(root):
         path = Path(directory) / 'inventory.json'
         command = [sys.executable, '-I', '-X', 'utf8', __file__, 'inventory',
                    '--repo-root', str(root), '--report-json', str(path)]
-        subprocess.run(command, cwd=root, env=_child_env(), check=True, timeout=45)
+        subprocess.run(command, cwd=root, env=_child_env(), check=True, timeout=45,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if not path.is_file():
             raise ValueError('independent discovery produced no inventory')
         return _canonical_inventory(_json(path.read_bytes()))
@@ -283,9 +288,29 @@ def _download(request, run_path, identity, shard):
     return read_receipt_archive(raw)
 
 
+def _fixed_tool(name):
+    path = Path(os.environ[name])
+    if not path.is_absolute() or not path.is_file():
+        raise ValueError('expected bound executable: ' + name)
+    return path
+
+
+def _tool_env():
+    environment = {key: os.environ[key] for key in
+                   ('SYSTEMROOT', 'WINDIR', 'PATHEXT', 'TMP', 'TEMP', 'TMPDIR')
+                   if key in os.environ}
+    environment['PATH'] = os.environ.get('KDD_POSTINIT_TOOL_PATH', os.defpath)
+    return environment
+
+
 def _git(root, *arguments):
-    return subprocess.check_output(['git', '--no-replace-objects', *arguments], cwd=root,
-                                   env=_child_env(), timeout=30)
+    if 'KDD_POSTINIT_GIT' not in os.environ:
+        return subprocess.check_output(['git', '--no-replace-objects', *arguments], cwd=root,
+                                       env=_child_env(), timeout=30)
+    git = _fixed_tool('KDD_POSTINIT_GIT')
+    environment = dict(_tool_env(), GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull)
+    command = [str(git), '-C', str(root), '--no-replace-objects', *arguments]
+    return subprocess.check_output(command, cwd=git.parent, env=environment, timeout=30)
 
 
 def _initialized_inventory(root, identity):
@@ -300,7 +325,7 @@ def _initialized_inventory(root, identity):
         command = [sys.executable, '-X', 'utf8', str(snapshot / 'scripts/init_project.py'),
                    '--repo-dir', str(snapshot), '--apply', '--repository', 'ExampleCo/Shop']
         subprocess.run(command, cwd=snapshot, env=_child_env(), check=True, timeout=45,
-                       stdout=subprocess.DEVNULL)
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         (snapshot / 'tests/test_init_project.py').unlink()
         return discover(snapshot)
 
@@ -339,7 +364,9 @@ def _run_shard(root, shard, destination):
     if os.path.lexists(destination):
         raise ValueError('receipt destination already exists')
     identity = _identity(root)
-    runner = _load(Path(os.environ['KDD_TRUSTED_BUNDLE']) / 'process_tree.py')
+    bundle = Path(os.environ['KDD_TRUSTED_BUNDLE'])
+    runner = _load(bundle / 'process_tree.py')
+    validate_report = _load(bundle / 'run_test_suite.py').validate_report
     with tempfile.TemporaryDirectory(prefix='kdd-postinit-shard-report-') as directory:
         path = Path(directory) / 'suite.json'
         environment = dict(_child_env(), KDD_POSTINIT_SHARD=str(shard),
@@ -360,7 +387,7 @@ def _run_shard(root, shard, destination):
     expected = _canonical_inventory(metadata['inventory'])
     if metadata['shard'] != shard:
         raise ValueError('unexpected report shard')
-    errors = _load(root / 'scripts/run_test_suite.py').validate_report(expected[shard], report)
+    errors = validate_report(expected[shard], report)
     if errors:
         raise ValueError('invalid suite report: ' + '; '.join(errors))
     receipt = {key: identity[key] for key in IDENTITY_FIELDS}
@@ -373,12 +400,19 @@ def _run_shard(root, shard, destination):
 
 
 def _request(path):
-    return subprocess.check_output(['gh', 'api', path], timeout=25)
+    executable = _fixed_tool('KDD_POSTINIT_GH')
+    with tempfile.TemporaryDirectory(prefix='kdd-postinit-api-', dir=os.environ.get('RUNNER_TEMP')) as directory:
+        environment = dict(_tool_env(), GH_TOKEN=os.environ['GH_TOKEN'], GH_CONFIG_DIR=directory,
+                           GH_PROMPT_DISABLED='1', GH_NO_UPDATE_NOTIFIER='1', GH_NO_EXTENSION_UPDATE_NOTIFIER='1')
+        return subprocess.check_output([str(executable), 'api', '--hostname', 'github.com', path],
+                                       cwd=directory, env=environment, timeout=25)
 
 
 def _collect_cli(root):
     if os.environ.get('GITHUB_REPOSITORY') != REPOSITORY or not os.environ.get('GH_TOKEN'):
         raise ValueError('collection requires the repository CI read token')
+    _fixed_tool('KDD_POSTINIT_GIT')
+    _fixed_tool('KDD_POSTINIT_GH')
     identity = _identity(root)
     deadline = time.monotonic() + 180
     while True:

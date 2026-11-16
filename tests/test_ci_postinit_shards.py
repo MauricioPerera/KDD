@@ -38,6 +38,11 @@ NATIVE_EVENTS = (
 GATES = 'TestInitProject.test_gates_verdes_post_apply_en_copia'
 API_RUN = 'repos/MauricioPerera/KDD/actions/runs/314'
 API_JOB_LIST = API_RUN + '/attempts/2/jobs?per_page=100'
+BOUND_SHELL = (
+    'C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe '
+    '-NoLogo -NoProfile -NonInteractive -Command '
+    '"& $env:KDD_POSTINIT_PYTHON -I -X utf8 \'{0}\'; exit $LASTEXITCODE"'
+)
 OUTER_FIXTURE = """import os
 from pathlib import Path
 import shutil
@@ -520,11 +525,20 @@ class PostInitReceiptIntegration(unittest.TestCase):
             fake.chmod(0o755)
         env = dict(self.env, KDD_POSTINIT_GIT=real_git, GH_TOKEN='synthetic-token',
                    KDD_POSTINIT_TOOL_PATH=self.env['PATH'],
+                   KDD_POSTINIT_PYTHON=sys.executable,
                    KDD_POSTINIT_DRIVER_SHA256=hashlib.sha256(driver).hexdigest(),
                    PATH=str(self.root) + os.pathsep + self.env['PATH'])
-        result = subprocess.run([sys.executable, '-I', '-X', 'utf8', '-c', verify['run']],
-                                cwd=self.root, env=env, capture_output=True, text=True,
-                                encoding='utf-8', errors='replace', timeout=35)
+        options = dict(cwd=self.root, env=env, capture_output=True, text=True,
+                       encoding='utf-8', errors='replace', timeout=35)
+        if os.name == 'nt':
+            self.assertEqual(verify['shell'], BOUND_SHELL)
+            script = self.area / 'runner script with spaces'
+            script.write_text(verify['run'], encoding='utf-8')
+            result = subprocess.run(verify['shell'].format(script),
+                                    executable=BOUND_SHELL.split(' ', 1)[0], **options)
+        else:
+            result = subprocess.run([sys.executable, '-I', '-X', 'utf8', '-c', verify['run']],
+                                    **options)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         self.assertEqual(result.stdout.strip(), 'bound-driver-canary')
 
@@ -611,19 +625,23 @@ class WindowsPostInitWorkflow(unittest.TestCase):
         shard = next(step for step in self.workflow['jobs']['postinit_windows']['steps']
                      if step.get('name') == 'Run post-init shard')
         self.assertEqual(shard['env']['KDD_POSTINIT_DRIVER_SHA256'], pin)
-        expected_shell = '${{ steps.postinit-python.outputs.python-path }} -I {0}'
-        self.assertEqual(verify['shell'], expected_shell)
-        self.assertEqual(shard['shell'], expected_shell)
+        self.assertEqual(verify['shell'], BOUND_SHELL)
+        self.assertEqual(shard['shell'], BOUND_SHELL)
         for job in (self.validate, self.workflow['jobs']['postinit_windows']):
             steps = job['steps']
             bind = next(index for index, step in enumerate(steps) if step.get('id') == 'postinit-tools')
             setup = next(index for index, step in enumerate(steps) if step.get('id') == 'postinit-python')
             self.assertLess(setup, bind)
             self.assertEqual(steps[bind]['working-directory'], '${{ runner.temp }}')
+            self.assertEqual(steps[bind]['shell'], BOUND_SHELL)
+            self.assertEqual(steps[bind]['env']['KDD_POSTINIT_PYTHON'],
+                             '${{ steps.postinit-python.outputs.python-path }}')
             self.assertNotIn("'GH_TOKEN'", steps[bind]['run'])
             self.assertFalse(any('Select approved references' in step.get('name', '')
                                  for step in steps[:bind]))
         for step in (shard, verify):
+            self.assertEqual(step['env']['KDD_POSTINIT_PYTHON'],
+                             '${{ steps.postinit-python.outputs.python-path }}')
             self.assertEqual(step['env']['KDD_POSTINIT_GIT'], '${{ steps.postinit-tools.outputs.git }}')
             self.assertEqual(step['env']['KDD_POSTINIT_GH'], '${{ steps.postinit-tools.outputs.gh }}')
         for required in ('hashlib.sha256', 'KDD_POSTINIT_DRIVER_SHA256', 'RUNNER_TEMP'):
