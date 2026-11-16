@@ -307,6 +307,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Identidad fisica de raiz para las claves](contracts/task-root-identity.md)
 - [Tiempo completo de init en CI](contracts/postinit-command-timing.md)
 - [Progreso recuperable del post-init de Windows](contracts/postinit-ci-progress.md)
+- [Reproduccion aislada del timeout de init del PR 196](contracts/postinit-pr196-isolated-replay.md)
 - [Reducir trabajo repetido de fixtures del post-init](contracts/postinit-fixture-work.md)
 - [Orden medido de modulos post-init](postinit-module-order.md)
 - [Prioridades opt-in del runner](contracts/ci-module-order.md)
