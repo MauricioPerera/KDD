@@ -584,17 +584,19 @@ def _metadata_record(output, offset, request):
 def _metadata_unsupported(stderr):
     first = stderr.splitlines()[0] if stderr.splitlines() else b''
     return (first.endswith(b'unknown format element: objectmode') or
+            first == b'fatal: bad cat-file format: %(objectmode)' or
             (b'unknown option' in first and b'batch-command' in first))
 
 
-def _read_metadata(root, requests):
+def _read_metadata(root, requests, *, no_replace=False):
     commands = [('contents ' if content else 'info ') + ref + ':' + name
                 for ref, name, content in requests]
+    options = ['--no-replace-objects'] if no_replace else []
     try:
-        result = subprocess.run(['git', '-C', str(root), 'cat-file',
+        result = subprocess.run(['git', *options, '-C', str(root), 'cat-file',
             '--batch-command=%(objectname) %(objecttype) %(objectsize) %(objectmode)', '--buffer'],
             input=('\n'.join(commands) + '\nflush\n').encode('utf-8'),
-            capture_output=True, timeout=30, check=False)
+            env=dict(os.environ, LC_ALL='C'), capture_output=True, timeout=30, check=False)
         if result.returncode:
             if _metadata_unsupported(result.stderr):
                 return False
@@ -783,20 +785,63 @@ def _require_valid_contract(root, name):
         raise TaskError('TASK_CONTRACT: ' + '; '.join(map(str, findings)))
 
 
-def _oracle_artifacts(root, revision, paths):
-    names = tuple(dict.fromkeys(paths))
-    if not all(_cacheable_git_path(name) for name in names):
-        raise TaskError('TASK_PATH: invalid oracle inventory path')
+def _oracle_tree(root, revision, names):
     listing = git(root, '--no-replace-objects', 'ls-tree', '-z', revision, '--', *names)
     entries = _regular_paths(listing)
     if set(entries) != set(names):
         missing = sorted(set(names) - set(entries))
         raise TaskError('TASK_PATH: missing regular Git file: ' + ', '.join(missing))
-    records = _raw_objects(root, sorted(set(entries.values())), no_replace=True)
+    return entries
+
+
+def _portable_oracle_artifacts(root, revisions, names):
+    trees = {revision: _oracle_tree(root, revision, names) for revision in revisions}
+    ids = sorted({oid for tree in trees.values() for oid in tree.values()})
+    records = _raw_objects(root, ids, no_replace=True)
     for oid, record in records.items():
         if record is None or record[:2] != (b'blob', oid):
             raise TaskError('TASK_GIT: invalid oracle blob: ' + oid)
-    return {name: records[oid][2] for name, oid in entries.items()}
+    return {revision: {name: records[oid][2] for name, oid in tree.items()}
+            for revision, tree in trees.items()}
+
+
+def _oracle_snapshots(root, revisions, paths):
+    names = tuple(dict.fromkeys(paths))
+    if not all(_cacheable_git_path(name) for name in names):
+        raise TaskError('TASK_PATH: invalid oracle inventory path')
+    if not all(valid_sha(rev) for rev in revisions):
+        return _portable_oracle_artifacts(root, revisions, names)
+    requests = [(revision, name, True) for revision in revisions for name in names]
+    records = _read_metadata(root, requests, no_replace=True)
+    if records is False:
+        return _portable_oracle_artifacts(root, revisions, names)
+    if records is None:
+        raise TaskError('TASK_PATH: missing regular Git file in the oracle inventory')
+    artifacts = {revision: {} for revision in revisions}
+    for revision, name, _, body in records:
+        artifacts[revision][name] = body
+    return artifacts
+
+
+def _oracle_artifacts(root, revision, paths):
+    return _oracle_snapshots(root, (revision,), paths)[revision]
+
+
+def _approved_contract_text(root, approved, name):
+    if not _cacheable_git_path(name):
+        raise TaskError('TASK_PATH: invalid approved contract path')
+    cache = _OBJECT_CACHE.get()
+    key = _key(root, 'legacy-approved-contract', approved, name)
+    if cache is not None and key in cache:
+        return cache[key]
+    specification = approved + ':' + name
+    record = _raw_objects(root, [specification], no_replace=True)[specification]
+    if record is None or record[0] != b'blob':
+        raise TaskError('TASK_GIT: missing or invalid approved contract: ' + name)
+    try:
+        return proof.normalized(record[2].decode('utf-8'))
+    except UnicodeError as error:
+        raise TaskError('TASK_GIT: ' + str(error)) from error
 
 
 def _oracle_binary_paths(root, revision, files):
@@ -822,15 +867,15 @@ def _checkout_oracles(root, expected):
     return result
 
 
-def _check_inventory(root, data, metadata, revision):
-    files = proof.inventory(metadata)
-    contract, approved = data['contract'], data['approved_ref']
-    expected = _oracle_artifacts(root, approved, (contract, *files))
-    if proof.normalized(expected[contract].decode('utf-8')) != blob(root, approved, contract):
+def _check_inventory(root, revisions, contract_source, files):
+    approved, revision = revisions
+    contract, original = contract_source
+    artifacts = _oracle_snapshots(root, tuple(dict.fromkeys(revisions)), (contract, *files))
+    expected = artifacts[approved]
+    if proof.normalized(expected[contract].decode('utf-8')) != original:
         raise TaskError('TASK_APPROVAL: contract differs from approved object: ' + contract)
     binary = _oracle_binary_paths(root, approved, files)
-    actual = expected if revision == approved else _oracle_artifacts(root, revision, expected)
-    different = _different_oracle(actual, expected, binary)
+    different = _different_oracle(artifacts[revision], expected, binary)
     if different:
         raise TaskError('TASK_APPROVAL: inventory differs from approved reference: ' + different)
     return expected, binary
@@ -887,10 +932,18 @@ def _require_runner(metadata, live):
         raise TaskError('TASK_RUNNER: required executable is unavailable: ' + argv[0])
 
 
+def _remember_legacy_contract(root, approved, name, contents):
+    # Only legacy contracts reuse the approved text within the existing audit
+    # context. An explicit inventory always starts with a fresh Git read.
+    cache = _OBJECT_CACHE.get()
+    if cache is not None:
+        cache[_key(root, 'legacy-approved-contract', approved, name)] = contents
+
+
 def contract_metadata(root, data, revision, *, committed_only=False):
     approved = data['approved_ref']
     _require_approved_ancestor(root, approved, revision)
-    original = blob(root, approved, data['contract'])
+    original = _approved_contract_text(root, approved, data['contract'])
     metadata, _ = parse_frontmatter(original)
     if not isinstance(metadata, dict) or metadata.get('type') != 'Task Contract':
         raise TaskError('TASK_CONTRACT: approved artifact is not a Task Contract')
@@ -900,9 +953,12 @@ def contract_metadata(root, data, revision, *, committed_only=False):
     _require_runner(metadata, not committed_only)
     _metadata_paths(root, data, metadata, revision)
     if 'oracle_files' in metadata:
-        expected, binary = _check_inventory(root, data, metadata, revision)
+        expected, binary = _check_inventory(root, (approved, revision),
+                                            (data['contract'], original), proof.inventory(metadata))
         if not committed_only:
             _check_live_inventory(root, expected, binary)
+    else:
+        _remember_legacy_contract(root, approved, data['contract'], original)
     for path in (data['contract'], metadata['tests']):
         _artifact_path(root, path, committed_only)
         if proof.normalized(blob(root, revision, path)) != proof.normalized(blob(root, approved, path)):

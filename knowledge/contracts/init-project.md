@@ -14,7 +14,7 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tests/test_init_project.py"
-tests_sha256: '09b673bcb243ba98b95917749c866db6ea896b838ac80205667205bd511d790e'
+tests_sha256: '308d1645eb6459e15bdfdff5949bad3026f6ff64017e0ad8d870f2edb8e292b6'
 touch_only: ['scripts/init_project.py', 'scripts/bootstrap_transaction.py']
 deps_allowed: ['stdlib', 'bootstrap_transaction']
 forbids: ['network', 'subprocess']
@@ -88,6 +88,8 @@ dry-run por default; exit 0 ok · 1 I/O · 2 manifiesto/identidad incompletos.
 - En CI, el `test_command` de este contrato ejecuta la integración post-apply
   completa una vez. Las dos pasadas posteriores de la suite omiten solo ese
   caso mediante `KDD_SKIP_INIT_POST_APPLY_SUITE=1`; el resto corre dos veces.
+- La [observacion de progreso](postinit-ci-progress.md) agrega una marca
+  opt-in al caso de integracion existente para el CI Windows de main.
 - La [extension de tiempo total](../ci-runtime.md) ejecuta esa misma suite
   post-apply segun [perfil nativo](init-post-apply-profile.md). Conserva todos
   los casos y asserts; no reduce la integracion a un smoke.

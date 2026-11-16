@@ -81,6 +81,10 @@ inputs:
     description: 'Path to a sealed license/compliance scan dir (findings.json). OPTIONAL — auto-skips (INFO) if absent.'
     required: false
     default: 'compliance/scan'
+  compliance-approved-ref:
+    description: 'Externally reviewed consumer commit with scan-manifest.json and findings.json. Requires consumer Git history.'
+    required: false
+    default: ''
   privacy-scan-dir:
     description: 'Path to a sealed privacy/PII scan dir (findings.json). OPTIONAL — auto-skips (INFO) if absent.'
     required: false
@@ -175,6 +179,7 @@ runs:
         KDD_REQUIRED_EVIDENCE: ${{ inputs.required-evidence }}
         KDD_SECURITY_SCAN_DIR: ${{ inputs.security-scan-dir }}
         KDD_COMPLIANCE_SCAN_DIR: ${{ inputs.compliance-scan-dir }}
+        KDD_COMPLIANCE_APPROVED_REF: ${{ inputs.compliance-approved-ref }}
         KDD_PRIVACY_SCAN_DIR: ${{ inputs.privacy-scan-dir }}
         KDD_ACCESSIBILITY_SCAN_DIR: ${{ inputs.accessibility-scan-dir }}
         KDD_DEPENDENCY_EOL_SCAN_DIR: ${{ inputs.dependency-eol-scan-dir }}
@@ -357,6 +362,7 @@ runs:
         KDD_REQUIRED_EVIDENCE: ${{ inputs.required-evidence }}
         KDD_SECURITY_SCAN_DIR: ${{ inputs.security-scan-dir }}
         KDD_COMPLIANCE_SCAN_DIR: ${{ inputs.compliance-scan-dir }}
+        KDD_COMPLIANCE_APPROVED_REF: ${{ inputs.compliance-approved-ref }}
         KDD_PRIVACY_SCAN_DIR: ${{ inputs.privacy-scan-dir }}
         KDD_ACCESSIBILITY_SCAN_DIR: ${{ inputs.accessibility-scan-dir }}
         KDD_DEPENDENCY_EOL_SCAN_DIR: ${{ inputs.dependency-eol-scan-dir }}

@@ -87,7 +87,8 @@ class PagesInventoryWorkflow(unittest.TestCase):
         command='run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" --report-dir "$RUNNER_TEMP/kdd-suite-reports"'
         self.assertEqual(self.ci.count(command),2)
         jobs=self.ci.split('\njobs:\n',1)[1]
-        self.assertEqual(set(line.strip() for line in jobs.splitlines() if line.startswith('  ') and not line.startswith('   ') and line.endswith(':')),{'validate:','board:'})
+        self.assertEqual(set(line.strip() for line in jobs.splitlines() if line.startswith('  ') and not line.startswith('   ') and line.endswith(':')),
+                         {'validate:', 'board:', 'postinit_windows:'})
         preview=step(self.ci,'Build and validate Pages for PR')
         self.assertIn("github.event_name == 'pull_request'",preview)
         self.assertNotIn('--ci-inventory-dir',preview)

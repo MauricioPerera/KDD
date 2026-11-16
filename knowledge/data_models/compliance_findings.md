@@ -35,6 +35,17 @@ scanner contra `projectLicense` -- NO por el rule gate, que solo audita forma/ca
 `severity`, `remediation`, `source` (que herramienta lo produjo). Schema completo:
 `knowledge/data_models/compliance/findings.schema.json`.
 
+## Procedencia en CI
+
+Para acreditar `compliance` en CI, acompaña el informe de `scan-manifest.json`
+y pide al revisor que apruebe el commit de ambos archivos y de los insumos del
+escaneo. El [contrato de procedencia](../contracts/compliance-scan-provenance.md)
+define los hashes, el SHA escaneado y la referencia externa. En la acción
+compuesta, usa `compliance-approved-ref` con un checkout que incluya la historia
+del proyecto. El workflow nativo usa la referencia de baseline seleccionada
+por su registro. La revisión comprueba que el inventario cubra los insumos del
+proyecto. El validador estructural comprueba las reglas sobre el informe.
+
 ## Record aplanado que consume la policy
 
 `examples/rules/compliance-findings.rules.json` opera sobre un record aplanado que

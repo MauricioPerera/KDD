@@ -230,10 +230,18 @@ class _Projection:
         self.objects.update(values)
 
     def _fresh(self, task, metadata):
-        names = (task['contract'], metadata['tests'], metadata['target'])
+        tested = task['verified_ref']
+        names = (task['contract'], metadata['target'])
         try:
-            self._stage_blobs(names, (self.revision, task['verified_ref']))
-            return all(self.blob(self.revision, p) == self.blob(task['verified_ref'], p) for p in names)
+            if 'oracle_files' in metadata:
+                files = journal.proof.inventory(metadata)
+                expected = journal._oracle_artifacts(self.root, tested, files)
+                if self.revision != tested and journal._oracle_artifacts(self.root, self.revision, files) != expected:
+                    return False
+            else:
+                names = (names[0], metadata['tests'], names[1])
+            self._stage_blobs(names, (self.revision, tested))
+            return all(self.blob(self.revision, path) == self.blob(tested, path) for path in names)
         except (ValueError, OSError):
             return False
 

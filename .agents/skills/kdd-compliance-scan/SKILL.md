@@ -113,6 +113,13 @@ En `<scan_dir>/findings.json`:
 `dependencyName`+`dependencyVersion` para que sea estable entre corridas del mismo
 scan.
 
+Para que CI acredite el escaneo, conserva junto al informe `scan-manifest.json`.
+Registra el SHA escaneado, el nombre y version de la herramienta, los SHA-256
+de los insumos Git declarados y el del informe. Pide al revisor del proyecto
+que confirme el alcance y apruebe el commit que contiene el manifiesto y el
+informe. Sigue el [contrato de procedencia](../../../knowledge/contracts/compliance-scan-provenance.md)
+para configurar la referencia y las verificaciones del checkout.
+
 ### 4. Gatear
 
 ```
