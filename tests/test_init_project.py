@@ -253,6 +253,9 @@ class TestInitProject(unittest.TestCase):
         os.unlink(os.path.join(self.repo, "tests", "test_init_project.py"))
         with tempfile.TemporaryDirectory(prefix="kdd-postinit-report-") as directory:
             report_path = Path(directory) / "suite.json"
+            if os.environ.get("KDD_OBSERVE_POSTINIT") == "1":
+                from scripts.postinit_timeout_observation import mark_project
+                mark_project(self.repo)
             disc = _run(["scripts/init_post_apply_suite.py", "--repo-root", self.repo,
                          "--report-json", str(report_path)], self.repo)
             self.assertEqual(disc.returncode, 0,
