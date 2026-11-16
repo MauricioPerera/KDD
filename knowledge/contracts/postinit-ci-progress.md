@@ -14,7 +14,7 @@ budget:
   nesting_max: 4
   params_max: 4
 tests: tests/test_postinit_ci_progress.py
-tests_sha256: 'be632fcb66776969f4be8cea07ee925fd6e30028b4f5b7a32bb7d7aa658deecd'
+tests_sha256: '2177ad6e830b21337f849d0711e346a1c3e150dcaffc6c33c6317db19794d748'
 oracle_files: ['tests/test_postinit_ci_progress.py', 'tests/test_postinit_timeout_observation.py', 'tests/test_postinit_command_timing.py', 'tests/test_init_project.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py', 'scripts/run_test_suite.py', 'scripts/process_tree.py', 'scripts/init_post_apply_suite.py']
 touch_only: ['scripts/postinit_timeout_observation.py', '.github/workflows/validate.yml']
 deps_allowed: ['stdlib', 'GitHub Actions']
@@ -26,16 +26,17 @@ forbids: ['llm']
 Los tres intentos de [main tras el PR 195](https://github.com/MauricioPerera/KDD/actions/runs/43728301459)
 agotaron los 600 s. El [tiempo de init](postinit-command-timing.md) preserva el
 veredicto y el SHA. El detalle por modulo se forma al terminar el post-init.
-Reutilizar el lector de planes y resultados del ensayo aislado anterior.
+Reutilizar el [lector del ensayo aislado anterior](https://github.com/MauricioPerera/KDD/blob/e3398a7fa2113f681415d758b396b3e1341af5b8/scripts/postinit_timeout_observation.py).
 
 ## Interface
 
 En el paso de comandos de contratos, activar KDD_OBSERVE_POSTINIT=1 solo en
-Windows nativo de MauricioPerera/KDD para push a refs/heads/main. Usar el
+Windows nativo de MauricioPerera/KDD para push a refs/heads/main, con el
+workflow_ref exacto del propio validate.yml en esa rama. Usar el
 temporal privado que ya crea el workflow. El fixture completo de
 [init-project](init-project.md) invoca mark_project(project) justo antes de
 lanzar el post-init. Es el unico marcador de proyecto. Identifica un hijo
-directo del temporal por nombre, junto con el run, intento y SHA. Escritura
+directo del temporal por nombre, junto con el run, intento y SHA. El campo project contiene ese nombre. Escritura
 exclusiva. Ante un fallo de diagnostico, el fixture prosigue con la suite.
 
 Mantener KDD_INIT_TIMING. El mismo paso expone la salida init_timed_out a
@@ -69,7 +70,8 @@ salida state/modules y su lectura de solo lectura.
   truncados, fuentes combinadas y resultados con inventarios incompatibles.
   Rechazar marcadores de otro run, intento o SHA.
 - Limitar cada archivo observado a 256 KiB y la observacion a 512
-  modulos. Los archivos de plan y resultado son datos sin autoridad
+  modulos y cada identificador de modulo a 160 caracteres ASCII. El resumen
+publicado ocupa como maximo 192 KiB. Los archivos de plan y resultado son datos sin autoridad
   para aprobar. Publicar solo metadatos e identificadores de modulo
   acotados, sin IDs de casos, rutas, variables, stdout o stderr.
 - El artefacto es un archivo nuevo con salida fija. La recoleccion no
@@ -94,7 +96,9 @@ salida state/modules y su lectura de solo lectura.
 Usar el lanzador y workers reales para interrumpir una suite con trabajo
 acabado y pendiente. Verificar el artefacto acotado del intento y controles
 de ausencia, alias, corrupcion, duplicidad y procedencia. Verificar las
-condiciones y los pasos efectivos del workflow y la marca del fixture.
+condiciones exactas y la subida fijada del workflow. El fixture productivo
+marca la copia antes de lanzar procesos y continua si la marca ya existe.
+La adaptacion del control previo usa la ruta canonica del temporal en Windows.
 
 ## Constraints
 

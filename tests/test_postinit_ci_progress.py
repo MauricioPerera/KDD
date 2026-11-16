@@ -1,5 +1,6 @@
 """Exercise the official timeout handoff without modifying its verdict."""
 import hashlib
+from inspect import unwrap
 import json
 import os
 from pathlib import Path
@@ -8,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import yaml
 
@@ -79,15 +81,42 @@ class HostedProgress(unittest.TestCase):
         self.assertNotEqual(self.mark().returncode, 0)
         self.assertEqual(self.marker.read_bytes(), recorded)
 
-    def test_marker_from_other_attempt_or_sha_cannot_supply_evidence(self):
+    def observed_plan(self, name="test_ci_observed"):
+        directory = self.private / "kdd-suite-observed"
+        directory.mkdir(exist_ok=True)
+        destination = directory / "plan-0.json"
+        worker.write_plan(destination, self.project / "tests", name)
+        return destination
+
+    def test_stale_run_attempt_or_sha_cannot_supply_otherwise_valid_evidence(self):
         self.require_marker()
-        for key, different in (("GITHUB_RUN_ATTEMPT", "4"), ("GITHUB_SHA", "c"*40)):
-            with self.subTest(key=key):
-                original = self.env[key]
-                self.env[key] = different
+        self.observed_plan()
+        declared = self.collect("partial")
+        self.assertEqual([entry["name"] for entry in declared["modules"]], ["test_ci_observed"])
+        self.output.unlink()
+        for key, different in (("GITHUB_RUN_ID", "4322"), ("GITHUB_RUN_ATTEMPT", "4"),
+                               ("GITHUB_SHA", "c"*40)):
+            with self.subTest(key=key), patch.dict(self.env, {key: different}):
                 self.collect("inconclusive")
                 self.output.unlink()
-                self.env[key] = original
+
+    def test_marker_hardlink_cannot_redirect_the_collector(self):
+        self.require_marker()
+        self.observed_plan()
+        external = self.area / "marker-canary.json"
+        self.marker.rename(external)
+        expected = external.read_bytes()
+        os.link(external, self.marker)
+        self.collect("inconclusive")
+        self.assertEqual(external.read_bytes(), expected)
+
+    def test_unsafe_module_name_is_rejected_before_publication(self):
+        self.require_marker()
+        for name in ("../outside", "test_" + "x"*156):
+            with self.subTest(length=len(name)):
+                self.observed_plan(name)
+                self.collect("inconclusive")
+                self.output.unlink()
 
     def test_collect_does_not_overwrite_existing_destination(self):
         data = b"Keep an unrelated existing artifact."
@@ -125,6 +154,7 @@ class HostedProgress(unittest.TestCase):
         final = self.area / "full-report.json"
         worker.TimeoutObservation.interrupt_workers(self, scripts, tests, final)
         self.assertFalse(final.exists())
+        self.assertTrue((tests / "test_fixture_01.pid").is_file(), "The slow worker did not start")
         report = self.collect("partial")
         self.assertEqual({row["name"]: row["phase"] for row in report["modules"]},
                          {"test_fixture_00": "completed", "test_fixture_01": "incomplete"})
@@ -136,30 +166,102 @@ class HostedProgress(unittest.TestCase):
         self.assertNotIn(str(self.project).replace("\\", "\\\\"), encoded)
 
 
+    def test_real_init_fixture_marks_the_exact_copy_before_spawning_post_init(self):
+        if not (ROOT / "tests/test_init_project.py").is_file():
+            self.skipTest("Bootstrap removes its outer integration oracle from the initialized copy")
+        from tests import test_init_project as bootstrap
+
+        scripts = self.project / "scripts"
+        scripts.mkdir()
+        for name in worker.SCRIPTS:
+            shutil.copyfile(ROOT / "scripts" / name, scripts / name)
+        for name in ("validate_contracts.py", "validate_okf.py", "validate_specs.py",
+                     "validate_changelog.py", "validate_completion.py"):
+            (scripts / name).write_text('print("Summary: PASS=0 FAIL=0 SKIP=0")\n', encoding="utf-8")
+        tests = self.project / "tests"
+        (tests / "test_fixture.py").write_text(
+            "import unittest\nclass Probe(unittest.TestCase):\n"
+            "    def test_completed(self):\n        self.assertTrue(True)\n", encoding="utf-8")
+        fixture = bootstrap.TestInitProject()
+        fixture.repo = str(self.project)
+        original_run = bootstrap._run
+        body = unwrap(bootstrap.TestInitProject.test_gates_verdes_post_apply_en_copia)
+
+        for occupied in (False, True):
+            with self.subTest(marker_exists=occupied):
+                if self.marker.exists():
+                    self.marker.unlink()
+                sentinel = b"Do not overwrite a pre-existing diagnostic."
+                if occupied:
+                    self.marker.write_bytes(sentinel)
+                (tests / "test_init_project.py").write_text("# outer recursion guard\n", encoding="utf-8")
+                launched = []
+
+                def call(arguments, cwd):
+                    if arguments[0] == "scripts/init_post_apply_suite.py":
+                        self.assertTrue(self.marker.is_file(), "Marker must exist before worker launch")
+                        if occupied:
+                            self.assertEqual(self.marker.read_bytes(), sentinel)
+                        else:
+                            record = json.loads(self.marker.read_bytes())
+                            self.assertEqual(record["project"], self.project.name)
+                        self.assertEqual(Path(cwd).resolve(), self.project)
+                        launched.append(arguments[0])
+                    return original_run(arguments, cwd)
+
+                with (
+                    patch.dict(os.environ, dict(self.env, KDD_OBSERVE_POSTINIT="1")),
+                    patch.object(tempfile, "tempdir", str(self.private)),
+                    patch.object(bootstrap, "_copy_repo"),
+                    patch.object(bootstrap, "_run_cli", return_value=subprocess.CompletedProcess([], 0)),
+                    patch.object(bootstrap, "_run", side_effect=call),
+                ):
+                    try:
+                        body(fixture)
+                    except ImportError as error:
+                        self.fail(str(error))
+                self.assertEqual(launched, ["scripts/init_post_apply_suite.py"])
+
+
 class ProgressWorkflow(unittest.TestCase):
     def setUp(self):
         contents = (ROOT / ".github/workflows/validate.yml").read_text(encoding="utf-8")
-        self.steps = yaml.safe_load(contents)["jobs"]["validate"]["steps"]
+        self.job = yaml.safe_load(contents)["jobs"]["validate"]
+        self.steps = self.job["steps"]
 
     def step(self, key, value):
         matches = [step for step in self.steps if step.get(key) == value]
         self.assertEqual(len(matches), 1, value)
         return matches[0]
 
-    def require_main_windows(self, condition):
-        for boundary in ("matrix.os == 'windows-latest'", "github.event_name == 'push'",
-                         "github.ref == 'refs/heads/main'", "github.repository == 'MauricioPerera/KDD'",
-                         "!inputs.reusable_execution"):
-            self.assertIn(boundary, condition)
+    WINDOWS_MAIN = ("github.repository == 'MauricioPerera/KDD' && "
+                    "matrix.os == 'windows-latest' && !inputs.reusable_execution && "
+                    "github.event_name == 'push' && github.ref == 'refs/heads/main' && "
+                    "github.workflow_ref == 'MauricioPerera/KDD/.github/workflows/validate.yml@refs/heads/main'")
 
     def test_only_native_windows_main_commands_activate_the_marker(self):
         command = self.step("name", "Run each contract's test_command")
         condition = command.get("env", {}).get("KDD_OBSERVE_POSTINIT", "")
-        self.require_main_windows(condition)
-        self.assertIn("'1'", condition)
-        self.assertIn("--timeout 600", command["run"])
+        self.assertEqual(" ".join(condition.split()), "${{ " + self.WINDOWS_MAIN + " && '1' || '' }}")
+        self.assertEqual(command["run"], (
+            'python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" commands --repo-root . '
+            '--contracts-dir "$KDD_CONTRACTS_DIR" --timeout 600 --deduplicate '
+            '--workers "$KDD_CONTRACT_WORKERS" --report-dir "$RUNNER_TEMP/kdd-command-reports" '
+            '--exclusive-commands-json "$KDD_EXCLUSIVE_CONTRACT_COMMANDS"'
+        ))
         self.assertNotIn("continue-on-error", command)
 
+    def test_both_suites_keep_matrix_and_first_pass_coverage(self):
+        self.assertEqual(self.job["strategy"]["matrix"]["os"], ["ubuntu-latest", "windows-latest"])
+        first = self.step("name", "Run unit tests (1/2)")
+        second = self.step("name", "Run unit tests (2/2)")
+        for step in first, second:
+            self.assertNotIn("if", step)
+            self.assertNotIn("continue-on-error", step)
+            self.assertEqual(step["env"]["KDD_SKIP_INIT_POST_APPLY_SUITE"], "1")
+        self.assertEqual(first["run"], second["run"])
+        self.assertIn("coverage.ini", first["env"]["COVERAGE_PROCESS_START"])
+        self.assertNotIn("COVERAGE_PROCESS_START", second["env"])
 
     def test_output_distinguishes_real_timeout_from_other_results(self):
         fixture = command_timing.CommandTiming()
@@ -199,13 +301,15 @@ class ProgressWorkflow(unittest.TestCase):
         self.assertEqual(timing.get("id"), "init-command-timing")
         observe = self.step("id", "postinit-observation")
         upload = self.step("name", "Upload Windows post-init progress")
-        self.require_main_windows(observe["if"])
-        self.assertIn("always()", observe["if"])
-        self.assertIn("steps.init-command-timing.outputs.init_timed_out == 'true'", observe["if"])
+        self.assertEqual(" ".join(observe["if"].split()), "${{ always() && " + self.WINDOWS_MAIN
+                         + " && steps.init-command-timing.outputs.init_timed_out == 'true' }}")
         self.assertEqual(observe["run"].strip(),
                          "python -I scripts/postinit_timeout_observation.py --ci-output")
-        self.assertIn("always()", upload["if"])
-        self.assertIn("steps.postinit-observation.outcome == 'success'", upload["if"])
+        self.assertEqual(" ".join(upload["if"].split()),
+                         "${{ always() && steps.postinit-observation.outcome == 'success' }}")
+        self.assertEqual(upload["uses"], "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9")
+        self.assertEqual(upload["with"]["if-no-files-found"], "error")
+        self.assertIn(upload["with"].get("overwrite"), (None, False))
         self.assertEqual(upload["with"]["path"], "${{ runner.temp }}/kdd-postinit-progress.json")
         self.assertEqual(upload["with"]["name"],
                          "kdd-postinit-progress-${{ github.run_id }}-${{ github.run_attempt }}-windows-latest")

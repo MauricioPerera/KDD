@@ -41,7 +41,7 @@ class TimeoutObservation(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix="kdd-partial-timeout-test-")
         self.addCleanup(temporary.cleanup)
-        self.area = Path(temporary.name)
+        self.area = Path(temporary.name).resolve()
         self.private = self.area / "private"
         self.private.mkdir()
         self.project = Path(tempfile.mkdtemp(dir=self.private))
