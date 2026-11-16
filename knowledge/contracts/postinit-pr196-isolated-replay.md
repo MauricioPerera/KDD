@@ -14,7 +14,7 @@ budget:
   nesting_max: 4
   params_max: 4
 tests: tests/test_postinit_pr196_replay.py
-tests_sha256: '0b8e2181dec7ba7f6a69eb9b12e54a160c10a2bf6eff712922cb88a5ef478f9e'
+tests_sha256: '1c0e5641206a4e05fb4f371597767cd9304c32e6e954ca450761976f007aad21'
 oracle_files: ['tests/test_postinit_pr196_replay.py', 'tests/test_postinit_timeout_observation.py', 'tests/test_fixture_preparation.py', 'scripts/trusted_ci.py']
 touch_only: ['.github/diagnostics/postinit_pr196_replay.py', '.github/workflows/postinit-pr196-replay.yml']
 deps_allowed: ['stdlib', 'Git', 'GitHub Actions']

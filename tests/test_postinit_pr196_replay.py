@@ -266,6 +266,14 @@ class RealReplay(unittest.TestCase):
 
 
 class ReplayWorkflow(unittest.TestCase):
+    def test_production_replay_pins_all_reviewed_identities(self):
+        self.assertEqual(probe.SOURCE_SHA, SOURCE)
+        self.assertEqual(probe.SOURCE_TREE, "71e569b721d4f7785c3b8159a8befcdc06eaceed")
+        self.assertEqual(probe.RUNTIME_SHA, RUNTIME)
+        self.assertEqual(probe.BASELINE_SHA, "47afa8d45e6139e4ce8939fd4e8f07d65f85f7cb")
+        self.assertEqual(probe.INIT_COMMAND, INIT)
+        self.assertEqual(probe.replay.__defaults__, (600,))
+
     def test_workflow_pins_replay_to_read_only_isolated_branch(self):
         path = ROOT / ".github/workflows/postinit-pr196-replay.yml"
         self.assertTrue(path.is_file())
@@ -283,9 +291,18 @@ class ReplayWorkflow(unittest.TestCase):
         self.assertNotEqual(control["path"], measured["path"])
         self.assertEqual(job["defaults"]["run"]["working-directory"], measured["path"])
         self.assertEqual(job["env"]["KDD_TRUSTED_RUNTIME_REF"], RUNTIME)
+        for key in ("KDD_APPROVED_BASELINE_REF", "KDD_ACCEPTANCE_APPROVED_REF"):
+            self.assertEqual(job["env"][key], probe.BASELINE_SHA)
+        for action, version in (("setup-python", "3.11"), ("setup-node", "24")):
+            setup, = [step for step in job["steps"]
+                      if step.get("uses","").startswith(f"actions/{action}@")]
+            self.assertEqual(setup["with"][action.removeprefix("setup-") + "-version"], version)
+            self.assertNotIn("if", setup)
         names = [step.get("name") for step in job["steps"]]
         operation = "Replay complete init command and collect after timeout"
+        self.assertEqual(names.count(operation), 1)
         target = job["steps"][names.index(operation)]
+        self.assertNotIn("if", target)
         self.assertEqual(target["shell"], "bash")
         self.assertEqual(target["run"].strip(), "python -I ../control/.github/diagnostics/"
                          "postinit_pr196_replay.py --source . --bundle " + '"$KDD_TRUSTED_BUNDLE"')
@@ -295,6 +312,14 @@ class ReplayWorkflow(unittest.TestCase):
                       "Prepare pinned MCP SDK environment", "Run required MCP SDK protocol smoke",
                       "Prepare native Windows test temp", "Build and validate Pages for PR"):
             self.assertLess(names.index(setup), names.index(operation))
+        native_job = yaml.safe_load((ROOT / ".github/workflows/validate.yml").read_text(
+            encoding="utf-8"))["jobs"]["validate"]
+        official = {step.get("name"): step for step in native_job["steps"]}
+        observed = {step.get("name"): step for step in job["steps"]}
+        for setup in ("Select native Git on Windows", "Materialize reviewed isolated CI runtime",
+                      "Install pinned context compatibility dependencies", "Install pinned workflow checker",
+                      "Prepare pinned MCP SDK environment", "Prepare native Windows test temp"):
+            self.assertEqual(observed[setup]["run"], official[setup]["run"])
         uploads = [step for step in job["steps"] if step.get("uses","").startswith("actions/upload-artifact@")]
         upload, = uploads
         self.assertEqual(upload["if"], "${{ always() }}")
