@@ -29,7 +29,8 @@ class Rejected(ValueError):
 
 
 def git(root, *args):
-    result = subprocess.run(['git', '--no-replace-objects', '-C', str(root), *args],
+    result = subprocess.run(['git', '--no-replace-objects', '--no-optional-locks',
+                             '-C', str(root), *args],
                             capture_output=True, timeout=30, check=False)
     if result.returncode:
         raise Rejected('Git operation failed: ' + result.stderr.decode('utf-8', 'replace').strip())
@@ -266,17 +267,70 @@ def normalized(content):
     return content.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
 
 
-def changed_paths(root, commit):
-    names = set()
-    commands = [
-        ('diff', '--no-ext-diff', '--no-renames', '--name-only', '-z', commit, '--'),
-        ('diff', '--no-ext-diff', '--no-renames', '--name-only', '-z', '--cached', commit, '--'),
-        ('diff', '--no-ext-diff', '--no-renames', '--name-only', '-z', '--'),
-        ('ls-files', '--others', '--exclude-standard', '-z'),
-    ]
-    for command in commands:
-        names.update(p.decode('utf-8') for p in git(root, *command).split(b'\x00') if p)
-    return names
+def _committed_changes(root, commit):
+    records = git(root, 'diff', '--raw', '-z', '--no-abbrev', '--no-ext-diff',
+                  '--no-renames', '--ignore-submodules=none', commit, 'HEAD', '--').split(b'\0')[:-1]
+    return {path.decode('utf-8'): header[1:].split()
+            for header, path in zip(records[::2], records[1::2])}
+
+
+def _marked_entries(root):
+    entries = git(root, 'ls-files', '-v', '--stage', '-z').split(b'\0')
+    for entry in entries[:-1]:
+        if entry[:1] not in (b'h', b'S', b's'):
+            continue
+        header, name = entry.split(b'\t', 1)
+        _, mode, oid, stage = header.split()
+        name = name.decode('utf-8')
+        if stage != b'0':
+            raise Rejected('Cannot verify marked index entry: ' + name)
+        yield name, mode, oid
+
+
+def _marked_file_changed(root, entry, filemode):
+    name, mode, expected = entry
+    path = safe_path(root, name)
+    try:
+        info = path.lstat()
+    except (FileNotFoundError, NotADirectoryError):
+        return True
+    if (not stat.S_ISREG(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400
+            or mode not in (b'100644', b'100755')):
+        raise Rejected('Cannot verify marked file type: ' + name)
+    executable = bool(info.st_mode & stat.S_IXUSR)
+    if filemode and executable != (mode == b'100755'):
+        return True
+    # Git applies its built-in conversions, including text and CRLF. An external
+    # clean filter can execute arbitrary code during this extra inspection.
+    attributes = git(root, 'check-attr', '-z', 'filter', '--', name).split(b'\0')
+    if attributes[2] not in (b'unspecified', b'unset'):
+        raise Rejected('Cannot verify marked file with a clean filter: ' + name)
+    return git(root, 'hash-object', '--path=' + name, '--', name).strip() != expected
+
+
+def _marked_changes(root):
+    entries = list(_marked_entries(root))
+    if not entries:
+        return set()
+    filemode = git(root, 'config', '--type=bool', '--default=true', 'core.filemode').strip() == b'true'
+    return {entry[0] for entry in entries if _marked_file_changed(root, entry, filemode)}
+
+
+def _uncommitted_changes(root):
+    # Unlike porcelain diff's auto-refresh, status with no optional locks can
+    # compare stale stat entries without updating the project's index on disk.
+    # Its staged changes are relative to HEAD; the union with the committed
+    # diff covers staged differences relative to the approved commit as well.
+    status = git(root, 'status', '--porcelain=v1', '-z', '--no-renames',
+                 '--untracked-files=all', '--ignore-submodules=none')
+    names = {row[3:].decode('utf-8') for row in status.split(b'\0') if row}
+    return names | _marked_changes(root)
+
+
+def changed_paths(root, commit, *, committed=None):
+    if committed is None:
+        committed = _committed_changes(root, commit)
+    return committed.keys() | _uncommitted_changes(root)
 
 
 _TASK_AUDIT = """import json,sys
@@ -403,6 +457,20 @@ def _generated_integrity(root, commit, policy, approved, cache):
     return set(artifacts), binary
 
 
+def _check_committed_protected(root, committed, approved, exact_paths):
+    # Raw tree entries retain type and mode even for same-content changes.
+    changed = {}
+    for name in approved.keys() & committed.keys():
+        old_mode, new_mode, _, oid, _ = committed[name]
+        if old_mode != new_mode or new_mode not in (b'100644', b'100755'):
+            raise Rejected('Protected committed mode changed: ' + name)
+        changed[name] = oid.decode('ascii')
+    contents = _objects(root, changed.values())
+    for name, oid in changed.items():
+        if not oracle_equal(contents[oid], approved[name], name in exact_paths):
+            raise Rejected('Protected file changed: ' + name + ' (committed HEAD)')
+
+
 def _protected_integrity(root, approved, exact_paths=()):
     indices = _objects(root, [':' + name for name in approved], allow_missing=True)
     for name, content in approved.items():
@@ -422,9 +490,12 @@ def integrity(root, commit, policy, approved, cache=None):
             safe_path(root, name)
     cache = {} if cache is None else cache
     generated, binary = _generated_integrity(root, commit, policy, approved, cache)
-    _protected_integrity(root, approved, binary.union(cache.get('oracle_exact_paths', ())))
+    exact_paths = binary.union(cache.get('oracle_exact_paths', ()))
+    _protected_integrity(root, approved, exact_paths)
+    committed = _committed_changes(root, commit)
+    _check_committed_protected(root, committed, approved, exact_paths)
     allowed = set(policy['implementation']) | set(policy['pm']) | generated
-    for name in changed_paths(root, commit):
+    for name in changed_paths(root, commit, committed=committed):
         safe_path(root, name)
         if name not in allowed and name not in approved:
             raise Rejected('Outside approved perimeter: ' + name)
