@@ -151,7 +151,10 @@ class WorkflowGuarantees(unittest.TestCase):
             self.assertIn(command, step)
         self.assertIn('run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" commands --repo-root . --contracts-dir "$KDD_CONTRACTS_DIR" --timeout 600 --deduplicate', text)
         self.assertIn('- name: Check approved contract and oracle baseline', text)
-        self.assertEqual(text.count("python-version: '3.11'"), 2)
+        original, separator, shards = text.partition('\n  postinit_windows:\n')
+        self.assertEqual(original.count("python-version: '3.11'"), 2)
+        self.assertTrue(separator)
+        self.assertEqual(shards.count("python-version: '3.11'"), 1)
         self.assertIn('run: npm test', text)
         self.assertNotIn('continue-on-error:', text)
 

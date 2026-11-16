@@ -11,17 +11,19 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 import yaml
 
 from scripts import ci_postinit_shards as shards
+from scripts import init_project as bootstrap
 
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = 'tools/ci/postinit-windows-shards.json'
 RUNNER_FILES = ('run_test_suite.py', 'process_tree.py', 'ci_postinit_shards.py',
-                'init_post_apply_suite.py')
+                'init_post_apply_suite.py', 'init_project.py', 'bootstrap_transaction.py')
 MODULES = ('test_alpha', 'test_beta', 'test_delta', 'test_gamma')
 GROUPS = (('test_alpha', 'test_delta'), ('test_beta', 'test_gamma'))
 IDS = [[name + '.Canary.test_body' for name in group] for group in GROUPS]
@@ -29,9 +31,33 @@ IDENTITY = dict(run_id='314', run_attempt='2', head_sha='a' * 40, tree='b' * 40,
                 runtime_ref='c' * 40, jobs_head_sha='d' * 40)
 NATIVE_EVENTS = (
     "github.repository == 'MauricioPerera/KDD' && !inputs.reusable_execution && "
+    "github.workflow_ref == format('{0}/.github/workflows/validate.yml@{1}', github.repository, github.ref) && "
     "(github.event_name == 'pull_request' || "
     "(github.event_name == 'push' && github.ref == 'refs/heads/main'))"
 )
+GATES = 'TestInitProject.test_gates_verdes_post_apply_en_copia'
+API_RUN = 'repos/MauricioPerera/KDD/actions/runs/314'
+API_JOB_LIST = API_RUN + '/attempts/2/jobs?per_page=100'
+OUTER_FIXTURE = """import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+
+class TestInitProject(unittest.TestCase):
+    def test_gates_verdes_post_apply_en_copia(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / 'initialized'
+            shutil.copytree(Path.cwd(), target, ignore=shutil.ignore_patterns('.git', '__pycache__'))
+            subprocess.run([sys.executable, 'scripts/init_project.py', '--repo-dir', str(target),
+                            '--apply', '--repository', 'ExampleCo/Shop'], check=True)
+            self.assertFalse((target / 'src/hello.py').exists())
+            (target / 'tests/test_init_project.py').unlink()
+            subprocess.run([sys.executable, 'scripts/init_post_apply_suite.py', '--repo-root',
+                            str(target), '--report-json', str(target / 'suite.json')], check=True)
+"""
 
 
 def _profile(root, groups=GROUPS):
@@ -54,6 +80,26 @@ def _miniature(root):
             '        self.assertTrue(Path(__name__ + ".executed").is_file())\n',
             encoding='utf-8')
     _profile(root)
+
+
+def _template(root, leak_canary):
+    for name in bootstrap.MANIFEST + bootstrap.REQUIRED_AFTER_DELETE:
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b'')
+    workflow = ''.join(before for before, _ in bootstrap._PRODUCT_CI_REPLACEMENTS)
+    workflow += '      - name: Approve project quality (when configured)\n'
+    (root / '.github/workflows/validate.yml').write_text(workflow, encoding='utf-8')
+    (root / 'tests/test_init_project.py').write_text(OUTER_FIXTURE, encoding='utf-8')
+    path = root / 'tests/test_alpha.py'
+    with path.open('a', encoding='utf-8') as stream:
+        # Executed in actual worker imports, including the verifier's discovery.
+        stream.write('import os\n'
+                     'assert not any(os.environ.get(key) for key in '
+                     '("KDD_POSTINIT_SHARD", "KDD_POSTINIT_RAW_REPORT", "GH_TOKEN", '
+                     '"GITHUB_TOKEN", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH"))\n'
+                     'from pathlib import Path\n'
+                     f'Path({str(leak_canary)!r}).touch()\n')
 
 
 def _call(root, script, arguments, env=None):
@@ -129,6 +175,10 @@ class PostInitPartitionExecution(unittest.TestCase):
     def test_two_real_workers_reconcile_against_a_separate_full_run(self):
         other = self.project('p1')
         control = self.project('full')
+        reverse = (tuple(reversed(GROUPS[0])), GROUPS[1])
+        _profile(self.root, reverse)
+        _profile(other, reverse)
+        _profile(control, reverse)
         result = subprocess.run(
             [sys.executable, '-X', 'utf8', str(control / 'scripts/run_test_suite.py'),
              '--workers', '1', '--report-json', 'report.json'],
@@ -149,6 +199,7 @@ class PostInitPartitionExecution(unittest.TestCase):
             self.assertEqual({path.stem for path in root.glob('*.executed')}, set(GROUPS[index]))
             self.assertTrue(all(record['pid'] and record['pid'] != os.getpid()
                                 for record in shard['modules']))
+            self.assertEqual([record['module'] for record in shard['modules']], list(reverse[index]))
             receipts.append(_receipt(index, report=shard))
         independent = self.discover(self.project('discovery'))
         self.assertEqual(sorted(sum(independent, [])), complete['executed_ids'])
@@ -319,6 +370,139 @@ class CommonDeadlineVerification(unittest.TestCase):
             self.check()
 
 
+class PostInitReceiptIntegration(unittest.TestCase):
+    def setUp(self):
+        area = self.enterContext(tempfile.TemporaryDirectory(prefix='kdd-shard-job-'))
+        self.area = Path(area).resolve()
+        self.root = self.area / 'checkout'
+        _miniature(self.root)
+        self.canary = self.area / 'import-canary'
+        _template(self.root, self.canary)
+        self.env = {name: value for name, value in os.environ.items()
+                    if not name.startswith(('GIT_', 'GITHUB_', 'KDD_POSTINIT_'))}
+        self.env.update(GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull)
+        self.git('init', '-q')
+        self.git('add', '-A')
+        self.git('commit', '-qm', 'Fixture for independent post-init checkout')
+        self.identity = dict(IDENTITY, head_sha=self.git('rev-parse', 'HEAD'),
+                             tree=self.git('rev-parse', 'HEAD^{tree}'))
+        self.env.update(GITHUB_RUN_ID='314', GITHUB_RUN_ATTEMPT='2',
+                        GITHUB_SHA=self.identity['head_sha'], GITHUB_WORKSPACE=str(self.root),
+                        RUNNER_TEMP=str(self.area), KDD_TRUSTED_RUNTIME_REF=IDENTITY['runtime_ref'],
+                        KDD_TRUSTED_BUNDLE=str(self.root / 'scripts'))
+
+    def git(self, *args):
+        result = subprocess.run(
+            ['git', '-c', 'user.name=KDD Fixture', '-c', 'user.email=kdd@example.test',
+             '-c', 'core.autocrlf=false', '-c', 'commit.gpgsign=false', *args],
+            cwd=self.root, env=self.env, capture_output=True, encoding='utf-8', timeout=30)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result.stdout.strip()
+
+    def execute(self, index):
+        destination = self.area / ('receipt-{}.json'.format(index))
+        result = _call(self.root, 'ci_postinit_shards.py',
+                       ['run', '--repo-root', str(self.root), '--shard', str(index),
+                        '--receipt', str(destination)], self.env)
+        return result, destination
+
+    def replay(self, receipts, corrupt=None):
+        responses = {API_JOB_LIST: dict(total_count=2, jobs=[_job(0, 0, 401), _job(1, 5, 408)])}
+        for index, receipt in enumerate(receipts):
+            name = 'kdd-postinit-shard-314-2-{}'.format(index)
+            archive = _archive([('receipt.json', receipt.read_bytes())])
+            rows = [dict(name=name, id=821 + index, expired=False,
+                         digest='sha256:' + hashlib.sha256(archive).hexdigest())]
+            responses[API_RUN + '/artifacts?name=' + name + '&per_page=100'] = dict(
+                total_count=len(rows), artifacts=rows)
+            responses['repos/MauricioPerera/KDD/actions/artifacts/{}/zip'.format(821 + index)] = archive
+        if corrupt is not None:
+            corrupt(responses)
+        def request(path):
+            self.assertIn(path, responses)
+            response = responses[path]
+            return response if isinstance(response, bytes) else json.dumps(response).encode()
+        return request
+
+    def test_real_launcher_receipts_pass_independent_initialized_discovery(self):
+        receipts = []
+        for index in (0, 1):
+            result, receipt = self.execute(index)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            data = json.loads(receipt.read_bytes())
+            self.assertEqual(data['expected_ids'], IDS[index])
+            self.assertEqual(data['head_sha'], self.identity['head_sha'])
+            self.assertEqual(data['tree'], self.identity['tree'])
+            self.assertEqual(data['inventory'], IDS)
+            receipts.append(receipt)
+        self.canary.unlink()
+        channels = {name: 'synthetic-value' for name in (
+            'GH_TOKEN', 'GITHUB_TOKEN', 'GITHUB_ENV', 'GITHUB_OUTPUT', 'GITHUB_PATH')}
+        with patch.dict(os.environ, channels):
+            try:
+                verdict = shards.collect(self.root, self.identity, self.replay(receipts))
+            except NotImplementedError as error:
+                self.fail(str(error))
+        self.assertEqual(verdict['wall_bound_seconds'], 409)
+        self.assertTrue(self.canary.is_file(), 'the independent discovery did not run')
+        self.assertTrue((self.root / 'src/hello.py').is_file())
+
+    def test_green_outer_fixture_cannot_publish_without_a_real_report(self):
+        (self.root / 'tests/test_init_project.py').write_text(
+            'import unittest\nclass TestInitProject(unittest.TestCase):\n'
+            '    def test_gates_verdes_post_apply_en_copia(self): self.assertTrue(True)\n',
+            encoding='utf-8')
+        result, destination = self.execute(0)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('report', result.stderr)
+        self.assertFalse(destination.exists())
+
+    def test_fixture_omissions_require_backing_worker_outcomes(self):
+        path = self.root / 'tests/test_init_project.py'
+        path.write_text(OUTER_FIXTURE + '''
+            import json
+            path = Path(os.environ['KDD_POSTINIT_RAW_REPORT'])
+            report = json.loads(path.read_bytes())
+            report.update(executed_ids=[], tests_run=0,
+                          fixture_omitted_ids=report['expected_ids'])
+            path.write_text(json.dumps(report), encoding='utf-8')
+''', encoding='utf-8')
+        result, destination = self.execute(0)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('fixture omission', result.stderr)
+        self.assertFalse(destination.exists())
+
+    def test_collect_binds_archive_digest_and_rejects_truncated_lists(self):
+        receipts = [self.area / ('candidate-{}.json'.format(i)) for i in (0, 1)]
+        for index, path in enumerate(receipts):
+            path.write_text(json.dumps(dict(_receipt(index),
+                head_sha=self.identity['head_sha'], tree=self.identity['tree'])), encoding='utf-8')
+        edits = (
+            ('digest', lambda data: data.update({
+                'repos/MauricioPerera/KDD/actions/artifacts/821/zip': b'altered'})),
+            ('list|count', lambda data: data[API_JOB_LIST].update(total_count=3)),
+        )
+        for message, edit in edits:
+            with self.subTest(message=message):
+                try:
+                    with self.assertRaisesRegex(ValueError, message):
+                        shards.collect(self.root, self.identity, self.replay(receipts, edit))
+                except NotImplementedError as error:
+                    self.fail(str(error))
+
+    def test_collect_rejects_two_matching_receipts_with_incomplete_discovery(self):
+        receipts = [self.area / ('candidate-{}.json'.format(i)) for i in (0, 1)]
+        incomplete = [IDS[0][:1], IDS[1]]
+        for index, path in enumerate(receipts):
+            path.write_text(json.dumps(dict(_receipt(index, incomplete),
+                head_sha=self.identity['head_sha'], tree=self.identity['tree'])), encoding='utf-8')
+        try:
+            with self.assertRaisesRegex(ValueError, 'inventory'):
+                shards.collect(self.root, self.identity, self.replay(receipts))
+        except NotImplementedError as error:
+            self.fail(str(error))
+
+
 class WindowsPostInitWorkflow(unittest.TestCase):
     def setUp(self):
         self.workflow = yaml.safe_load(
@@ -333,7 +517,8 @@ class WindowsPostInitWorkflow(unittest.TestCase):
         self.assertEqual(condition, '${{ ' + native + " && '1' || '' }}")
         verify = self.steps.get('Verify Windows post-init partitions', {})
         self.assertEqual(' '.join(verify.get('if', '').split()), '${{ ' + native + ' }}')
-        self.assertIn('ci_postinit_shards.py collect --repo-root .', verify['run'])
+        self.assertIn('collect', verify['run'])
+        self.assertEqual(verify['env']['GH_TOKEN'], '${{ github.token }}')
         self.assertNotIn('continue-on-error', verify)
         order = list(self.steps)
         self.assertLess(order.index('Run unit tests (2/2)'), order.index(verify['name']))
@@ -350,7 +535,7 @@ class WindowsPostInitWorkflow(unittest.TestCase):
         self.assertIs(job['strategy']['fail-fast'], False)
         by_name = {step.get('name'): step for step in job['steps']}
         run = by_name['Run post-init shard']
-        self.assertIn('ci_postinit_shards.py run', run['run'])
+        self.assertIn('run', run['run'])
         self.assertNotIn('continue-on-error', run)
         upload = by_name['Upload post-init shard receipt']['with']
         self.assertEqual(upload['name'],
@@ -359,9 +544,35 @@ class WindowsPostInitWorkflow(unittest.TestCase):
         self.assertIs(upload['overwrite'], False)
         self.assertEqual(self.validate['strategy']['matrix']['os'], ['ubuntu-latest', 'windows-latest'])
         first, second = (self.steps['Run unit tests (1/2)'], self.steps['Run unit tests (2/2)'])
-        self.assertEqual(first['run'], second['run'])
-        self.assertIn('COVERAGE_PROCESS_START', first['env'])
+        for step in (first, second):
+            self.assertEqual(step['run'],
+                'python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . '
+                '--start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" '
+                '--report-dir "$RUNNER_TEMP/kdd-suite-reports"')
+            self.assertNotIn('if', step)
+            self.assertNotIn('continue-on-error', step)
+            self.assertEqual(step['env']['KDD_SKIP_INIT_POST_APPLY_SUITE'], '1')
+        self.assertEqual(first['env']['COVERAGE_PROCESS_START'],
+            "${{ (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD') && "
+            "format('{0}/kdd-python-coverage-{1}-{2}/coverage.ini', runner.temp, github.run_id, "
+            "github.run_attempt) || '' }}")
         self.assertNotIn('COVERAGE_PROCESS_START', second['env'])
+
+    def test_protected_workflow_verifies_driver_bytes_before_executing(self):
+        verify = self.steps.get('Verify Windows post-init partitions', {})
+        pin = verify.get('env', {}).get('KDD_POSTINIT_DRIVER_SHA256')
+        self.assertIsInstance(pin, str)
+        driver = subprocess.check_output(['git', '--no-replace-objects', 'show',
+            'HEAD:scripts/ci_postinit_shards.py'], cwd=ROOT) if (ROOT / '.git').exists() else (
+            ROOT / 'scripts/ci_postinit_shards.py').read_bytes()
+        self.assertEqual(pin, hashlib.sha256(driver.replace(b'\r\n', b'\n')).hexdigest())
+        shard = next(step for step in self.workflow['jobs']['postinit_windows']['steps']
+                     if step.get('name') == 'Run post-init shard')
+        self.assertEqual(shard['env']['KDD_POSTINIT_DRIVER_SHA256'], pin)
+        self.assertEqual(verify['shell'], 'python -I {0}')
+        for required in ('hashlib.sha256', 'KDD_POSTINIT_DRIVER_SHA256', 'RUNNER_TEMP'):
+            self.assertIn(required, verify['run'])
+        self.assertLess(verify['run'].index('hashlib.sha256'), verify['run'].index('subprocess.run'))
 
 
 class ReceiptArchive(unittest.TestCase):

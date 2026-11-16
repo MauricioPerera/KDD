@@ -12,7 +12,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: 'tests/test_ci_optimization.py'
-tests_sha256: '08cef80a0cb3e99a211e71047c2f83c0f8e56ff1a0bc9b5ac4fb5f9959ac3138'
+tests_sha256: '9299f23597dfc0450c67b16487591956cab8fbaeabe0d41018112d85223288b2'
 touch_only: ['scripts/validate_test_commands.py', '.github/workflows/validate.yml']
 deps_allowed: []
 forbids: ['network', 'llm']
@@ -51,6 +51,9 @@ aserciones; solo se actualiza el comando esperado mediante baseline revisado.
   grupos por `run_id` y `run_attempt`, sin cancelacion en curso.
 
 ## Invariants
+
+La matriz auxiliar del [post-init Windows](postinit-windows-common-deadline.md)
+conserva Python 3.11 por separado de los dos jobs base.
 
 - Solo strings identicos se agrupan; no inferir equivalencia de argumentos,
   espacios o cobertura. La tabla vive en UNA llamada, sin cache persistente.

@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_pages_inventory_ci.py
-tests_sha256: '63fd48e338daf1cb4eb8bba366d66aacd9e5017b0740f95a8b32430a6c32139a'
+tests_sha256: 'dc04d4bfdd2486cd215831d2ee87ca546b7c2f48e3898496922356702e7e9dd8'
 touch_only: ['.github/workflows/deploy-pages.yml', '.github/workflows/validate.yml']
 deps_allowed: ['GitHub Actions', 'Python3.11', 'Node24', 'Git']
 forbids: ['llm']
@@ -32,8 +32,12 @@ y Download Windows CI inventory antes de Build and validate public bundle.
 El build recibe directorio de ambos manifests, intento y runtime explicitos.
 
 ## Invariants
+
+Los inventarios de Pages siguen saliendo de validate. La matriz auxiliar
+[post-init Windows](postinit-windows-common-deadline.md) entrega evidencia
+de bootstrap al mismo check obligatorio.
 Cumplir [procedencia, pins y permisos](../pages-ci-inventory.md). Mantener
-cuatro jobs, dos matrices Ubuntu/Windows, dos comandos identicos de suite,
+cuatro jobs base, dos matrices Ubuntu/Windows, dos comandos identicos de suite,
 Python3.11, Node24 y los 19 gates. Sin cambios a trusted-pr-gate, runtime o
 protecciones; sin permissions write adicionales ni despliegue desde PR.
 El unico permiso nuevo en deploy es actions:read. Descargar manifests JSON,

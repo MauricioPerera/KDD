@@ -15,8 +15,8 @@ budget:
   nesting_max: 4
   params_max: 4
 tests: tests/test_ci_postinit_shards.py
-tests_sha256: 'f1aad5d8adae541136b2a265d64463c81aaff7debcea6664b1ed998bfe264c80'
-oracle_files: ['tests/test_ci_postinit_shards.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py', 'scripts/init_project.py', 'scripts/run_test_suite.py', 'scripts/process_tree.py', 'scripts/validate_contracts.py', 'scripts/validate_okf.py']
+tests_sha256: '96a1dc7471be71dc3d4c97a14a774c401f4ff3ece86c1f6e781eb228da22e659'
+oracle_files: ['tests/test_ci_postinit_shards.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py', 'scripts/init_project.py', 'scripts/bootstrap_transaction.py', 'scripts/run_test_suite.py', 'scripts/process_tree.py', 'scripts/validate_contracts.py', 'scripts/validate_okf.py']
 touch_only: ['.github/workflows/validate.yml', 'scripts/ci_postinit_shards.py']
 deps_allowed: ['stdlib', 'GitHub Actions']
 forbids: ['llm']
@@ -64,9 +64,22 @@ Salida 0 solo con evidencia completa dentro de la ventana.
 El paso usa `ci_postinit_shards.py collect --repo-root .`. El colector
 consulta unicamente el repositorio del workflow y el run/intento declarado,
 con espera acotada si el check existente alcanza el paso antes de los jobs.
-El token de lectura se usa para API y descarga; no se hereda al discovery.
+El workflow protegido fija el SHA-256 del driver como literal local de cada
+paso y ejecuta los bytes comprobados desde un temporal externo. El token de lectura solo se usa
+para API y descarga. El discovery se lanza por separado desde una copia de
+`git archive HEAD` con init real y sin el oraculo recursivo. No se le
+heredan tokens ni los archivos de escritura de comandos GitHub.
 El lector `read_receipt_archive(raw)` acepta una sola entrada regular
 `receipt.json` acotada a 1 MiB, con JSON estricto sin claves duplicadas.
+El colector consulta jobs y artifacts del run usando el intento y los dos
+nombres exactos. Rechaza listados incompletos, duplicados, expirados y
+descargas que no coinciden con el digest del artifact. La descarga usa el
+cliente GitHub CLI con sus redirecciones a URLs firmadas.
+
+`collect(root, identity, request)` permite reproducir la API con datos
+de prueba. `request` recibe rutas relativas de la API y devuelve bytes.
+La CLI real usa los mismos pasos y falla si no produce el veredicto
+completo. Fallar tambien si el discovery termina sin su inventario validado.
 
 Funcion verificable `verify(receipts, jobs, expected, identity)`.
 Receipts son dos documentos del esquema anterior. Jobs es la respuesta
@@ -119,8 +132,9 @@ local sirve para diseñar el reparto. El CI alojado confirma su resultado.
 
 ## Tests
 
-Ejecutar el verificador con resultados reales de dos procesos y tiempos
-GitHub representados como datos de prueba. Cubrir ids perdidos o repetidos,
+Ejecutar el verificador con recibos emitidos por dos procesos reales, una
+tercera copia con init y tiempos GitHub reproducidos por la API de prueba.
+Cubrir ids perdidos o repetidos,
 intent/versiones ajenos, jobs fallidos y desfase. Verificar en el YAML el
 alcance, dos jobs, descarga exacta, bloqueo de Pages y suites localizadas.
 Mantener el resultado de los dos timeouts y medir en GitHub el nuevo SHA.

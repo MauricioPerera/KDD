@@ -12,5 +12,9 @@ def read_receipt_archive(raw):
     raise NotImplementedError('receipt archive reader pending')
 
 
+def collect(root, identity, request):
+    raise NotImplementedError('hosted receipt collection pending')
+
+
 if __name__ == '__main__':
     raise SystemExit('post-init partition command pending')

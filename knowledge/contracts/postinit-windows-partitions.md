@@ -14,8 +14,8 @@ budget:
   nesting_max: 4
   params_max: 4
 tests: tests/test_ci_postinit_shards.py
-tests_sha256: 'f1aad5d8adae541136b2a265d64463c81aaff7debcea6664b1ed998bfe264c80'
-oracle_files: ['tests/test_ci_postinit_shards.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py', 'scripts/init_project.py', 'scripts/run_test_suite.py', 'scripts/process_tree.py', 'scripts/validate_contracts.py', 'scripts/validate_okf.py']
+tests_sha256: '96a1dc7471be71dc3d4c97a14a774c401f4ff3ece86c1f6e781eb228da22e659'
+oracle_files: ['tests/test_ci_postinit_shards.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py', 'scripts/init_project.py', 'scripts/bootstrap_transaction.py', 'scripts/run_test_suite.py', 'scripts/process_tree.py', 'scripts/validate_contracts.py', 'scripts/validate_okf.py']
 touch_only: ['scripts/ci_postinit_shards.py', 'scripts/init_post_apply_suite.py', 'tools/ci/postinit-windows-shards.json']
 deps_allowed: ['stdlib']
 forbids: ['llm']
@@ -58,10 +58,15 @@ coincidencia con expected_ids en la particion y reconciliacion de ejecutados
 y omisiones aplicables. Ante fallo, emitir el veredicto real de la suite.
 El reporte destino es nuevo y se escribe de forma exclusiva.
 
-Para el ensayo de pipeline, `run --shard 0|1` desde el checkout ejecuta el
+Para el pipeline, `run --repo-root DIR --shard 0|1 --receipt FILE` ejecuta el
 fixture completo de init con su contencion y timeout exterior de 600 s. La
 copia prepara sus mismos gates, elimina su oraculo externo para evitar
-recursion y exporta solo el reporte tipado al temporal del job. El job
+recursion y exporta el reporte tipado a la ruta privada nueva indicada por
+`KDD_POSTINIT_RAW_REPORT`. El launcher consume las dos marcas antes de
+ejecutar el discovery y los workers; estos no pueden heredarlas para su
+propio trabajo. El comando requiere el exito del fixture y un reporte
+valido segun el reconciliador completo, incluidas las causas de omisiones,
+antes de emitir el recibo compacto. El job
 publica el recibo bajo el nombre definido en el [contrato de verificacion](postinit-windows-common-deadline.md).
 
 ## Invariants
