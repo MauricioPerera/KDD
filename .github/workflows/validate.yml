@@ -175,9 +175,41 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python 3.11
+        id: postinit-python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
+
+      - name: Bind Windows post-init tools
+        id: postinit-tools
+        if: >-
+          ${{ matrix.os == 'windows-latest' && github.repository == 'MauricioPerera/KDD' &&
+          !inputs.reusable_execution && github.workflow_ref ==
+          format('{0}/.github/workflows/validate.yml@{1}', github.repository, github.ref) &&
+          (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref ==
+          'refs/heads/main')) }}
+        shell: C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoLogo -NoProfile -NonInteractive -Command "& $env:KDD_POSTINIT_PYTHON -I -X utf8 '{0}'; exit $LASTEXITCODE"
+        working-directory: ${{ runner.temp }}
+        env:
+          KDD_POSTINIT_PYTHON: ${{ steps.postinit-python.outputs.python-path }}
+        run: |
+          import os
+          from pathlib import Path
+          import shutil
+          root = Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          if Path.cwd().resolve().is_relative_to(root):
+              raise SystemExit('post-init tool capture requires an external directory')
+          paths = [Path(value) for value in os.environ['PATH'].split(os.pathsep)]
+          path = os.pathsep.join(str(folder) for folder in paths if folder.is_absolute()
+                               and not folder.resolve().is_relative_to(root))
+          git, gh = (Path(shutil.which(name, path=path)).resolve(strict=True) for name in ('git', 'gh'))
+          home = git.parent.parent
+          options = [home / layout / 'bin/git.exe' for layout in ('ucrt64', 'mingw64')]
+          git = next((candidate.resolve() for candidate in options if candidate.is_file()), git)
+          if any(executable.is_relative_to(root) for executable in (git, gh)):
+              raise SystemExit('post-init tools must be installed outside the checkout')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write(f'git={git}\ngh={gh}\npath={path}\n')
 
       - name: Select approved references
         shell: python
@@ -593,10 +625,23 @@ jobs:
 
       - name: Run each contract's test_command
         shell: bash
+        env:
+          KDD_SKIP_INIT_POST_APPLY_SUITE: >-
+            ${{ matrix.os == 'windows-latest' && github.repository == 'MauricioPerera/KDD' &&
+            !inputs.reusable_execution && github.workflow_ref ==
+            format('{0}/.github/workflows/validate.yml@{1}', github.repository, github.ref) &&
+            (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref ==
+            'refs/heads/main')) && '1' || '' }}
+          KDD_OBSERVE_POSTINIT: >-
+            ${{ github.repository == 'MauricioPerera/KDD' &&
+            matrix.os == 'windows-latest' && !inputs.reusable_execution &&
+            github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+            github.workflow_ref == 'MauricioPerera/KDD/.github/workflows/validate.yml@refs/heads/main' && '1' || '' }}
         # init-project also runs the post-initialization suite; allow slow Windows runners.
         run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" commands --repo-root . --contracts-dir "$KDD_CONTRACTS_DIR" --timeout 600 --deduplicate --workers "$KDD_CONTRACT_WORKERS" --report-dir "$RUNNER_TEMP/kdd-command-reports" --exclusive-commands-json "$KDD_EXCLUSIVE_CONTRACT_COMMANDS"
 
       - name: Report init command duration
+        id: init-command-timing
         if: ${{ always() && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
         shell: python
         run: |
@@ -635,6 +680,31 @@ jobs:
                          trusted_runtime_ref=runtime, contract=contract, duration_seconds=duration,
                          ok=ok, exit_code=code, error=error)
           print('KDD_INIT_TIMING ' + json.dumps(summary, allow_nan=False, sort_keys=True))
+          if output_path := os.environ.get('GITHUB_OUTPUT'):
+              with open(output_path, 'a', encoding='utf-8', newline='\n') as output:
+                  timed_out = not ok and error == 'timeout' and code is None
+                  output.write('init_timed_out=' + str(timed_out).lower() + '\n')
+
+      - name: Collect Windows post-init progress
+        id: postinit-observation
+        if: >-
+          ${{ always() && github.repository == 'MauricioPerera/KDD' &&
+          matrix.os == 'windows-latest' && !inputs.reusable_execution &&
+          github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+          github.workflow_ref == 'MauricioPerera/KDD/.github/workflows/validate.yml@refs/heads/main' &&
+          steps.init-command-timing.outputs.init_timed_out == 'true' }}
+        shell: bash
+        run: python -I scripts/postinit_timeout_observation.py --ci-output
+
+      - name: Upload Windows post-init progress
+        if: ${{ always() && steps.postinit-observation.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kdd-postinit-progress-${{ github.run_id }}-${{ github.run_attempt }}-windows-latest
+          path: ${{ runner.temp }}/kdd-postinit-progress.json
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 7
 
       - name: Scan for leaked secrets (src only — see knowledge/contracts/secret-scan-gate.md)
         shell: bash
@@ -686,6 +756,50 @@ jobs:
           if-no-files-found: error
           overwrite: false
           retention-days: 7
+
+      - name: Verify Windows post-init partitions
+        if: >-
+          ${{ matrix.os == 'windows-latest' && github.repository == 'MauricioPerera/KDD' &&
+          !inputs.reusable_execution && github.workflow_ref ==
+          format('{0}/.github/workflows/validate.yml@{1}', github.repository, github.ref) &&
+          (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref ==
+          'refs/heads/main')) }}
+        shell: C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoLogo -NoProfile -NonInteractive -Command "& $env:KDD_POSTINIT_PYTHON -I -X utf8 '{0}'; exit $LASTEXITCODE"
+        env:
+          KDD_POSTINIT_PYTHON: ${{ steps.postinit-python.outputs.python-path }}
+          KDD_POSTINIT_DRIVER_SHA256: '1b0fbea9cd310256f84c694b7d335602be10bc0377a29b007d919ddd62a7d05d'
+          KDD_POSTINIT_GIT: ${{ steps.postinit-tools.outputs.git }}
+          KDD_POSTINIT_GH: ${{ steps.postinit-tools.outputs.gh }}
+          KDD_POSTINIT_TOOL_PATH: ${{ steps.postinit-tools.outputs.path }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          import hashlib
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          import tempfile
+          base = Path(os.environ['RUNNER_TEMP']).resolve(strict=True)
+          if base.is_relative_to(Path.cwd().resolve()):
+              raise SystemExit('post-init driver needs an external temporary directory')
+          root = Path.cwd().resolve()
+          git = Path(os.environ['KDD_POSTINIT_GIT'])
+          if not git.is_absolute() or git.resolve().is_relative_to(root):
+              raise SystemExit('post-init requires the bound Git')
+          tool_env = {key: os.environ[key] for key in ('SYSTEMROOT', 'WINDIR', 'TMP', 'TEMP')
+                      if key in os.environ}
+          tool_env.update(PATH=os.environ['KDD_POSTINIT_TOOL_PATH'],
+                          GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM='1')
+          with tempfile.TemporaryDirectory(prefix='kdd-postinit-driver-', dir=base) as directory:
+              driver = subprocess.check_output([str(git), '-C', str(root), '--no-replace-objects',
+                                                'show', 'HEAD:scripts/ci_postinit_shards.py'],
+                                               cwd=directory, env=tool_env, timeout=30)
+              if hashlib.sha256(driver).hexdigest() != os.environ['KDD_POSTINIT_DRIVER_SHA256']:
+                  raise SystemExit('post-init driver differs from the reviewed digest')
+              path = Path(directory) / 'ci_postinit_shards.py'
+              path.write_bytes(driver)
+              result = subprocess.run([sys.executable, '-I', '-X', 'utf8', str(path), 'collect', '--repo-root', '.'])
+          raise SystemExit(result.returncode)
 
       - name: Export Pages CI inventory
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
@@ -815,3 +929,308 @@ jobs:
         working-directory: tools/kdd-board
       - run: npm test
         working-directory: tools/kdd-board
+
+  postinit_windows:
+    if: >-
+      ${{ github.repository == 'MauricioPerera/KDD' && !inputs.reusable_execution && github.workflow_ref ==
+      format('{0}/.github/workflows/validate.yml@{1}', github.repository, github.ref) && (github.event_name
+      == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
+    name: Windows post-init (${{ matrix.shard }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        shard: [0, 1]
+    env:
+      KDD_TRUSTED_RUNTIME_REF: ${{ inputs.trusted_runtime_ref || vars.KDD_TRUSTED_RUNTIME_REF || (github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha) }}
+      KDD_APPROVAL_REGISTRY: ${{ vars.KDD_APPROVAL_REGISTRY || '' }}
+      KDD_EXPLICIT_APPROVED_BASELINE_REF: ${{ inputs.approved_baseline_ref || '' }}
+      KDD_EXPLICIT_QUALITY_APPROVED_REF: ${{ inputs.quality_approved_ref || '' }}
+      KDD_POSTINIT_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
+      KDD_POSTINIT_REQUIRED_EVIDENCE: ${{ inputs.required_evidence || '' }}
+      KDD_POSTINIT_REQUIRE_ORACLE_REVIEWS: ${{ inputs.quality_require_oracle_reviews && 'true' || 'false' }}
+      KDD_MCP_SDK_REQUIRED: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python 3.11 for post-init
+        id: postinit-python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11'
+
+      - name: Bind Windows post-init tools
+        id: postinit-tools
+        shell: C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoLogo -NoProfile -NonInteractive -Command "& $env:KDD_POSTINIT_PYTHON -I -X utf8 '{0}'; exit $LASTEXITCODE"
+        working-directory: ${{ runner.temp }}
+        env:
+          KDD_POSTINIT_PYTHON: ${{ steps.postinit-python.outputs.python-path }}
+        run: |
+          import os
+          from pathlib import Path
+          import shutil
+          root = Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          if Path.cwd().resolve().is_relative_to(root):
+              raise SystemExit('post-init tool capture requires an external directory')
+          paths = [Path(value) for value in os.environ['PATH'].split(os.pathsep)]
+          path = os.pathsep.join(str(folder) for folder in paths if folder.is_absolute()
+                               and not folder.resolve().is_relative_to(root))
+          git, gh = (Path(shutil.which(name, path=path)).resolve(strict=True) for name in ('git', 'gh'))
+          home = git.parent.parent
+          options = [home / layout / 'bin/git.exe' for layout in ('ucrt64', 'mingw64')]
+          git = next((candidate.resolve() for candidate in options if candidate.is_file()), git)
+          if any(executable.is_relative_to(root) for executable in (git, gh)):
+              raise SystemExit('post-init tools must be installed outside the checkout')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write(f'git={git}\ngh={gh}\npath={path}\n')
+
+      - name: Select native Git on Windows for post-init
+        if: ${{ runner.os == 'Windows' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+          import shutil
+          import statistics
+          import subprocess
+          import time
+          launcher = Path(shutil.which('git')).resolve()
+          # Git for Windows 2.56 moved its native executable to ucrt64.
+          # Older installations retain mingw64; both belong to this launcher.
+          home = launcher.parent.parent
+          candidates = [home / layout / 'bin' / 'git.exe' for layout in ('ucrt64', 'mingw64')]
+          native = next((path for path in candidates if path.is_file()), launcher)
+          version = subprocess.check_output([str(launcher), '--version'], text=True).strip()
+          if subprocess.check_output([str(native), '--version'], text=True).strip() != version:
+              raise SystemExit('FAIL: native Git must match the installed launcher version')
+          startup = {}
+          for label, executable in (('launcher', launcher), ('native', native)):
+              samples = []
+              for _ in range(7):
+                  started = time.perf_counter()
+                  subprocess.check_output([str(executable), '--version'])
+                  samples.append(time.perf_counter() - started)
+              startup[label] = {'median_seconds': statistics.median(samples), 'samples_seconds': samples}
+          with open(os.environ['GITHUB_PATH'], 'a', encoding='utf-8') as output:
+              output.write(str(native.parent) + '\n')
+          print(json.dumps({'git_launcher': str(launcher), 'git_native': str(native), 'version': version, 'startup': startup}))
+
+      - name: Select approved references for post-init
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, str(Path('scripts').resolve()))
+          from approval_registry import ApprovalError, resolve
+          required = {item.strip() for item in os.environ['KDD_POSTINIT_REQUIRED_EVIDENCE'].split(',')}
+          if os.environ.get('KDD_POSTINIT_REQUIRE_ORACLE_REVIEWS') == 'true':
+              required.add('quality')
+          try:
+              selected = resolve(
+                  '.', 'HEAD', os.environ['KDD_APPROVAL_REGISTRY'],
+                  explicit_baseline=os.environ['KDD_EXPLICIT_APPROVED_BASELINE_REF'],
+                  explicit_quality=os.environ['KDD_EXPLICIT_QUALITY_APPROVED_REF'],
+                  require_quality='quality' in required or Path(os.environ.get('KDD_POSTINIT_QUALITY_POLICY', 'quality.json')).exists(),
+              )
+          except ApprovalError as error:
+              raise SystemExit('FAIL: ' + str(error))
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              output.write('KDD_APPROVED_BASELINE_REF=' + selected['baseline_ref'] + '\n')
+              output.write('KDD_ACCEPTANCE_APPROVED_REF=' + selected['baseline_ref'] + '\n')
+              output.write('KDD_QUALITY_APPROVED_REF=' + (selected['quality_ref'] or '') + '\n')
+          print(json.dumps(selected, sort_keys=True))
+
+      - name: Materialize reviewed isolated CI runtime for post-init
+        shell: python -I {0}
+        run: |
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          import sys
+          import tempfile
+          root = Path.cwd().resolve()
+          ref = os.environ['KDD_TRUSTED_RUNTIME_REF']
+          if not re.fullmatch(r'[0-9a-fA-F]{40}', ref):
+              raise SystemExit('FAIL: trusted runtime requires a reviewed full commit SHA')
+          ref = ref.lower()
+          if subprocess.check_output(['git', 'cat-file', '-t', ref]).strip() != b'commit':
+              raise SystemExit('FAIL: trusted runtime must be a commit')
+          temporary = Path(tempfile.mkdtemp(prefix='kdd-ci-runtime-', dir=os.environ['RUNNER_TEMP'])).resolve()
+          if temporary.is_relative_to(root):
+              raise SystemExit('FAIL: the trusted runtime must be outside the checkout')
+          entry = temporary / 'trusted_ci.py'
+          entry.write_bytes(subprocess.check_output(['git', 'show', ref + ':scripts/trusted_ci.py']))
+          bundle = temporary / 'bundle'
+          subprocess.run([
+              sys.executable, '-I', str(entry), 'prepare', '--repo-root', str(root),
+              '--trusted-ref', ref, '--bundle-dir', str(bundle),
+          ], check=True)
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              output.write('KDD_TRUSTED_BUNDLE=' + bundle.as_posix() + '\n')
+          print('Trusted CI runtime: ' + ref)
+
+      - name: Install pinned change-audit parsers for post-init
+        run: |
+          python -m pip install --only-binary=:all: -r requirements-change-audit.txt
+
+      - name: Install pinned context compatibility dependencies for post-init
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r tools/context-v03/requirements.txt
+
+      - name: Install pinned workflow checker for post-init
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          subprocess.run([
+              sys.executable, 'scripts/validate_workflows.py', 'install',
+              '--cache-dir', str(Path(os.environ['RUNNER_TEMP']) / 'kdd-actionlint'),
+              '--github-env', os.environ['GITHUB_ENV'],
+              '--github-path', os.environ['GITHUB_PATH'],
+          ], check=True)
+
+      - name: Set up Node.js (for the multi-language example contract) for post-init
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      - name: Install board dependencies for contract oracles (when present) for post-init
+        if: ${{ hashFiles('tools/kdd-board/package-lock.json') != '' }}
+        run: npm ci --ignore-scripts
+        working-directory: tools/kdd-board
+
+      - name: Prepare pinned MCP SDK environment for post-init
+        if: ${{ env.KDD_MCP_SDK_REQUIRED == '1' }}
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          import subprocess
+          import tempfile
+          import venv
+          root = Path.cwd().resolve()
+          directory = Path(tempfile.mkdtemp(prefix='kdd-mcp-sdk-', dir=os.environ['RUNNER_TEMP'])).resolve()
+          if directory.is_relative_to(root):
+              raise SystemExit('FAIL: SDK environment must be outside the checkout')
+          venv.EnvBuilder(with_pip=True).create(directory / 'venv')
+          python = directory / 'venv' / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+          platform = 'windows' if os.name == 'nt' else 'ubuntu'
+          environment = dict(os.environ, PIP_CONFIG_FILE=os.devnull, PIP_INDEX_URL='https://pypi.org/simple',
+                             PIP_EXTRA_INDEX_URL='', PIP_FIND_LINKS='', PIP_DISABLE_PIP_VERSION_CHECK='1')
+          subprocess.run([str(python), '-I', '-m', 'pip', 'install', '--only-binary=:all:',
+                          '--require-hashes', '--index-url', 'https://pypi.org/simple',
+                          '-r', str(root / 'tools/mcp-sdk' / (platform + '.txt'))],
+                         env=environment, check=True, timeout=300)
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              output.write('KDD_MCP_SDK_PYTHON=' + python.as_posix() + '\n')
+              output.write('KDD_MCP_SDK_REPORT=' + (directory / 'protocol-report.json').as_posix() + '\n')
+
+      - name: Prepare native Windows test temp for post-init
+        if: ${{ github.repository == 'MauricioPerera/KDD' && matrix.os == 'windows-latest' && !inputs.reusable_execution }}
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import tempfile
+          root = Path.cwd().resolve(strict=True)
+          base = Path(os.environ['RUNNER_TEMP']).resolve(strict=True)
+          if not base.is_dir() or base.is_relative_to(root) or any(c in str(base) for c in '\r\n'):
+              raise SystemExit('RUNNER_TEMP must be an external directory')
+          environment = dict(os.environ, LC_ALL='C')
+          for name in ('GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_INDEX_FILE', 'GIT_CEILING_DIRECTORIES'):
+              environment.pop(name, None)
+          probe = subprocess.run(['git', '-C', str(base), 'rev-parse', '--is-inside-work-tree'],
+                                 env=environment, capture_output=True)
+          if probe.returncode != 128 or not probe.stderr.startswith(b'fatal: not a git repository'):
+              raise SystemExit('RUNNER_TEMP must be outside Git; repository probe must succeed')
+          directory = Path(tempfile.mkdtemp(prefix='kdd-native-tests-', dir=base)).resolve(strict=True)
+          try:
+              if directory.parent != base or directory.is_relative_to(root):
+                  raise RuntimeError('Temporary directory escaped the reviewed location')
+              with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8', newline='\n') as output:
+                  output.write(''.join(name + '=' + directory.as_posix() + '\n' for name in ('TEMP', 'TMP', 'TMPDIR')))
+          except BaseException:
+              directory.rmdir()
+              raise
+          print('KDD_WINDOWS_TEMP ' + json.dumps({'runner_temp': base.as_posix(), 'test_temp': directory.as_posix()}))
+
+      - name: Run post-init shard
+        id: shard-command
+        shell: C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoLogo -NoProfile -NonInteractive -Command "& $env:KDD_POSTINIT_PYTHON -I -X utf8 '{0}'; exit $LASTEXITCODE"
+        env:
+          KDD_POSTINIT_PYTHON: ${{ steps.postinit-python.outputs.python-path }}
+          KDD_POSTINIT_DRIVER_SHA256: '1b0fbea9cd310256f84c694b7d335602be10bc0377a29b007d919ddd62a7d05d'
+          KDD_POSTINIT_GIT: ${{ steps.postinit-tools.outputs.git }}
+          KDD_POSTINIT_GH: ${{ steps.postinit-tools.outputs.gh }}
+          KDD_POSTINIT_TOOL_PATH: ${{ steps.postinit-tools.outputs.path }}
+          KDD_POSTINIT_SHARD_INDEX: ${{ matrix.shard }}
+          KDD_OBSERVE_POSTINIT: '1'
+        run: |
+          import hashlib
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          import tempfile
+          base = Path(os.environ['RUNNER_TEMP']).resolve(strict=True)
+          if base.is_relative_to(Path.cwd().resolve()):
+              raise SystemExit('post-init driver needs an external temporary directory')
+          root = Path.cwd().resolve()
+          git = Path(os.environ['KDD_POSTINIT_GIT'])
+          if not git.is_absolute() or git.resolve().is_relative_to(root):
+              raise SystemExit('post-init requires the bound Git')
+          tool_env = {key: os.environ[key] for key in ('SYSTEMROOT', 'WINDIR', 'TMP', 'TEMP')
+                      if key in os.environ}
+          tool_env.update(PATH=os.environ['KDD_POSTINIT_TOOL_PATH'],
+                          GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM='1')
+          with tempfile.TemporaryDirectory(prefix='kdd-postinit-driver-', dir=base) as directory:
+              driver = subprocess.check_output([str(git), '-C', str(root), '--no-replace-objects',
+                                                'show', 'HEAD:scripts/ci_postinit_shards.py'],
+                                               cwd=directory, env=tool_env, timeout=30)
+              if hashlib.sha256(driver).hexdigest() != os.environ['KDD_POSTINIT_DRIVER_SHA256']:
+                  raise SystemExit('post-init driver differs from the reviewed digest')
+              path = Path(directory) / 'ci_postinit_shards.py'
+              path.write_bytes(driver)
+              result = subprocess.run([sys.executable, '-I', '-X', 'utf8', str(path), 'run', '--repo-root', '.', '--shard', os.environ['KDD_POSTINIT_SHARD_INDEX'],
+                                   '--receipt', str(base / 'kdd-postinit-shard/receipt.json')])
+          if result.returncode == 124:
+              with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+                  output.write('timed_out=true\n')
+          raise SystemExit(result.returncode)
+
+      - name: Upload post-init shard receipt
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kdd-postinit-shard-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: ${{ runner.temp }}/kdd-postinit-shard/receipt.json
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 7
+
+      - name: Collect Windows partition progress
+        id: partition-observation
+        if: ${{ always() && steps.shard-command.outputs.timed_out == 'true' }}
+        shell: bash
+        run: python -I scripts/postinit_timeout_observation.py --ci-output
+
+      - name: Upload Windows partition progress
+        if: ${{ always() && steps.partition-observation.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kdd-postinit-progress-${{ github.run_id }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/kdd-postinit-progress.json
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 7

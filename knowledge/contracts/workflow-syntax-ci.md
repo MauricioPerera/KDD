@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_workflow_syntax_ci.py
-tests_sha256: '3fc6fcd1d040809ed459f59b3e493b6cc9034221e305051f16911576f7e68148'
+tests_sha256: '1d5f49336329658ba131f5d614c84c2b2759448375791bd2277bff32613e46cb'
 touch_only: ['.github/workflows/validate.yml']
 deps_allowed: ['Python3.11', 'actionlint@1.7.12']
 forbids: ['llm']
@@ -32,9 +32,11 @@ cache RUNNER_TEMP/kdd-actionlint y ambos GITHUB_ENV/PATH; check usa el
 binario exportado y --repo-root . sin lista fija ni condicion de evento.
 
 ## Invariants
-Mantener cuatro jobs, dos matrices Ubuntu/Windows, Python3.11, Node24,
+
+El mismo check cubre el [job auxiliar post-init Windows](postinit-windows-common-deadline.md).
+Mantener cuatro jobs base, dos matrices Ubuntu/Windows, Python3.11, Node24,
 los 19 gates, referencias explicitas y dos comandos/entornos identicos de
-suite. Sin paths filters, nuevos jobs, supresiones, permisos write, secrets,
+suite. Sin paths filters, otros jobs, supresiones, permisos write, secrets,
 continue-on-error ni modificaciones a otros workflows o protecciones.
 Fallo de instalacion o lint falla validate antes de los pasos costosos.
 

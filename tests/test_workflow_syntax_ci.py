@@ -49,7 +49,7 @@ class WorkflowSyntaxCI(support.Fixture):
         self.assertEqual(source.count('os: [ubuntu-latest, windows-latest]'), 2)
         jobs = source.split('\njobs:\n', 1)[1]
         names = set(re.findall(r'^  ([a-z_]+):$', jobs, re.M))
-        self.assertEqual(names, {'validate', 'board'})
+        self.assertEqual(names, {'validate', 'board', 'postinit_windows'})
         command = 'run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" --report-dir "$RUNNER_TEMP/kdd-suite-reports"'
         self.assertEqual(source.count(command), 2)
         self.assertEqual(source.count("KDD_SKIP_INIT_POST_APPLY_SUITE: '1'"), 2)

@@ -13,6 +13,22 @@ def _order_arguments():
     return ['--module-order', str(profile)] if os.path.lexists(profile) else []
 
 
+def _run_partition(root, report, shard):
+    if shard not in ('0', '1') or report is None:
+        raise ValueError('post-init partition requires a shard and report destination')
+    environment = os.environ.copy()
+    environment.pop('KDD_POSTINIT_SHARD', None)
+    destination = environment.pop('KDD_POSTINIT_RAW_REPORT', None)
+    command = [sys.executable, '-I', '-X', 'utf8', str(root / 'scripts/ci_postinit_shards.py'),
+               'suite', '--repo-root', str(root), '--shard', shard,
+               '--report-json', str(report)]
+    result = subprocess.call(command, cwd=root, env=environment)
+    if result == 0 and destination:
+        with Path(destination).open('xb') as output:
+            output.write(report.read_bytes())
+    return result
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo-root', required=True)
@@ -25,6 +41,9 @@ def main(argv=None):
         report = Path(args.report_json).absolute() if args.report_json else None
         if report is not None and os.path.lexists(report):
             raise ValueError('report destination already exists')
+        shard = os.environ.get('KDD_POSTINIT_SHARD')
+        if shard is not None:
+            return _run_partition(root, report, shard)
         command = [sys.executable, str(root / 'scripts/run_test_suite.py'),
                    '--start-directory', 'tests', '--pattern', 'test_*.py',
                    '--workers', '10' if os.name == 'nt' else '4']
