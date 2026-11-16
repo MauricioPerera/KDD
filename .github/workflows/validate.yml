@@ -593,10 +593,17 @@ jobs:
 
       - name: Run each contract's test_command
         shell: bash
+        env:
+          KDD_OBSERVE_POSTINIT: >-
+            ${{ github.repository == 'MauricioPerera/KDD' &&
+            matrix.os == 'windows-latest' && !inputs.reusable_execution &&
+            github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+            github.workflow_ref == 'MauricioPerera/KDD/.github/workflows/validate.yml@refs/heads/main' && '1' || '' }}
         # init-project also runs the post-initialization suite; allow slow Windows runners.
         run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" commands --repo-root . --contracts-dir "$KDD_CONTRACTS_DIR" --timeout 600 --deduplicate --workers "$KDD_CONTRACT_WORKERS" --report-dir "$RUNNER_TEMP/kdd-command-reports" --exclusive-commands-json "$KDD_EXCLUSIVE_CONTRACT_COMMANDS"
 
       - name: Report init command duration
+        id: init-command-timing
         if: ${{ always() && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
         shell: python
         run: |
@@ -635,6 +642,31 @@ jobs:
                          trusted_runtime_ref=runtime, contract=contract, duration_seconds=duration,
                          ok=ok, exit_code=code, error=error)
           print('KDD_INIT_TIMING ' + json.dumps(summary, allow_nan=False, sort_keys=True))
+          if output_path := os.environ.get('GITHUB_OUTPUT'):
+              with open(output_path, 'a', encoding='utf-8', newline='\n') as output:
+                  timed_out = not ok and error == 'timeout' and code is None
+                  output.write('init_timed_out=' + str(timed_out).lower() + '\n')
+
+      - name: Collect Windows post-init progress
+        id: postinit-observation
+        if: >-
+          ${{ always() && github.repository == 'MauricioPerera/KDD' &&
+          matrix.os == 'windows-latest' && !inputs.reusable_execution &&
+          github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+          github.workflow_ref == 'MauricioPerera/KDD/.github/workflows/validate.yml@refs/heads/main' &&
+          steps.init-command-timing.outputs.init_timed_out == 'true' }}
+        shell: bash
+        run: python -I scripts/postinit_timeout_observation.py --ci-output
+
+      - name: Upload Windows post-init progress
+        if: ${{ always() && steps.postinit-observation.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kdd-postinit-progress-${{ github.run_id }}-${{ github.run_attempt }}-windows-latest
+          path: ${{ runner.temp }}/kdd-postinit-progress.json
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 7
 
       - name: Scan for leaked secrets (src only — see knowledge/contracts/secret-scan-gate.md)
         shell: bash
