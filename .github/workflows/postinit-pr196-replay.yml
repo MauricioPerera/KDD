@@ -1,0 +1,234 @@
+name: Replay PR 196 init timeout
+
+on:
+  push:
+    branches: [codex/postinit-pr196-replay]
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    if: github.repository == 'MauricioPerera/KDD'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: source
+    env:
+      KDD_APPROVED_BASELINE_REF: 47afa8d45e6139e4ce8939fd4e8f07d65f85f7cb
+      KDD_ACCEPTANCE_APPROVED_REF: 47afa8d45e6139e4ce8939fd4e8f07d65f85f7cb
+      KDD_TRUSTED_RUNTIME_REF: 74d357f7099651b9b39dc8088f725183a672ec94
+      PYTHONUTF8: '1'
+      KDD_MCP_SDK_REQUIRED: '1'
+    steps:
+      - name: Check out probe and collector
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: control
+          persist-credentials: false
+
+      - name: Check out exact PR 196 merge tree
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: source
+          ref: 088225c2ff241b773353825f45c9e63a57861173
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11'
+
+      - name: Select native Git on Windows
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+          import shutil
+          import statistics
+          import subprocess
+          import time
+          launcher = Path(shutil.which('git')).resolve()
+          # Git for Windows 2.56 moved its native executable to ucrt64.
+          # Older installations retain mingw64; both belong to this launcher.
+          home = launcher.parent.parent
+          candidates = [home / layout / 'bin' / 'git.exe' for layout in ('ucrt64', 'mingw64')]
+          native = next((path for path in candidates if path.is_file()), launcher)
+          version = subprocess.check_output([str(launcher), '--version'], text=True).strip()
+          if subprocess.check_output([str(native), '--version'], text=True).strip() != version:
+              raise SystemExit('FAIL: native Git must match the installed launcher version')
+          startup = {}
+          for label, executable in (('launcher', launcher), ('native', native)):
+              samples = []
+              for _ in range(7):
+                  started = time.perf_counter()
+                  subprocess.check_output([str(executable), '--version'])
+                  samples.append(time.perf_counter() - started)
+              startup[label] = {'median_seconds': statistics.median(samples), 'samples_seconds': samples}
+          with open(os.environ['GITHUB_PATH'], 'a', encoding='utf-8') as output:
+              output.write(str(native.parent) + '\n')
+          print(json.dumps({'git_launcher': str(launcher), 'git_native': str(native), 'version': version, 'startup': startup}))
+
+      - name: Materialize reviewed isolated CI runtime
+        shell: python -I {0}
+        run: |
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          import sys
+          import tempfile
+          root = Path.cwd().resolve()
+          ref = os.environ['KDD_TRUSTED_RUNTIME_REF']
+          if not re.fullmatch(r'[0-9a-fA-F]{40}', ref):
+              raise SystemExit('FAIL: trusted runtime requires a reviewed full commit SHA')
+          ref = ref.lower()
+          if subprocess.check_output(['git', 'cat-file', '-t', ref]).strip() != b'commit':
+              raise SystemExit('FAIL: trusted runtime must be a commit')
+          temporary = Path(tempfile.mkdtemp(prefix='kdd-ci-runtime-', dir=os.environ['RUNNER_TEMP'])).resolve()
+          if temporary.is_relative_to(root):
+              raise SystemExit('FAIL: the trusted runtime must be outside the checkout')
+          entry = temporary / 'trusted_ci.py'
+          entry.write_bytes(subprocess.check_output(['git', 'show', ref + ':scripts/trusted_ci.py']))
+          bundle = temporary / 'bundle'
+          subprocess.run([
+              sys.executable, '-I', str(entry), 'prepare', '--repo-root', str(root),
+              '--trusted-ref', ref, '--bundle-dir', str(bundle),
+          ], check=True)
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              output.write('KDD_TRUSTED_BUNDLE=' + bundle.as_posix() + '\n')
+          print('Trusted CI runtime: ' + ref)
+
+      - name: Install pinned change-audit parsers
+        run: |
+          python -m pip install --only-binary=:all: -r requirements-change-audit.txt
+
+      - name: Install pinned context compatibility dependencies
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r tools/context-v03/requirements.txt
+
+      - name: Install pinned workflow checker
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          subprocess.run([
+              sys.executable, 'scripts/validate_workflows.py', 'install',
+              '--cache-dir', str(Path(os.environ['RUNNER_TEMP']) / 'kdd-actionlint'),
+              '--github-env', os.environ['GITHUB_ENV'],
+              '--github-path', os.environ['GITHUB_PATH'],
+          ], check=True)
+
+      - name: Set up Node.js (for the multi-language example contract)
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      - name: Install measured Board dependencies
+        run: npm ci --prefix tools/kdd-board --ignore-scripts
+
+      - name: Install measured Pages dependencies
+        run: npm ci --prefix site --ignore-scripts --no-audit --no-fund
+
+      - name: Prepare pinned MCP SDK environment
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          import subprocess
+          import tempfile
+          import venv
+          root = Path.cwd().resolve()
+          directory = Path(tempfile.mkdtemp(prefix='kdd-mcp-sdk-', dir=os.environ['RUNNER_TEMP'])).resolve()
+          if directory.is_relative_to(root):
+              raise SystemExit('FAIL: SDK environment must be outside the checkout')
+          venv.EnvBuilder(with_pip=True).create(directory / 'venv')
+          python = directory / 'venv' / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+          platform = 'windows' if os.name == 'nt' else 'ubuntu'
+          environment = dict(os.environ, PIP_CONFIG_FILE=os.devnull, PIP_INDEX_URL='https://pypi.org/simple',
+                             PIP_EXTRA_INDEX_URL='', PIP_FIND_LINKS='', PIP_DISABLE_PIP_VERSION_CHECK='1')
+          subprocess.run([str(python), '-I', '-m', 'pip', 'install', '--only-binary=:all:',
+                          '--require-hashes', '--index-url', 'https://pypi.org/simple',
+                          '-r', str(root / 'tools/mcp-sdk' / (platform + '.txt'))],
+                         env=environment, check=True, timeout=300)
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              output.write('KDD_MCP_SDK_PYTHON=' + python.as_posix() + '\n')
+              output.write('KDD_MCP_SDK_REPORT=' + (directory / 'protocol-report.json').as_posix() + '\n')
+
+      - name: Run required MCP SDK protocol smoke
+        shell: python -B -I {0}
+        run: |
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          member = Path(os.environ['KDD_TRUSTED_BUNDLE']) / 'process_tree.py'
+          ref = os.environ['KDD_TRUSTED_RUNTIME_REF']
+          blob = subprocess.check_output(['git', '--no-replace-objects', 'show', ref + ':scripts/process_tree.py'])
+          if member.is_symlink() or member.read_bytes() != blob:
+              raise SystemExit('FAIL: SDK supervisor differs from the reviewed runtime')
+          supervisor = {'__name__': 'reviewed_process_tree', '__file__': str(member)}
+          exec(compile(blob, str(member), 'exec'), supervisor)
+          result = supervisor['run']([os.environ['KDD_MCP_SDK_PYTHON'], '-I', 'scripts/check_mcp_sdk.py',
+                                     '--repo-root', '.', '--report-json', os.environ['KDD_MCP_SDK_REPORT'],
+                                     '--expected-commit', '088225c2ff241b773353825f45c9e63a57861173'], cwd=Path.cwd(), timeout=120)
+          if result.returncode:
+              raise SystemExit(result.returncode)
+          data = json.loads(Path(os.environ['KDD_MCP_SDK_REPORT']).read_text(encoding='utf-8'))
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as output:
+              output.write('MCP SDK ' + data['sdk_version'] + ': PASS, 8 protocol cases, 0 SKIP (in-memory).\n')
+
+      - name: Prepare native Windows test temp
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import tempfile
+          root = Path.cwd().resolve(strict=True)
+          base = Path(os.environ['RUNNER_TEMP']).resolve(strict=True)
+          if not base.is_dir() or base.is_relative_to(root) or any(c in str(base) for c in '\r\n'):
+              raise SystemExit('RUNNER_TEMP must be an external directory')
+          environment = dict(os.environ, LC_ALL='C')
+          for name in ('GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_INDEX_FILE', 'GIT_CEILING_DIRECTORIES'):
+              environment.pop(name, None)
+          probe = subprocess.run(['git', '-C', str(base), 'rev-parse', '--is-inside-work-tree'],
+                                 env=environment, capture_output=True)
+          if probe.returncode != 128 or not probe.stderr.startswith(b'fatal: not a git repository'):
+              raise SystemExit('RUNNER_TEMP must be outside Git; repository probe must succeed')
+          directory = Path(tempfile.mkdtemp(prefix='kdd-native-tests-', dir=base)).resolve(strict=True)
+          try:
+              if directory.parent != base or directory.is_relative_to(root):
+                  raise RuntimeError('Temporary directory escaped the reviewed location')
+              with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8', newline='\n') as output:
+                  output.write(''.join(name + '=' + directory.as_posix() + '\n' for name in ('TEMP', 'TMP', 'TMPDIR')))
+          except BaseException:
+              directory.rmdir()
+              raise
+          print('KDD_WINDOWS_TEMP ' + json.dumps({'runner_temp': base.as_posix(), 'test_temp': directory.as_posix()}))
+
+      - name: Build and validate Pages for PR
+        shell: bash
+        env:
+          CI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python site/build.py --output "$RUNNER_TEMP/kdd-pages-pr-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$RUNNER_OS" --ci-run-url "$CI_RUN_URL"
+
+      - name: Replay complete init command and collect after timeout
+        shell: bash
+        run: python -I ../control/.github/diagnostics/postinit_pr196_replay.py --source . --bundle "$KDD_TRUSTED_BUNDLE"
+
+      - name: Upload bounded diagnostic summary
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kdd-postinit-pr196-replay-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kdd-postinit-pr196-replay.json
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 7
