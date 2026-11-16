@@ -14,7 +14,7 @@ budget:
   nesting_max: 4
   params_max: 4
 tests: tests/test_postinit_ci_progress.py
-tests_sha256: '2177ad6e830b21337f849d0711e346a1c3e150dcaffc6c33c6317db19794d748'
+tests_sha256: 'b8d0b3c7c7c1f0692cd92cf2dfa4de42432dda43d62f220a58568c157eed7b03'
 oracle_files: ['tests/test_postinit_ci_progress.py', 'tests/test_postinit_timeout_observation.py', 'tests/test_postinit_command_timing.py', 'tests/test_init_project.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py', 'scripts/run_test_suite.py', 'scripts/process_tree.py', 'scripts/init_post_apply_suite.py']
 touch_only: ['scripts/postinit_timeout_observation.py', '.github/workflows/validate.yml']
 deps_allowed: ['stdlib', 'GitHub Actions']

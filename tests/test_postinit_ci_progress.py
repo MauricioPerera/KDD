@@ -54,7 +54,9 @@ class HostedProgress(unittest.TestCase):
         result = self.run_python([str(worker.COLLECTOR), "--ci-output"])
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         self.assertTrue(self.output.is_file(), result.stdout)
-        report = json.loads(self.output.read_bytes())
+        raw = self.output.read_bytes()
+        self.assertLessEqual(len(raw), 192 * 1024)
+        report = json.loads(raw)
         identity = {key: report[key] for key in report if key != "modules"}
         self.assertEqual(identity, dict(schema_version=1, run_id=self.env["GITHUB_RUN_ID"],
                                         run_attempt=self.env["GITHUB_RUN_ATTEMPT"],
@@ -110,6 +112,17 @@ class HostedProgress(unittest.TestCase):
         self.collect("inconclusive")
         self.assertEqual(external.read_bytes(), expected)
 
+    def test_project_junction_cannot_redirect_to_an_external_directory(self):
+        self.require_marker()
+        self.observed_plan()
+        outside = self.area / "outside"
+        self.project.rename(outside)
+        canary = outside / "canary.txt"
+        canary.write_bytes(b"external")
+        worker.directory_alias(self.project, outside, self.area)
+        self.collect("inconclusive")
+        self.assertEqual(canary.read_bytes(), b"external")
+
     def test_unsafe_module_name_is_rejected_before_publication(self):
         self.require_marker()
         for name in ("../outside", "test_" + "x"*156):
@@ -129,9 +142,14 @@ class HostedProgress(unittest.TestCase):
         self.require_marker()
         directory = self.private / "kdd-suite-unbounded"
         directory.mkdir()
-        for index in range(513):
+        for index in range(512):
             worker.write_plan(directory / f"plan-{index}.json", self.project / "tests",
-                              f"test_fixture_{index:03}")
+                              "test_" + "x"*151 + f"{index:04}")
+        report = self.collect("partial")
+        self.assertEqual(len(report["modules"]), 512)
+        self.assertTrue(all(len(row["name"]) == 160 for row in report["modules"]))
+        self.output.unlink()
+        worker.write_plan(directory / "plan-512.json", self.project / "tests", "test_over_capacity")
         self.collect("inconclusive")
 
     def test_hosted_summary_survives_a_real_post_init_interruption(self):
@@ -260,7 +278,8 @@ class ProgressWorkflow(unittest.TestCase):
             self.assertNotIn("continue-on-error", step)
             self.assertEqual(step["env"]["KDD_SKIP_INIT_POST_APPLY_SUITE"], "1")
         self.assertEqual(first["run"], second["run"])
-        self.assertIn("coverage.ini", first["env"]["COVERAGE_PROCESS_START"])
+        self.assertEqual(first["env"]["COVERAGE_PROCESS_START"],
+                         "${{ (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD') && format('{0}/kdd-python-coverage-{1}-{2}/coverage.ini', runner.temp, github.run_id, github.run_attempt) || '' }}")
         self.assertNotIn("COVERAGE_PROCESS_START", second["env"])
 
     def test_output_distinguishes_real_timeout_from_other_results(self):
@@ -284,9 +303,11 @@ class ProgressWorkflow(unittest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["error"], "timeout")
         timeout = dict(ordinary_pass, ok=False, results=results)
+        other = dict(results[0], path=str(fixture.contracts / "another-contract.md"))
+        unrelated_timeout = dict(ordinary_pass, ok=False, results=ordinary_pass["results"] + [other])
         for command_result, expected in ((ordinary_pass, "false"), (ordinary_fail, "false"),
-                                         (timeout, "true")):
-            with self.subTest(expected=expected, ok=command_result["ok"]):
+                                         (timeout, "true"), (unrelated_timeout, "false")):
+            with self.subTest(expected=expected, outcomes=len(command_result["results"])):
                 fixture.write_report(command_result)
                 github_output.write_text("", encoding="utf-8")
                 process = fixture.summarize()
