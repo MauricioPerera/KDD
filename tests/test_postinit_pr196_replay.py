@@ -139,21 +139,35 @@ class RealReplay(unittest.TestCase):
         self.assertEqual(result["outcome"], dict(ok=True, error=None, exit_code=0))
         self.assertIsNone(result["profile"])
 
-    def test_cli_rejects_an_internally_consistent_tampered_bundle_before_import(self):
+    def test_cli_rejects_tampered_or_shadowed_runtime_before_import(self):
         self.profile_fixture(2374)
         sha, tree = self.commit_fixture()
         bundle = self.make_bundle()
         witness = self.area / "untrusted-module-executed"
         target = bundle / "validate_test_commands.py"
-        content = target.read_bytes() + f"\nfrom pathlib import Path\nPath({str(witness)!r}).touch()\n".encode()
+        original = target.read_bytes()
+        content = original + f"\nfrom pathlib import Path\nPath({str(witness)!r}).touch()\n".encode()
         target.write_bytes(content)
         manifest = bundle / "manifest.json"
-        declared = json.loads(manifest.read_bytes())
+        original_manifest = manifest.read_bytes()
+        declared = json.loads(original_manifest)
         declared["files"][target.name] = hashlib.sha256(content).hexdigest()
         manifest.write_text(json.dumps(declared), encoding="utf-8")
         process = self.run_cli(sha, tree, bundle)
         self.assertEqual(process.returncode, 2, process.stderr)
         self.assertIn("runtime", process.stderr.lower())
+        self.assertFalse(witness.exists())
+        self.assertFalse((self.runner / "kdd-postinit-pr196-replay.json").exists())
+
+        target.write_bytes(original)
+        manifest.write_bytes(original_manifest)
+        shadow = bundle / "validate_test_commands"
+        shadow.mkdir()
+        (shadow / "__init__.py").write_text(
+            f"from pathlib import Path\nPath({str(witness)!r}).touch()\n", encoding="utf-8")
+        shadowed = self.run_cli(sha, tree, bundle)
+        self.assertEqual(shadowed.returncode, 2, shadowed.stderr)
+        self.assertIn("runtime", shadowed.stderr.lower())
         self.assertFalse(witness.exists())
         self.assertFalse((self.runner / "kdd-postinit-pr196-replay.json").exists())
 
@@ -191,13 +205,14 @@ class RealReplay(unittest.TestCase):
                 "class Probe(unittest.TestCase):\n def test_control(self):\n" + body, encoding="utf-8")
             write_plan(job / f"plan-{index}.json", tests, name)
         self.oracle.write_text(
-            "import os, subprocess, sys, unittest\nfrom pathlib import Path\n"
+            "import os, subprocess, sys, time, unittest\nfrom pathlib import Path\n"
             "from scripts.postinit_timeout_observation import mark_project\n"
             "class Bootstrap(unittest.TestCase):\n"
             " def test_run(self):\n"
             f"  project=Path({str(project)!r})\n"
             f"  job=Path({str(job)!r})\n"
             "  self.assertEqual(os.environ['KDD_OBSERVE_POSTINIT'],'1')\n"
+            "  time.sleep(0.4)\n"
             "  self.assertTrue(mark_project(project))\n"
             "  for i in range(2):\n"
             "   subprocess.run([sys.executable,'-I',str(project/'scripts/run_test_suite.py'),"
@@ -214,7 +229,7 @@ class RealReplay(unittest.TestCase):
         observed = report["observation"]
         self.assertEqual(observed["head_sha"], sha)
         self.assertEqual(observed["state"], "partial")
-        self.assertGreaterEqual(report["handoff_seconds"], 0)
+        self.assertGreaterEqual(report["handoff_seconds"], 0.35)
         self.assertLess(report["handoff_seconds"], report["duration_seconds"])
         self.assertEqual({row["name"]:row["phase"] for row in observed["modules"]},
                          {"test_completed": "completed", "test_pending": "incomplete"})
@@ -288,7 +303,8 @@ class ReplayWorkflow(unittest.TestCase):
         self.assertFalse(control["persist-credentials"])
         self.assertFalse(measured["persist-credentials"])
         self.assertEqual(measured["ref"], SOURCE)
-        self.assertNotEqual(control["path"], measured["path"])
+        self.assertEqual(control["path"], "control")
+        self.assertEqual(measured["path"], "source")
         self.assertEqual(job["defaults"]["run"]["working-directory"], measured["path"])
         self.assertEqual(job["env"]["KDD_TRUSTED_RUNTIME_REF"], RUNTIME)
         for key in ("KDD_APPROVED_BASELINE_REF", "KDD_ACCEPTANCE_APPROVED_REF"):

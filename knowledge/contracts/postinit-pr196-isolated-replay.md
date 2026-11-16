@@ -14,8 +14,8 @@ budget:
   nesting_max: 4
   params_max: 4
 tests: tests/test_postinit_pr196_replay.py
-tests_sha256: '1c0e5641206a4e05fb4f371597767cd9304c32e6e954ca450761976f007aad21'
-oracle_files: ['tests/test_postinit_pr196_replay.py', 'tests/test_postinit_timeout_observation.py', 'tests/test_fixture_preparation.py', 'scripts/trusted_ci.py']
+tests_sha256: 'd3dfe32d578fa03aab50e86f67450e5ab72d54cfb0e86cd48fd76a3d9119f781'
+oracle_files: ['tests/test_postinit_pr196_replay.py', 'tests/test_postinit_timeout_observation.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py', '.github/workflows/validate.yml', 'scripts/trusted_ci.py', 'scripts/postinit_timeout_observation.py', 'scripts/process_tree.py', 'scripts/run_test_suite.py', 'scripts/validate_test_commands.py', 'scripts/validate_contracts.py', 'scripts/execution_profile.py', 'scripts/oracle_execution.py', 'scripts/oracle_inventory.py', 'scripts/unittest_oracle_runner.py', 'scripts/node_oracle_reporter.mjs']
 touch_only: ['.github/diagnostics/postinit_pr196_replay.py', '.github/workflows/postinit-pr196-replay.yml']
 deps_allowed: ['stdlib', 'Git', 'GitHub Actions']
 forbids: ['llm']
@@ -47,8 +47,9 @@ arbol y limpieza antes de ejecutar. Usa el baseline
 local del comando. Valida el bundle externo materializado desde el runtime
 fijado `74d357f7099651b9b39dc8088f725183a672ec94`. Antes de importar el
 bundle, verificar manifiesto y blobs regulares contra ese commit Git,
-sin reemplazos. Un manifiesto coherente con codigo ajeno no autoriza
-ejecutarlo. Los controles poseen sus repositorios Git y su propio bundle.
+sin reemplazos. Exigir inventario exacto de miembros y manifiesto, sin
+paquetes auxiliares, caches ni archivos ejecutables extra. Un manifiesto
+coherente con codigo ajeno no autoriza ejecutarlo. Los controles poseen sus repositorios Git y su propio bundle.
 
 Ejecuta `python -m unittest tests/test_init_project.py` desde el objeto
 medido con el ejecutor de comandos del bundle y timeout exterior de 600 s.
@@ -117,7 +118,7 @@ Usar Git y procesos reales para conservar el codigo de fallo, interrumpir un
 descendiente y recuperar resultados parciales de la copia seleccionada.
 Comprobar los metadatos, el rechazo de un checkout sucio y el alcance estatico
 del workflow. Ejecutar el CLI completo para una matriz de exito, perfil
-invalido y runtime alterado. Un resultado existente bloquea el lanzamiento
+invalido, runtime alterado y paquete adicional que suplanta un modulo. Un resultado existente bloquea el lanzamiento
 antes de tocarlo. Probar la salida inconclusa del colector sin cambiar el
 veredicto del comando. El ensayo remoto conserva su propio resultado junto con los
 dos timeouts originales.
