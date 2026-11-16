@@ -437,6 +437,7 @@ def _retrieve_okf_nodes(base_dir, task, catalog=None):
 # ---------------------------------------------------------------------------
 
 _REF_RE = re.compile(r"knowledge/[A-Za-z0-9_./\-]+\.md")
+_DENY_MATCH = "regex_deny: patron matcheado: #"
 
 
 def _reference_check(base_dir, task):
@@ -450,17 +451,17 @@ def _reference_check(base_dir, task):
 
 
 def _regex_deny(context, patterns):
-    """Devuelve el primer patron que matchea, o None.
+    """Devuelve la posicion del primer patron que matchea, o None.
 
     Cada patron se evalua con ``re.search`` (stdlib re, determinista): es un
     patron regex de verdad, no un substring literal. Un patron que no compile
     lanza ``ValueError`` nombrando el patron (no silencio, no fallback a
     matching literal).
     """
-    for pat in patterns:
+    for position, pat in enumerate(patterns, start=1):
         try:
             if re.search(pat, context):
-                return pat
+                return position
         except re.error as e:
             raise ValueError(
                 "regex_deny: patron invalido {!r}: {}".format(pat, e)
@@ -628,7 +629,7 @@ def _apply_regex(state, config):
     if hit is None and patterns:
         hit = _regex_deny(state['task'], patterns)
     if hit is not None:
-        _finding(state, 'regex_deny: patron matcheado: {!r}'.format(hit),
+        _finding(state, _DENY_MATCH + str(hit),
                  config.get('on_fail', 'abort') == 'abort')
 
 
@@ -698,7 +699,36 @@ def _slot_line(s):
     return line
 
 
+def _has_denied_content(result):
+    return any(finding.startswith(_DENY_MATCH) for finding in result['guardrails']['findings'])
+
+
+def _restricted_finding(finding, *, details=''):
+    if finding.startswith(_DENY_MATCH):
+        return finding
+    return finding.partition(':')[0] + details
+
+
+def _restricted_report(result):
+    slots = [{key: value for key, value in slot.items()
+              if key not in ('selected', 'cut', 'omitted_nodes')} for slot in result['slots']]
+    guardrails = result['guardrails']
+    findings = [_restricted_finding(finding, details=': [omitido]')
+                for finding in guardrails['findings']]
+    manifest = result['manifest']
+    sources = [{key: value for key, value in source.items() if key != 'error'}
+               for source in manifest['sources']]
+    for source in sources:
+        source['path'] = None
+    return dict(result, slots=slots, guardrails=dict(guardrails, findings=findings),
+                manifest=dict(manifest, sources=sources))
+
+
 def format_report(result, contract_path, task, verbose=False):
+    if _has_denied_content(result):
+        result = _restricted_report(result)
+        contract_path = task = "[omitido]"
+        verbose = False
     lines = []
     lines.append("=== assemble context ===")
     lines.append("contract: {}".format(contract_path))
@@ -771,7 +801,8 @@ def main(argv):
         result = assemble(contract, args.task, base_dir)
     except GuardrailAbort as e:
         print(format_report(e.result, args.contract, args.task, args.verbose))
-        print("ABORT: {}".format(e.finding), file=sys.stderr)
+        finding = _restricted_finding(e.finding) if _has_denied_content(e.result) else e.finding
+        print("ABORT: {}".format(finding), file=sys.stderr)
         return 2
     except ValueError as e:
         print("ERROR contrato invalido: {}".format(e), file=sys.stderr)
