@@ -1,17 +1,54 @@
 ---
 type: 'Concept'
-title: 'Margen estable del post-init en Windows'
-description: 'Reducir el coste real manteniendo toda la suite inicializada y evidencias de tiempo completas.'
+title: 'Post-init de Windows en CI'
+description: 'Plazo común de las dos particiones de Windows y evidencia de tres intentos consecutivos en main.'
 tags: ['ci', 'windows', 'performance', 'bootstrap']
 ---
 
-# Objetivo
+# Cierre en main
 
-El comando completo de [init-project](contracts/init-project.md) debe completar
-en menos de 480 segundos en tres workflows completos y consecutivos del mismo
-head final. Se mantienen los 600 segundos operativos, Ubuntu/Windows y las dos
-pasadas generales. Un fallo interrumpe la secuencia de aceptacion y se conserva
-en la evidencia; repetir hasta obtener un PASS no acredita estabilidad.
+El [PR #196](https://github.com/MauricioPerera/KDD/pull/196) incorporó la matriz
+`postinit_windows` al CI nativo de KDD para PR y pushes a `main`. Los jobs
+`Windows post-init (0)` y `Windows post-init (1)` ejecutan en paralelo
+[particiones disjuntas](contracts/postinit-windows-partitions.md) de la suite,
+cada una en una copia inicializada independiente.
+
+El check `validate (windows-latest)` coteja los dos recibos con el inventario
+de una tercera copia inicializada. Exige el mismo run, intento, SHA, árbol y
+runtime en la evidencia. La cota se calcula desde el inicio más temprano hasta
+el fin más tardío de los dos pasos `Run post-init shard`, más un segundo por
+la precisión de los tiempos de GitHub. Así incluye el desfase de arranque.
+El check rechaza cotas superiores a 600 s y registra el resultado en
+`KDD_POSTINIT_WINDOW`. [Contrato del plazo común](contracts/postinit-windows-common-deadline.md)
+
+## Evidencia de los tres intentos
+
+El push a `main` del commit `04fcd982a366ac18f95832bc6dbca26703f897a0`
+generó el run `43858498105`. El intento original y dos repeticiones completas
+consecutivas terminaron correctamente con una cota común inferior a 600 s.
+En los tres, las particiones acreditaron 1.175 y 1.230 IDs respectivamente,
+con el inventario de 2.405 casos completo.
+
+| Intento | Job 0 | Job 1 | Cota común | Evidencia |
+| --- | ---: | ---: | ---: | --- |
+| 1 | 418 s | 394 s | 419 s | [GitHub Actions](https://github.com/MauricioPerera/KDD/actions/runs/43858498105/attempts/1) |
+| 2 | 408 s | 376 s | 409 s | [GitHub Actions](https://github.com/MauricioPerera/KDD/actions/runs/43858498105/attempts/2) |
+| 3 | 291 s | 351 s | 352 s | [GitHub Actions](https://github.com/MauricioPerera/KDD/actions/runs/43858498105/attempts/3) |
+
+Cada intento completó dos pasadas generales en Ubuntu y dos en Windows,
+todas con los mismos 2.509 IDs y el digest
+`c41215d3dd41de8fd6e56d34dec8fc592c42d57fd4927eaa1d2cb414c924caa6`.
+Los artefactos `kdd-coverage-43858498105-<intento>-<plataforma>` registraron
+`suite_pass=1` para ambos sistemas. Los recibos de las particiones se
+publicaron como `kdd-postinit-shard-43858498105-<intento>-<partición>`.
+
+# Ensayo inicial de margen
+
+El ensayo original fijó una meta de menos de 480 s para el comando completo
+de [init-project](contracts/init-project.md) en tres workflows consecutivos
+del mismo head. Conservó los 600 s operativos, Ubuntu y Windows, y las dos
+pasadas generales. Sus mediciones corresponden al perfil de un solo job de
+Windows. El cierre de `04fcd98` mide la ventana común de las dos particiones.
 
 ## Evidencia de partida
 
