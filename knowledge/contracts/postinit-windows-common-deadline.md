@@ -15,7 +15,7 @@ budget:
   nesting_max: 4
   params_max: 4
 tests: tests/test_ci_postinit_shards.py
-tests_sha256: '96a1dc7471be71dc3d4c97a14a774c401f4ff3ece86c1f6e781eb228da22e659'
+tests_sha256: '47e7fc3f217ab18dbbfefe79c762337e7865894338a3faaf02c5dc800cce74b6'
 oracle_files: ['tests/test_ci_postinit_shards.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py', 'scripts/init_project.py', 'scripts/bootstrap_transaction.py', 'scripts/run_test_suite.py', 'scripts/process_tree.py', 'scripts/validate_contracts.py', 'scripts/validate_okf.py']
 touch_only: ['.github/workflows/validate.yml', 'scripts/ci_postinit_shards.py']
 deps_allowed: ['stdlib', 'GitHub Actions']
@@ -65,10 +65,17 @@ El paso usa `ci_postinit_shards.py collect --repo-root .`. El colector
 consulta unicamente el repositorio del workflow y el run/intento declarado,
 con espera acotada si el check existente alcanza el paso antes de los jobs.
 El workflow protegido fija el SHA-256 del driver como literal local de cada
-paso y ejecuta los bytes comprobados desde un temporal externo. El token de lectura solo se usa
-para API y descarga. El discovery se lanza por separado desde una copia de
+paso y ejecuta los bytes comprobados desde un temporal externo. Antes de
+ejecutar codigo candidato, resuelve Git y GitHub CLI desde el temporal del
+runner y fuera del checkout. Guarda las rutas absolutas en outputs del paso,
+y elige Python desde el output del setup fijado. El
+verificador no consulta el PATH del checkout para resolver esos ejecutables.
+Git no recibe el token. GitHub CLI recibe el token solo para API y descarga
+del host github.com, sin configuracion ni PATH del candidato. El discovery
+se lanza por separado desde una copia de
 `git archive HEAD` con init real y sin el oraculo recursivo. No se le
-heredan tokens ni los archivos de escritura de comandos GitHub.
+heredan tokens ni los archivos de escritura de comandos GitHub. Su salida
+no puede emitir el marcador del veredicto oficial.
 El lector `read_receipt_archive(raw)` acepta una sola entrada regular
 `receipt.json` acotada a 1 MiB, con JSON estricto sin claves duplicadas.
 El colector consulta jobs y artifacts del run usando el intento y los dos
@@ -135,6 +142,7 @@ local sirve para diseñar el reparto. El CI alojado confirma su resultado.
 Ejecutar el verificador con recibos emitidos por dos procesos reales, una
 tercera copia con init y tiempos GitHub reproducidos por la API de prueba.
 Cubrir ids perdidos o repetidos,
+suplantacion de Git desde el checkout y CLI con host explicito,
 intent/versiones ajenos, jobs fallidos y desfase. Verificar en el YAML el
 alcance, dos jobs, descarga exacta, bloqueo de Pages y suites localizadas.
 Mantener el resultado de los dos timeouts y medir en GitHub el nuevo SHA.

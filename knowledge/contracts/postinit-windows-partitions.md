@@ -14,7 +14,7 @@ budget:
   nesting_max: 4
   params_max: 4
 tests: tests/test_ci_postinit_shards.py
-tests_sha256: '96a1dc7471be71dc3d4c97a14a774c401f4ff3ece86c1f6e781eb228da22e659'
+tests_sha256: '47e7fc3f217ab18dbbfefe79c762337e7865894338a3faaf02c5dc800cce74b6'
 oracle_files: ['tests/test_ci_postinit_shards.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py', 'scripts/init_project.py', 'scripts/bootstrap_transaction.py', 'scripts/run_test_suite.py', 'scripts/process_tree.py', 'scripts/validate_contracts.py', 'scripts/validate_okf.py']
 touch_only: ['scripts/ci_postinit_shards.py', 'scripts/init_post_apply_suite.py', 'tools/ci/postinit-windows-shards.json']
 deps_allowed: ['stdlib']
@@ -65,7 +65,8 @@ recursion y exporta el reporte tipado a la ruta privada nueva indicada por
 `KDD_POSTINIT_RAW_REPORT`. El launcher consume las dos marcas antes de
 ejecutar el discovery y los workers; estos no pueden heredarlas para su
 propio trabajo. El comando requiere el exito del fixture y un reporte
-valido segun el reconciliador completo, incluidas las causas de omisiones,
+valido segun el reconciliador completo del bundle aprobado, cargado antes de
+ejecutar el fixture, incluidas las causas de omisiones,
 antes de emitir el recibo compacto. El job
 publica el recibo bajo el nombre definido en el [contrato de verificacion](postinit-windows-common-deadline.md).
 

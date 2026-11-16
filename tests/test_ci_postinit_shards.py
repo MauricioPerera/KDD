@@ -502,6 +502,48 @@ class PostInitReceiptIntegration(unittest.TestCase):
         except NotImplementedError as error:
             self.fail(str(error))
 
+    def test_bound_git_wins_over_executable_in_checkout_and_path(self):
+        workflow = yaml.safe_load((ROOT / '.github/workflows/validate.yml').read_text(encoding='utf-8'))
+        verify = next(step for step in workflow['jobs']['validate']['steps']
+                      if step.get('name') == 'Verify Windows post-init partitions')
+        driver = b"print('bound-driver-canary')\n"
+        (self.root / 'scripts/ci_postinit_shards.py').write_bytes(driver)
+        self.git('add', 'scripts/ci_postinit_shards.py')
+        self.git('commit', '-qm', 'Driver canary')
+        real_git = shutil.which('git')
+        self.assertIsNotNone(real_git)
+        if os.name == 'nt':
+            shutil.copyfile(Path(os.environ['SystemRoot']) / 'System32/where.exe', self.root / 'git.exe')
+        else:
+            fake = self.root / 'git'
+            fake.write_text('#!/bin/sh\nexit 72\n', encoding='utf-8')
+            fake.chmod(0o755)
+        env = dict(self.env, KDD_POSTINIT_GIT=real_git, GH_TOKEN='synthetic-token',
+                   KDD_POSTINIT_TOOL_PATH=self.env['PATH'],
+                   KDD_POSTINIT_DRIVER_SHA256=hashlib.sha256(driver).hexdigest(),
+                   PATH=str(self.root) + os.pathsep + self.env['PATH'])
+        result = subprocess.run([sys.executable, '-I', '-X', 'utf8', '-c', verify['run']],
+                                cwd=self.root, env=env, capture_output=True, text=True,
+                                encoding='utf-8', errors='replace', timeout=35)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertEqual(result.stdout.strip(), 'bound-driver-canary')
+
+    def test_api_uses_bound_executable_and_only_github_host(self):
+        client = str(Path(sys.executable).resolve())
+        malicious = str(self.root)
+        with (
+            patch.dict(os.environ, dict(GH_TOKEN='synthetic-token', GH_HOST='example.test',
+                                         PATH=malicious, KDD_POSTINIT_GH=client)),
+            patch.object(shards.subprocess, 'check_output', return_value=b'{}') as execute,
+        ):
+            self.assertEqual(shards._request(API_JOB_LIST), b'{}')
+        argv = execute.call_args.args[0]
+        self.assertEqual(argv, [client, 'api', '--hostname', 'github.com', API_JOB_LIST])
+        passed = execute.call_args.kwargs['env']
+        self.assertEqual(passed['GH_TOKEN'], 'synthetic-token')
+        self.assertNotIn('GH_HOST', passed)
+        self.assertNotIn(malicious, passed.get('PATH', '').split(os.pathsep))
+
 
 class WindowsPostInitWorkflow(unittest.TestCase):
     def setUp(self):
@@ -569,7 +611,21 @@ class WindowsPostInitWorkflow(unittest.TestCase):
         shard = next(step for step in self.workflow['jobs']['postinit_windows']['steps']
                      if step.get('name') == 'Run post-init shard')
         self.assertEqual(shard['env']['KDD_POSTINIT_DRIVER_SHA256'], pin)
-        self.assertEqual(verify['shell'], 'python -I {0}')
+        expected_shell = '${{ steps.postinit-python.outputs.python-path }} -I {0}'
+        self.assertEqual(verify['shell'], expected_shell)
+        self.assertEqual(shard['shell'], expected_shell)
+        for job in (self.validate, self.workflow['jobs']['postinit_windows']):
+            steps = job['steps']
+            bind = next(index for index, step in enumerate(steps) if step.get('id') == 'postinit-tools')
+            setup = next(index for index, step in enumerate(steps) if step.get('id') == 'postinit-python')
+            self.assertLess(setup, bind)
+            self.assertEqual(steps[bind]['working-directory'], '${{ runner.temp }}')
+            self.assertNotIn("'GH_TOKEN'", steps[bind]['run'])
+            self.assertFalse(any('Select approved references' in step.get('name', '')
+                                 for step in steps[:bind]))
+        for step in (shard, verify):
+            self.assertEqual(step['env']['KDD_POSTINIT_GIT'], '${{ steps.postinit-tools.outputs.git }}')
+            self.assertEqual(step['env']['KDD_POSTINIT_GH'], '${{ steps.postinit-tools.outputs.gh }}')
         for required in ('hashlib.sha256', 'KDD_POSTINIT_DRIVER_SHA256', 'RUNNER_TEMP'):
             self.assertIn(required, verify['run'])
         self.assertLess(verify['run'].index('hashlib.sha256'), verify['run'].index('subprocess.run'))
