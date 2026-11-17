@@ -40,7 +40,9 @@ recorded_ok y exit_code transcriben el reporte; no verifican de nuevo
 el oraculo ni conceden aceptacion. La proyeccion es un diagnostico, nunca
 un sustituto de los [inventarios](pages-ci-inventory.md), cobertura,
 gates o [aprobaciones](quality-approval.md). Una suma de comandos
-concurrentes no es tiempo de pared. Las filas compartidas conservan su
+concurrentes no es tiempo de pared. La fila especial controller diagnostics
+describe el controlador y puede solaparse con los modulos: tampoco se suma
+como trabajo adicional. Las filas compartidas conservan su
 representante y duracion cero; no cuentan como ahorro entre intentos.
 
 Si no hubo reportes por un fallo previo, publicar complete false y la

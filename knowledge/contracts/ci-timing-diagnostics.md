@@ -12,7 +12,7 @@ test_command: 'python -m unittest tests.test_ci_timing_diagnostics tests.test_ci
 test_runner: python-unittest
 test_scope: infrastructure
 tests: tests/test_ci_timing_diagnostics.py
-tests_sha256: '719220011221ad70876c518dc5de77a3dcbed334b5b219faf99677793e5cfb09'
+tests_sha256: 'd0ec95e1a2fdcb6d37c191a8c5aaf9cdc79f6b904563527560bb80e5e24ccd94'
 oracle_files: ['tests/test_ci_timing_diagnostics.py', 'tests/test_ci_timing_workflow.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py']
 budget:
   cyclomatic_max: 12
@@ -37,7 +37,11 @@ python -I scripts/ci_timings.py export --repo-root . --commands-dir DIRECTORIO -
 ```
 
 Leer solo archivos regulares evidence-*.json del nivel inmediato de ambos
-directorios, nunca seguir enlaces simbolicos en archivos o directorios.
+directorios, nunca seguir enlaces simbolicos o puntos de reanalisis en
+archivos o directorios. Los negativos de Windows deben cubrir junctions
+sin exigir privilegios de symlink. La proteccion se aplica a archivos
+quiescentes del job: no promete aislamiento ante otro proceso con los
+mismos permisos que los sustituya concurrentemente.
 Conservar los bytes originales. Admitir cero o un reporte commands y cero,
 uno o dos reportes suite; mas es ambiguo. Ausencia de directorio equivale
 a cero reportes para ese tipo. No buscar archivos alternativos ni interpretar
@@ -56,7 +60,10 @@ suite contiene solo module, duration_seconds, tests_run y exit_code. Cada
 fila commands contiene solo contract, scope, duration_seconds, exit_code,
 recorded_ok y shared_from. Normalizar rutas contract y shared_from a POSIX
 relativas al repo-root; rechazar rutas fuera del checkout. module debe ser
-un nombre Python punteado. scope debe ser product o infrastructure. Rows
+un nombre Python punteado o la etiqueta exacta controller diagnostics que
+el runtime usa para su propia salida. Conservar esa fila (tests_run cero)
+sin publicar su stdout/stderr; no sumarla al coste de modulos como si fuera
+trabajo adicional. scope debe ser product o infrastructure. Rows
 ordenadas por duracion descendente y luego etiqueta ascendente; no truncar.
 
 Duraciones finitas no negativas, nunca bool/null en campos numericos
@@ -84,9 +91,12 @@ Crear el padre del output si falta. No ejecutar codigo o comandos del reporte.
   timeout, incomplete o falta de evidencia en aceptacion. La etiqueta run/SHA
   se proporciona desde el job y no autentica por si misma el origen del reporte.
 - Agregar solamente Export CI timing diagnostics y Upload CI timing diagnostics
-  a validate, despues de las dos suites. Native MauricioPerera/KDD, always(),
-  sin habilitarlo en callers reutilizables. El upload corre solo si el export
-  termino con success; usar el pin upload-artifact ya vigente, nombre por
+  a validate, despues de las dos suites, export antes de upload y shell bash
+  explicito para export en ambos sistemas. Condicion export exacta:
+  always() && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD'.
+  Condicion upload: la misma conjuncion mas steps.ci-timings.outcome == 'success'.
+  No sustituir AND por OR ni usar coincidencias de fragmentos como verificacion.
+  Usar el pin upload-artifact ya vigente, nombre por
   run/attempt/OS, retencion 7 dias, overwrite false, if-no-files-found error.
 - Publicar exclusivamente RUNNER_TEMP/kdd-ci-timings/timings.json. No subir
   kdd-command-reports o kdd-suite-reports crudos. Sin permisos nuevos.
@@ -112,11 +122,15 @@ Crear el padre del output si falta. No ejecutar codigo o comandos del reporte.
 
 Oraculos nuevos de diagnostico y cableado; ningun test previo cambia. El
 fixture crea un Git local con los archivos actuales del runtime, prepara un
-bundle por SHA explicito y ejecuta dos suites y un contrato genuinos. No
+bundle por SHA explicito y ejecuta dos suites y un contrato genuinos, con
+salida real al importar para ejercer la fila controller diagnostics. No
 necesita historial upstream: debe funcionar tambien despues de init_project.
 La proyeccion conserva exactamente las metricas de esos reportes y excluye
 campos contaminados. Pruebas negativas cubren replay, runtime, JSON, datos
-invalidos, rutas fuera de raiz, salida existente e identidad invalida.
+invalidos, claves duplicadas/version desconocida, rutas fuera de raiz,
+salida existente, enlaces/junctions e identidad invalida. Solo el caso de
+symlink de archivo POSIX tiene SKIP de aplicabilidad Windows; la prueba de
+directorio redirigido se ejecuta en ambos sistemas. No cambiar SKIP previos.
 
 El cableado verifica ubicacion, condiciones nativas, upload fijado y archivo
 unico, conservando comandos dual-OS y dos pasadas. Ejecutar oraculos nuevos

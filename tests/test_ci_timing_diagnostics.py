@@ -2,6 +2,7 @@
 import copy
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -25,7 +26,7 @@ class TimingDiagnostics(unittest.TestCase):
         tests.mkdir(parents=True)
         (tests / '__init__.py').write_text('', encoding='utf-8')
         (tests / 'test_product.py').write_text(
-            'import unittest\nclass Product(unittest.TestCase):\n'
+            'import unittest\nprint("import diagnostics")\nclass Product(unittest.TestCase):\n'
             ' def test_real(self):\n  self.assertEqual(2 + 2, 4)\n', encoding='utf-8')
         cls.bundle = base / 'bundle'
         seed = base / 'runtime-source'
@@ -159,14 +160,20 @@ Exercise the diagnostic with a real process.
         self.assertEqual(sorted(s['duration_seconds'] for s in suites),
                          sorted(s['duration_seconds'] for s in self.passes))
         for source in suites:
-            self.assertEqual(len(source['rows']), 1)
-            row = source['rows'][0]
+            self.assertEqual(len(source['rows']), 2)
+            row = next(r for r in source['rows'] if r['module'] == 'test_product')
             self.assertEqual(set(row), {'module', 'duration_seconds', 'tests_run', 'exit_code'})
             self.assertEqual(row['module'], 'test_product')
             self.assertEqual(row['tests_run'], 1)
             self.assertEqual(row['exit_code'], 0)
             original = next(s for s in self.passes if s['duration_seconds'] == source['duration_seconds'])
-            self.assertEqual(row['duration_seconds'], original['modules'][0]['duration_seconds'])
+            metric = next(m for m in original['modules'] if m['module'] == 'test_product')
+            self.assertEqual(row['duration_seconds'], metric['duration_seconds'])
+            diagnostics = next(r for r in source['rows'] if r['module'] == 'controller diagnostics')
+            self.assertEqual(diagnostics['tests_run'], 0)
+            self.assertEqual(diagnostics['exit_code'], 0)
+            self.assertEqual(diagnostics['duration_seconds'],
+                next(m for m in original['modules'] if m['module'] == 'controller diagnostics')['duration_seconds'])
         command = next(s for s in sources if s['kind'] == 'commands')
         self.assertIsNone(command['duration_seconds'], 'A sum of concurrent commands is not elapsed wall time')
         self.assertEqual(command['rows'][0], {'contract': 'knowledge/contracts/fixture.md',
@@ -221,6 +228,88 @@ Exercise the diagnostic with a real process.
         self.passes[0]['trusted_runtime_ref'] = 'b' * 40
         self.rejected()
 
+    def test_unknown_report_versions_and_invalid_counters_are_rejected(self):
+        original = copy.deepcopy(self.passes)
+        for value in (2, '1', True, None):
+            with self.subTest(version=value):
+                self.passes = copy.deepcopy(original)
+                self.passes[0]['version'] = value
+                self.rejected()
+        for value in (-1, True, 1.5, None):
+            with self.subTest(tests_run=value):
+                self.passes = copy.deepcopy(original)
+                self.passes[0]['modules'][0]['tests_run'] = value
+                self.rejected()
+
+    def test_duplicate_json_keys_are_rejected_without_publishing(self):
+        self.write_inputs()
+        path = self.suite_dir / 'evidence-0.json'
+        text = path.read_text(encoding='utf-8')
+        path.write_text(text.replace('{', '{"version": 1,', 1), encoding='utf-8')
+        result = self.export(write=False)
+        self.assertEqual(result.returncode, 2)
+        self.assertFalse(self.output.exists())
+        self.write_inputs()
+        text = path.read_text(encoding='utf-8')
+        label = '"duration_seconds":'
+        path.write_text(text.replace(label, '"duration_seconds": 0, ' + label, 1), encoding='utf-8')
+        result = self.export(write=False)
+        self.assertEqual(result.returncode, 2)
+        self.assertFalse(self.output.exists())
+
+    def test_invalid_source_command_durations_statuses_and_exits_are_rejected(self):
+        suites, commands = copy.deepcopy(self.passes), copy.deepcopy(self.command)
+        for target, key, value in (
+                ('suite', 'duration_seconds', True), ('suite', 'duration_seconds', float('inf')),
+                ('command-row', 'duration_seconds', -1), ('command-row', 'duration_seconds', True),
+                ('command-row', 'exit_code', True), ('suite-row', 'exit_code', False),
+                ('suite', 'ok', 'true'), ('command', 'version', 2), ('command-row', 'ok', 1)):
+            with self.subTest(target=target, key=key, value=value):
+                self.passes, self.command = copy.deepcopy(suites), copy.deepcopy(commands)
+                selected = {'suite': self.passes[0], 'command': self.command,
+                            'command-row': self.command['results'][0],
+                            'suite-row': self.passes[0]['modules'][0]}[target]
+                selected[key] = value
+                self.rejected()
+
+    def test_missing_directories_publish_no_fabricated_sources(self):
+        self.command_dir.rmdir(); self.suite_dir.rmdir()
+        result = self.export(write=False)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        report = json.loads(self.output.read_text(encoding='utf-8'))
+        self.assertFalse(report['complete'])
+        self.assertEqual(report['sources'], [])
+        self.assertEqual(report['missing'], ['commands-report', 'suite-report-1', 'suite-report-2'])
+
+    def test_redirected_report_directory_is_rejected_on_both_platforms(self):
+        self.write_inputs()
+        target = self.suite_dir.with_name('real-suites')
+        self.suite_dir.rename(target)
+        if os.name == 'nt':
+            self.checked(['cmd', '/d', '/c', 'mklink', '/J', str(self.suite_dir), str(target)])
+        else:
+            self.suite_dir.symlink_to(target, target_is_directory=True)
+        try:
+            result = self.export(write=False)
+            self.assertEqual(result.returncode, 2)
+            self.assertFalse(self.output.exists())
+        finally:
+            if os.name == 'nt':
+                self.suite_dir.rmdir()
+            else:
+                self.suite_dir.unlink()
+
+    @unittest.skipIf(os.name == 'nt', 'Windows directory-redirection coverage uses an unprivileged junction')
+    def test_symlinked_report_file_is_rejected(self):
+        self.write_inputs()
+        path = self.suite_dir / 'evidence-0.json'
+        target = self.base / 'linked-report.json'
+        path.rename(target)
+        path.symlink_to(target)
+        result = self.export(write=False)
+        self.assertEqual(result.returncode, 2)
+        self.assertFalse(self.output.exists())
+
     def test_nonfinite_negative_boolean_and_missing_durations_are_rejected(self):
         original = copy.deepcopy(self.passes)
         for value in (float('nan'), float('inf'), -1, True, None):
@@ -257,7 +346,7 @@ Exercise the diagnostic with a real process.
         result = self.export(write=False)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         sources = json.loads(self.output.read_text(encoding='utf-8'))['sources']
-        source = next(s for s in sources if len(s['rows']) == 2)
+        source = next(s for s in sources if len(s['rows']) == 3)
         self.assertEqual(source['rows'][0]['module'], 'slow_module')
         self.assertEqual(before, {p: p.read_bytes() for p in before})
 

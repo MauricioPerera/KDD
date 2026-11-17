@@ -19,12 +19,18 @@ class TimingWorkflow(unittest.TestCase):
         self.assertEqual(len(matches), 1, 'Expected exactly one ' + name)
         return matches[0]
 
+    def condition(self, step):
+        text = step['if'].strip()
+        if text.startswith('${{') and text.endswith('}}'):
+            text = text[3:-2]
+        return ''.join(text.split())
+
     def test_projection_is_native_only_always_and_follows_existing_suites(self):
         step = self.named('Export CI timing diagnostics')
         self.assertEqual(step['id'], 'ci-timings')
-        for fragment in ('always()', '!inputs.reusable_execution',
-                         "github.repository == 'MauricioPerera/KDD'"):
-            self.assertIn(fragment, step['if'])
+        self.assertEqual(step['shell'], 'bash')
+        self.assertEqual(self.condition(step), ''.join((
+            "always() && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD'").split()))
         self.assertGreater(self.steps.index(step), self.steps.index(self.named('Run unit tests (2/2)')))
         command = step['run']
         for fragment in ('python -I scripts/ci_timings.py export', '--repo-root .',
@@ -39,11 +45,11 @@ class TimingWorkflow(unittest.TestCase):
 
     def test_upload_is_pinned_and_exposes_only_the_projected_file(self):
         step = self.named('Upload CI timing diagnostics')
+        self.assertLess(self.steps.index(self.named('Export CI timing diagnostics')), self.steps.index(step))
         self.assertEqual(step['uses'].split(' #')[0], UPLOAD)
-        self.assertIn('always()', step['if'])
-        self.assertIn("steps.ci-timings.outcome == 'success'", step['if'])
-        self.assertIn('!inputs.reusable_execution', step['if'])
-        self.assertIn("github.repository == 'MauricioPerera/KDD'", step['if'])
+        self.assertEqual(self.condition(step), ''.join((
+            "always() && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' "
+            "&& steps.ci-timings.outcome == 'success'").split()))
         options = step['with']
         self.assertEqual(options['path'], '${{ runner.temp }}/kdd-ci-timings/timings.json')
         self.assertEqual(options['name'],
@@ -57,6 +63,11 @@ class TimingWorkflow(unittest.TestCase):
         self.assertEqual(self.job['strategy']['matrix']['os'], ['ubuntu-latest', 'windows-latest'])
         first, second = (self.named('Run unit tests (' + str(i) + '/2)') for i in (1, 2))
         self.assertEqual(first['run'], second['run'])
+        self.assertEqual(self.steps.index(second), self.steps.index(first) + 1)
+        self.assertEqual(first['run'].strip(),
+            'python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . '
+            '--start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" '
+            '--report-dir "$RUNNER_TEMP/kdd-suite-reports"')
         self.assertIn('--workers "$KDD_SUITE_WORKERS"', first['run'])
         self.assertIn('COVERAGE_PROCESS_START', first['env'])
         self.assertNotIn('COVERAGE_PROCESS_START', second['env'])
