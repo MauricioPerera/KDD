@@ -59,6 +59,12 @@ class TimingWorkflow(unittest.TestCase):
         self.assertEqual(options['overwrite'], False)
         self.assertNotIn('continue-on-error', step)
 
+    def test_diagnostics_follow_all_existing_validation_steps(self):
+        self.assertEqual(
+            [step.get('name') for step in self.steps[-2:]],
+            ['Export CI timing diagnostics', 'Upload CI timing diagnostics'],
+        )
+
     def test_validation_workers_matrix_and_both_passes_remain(self):
         self.assertEqual(self.job['strategy']['matrix']['os'], ['ubuntu-latest', 'windows-latest'])
         first, second = (self.named('Run unit tests (' + str(i) + '/2)') for i in (1, 2))

@@ -12,7 +12,7 @@ test_command: 'python -m unittest tests.test_ci_timing_diagnostics tests.test_ci
 test_runner: python-unittest
 test_scope: infrastructure
 tests: tests/test_ci_timing_diagnostics.py
-tests_sha256: 'd0ec95e1a2fdcb6d37c191a8c5aaf9cdc79f6b904563527560bb80e5e24ccd94'
+tests_sha256: '8fa0d1376e2b6fe23e5d52fa248b57f71fe3bd6ed9fb47ab57975153c4e17b49'
 oracle_files: ['tests/test_ci_timing_diagnostics.py', 'tests/test_ci_timing_workflow.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py']
 budget:
   cyclomatic_max: 12
@@ -87,12 +87,17 @@ Crear el padre del output si falta. No ejecutar codigo o comandos del reporte.
 
 - Publicar solo el esquema permitido. No copiar stdout, stderr, error libre,
   entorno, comandos, rutas absolutas o campos adicionales del reporte.
+- Vincular cada hash a las metricas del mismo recibo original. Para una
+  fila de suite fallida conservar su codigo de salida exacto.
 - Conservar duraciones exactas y hashes originales; no convertir failed,
   timeout, incomplete o falta de evidencia en aceptacion. La etiqueta run/SHA
   se proporciona desde el job y no autentica por si misma el origen del reporte.
 - Agregar solamente Export CI timing diagnostics y Upload CI timing diagnostics
-  a validate, despues de las dos suites, export antes de upload y shell bash
-  explicito para export en ambos sistemas. Condicion export exacta:
+  como los dos ultimos pasos de validate, despues de todos los controles
+  existentes, con export antes de upload y shell bash explicito para export
+  en ambos sistemas. Un fallo de diagnostico queda visible en el resultado
+  del job y no puede omitir controles previos. Pages conserva su requisito
+  de un run exitoso para desplegar. Condicion export exacta:
   always() && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD'.
   Condicion upload: la misma conjuncion mas steps.ci-timings.outcome == 'success'.
   No sustituir AND por OR ni usar coincidencias de fragmentos como verificacion.
@@ -132,16 +137,19 @@ salida existente, enlaces/junctions e identidad invalida. Solo el caso de
 symlink de archivo POSIX tiene SKIP de aplicabilidad Windows; la prueba de
 directorio redirigido se ejecuta en ambos sistemas. No cambiar SKIP previos.
 
-El cableado verifica ubicacion, condiciones nativas, upload fijado y archivo
-unico, conservando comandos dual-OS y dos pasadas. Ejecutar oraculos nuevos
-y vecinos localmente; despues dos pasadas por OS en CI con inventarios y
-cobertura existentes. Publicar tres muestras del mismo candidato sin afirmar
+El cableado exige los dos ultimos pasos de validate y conserva condiciones
+nativas, upload fijado, archivo unico, comandos dual-OS y dos pasadas. Los
+controles de evidencia rechazan intercambiar dos hashes de suite sin mover
+sus metricas y convertir en cero el exit_code 1 de una fila de suite.
+Ejecutar oraculos nuevos y vecinos localmente. Despues, dos pasadas por OS
+en CI con inventarios y cobertura existentes. Publicar tres muestras del mismo candidato sin afirmar
 ahorro antes de observarlo. No se exige una meta temporal para la telemetria.
 
 ## Constraints
 
-Este commit solo propone contrato y oraculos; el target nuevo no esta
-implementado y el test_command debe seguir rojo por esa ausencia.
+Este baseline fortalece el contrato y los oraculos sobre el exportador
+existente. El test_command debe seguir rojo por el orden previo del workflow
+hasta aprobar y aplicar la correccion. El baseline conserva la implementacion.
 Aplicar el [protocolo de revision](../baseline-risk-review.md) al SHA exacto
 antes de implementar o tocar workflow. PARAR y reportar si requiere cambiar
 runtime, protecciones, oraculos previos o las garantias de las dos pasadas.

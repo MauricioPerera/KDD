@@ -180,6 +180,30 @@ Exercise the diagnostic with a real process.
             'scope': 'product', 'duration_seconds': self.command['results'][0]['duration_seconds'],
             'exit_code': 0, 'recorded_ok': True, 'shared_from': None})
 
+    def test_each_suite_source_hash_identifies_its_own_receipt_metrics(self):
+        self.passes[0]['duration_seconds'] = 11.25
+        self.passes[1]['duration_seconds'] = 42.5
+        report = self.document()
+
+        def metrics(duration, ok, modules):
+            return duration, ok, {
+                row['module']: (row['duration_seconds'], row['tests_run'], row['exit_code'])
+                for row in modules
+            }
+
+        expected = {}
+        for path in self.suite_dir.glob('evidence-*.json'):
+            raw = path.read_bytes()
+            receipt = json.loads(raw)
+            expected[hashlib.sha256(raw).hexdigest()] = metrics(
+                receipt['duration_seconds'], receipt['ok'], receipt['modules'])
+        actual = {
+            source['source_sha256']: metrics(
+                source['duration_seconds'], source['recorded_ok'], source['rows'])
+            for source in report['sources'] if source['kind'] == 'suite'
+        }
+        self.assertEqual(actual, expected)
+
     def test_arbitrary_outputs_errors_commands_and_extra_fields_are_never_published(self):
         for item in [self.command, *self.passes, *self.command['results'],
                      *(m for s in self.passes for m in s['modules'])]:
@@ -192,13 +216,19 @@ Exercise the diagnostic with a real process.
         self.command['ok'] = False
         self.command['results'][0].update(ok=False, exit_code=None, error='timeout')
         self.passes[0]['ok'] = False
-        self.passes[0]['modules'][0]['exit_code'] = 1
+        failed_module = next(row for row in self.passes[0]['modules']
+                             if row['module'] == 'test_product')
+        failed_module['exit_code'] = 1
         report = self.document()
         command = next(s for s in report['sources'] if s['kind'] == 'commands')
         self.assertFalse(command['recorded_ok'])
         self.assertIsNone(command['rows'][0]['exit_code'])
         self.assertFalse(command['rows'][0]['recorded_ok'])
         self.assertIn(False, [s['recorded_ok'] for s in report['sources'] if s['kind'] == 'suite'])
+        failed_suite = next(source for source in report['sources']
+                            if source['kind'] == 'suite' and source['recorded_ok'] is False)
+        recorded_module = next(row for row in failed_suite['rows'] if row['module'] == 'test_product')
+        self.assertEqual(recorded_module['exit_code'], 1)
 
     def test_shared_commands_have_zero_duration_and_keep_representative(self):
         shared = copy.deepcopy(self.command['results'][0])
