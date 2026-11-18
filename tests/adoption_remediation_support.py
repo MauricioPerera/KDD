@@ -1,10 +1,15 @@
 """Exercise the adopter and generated workflow with Git and Python subprocesses."""
+import atexit
+from functools import cache
 import json
 import os
 from pathlib import Path
 import shutil
+import stat
 import subprocess
 import sys
+import tempfile
+from threading import Lock
 
 from tests import test_adopt_project as original
 
@@ -46,6 +51,70 @@ with patch.object(subprocess, "run", invoke):
 """
 
 
+_SEED_LOCK = Lock()
+
+
+def _build_seed(seed):
+    scripts = seed / "scripts"
+    scripts.mkdir()
+    for module in (
+        "validate_contracts", "validate_okf", "validate_test_commands",
+        "validate_baseline", "verify_quality", "oracle_execution", "oracle_inventory",
+        "validation_runtime", "process_tree", "unittest_oracle_runner",
+    ):
+        shutil.copyfile(ROOT / "scripts" / (module + ".py"), scripts / (module + ".py"))
+
+    def git(*args):
+        return subprocess.check_output(["git", "-C", str(seed), *args],
+                                       encoding="utf-8", timeout=30).strip()
+
+    git("init", "--quiet", "--initial-branch=main", "--template=")
+
+    def revision(marker):
+        (seed / "revision.txt").write_text(marker, encoding="ascii")
+        git("add", ".")
+        git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+            "-c", "commit.gpgsign=false", "-c", "maintenance.autoDetach=false",
+            "-c", "gc.autoDetach=false", "commit", "-qm", marker)
+        return git("rev-parse", "HEAD")
+
+    return revision("KDD A"), revision("KDD B")
+
+
+def _retry_readonly_remove(remove, path, error):
+    if not isinstance(error[1], PermissionError):
+        raise error[1]
+    os.chmod(path, os.lstat(path).st_mode | stat.S_IWUSR)
+    remove(path)
+
+
+def _remove_seed(seed, owner):
+    if os.getpid() == owner:
+        shutil.rmtree(seed, onerror=_retry_readonly_remove)
+
+
+@cache
+def _seed_template(owner):
+    seed = Path(tempfile.mkdtemp(prefix="kdd-adoption-runtime-"))
+    try:
+        first, second = _build_seed(seed)
+    except BaseException:
+        _remove_seed(seed, owner)
+        raise
+    atexit.register(_remove_seed, seed, owner)
+    return seed, first, second
+
+
+def _reset_seed_after_fork():
+    global _SEED_LOCK
+    _SEED_LOCK = Lock()
+    _seed_template.cache_clear()
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_reset_seed_after_fork)
+
+
 class AdoptionIntegration:
     def setUp(self):
         self.fixture = original.AdoptExistingProjectTests()
@@ -57,31 +126,18 @@ class AdoptionIntegration:
         self.seed, self.first, self.second = self.seed_repository()
 
     def seed_repository(self):
+        owner = os.getpid()
+        with _SEED_LOCK:
+            template, first, second = _seed_template(owner)
         seed = self.root.parent / "reviewed runtime"
+        # Reserve the destination before copying so a collision cannot remove it.
         seed.mkdir()
-        scripts = seed / "scripts"
-        scripts.mkdir()
-        for module in (
-            "validate_contracts", "validate_okf", "validate_test_commands",
-            "validate_baseline", "verify_quality", "oracle_execution", "oracle_inventory",
-            "validation_runtime", "process_tree", "unittest_oracle_runner",
-        ):
-            shutil.copyfile(ROOT / "scripts" / (module + ".py"), scripts / (module + ".py"))
-
-        def git(*args):
-            return subprocess.check_output(["git", "-C", str(seed), *args],
-                                           encoding="utf-8", timeout=30).strip()
-
-        git("init", "--quiet", "--initial-branch=main", "--template=")
-
-        def revision(marker):
-            (seed / "revision.txt").write_text(marker, encoding="ascii")
-            git("add", ".")
-            git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
-                "-c", "commit.gpgsign=false", "commit", "-qm", marker)
-            return git("rev-parse", "HEAD")
-
-        return seed, revision("KDD A"), revision("KDD B")
+        try:
+            shutil.copytree(template, seed, dirs_exist_ok=True)
+        except BaseException:
+            _remove_seed(seed, owner)
+            raise
+        return seed, first, second
 
     def commit(self, message):
         self.git("add", "-A")
