@@ -1,7 +1,7 @@
 ---
 type: 'Task Contract'
 title: 'Lecturas Git agrupadas en ready y finish'
-description: 'Agrupar identidad inicial y artefactos de cierre con comprobaciones frescas por etapa.'
+description: 'Agrupar identidad y artefactos con lecturas frescas.'
 tags: ['tasks', 'git', 'performance', 'integration']
 task: task-transition-read-cost
 intent: 'Reducir los arranques Git durante las transiciones ready y finish.'
@@ -16,7 +16,7 @@ budget:
   lines_max: 100
   params_max: 4
 tests: tests/test_task_transition_read_cost.py
-tests_sha256: 'de4d09f53c6cd8cf0afb0f5a59c59f1f6920ebe85ba18729e91d05b70e87dda0'
+tests_sha256: '5c3b5459c406225113c1b536d95c2b05390c71e6b7d582584dc2fc9c90e5d048'
 oracle_files: ['tests/test_task_transition_read_cost.py', 'tests/test_git_task_multi_oracle.py', 'tests/test_generated_task_evidence.py', 'tests/test_fixture_preparation.py', 'scripts/trusted_ci.py', 'tests/__init__.py']
 touch_only: ['scripts/task_git.py']
 deps_allowed: ['stdlib', 'git', 'task_model', 'task_evidence', 'validate_tasks']
@@ -30,40 +30,35 @@ Conservar la [lectura de inventario por etapa](task-oracle-snapshot-batch.md).
 
 ## Interface
 
-Conservar las CLI de tareas y la evidencia de cierre. En el arranque valido de
-ready y finish, una consulta Git acredita raiz, formato nativo y commit de HEAD.
-El status posterior debe acreditar el mismo SHA, main y checkout limpio antes
-de reutilizar la prueba en la auditoria inicial. En la comparacion fria de
-artefactos de cierre con formato conocido, un lote Git basta para cuatro blobs.
+Conservar CLI y recibos. Antes del listado de tareas se permiten tres
+arranques: lock, lote de raiz/formato/HEAD^{commit} y status. Reusar la prueba
+solo cuando status confirme el mismo SHA en main limpio. Con formato
+conocido, la comparacion fria de cuatro artefactos usa un lote Git.
 
 ## Invariants
 
-- Mantener la identidad bajo el lock y limitarla a la operacion. Si Git devuelve
-  formato antiguo, salida ambigua o HEAD distinto en status, hacer las lecturas
-  independientes originales o rechazar. Soportar SHA-1 y SHA-256.
-- Mantener verificacion de ascendencia, perimetro, modos, sello e inventario
-  original sin reemplazos. Leer el inventario y el checkout de nuevo despues
-  del oraculo. Revalidar main, punta de tarea y limpieza antes de publicar.
-- Comparar cada artefacto y conservar su diagnostico. Rechazar deriva y
-  objetos faltantes. Un cierre rechazado no crea recibo ni commit de tarea.
-- Conservar los 2563 IDs de main, las dos pasadas en Ubuntu y Windows, cobertura
-  inicial y la ventana comun de post-init Windows inferior a 600 segundos.
+- Acotar la prueba al lock y la operacion. Ante Git antiguo, salida ambigua o
+  SHA distinto, volver a las lecturas independientes o rechazar. SHA-1 y SHA-256.
+- Conservar ascendencia, perimetro, modos, sello e inventario sin reemplazos.
+  Releer inventario, artefactos, main, punta y limpieza despues del oraculo.
+- Conservar el primer error por ruta y rechazar objetos faltantes. Un cierre
+  rechazado no crea commit ni recibo.
+- Conservar los 2563 IDs, Ubuntu/Windows, dos pasadas y cobertura inicial.
+  Post-init Windows sigue bajo el plazo comun de 600 s.
 
 ## Examples
 
-- Ready con SHA-256 reutiliza el HEAD comprobado para la auditoria inicial.
-- Un oraculo que mueve la punta de la tarea deja el cierre rechazado.
-- Cuatro blobs frios del cierre se consultan en un solo lote de contenidos.
+- Ready SHA-256 reutiliza el HEAD comprobado.
+- El oraculo que mueve la punta o altera el target impide cerrar.
 
 ## Do / Don't
 
-Usar Trace2 y Git real. Reutilizar el contexto de objetos vigente. Mantener
-separadas las comprobaciones antes y despues del runner.
+Usar Trace2 y Git real. Separar las lecturas previas y posteriores al runner.
 
 ## Tests
 
-Cubrir presupuesto por etapa, exito en los dos formatos, rechazo de checkout
-anidado, cambio real de rama durante el oraculo y lectura fria de artefactos.
+Prever presupuesto por etapa, checkout anidado, avance de main, movimiento
+de punta, deriva oculta por status y cuatro artefactos frios.
 
 ## Constraints
 
