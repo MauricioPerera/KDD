@@ -354,3 +354,6 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Evidencia instrumentada para tareas](contracts/task-oracle-execution-proof.md)
 - [Vinculo del guard con el evento](contracts/trusted-pr-event-binding.md)
 - [Checkout aislado de la accion compuesta](contracts/composite-quality-checkout.md)
+
+- [Diagnostico de tiempos de CI](ci-timing-diagnostics.md)
+- [Publicacion de tiempos por modulo y contrato](contracts/ci-timing-diagnostics.md)

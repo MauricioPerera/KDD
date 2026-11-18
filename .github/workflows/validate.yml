@@ -908,6 +908,29 @@ jobs:
           KDD_QUALITY_OUTCOME: ${{ steps.quality.outcome }}
         run: python scripts/optional_evidence.py summary --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage,quality
 
+      - name: Export CI timing diagnostics
+        id: ci-timings
+        if: ${{ always() && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: bash
+        run: >-
+          python -I scripts/ci_timings.py export --repo-root .
+          --commands-dir "$RUNNER_TEMP/kdd-command-reports"
+          --suites-dir "$RUNNER_TEMP/kdd-suite-reports"
+          --output "$RUNNER_TEMP/kdd-ci-timings/timings.json"
+          --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT"
+          --head-sha "$GITHUB_SHA" --platform "${{ matrix.os }}"
+          --trusted-runtime-ref "$KDD_TRUSTED_RUNTIME_REF"
+
+      - name: Upload CI timing diagnostics
+        if: ${{ always() && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && steps.ci-timings.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kdd-timings-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.os }}
+          path: ${{ runner.temp }}/kdd-ci-timings/timings.json
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 7
+
   board:
     strategy:
       matrix:
