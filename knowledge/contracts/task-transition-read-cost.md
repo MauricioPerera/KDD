@@ -16,7 +16,7 @@ budget:
   lines_max: 100
   params_max: 4
 tests: tests/test_task_transition_read_cost.py
-tests_sha256: '5c3b5459c406225113c1b536d95c2b05390c71e6b7d582584dc2fc9c90e5d048'
+tests_sha256: 'ae7ec2a0b9086cc12c947420c46d87022335cacbbacf04236a120a59ca71d6d0'
 oracle_files: ['tests/test_task_transition_read_cost.py', 'tests/test_git_task_multi_oracle.py', 'tests/test_generated_task_evidence.py', 'tests/test_fixture_preparation.py', 'scripts/trusted_ci.py', 'tests/__init__.py']
 touch_only: ['scripts/task_git.py']
 deps_allowed: ['stdlib', 'git', 'task_model', 'task_evidence', 'validate_tasks']

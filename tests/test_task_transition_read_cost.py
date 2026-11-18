@@ -224,10 +224,19 @@ class TaskTransitionReadCost(unittest.TestCase):
         project.git('reset', '--hard', initial)
         node = project.root / 'knowledge/tasks/TASK-001.md'
         original_node = node.read_bytes()
+        trace = self.area / 'status-race.jsonl'
         result = project.command(
-            [sys.executable, '-B', '-c', STATUS_RACE, project.ref, other], check=False)
+            [sys.executable, '-B', '-c', STATUS_RACE, project.ref, other],
+            env=dict(project.env, GIT_TRACE2_EVENT=str(trace)), check=False)
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertRegex(result.stderr, r'TASK_(?:RACE|APPROVAL):')
+        audits = [argv for argv in self.starts(trace) if 'ls-tree' in argv
+                  and 'knowledge/tasks' in argv]
+        for argv in audits:
+            self.assertIn(other, argv)
+            self.assertNotIn(initial, argv)
+        if not audits:
+            self.assertIn('TASK_RACE:', result.stderr)
         self.assertEqual(project.git('rev-parse', 'HEAD'), other)
         self.assertEqual(node.read_bytes(), original_node)
         self.assertEqual(path.read_bytes(), b'left\nright\n')
