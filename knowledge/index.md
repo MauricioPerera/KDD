@@ -357,3 +357,5 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 - [Diagnostico de tiempos de CI](ci-timing-diagnostics.md)
 - [Publicacion de tiempos por modulo y contrato](contracts/ci-timing-diagnostics.md)
+
+- [Lecturas agrupadas en ready y finish de tareas Git](contracts/task-transition-read-cost.md)
