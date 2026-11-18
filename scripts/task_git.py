@@ -716,9 +716,8 @@ def _history(root, task_id):
     return result
 
 
-def _clean_main(root, expected=None):
-    actual = Path(git(root, 'rev-parse', '--show-toplevel')).resolve()
-    if actual != root:
+def _checked_main(root, toplevel, expected):
+    if Path(toplevel).resolve() != root:
         raise TaskError('TASK_MAIN: run mutations from the repository root on main')
     records = git(root, 'status', '--porcelain=v2', '--branch', '-z',
                   '--untracked-files=all').split('\0')
@@ -739,6 +738,30 @@ def _clean_main(root, expected=None):
         raise TaskError('TASK_DIRTY: preserve unrelated changes; commit or stash them first')
     if expected and head != expected:
         raise TaskError('TASK_RACE: HEAD changed during the operation')
+    return head
+
+
+def _clean_main(root, expected=None):
+    return _checked_main(root, git(root, 'rev-parse', '--show-toplevel'), expected)
+
+
+def _initial_head(root):
+    cache = _OBJECT_CACHE.get()
+    if cache is None:
+        return _clean_main(root)
+    try:
+        toplevel, algorithm, head = _output(
+            root, ('rev-parse', '--show-toplevel', '--show-object-format',
+                   '--verify', '--end-of-options', 'HEAD^{commit}')).splitlines()
+    except (TaskError, ValueError):
+        return _clean_main(root)
+    if not Path(toplevel).is_absolute() or not valid_sha(head) or (
+            len(head) != {'sha1': 40, 'sha256': 64}.get(algorithm)):
+        return _clean_main(root)
+    _checked_main(root, toplevel.strip(), head)
+    # Publish only the typed identity that the subsequent live status confirmed.
+    cache[_key(root, 'object-format', '')] = algorithm
+    _remember_git_commits(root, (head,))
     return head
 
 
@@ -1210,12 +1233,25 @@ def task_perimeter(root, task, revision, branch_tip):
             'tested_commit': revision, 'paths': list(changed)}
 
 
-def _finish_artifacts(root, task, metadata, revision):
-    names = {task['contract'], metadata['tests'], metadata['target'], task_path(task['task_id'])}
-    for name in sorted(names):
+def _compare_finish_artifacts(root, revision, names, committed=None):
+    for name in names:
         content = safe_path(root, name).read_text(encoding='utf-8')
-        if proof.normalized(content) != proof.normalized(blob(root, revision, name)):
+        expected = blob(root, revision, name) if committed is None else committed[name]
+        if proof.normalized(content) != proof.normalized(expected):
             raise TaskError('TASK_DIRTY: checkout artifact differs from tested commit: ' + name)
+
+
+def _finish_artifacts(root, task, metadata, revision):
+    names = sorted({task['contract'], metadata['tests'], metadata['target'],
+                    task_path(task['task_id'])})
+    try:
+        committed = blobs(root, revision, names)
+    except TaskError:
+        # Replay in path order so a later missing object does not mask an
+        # earlier checkout error. A transient batch failure still fails closed.
+        _compare_finish_artifacts(root, revision, names)
+        raise
+    _compare_finish_artifacts(root, revision, names, committed)
 
 
 def _finish(root, task, options, head):
@@ -1252,7 +1288,7 @@ def _finish(root, task, options, head):
 
 def _prepare(root, operation, task_id, options):
     from validate_tasks import validate_snapshot
-    head = _clean_main(root)
+    head = _initial_head(root) if operation in ('ready', 'finish') else _clean_main(root)
     findings = validate_snapshot(root, head)
     if findings:
         raise TaskError('; '.join(findings))
