@@ -54,7 +54,7 @@ class TimingWorkflow(unittest.TestCase):
         self.assertEqual(options['path'], '${{ runner.temp }}/kdd-ci-timings/timings.json')
         self.assertIn(' '.join(options['name'].split()), (
             'kdd-timings-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.os }}',
-            "${{ matrix.role && format('kdd-timings-source-{0}-{1}-{2}', matrix.role, "
+            "${{ matrix.role != 'full' && format('kdd-timings-source-{0}-{1}-{2}', matrix.role, "
             "github.run_id, github.run_attempt) || format('kdd-timings-{0}-{1}-{2}', "
             "github.run_id, github.run_attempt, matrix.os) }}",
         ))

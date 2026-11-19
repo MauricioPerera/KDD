@@ -7,12 +7,12 @@ task: ci-windows-board-routing
 intent: 'Acortar la ruta critica Windows conservando el trabajo y comprobando la evidencia de ambos productores.'
 target: .github/workflows/validate.yml
 language: yaml
-signature: 'validate, board, require_windows'
+signature: 'validate, board, validate_windows, require_windows'
 test_command: 'python -m unittest tests.test_ci_windows_board_routing'
 test_runner: python-unittest
 test_scope: infrastructure
 tests: tests/test_ci_windows_board_routing.py
-tests_sha256: 'e2f555798f39c6529ba18028188b1e3a8fdad166eff3d897be03a20794c0106e'
+tests_sha256: 'f7638859b11c1451898d594a5fe0fd17426158d6d6b12ad7f1ca391df342998d'
 oracle_files: ['tests/test_ci_windows_board_routing.py', 'tests/__init__.py']
 budget:
   cyclomatic_max: 12
@@ -33,9 +33,12 @@ un reparto nativo que reutiliza el runner Windows de Board.
 Conservar ambos vectores os con ubuntu-latest y windows-latest.
 Solo en el evento nativo del validate.yml de MauricioPerera/KDD
 (push en main o pull_request, sin modo reusable), excluir la fila
-Windows anterior de validate y board. En validate agregar las filas
-Windows win_contracts y win_suite mediante include. La condicion es
-la misma que habilita las particiones post-init independientes.
+Windows anterior de validate y board. Validate mantiene el rol full.
+Un job validate_windows se habilita solo para esos eventos y contiene
+exactamente las filas Windows win_contracts y win_suite. Las dos
+matrices de validate usan fail-fast false. Validate_windows reutiliza
+los pasos y el entorno de validate mediante aliases YAML. La condicion
+es la misma que habilita las particiones post-init independientes.
 
 win_contracts ejecuta los comandos de los contratos y el oraculo
 Board, con el nombre requerido board (windows-latest). En pasos
@@ -45,26 +48,37 @@ usa el nombre Windows validation work y realiza las dos pasadas
 y el resto de sus controles tal como el perfil anterior.
 
 Los productores mantienen los mismos comandos y workers. Los pasos
-de suites, cobertura y Pages excluyen solo win_contracts. El gate
-de comandos y su reporte init excluyen solo win_suite. La
-comprobacion de post-init permanece al terminar las suites y
-excluye solo win_contracts. El workflow publicado conserva los
-controles de proteccion, pins, permisos y el perfil Ubuntu.
+de suites, cobertura, Pages y aceptacion excluyen solo win_contracts.
+El gate de comandos y su reporte init excluyen solo win_suite.
+La comprobacion de post-init permanece al terminar las suites y excluye
+solo win_contracts. El workflow conserva los controles de proteccion,
+pins, permisos y el perfil Ubuntu. Full conserva los nombres previos
+de artefactos y el check de Windows del flujo reutilizable.
 
 El paso Upload Windows validation receipt tiene id windows-receipt,
 sube un recibo por rol con error ante ausencia y overwrite false.
 Los outputs win_contract_id, win_contract_digest, win_suite_id y
 win_suite_digest salen de ese paso solo para el rol correspondiente.
-El job require_windows usa needs de validate, condicion always()
-y el alcance nativo. En este alcance se llama validate (windows-latest).
+Win_suite emite win_suite_inventory_sha256 desde discovery y
+win_coverage_id y win_coverage_digest desde el upload de cobertura.
+El job require_windows usa needs de validate_windows y condicion
+always() con el alcance nativo. No depende del resultado de Ubuntu.
+En este alcance se llama validate (windows-latest).
 En otros casos su nombre inactivo no coincide con un check requerido.
 Su primer guard Check Windows validation producers exige success,
-IDs distintos y ambos digests antes de verificar los recibos.
+IDs distintos y tres digests de artefactos antes de verificar los
+recibos. Solo win_suite publica acceptance-windows-latest en el
+flujo nativo, incluida la evidencia de una aceptacion fallida.
 El paso Download Windows validation artifacts usa el pin existente
-de download-artifact, ambos IDs de needs, skip-decompress y
-digest-mismatch error. Verify Windows validation receipts coteja
-el digest revisado de su driver antes de ejecutarlo de forma externa
-al checkout con python -I. Se ejecuta antes de publicar tiempos unidos.
+de download-artifact, los tres IDs de needs, skip-decompress y
+digest-mismatch error. Verify Windows validation receipts extrae
+el blob del commit candidato exacto, sin reemplazos Git, a un
+directorio temporal nuevo fuera del checkout. Compara el SHA-256
+con el pin literal de la revision protegida y solo despues invoca
+python -I sobre ese archivo. Los datos de contexto y needs entran
+en el entorno, como datos y no como codigo Bash. El paso se ejecuta
+antes de publicar los tiempos unidos. Guard, checkout, descarga y
+verificacion carecen de continue-on-error y omisiones condicionales.
 
 Los diagnosticos parciales conservan el formato del exportador
 existente y un nombre por rol. El job final publica los diagnosticos
@@ -82,6 +96,7 @@ inventarios originales y nombres por plataforma.
 - Mantener ambos SO, ambas pasadas consecutivas, cobertura solo
   en la primera, cuatro workers de contratos y seis de suite Windows,
   init-project exclusivo y evidencia del plazo comun de post-init.
+  La medicion acepta estrictamente menos de 600 s en cada muestra.
 - Los dos roles Windows no publican el mismo nombre de artefacto.
   Ningun fallo de productor ni un recibo obsoleto se vuelve verde.
 - Reutilizables y ejecuciones ajenas conservan su flujo y sus

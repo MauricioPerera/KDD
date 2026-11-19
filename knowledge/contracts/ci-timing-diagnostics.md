@@ -156,6 +156,9 @@ runtime, protecciones, oraculos previos o las garantias de las dos pasadas.
 La particion general y contratos en otros jobs necesitan contratos separados.
 
 En el [reparto nativo](ci-windows-board-routing.md) los dos productores
-Windows guardan diagnosticos parciales con nombre por rol. La union
-publica el diagnostico Windows completo del intento. No cambia el
-formato de tiempos ni se usa como decision de aprobacion.
+Windows guardan diagnosticos parciales con nombre por rol. El rol full
+conserva el nombre por SO en Ubuntu y en el flujo reutilizable.
+La union publica el diagnostico Windows completo del intento. Preserva
+el orden y los hashes de los tres sources y sus metricas exactas. Solo
+se unen datos proyectados, desde los recibos del intento actual. No
+cambia el formato de tiempos ni se usa como decision de aprobacion.

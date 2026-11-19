@@ -22,8 +22,11 @@ class PagesInventoryWorkflow(unittest.TestCase):
     def test_export_is_native_main_only_after_both_unchanged_suites(self):
         export=step(self.ci,'Export Pages CI inventory')
         upload=step(self.ci,'Upload Pages CI inventory')
+        condition=CONDITION
+        if '\n  validate_windows:\n' in self.ci:
+            condition=CONDITION.replace('${{ ', "${{ matrix.role != 'win_contracts' && ", 1)
         for block in (export,upload):
-            self.assertIn('        if: '+CONDITION,block)
+            self.assertIn('        if: '+condition+'\n',block)
         self.assertGreater(self.ci.index('- name: Export Pages CI inventory'),self.ci.index('- name: Run unit tests (2/2)'))
         for required in ('python site/ci_inventory.py export','--reports-dir "$RUNNER_TEMP/kdd-suite-reports"',
                          '--output "$RUNNER_TEMP/kdd-pages-ci-inventory/inventory.json"',
@@ -87,8 +90,11 @@ class PagesInventoryWorkflow(unittest.TestCase):
         command='run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" --report-dir "$RUNNER_TEMP/kdd-suite-reports"'
         self.assertEqual(self.ci.count(command),2)
         jobs=self.ci.split('\njobs:\n',1)[1]
+        expected={'validate:', 'board:', 'postinit_windows:'}
+        if '\n  validate_windows:\n' in self.ci:
+            expected|={'validate_windows:', 'require_windows:'}
         self.assertEqual(set(line.strip() for line in jobs.splitlines() if line.startswith('  ') and not line.startswith('   ') and line.endswith(':')),
-                         {'validate:', 'board:', 'postinit_windows:'})
+                         expected)
         preview=step(self.ci,'Build and validate Pages for PR')
         self.assertIn("github.event_name == 'pull_request'",preview)
         self.assertNotIn('--ci-inventory-dir',preview)

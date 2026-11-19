@@ -47,6 +47,23 @@ class WindowsBoardReceipts(unittest.TestCase):
                             tree=fixture.git('rev-parse', 'HEAD^{tree}'),
                             runtime_ref=fixture.base, platform='windows-latest')
         cls.contracts = cls._contract_receipt()
+        discovered = fixture.run_command([
+            sys.executable, '-I', str(ROOT / 'site/ci_inventory.py'),
+            'discover', '--repo-root', str(suite_root),
+        ])
+        fixture.assertEqual(discovered.returncode, 0, discovered.stdout + discovered.stderr)
+        cls.independent_ids = json.loads(discovered.stdout)
+        cls.inventory_digest = hashlib.sha256(
+            ('\n'.join(cls.independent_ids) + '\n').encode('utf-8')).hexdigest()
+        # A separate simulated coverage report, like the uploaded first-pass
+        # report. The runtime and discovery above are real.
+        cls.coverage_path = fixture.outer / 'first-pass-coverage.json'
+        _json(cls.coverage_path, {
+            'kdd': dict(head_sha=fixture.base, platform='windows-latest',
+                        run_id='17', attempt='2', suite_pass=1, fragments=1),
+            'totals': dict(num_statements=2, num_branches=1),
+        })
+        cls.coverage_digest = hashlib.sha256(cls.coverage_path.read_bytes()).hexdigest()
         cls.suites = cls._suite_receipt()
 
     @classmethod
@@ -92,7 +109,7 @@ class WindowsBoardReceipts(unittest.TestCase):
             # This fixture exercises coverage metadata binding. Existing coverage
             # integration tests exercise the real producer.
             if number == 1:
-                record['coverage'] = dict(pass_no=1, sha256='a' * 64, fragments=1,
+                record['coverage'] = dict(pass_no=1, sha256=cls.coverage_digest, fragments=1,
                                           lines_total=2, branches_total=1)
             passes.append(record)
         return cls._receipt('suites', passes=passes)
@@ -103,9 +120,9 @@ class WindowsBoardReceipts(unittest.TestCase):
         self.addCleanup(folder.cleanup)
         self.output = Path(folder.name)
         self.producers = {role: dict(id=index, result='success') for index, role in
-                          enumerate(('contracts', 'suites'), 1)}
+                          enumerate(('contracts', 'suites', 'coverage'), 1)}
 
-    def verify(self, *, extra=False, producer_override=None):
+    def verify(self, *, extra=False, producer_override=None, omit_zip=None, coverage_override=None):
         self.assertTrue(DRIVER.is_file(), 'The contracted receipt join is pending implementation.')
         for expected, receipt in zip(('contracts', 'suites'), self.transfers):
             path = self.output / (expected + '.zip')
@@ -114,9 +131,16 @@ class WindowsBoardReceipts(unittest.TestCase):
                 if extra and expected == 'suites':
                     archive.writestr('unexpected.txt', 'fixture')
             self.producers[expected]['digest'] = hashlib.sha256(path.read_bytes()).hexdigest()
+        coverage = self.output / 'coverage.zip'
+        payload = self.coverage_path.read_bytes() if coverage_override is None else json.dumps(coverage_override)
+        with ZipFile(coverage, 'w', ZIP_DEFLATED) as archive:
+            archive.writestr('coverage.json', payload)
+        self.producers['coverage']['digest'] = hashlib.sha256(coverage.read_bytes()).hexdigest()
         if producer_override:
             role, field, value = producer_override
             self.producers[role][field] = value
+        if omit_zip:
+            (self.output / (omit_zip + '.zip')).unlink()
         identity = self.output / 'identity.json'
         producers = self.output / 'producers.json'
         _json(identity, self.identity)
@@ -125,8 +149,10 @@ class WindowsBoardReceipts(unittest.TestCase):
             sys.executable, '-I', str(DRIVER), 'verify',
             '--repo-root', str(self.fixture.repo), '--runtime-bundle', str(self.bundle),
             '--identity', str(identity), '--producers', str(producers),
+            '--suite-inventory-sha256', self.inventory_digest,
             '--contracts', str(self.output / 'contracts.zip'),
             '--suites', str(self.output / 'suites.zip'),
+            '--coverage', str(coverage),
         ])
 
     def rejects(self, **options):
@@ -138,6 +164,7 @@ class WindowsBoardReceipts(unittest.TestCase):
         command, shared = self.contracts['rows']
         self.assertEqual(shared['shared_from'], command['path'])
         expected = ['test_feature.Feature.test_value']
+        self.assertEqual(self.independent_ids, expected)
         for record in self.suites['passes']:
             self.assertEqual(record['expected_ids'], expected)
             self.assertEqual(record['executed_ids'], expected)
@@ -161,6 +188,19 @@ class WindowsBoardReceipts(unittest.TestCase):
             record['executed_ids'] = ['test_feature.Feature.unexpected']
         self.rejects()
 
+    def test_matching_fabricated_inventories_fail_against_independent_discovery(self):
+        for record in self.transfers[1]['passes']:
+            record['expected_ids'] = record['executed_ids'] = ['test_feature.Feature.unexpected']
+        self.rejects()
+
+    def test_metadata_must_match_the_independent_coverage_report(self):
+        self.transfers[1]['passes'][0]['coverage']['fragments'] = 77
+        self.rejects()
+
+    def test_wrong_bundle_in_any_pass_fails(self):
+        self.transfers[1]['passes'][0]['runtime'] = 'a' * 40
+        self.rejects()
+
     def test_coverage_on_second_pass_fails(self):
         first, second = self.transfers[1]['passes']
         second['coverage'] = first['coverage']
@@ -179,6 +219,27 @@ class WindowsBoardReceipts(unittest.TestCase):
 
     def test_archive_with_an_extra_member_fails(self):
         self.rejects(extra=True)
+
+    def test_archive_with_another_role_fails(self):
+        self.transfers[1]['role'] = 'contracts'
+        self.rejects()
+
+    def test_same_git_commit_with_a_different_tree_fails(self):
+        self.transfers[0]['identity']['tree'] = 'b' * 40
+        self.rejects()
+
+    def test_artifact_ids_must_be_distinct(self):
+        self.rejects(producer_override=('suites', 'id', 1))
+
+    def test_one_valid_zip_is_insufficient(self):
+        self.rejects(omit_zip='contracts')
+
+    def test_a_separate_well_formed_coverage_zip_from_another_attempt_fails(self):
+        payload = _read(self.coverage_path)
+        payload['kdd']['attempt'] = '1'
+        self.transfers[1]['passes'][0]['coverage']['sha256'] = hashlib.sha256(
+            json.dumps(payload).encode('utf-8')).hexdigest()
+        self.rejects(coverage_override=payload)
 
 
 if __name__ == '__main__':

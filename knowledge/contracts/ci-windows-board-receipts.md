@@ -12,7 +12,7 @@ test_command: 'python -m unittest tests.test_ci_windows_board_receipts'
 test_runner: python-unittest
 test_scope: infrastructure
 tests: tests/test_ci_windows_board_receipts.py
-tests_sha256: '1218c20125f7710f8d1b481d91ab002af84046fc1cbc288a75e4aa4dc11f7d45'
+tests_sha256: '905ac66fcc5d2027114b73871c54f8484ac8420b0b130aa571cdf8118001db9c'
 oracle_files: ['tests/test_ci_windows_board_receipts.py', 'tests/test_ci_trusted_execution.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py']
 budget:
   cyclomatic_max: 12
@@ -33,32 +33,48 @@ contratos y suites se ejecutan en dos runners Windows ya presentes.
 El verificador stdlib acepta esta CLI. El workflow descarga cada ZIP
 por ID y preserva sus bytes para verificar el digest.
 
-    python -I scripts/ci_windows_join.py verify --repo-root DIR --runtime-bundle DIR --identity FILE --producers FILE --contracts ZIP --suites ZIP
+    python -I scripts/ci_windows_join.py verify --repo-root DIR --runtime-bundle DIR --identity FILE --producers FILE --suite-inventory-sha256 SHA --contracts ZIP --suites ZIP --coverage ZIP
 
 identity contiene repository, workflow, run_id, run_attempt, head_sha,
 tree, runtime_ref y platform. Los dos IDs de Git se verifican contra
-el checkout exacto. producers tiene entradas contracts y suites, cada
-una con id entero positivo, digest SHA-256 hexadecimal y result.
+el checkout exacto. producers tiene entradas contracts, suites y
+coverage, cada una con id entero positivo, digest SHA-256 hexadecimal
+y result. Coverage y suites proceden de pasos distintos del mismo job.
 El workflow materializa estos datos desde needs y su contexto actual.
 
-Cada ZIP tiene un solo miembro regular receipt.json, JSON sin claves
-duplicadas, con schema_version 1, role, identity, ok y los datos del
-rol. Rutas inesperadas, miembros extra, enlaces y limites de archivo
-incumplidos fallan. Reutilizar el lector acotado de post-init.
-Los dos IDs de artefacto son distintos. El SHA-256 de cada ZIP
-coincide con el digest del productor. Solo success acredita el job.
+Cada ZIP contiene un solo archivo regular, receipt.json en los dos
+recibos y coverage.json en el artefacto de cobertura. Los recibos son
+JSON sin claves duplicadas, con schema_version 1, role, identity, ok y
+los datos del rol. Rutas inesperadas, miembros extra y enlaces fallan.
+Cada recibo admite hasta 2 MiB comprimidos y 1 MiB descomprimido,
+igual que post-init. Cobertura admite hasta 8 MiB comprimidos y
+16 MiB descomprimidos. Aplicar los limites en un driver autocontenido,
+sin cargar helpers del checkout sin revisar.
+Los tres IDs de artefacto son distintos. El SHA-256 de cada ZIP coincide
+con el digest del productor. Solo success acredita el job.
 
 El recibo contracts agrega rows con los campos path POSIX relativo,
 test_command, scope, shared_from, ok y exit_code. Cotejar su inventario
 con el plan del gate fijado y su deduplicacion exacta desde el arbol
-probado. El recibo suites agrega passes, dos filas ordenadas. Cada
+probado. Se agrupan los textos de comando exactos que usa el runtime
+aprobado; no se introduce otra normalizacion. El recibo suites agrega
+passes, dos filas ordenadas. Cada
 fila contiene number, runtime, workers, expected_ids, executed_ids,
 ok, errors, failures, fixture_omitted_ids y coverage.
 La primera contiene coverage con pass_no=1, sha256, fragments,
 lines_total y branches_total del reporte real. La segunda usa null.
+Comparar los IDs ordenados de cada pasada (UTF-8, un ID por linea y
+salto final LF) con el digest del discovery independiente del
+productor Windows, ligado a su paso directo mediante needs. El
+resumen de cobertura coincide con el reporte descargado del mismo intento, incluido su
+SHA-256 de bytes y su identidad. Los tres ZIP se exigen aunque
+la accion de descarga permita continuar habiendo encontrado uno.
 
 La CLI devuelve 0 y JSON con ok=true solo con recibos validos. Rechaza
 errores de identidad, transporte, esquema o inventario con exit 2.
+Los recibos transportan solo los datos proyectados especificados y
+los tiempos en el [formato existente](ci-timing-diagnostics.md).
+No publican los reportes crudos del runner.
 
 ## Invariants
 
