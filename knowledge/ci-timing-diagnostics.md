@@ -31,3 +31,9 @@ La proyección complementa los [inventarios](pages-ci-inventory.md) y la
 2. Comparar costos por módulo, fase y runner antes de ajustar el paralelismo.
 3. Definir contratos separados para repartir suites o comandos. Conservar
    Ubuntu, Windows, dos pasadas y la conciliación de IDs y cobertura.
+
+# Cierre del reparto en Windows
+
+El [informe de cierre](../docs/reports/CI-WINDOWS-REPARTO-2026-11-19.md) documenta
+el reparto integrado en el PR #203, los tres intentos consecutivos de `f15495a`
+y la comparación con `f512f71` y el PR #199.
