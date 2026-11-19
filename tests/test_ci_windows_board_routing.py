@@ -73,7 +73,7 @@ class WindowsBoardRouting(unittest.TestCase):
         self.assertEqual(validate['role'], ['full'])
         self.assertNotIn('include', validate)
         self.assertNotIn('include', board)
-        self.assertNotIn('name', self.validation)
+        self.assertEqual(self.validation.get('name'), 'validate (${{ matrix.os }})')
         self.assertIs(self.validation['strategy']['fail-fast'], False)
         self.assertIs(self.windows()['strategy']['fail-fast'], False)
         self.assertEqual(self.windows()['strategy']['matrix'], {
@@ -212,6 +212,7 @@ class WindowsBoardRouting(unittest.TestCase):
             '${{ needs.validate_windows.outputs.win_coverage_id }}'
         ))
         self.assertIs(download['with']['skip-decompress'], True)
+        self.assertIs(download['with'].get('merge-multiple'), True)
         self.assertEqual(download['with']['digest-mismatch'], 'error')
         self.assertRegex(verify['env']['KDD_WINDOWS_JOIN_DRIVER_SHA256'], r'^[0-9a-f]{64}$')
         self.assertEqual(verify['shell'], 'python -I {0}')
@@ -249,8 +250,13 @@ class WindowsBoardRouting(unittest.TestCase):
 import json, os, sys
 from pathlib import Path
 assert sys.flags.isolated
+options = dict(zip(sys.argv[2::2], sys.argv[3::2]))
+for name in ('--contracts', '--suites', '--coverage'):
+    assert Path(options[name]).is_file(), name
+identity = json.loads(Path(options['--identity']).read_text(encoding='utf-8'))
+producers = json.loads(Path(options['--producers']).read_text(encoding='utf-8'))
 Path(os.environ['KDD_TEST_MARKER']).write_text(json.dumps({
-    'driver': __file__, 'args': sys.argv[1:],
+    'driver': __file__, 'args': sys.argv[1:], 'identity': identity, 'producers': producers,
 }), encoding='utf-8')
 """
             driver.write_bytes(source.encode('ascii'))
@@ -297,6 +303,16 @@ Path(os.environ['KDD_TEST_MARKER']).write_text(json.dumps({
             self.assertTrue(launched.is_relative_to(temp))
             self.assertFalse(launched.is_relative_to(repo))
             self.assertEqual(recorded['args'][0], 'verify')
+            self.assertEqual(recorded['identity'], {
+                'repository': 'MauricioPerera/KDD', 'workflow': '.github/workflows/validate.yml',
+                'run_id': 17, 'run_attempt': 2, 'head_sha': sha, 'tree': git('rev-parse', 'HEAD^{tree}'),
+                'runtime_ref': sha, 'platform': 'windows-latest',
+            })
+            self.assertEqual(recorded['producers'], {
+                'contracts': {'id': 11, 'result': 'success', 'digest': 'a' * 64},
+                'suites': {'id': 12, 'result': 'success', 'digest': 'b' * 64},
+                'coverage': {'id': 13, 'result': 'success', 'digest': 'c' * 64},
+            })
             for flag in ('--repo-root', '--runtime-bundle', '--identity', '--producers', '--suite-inventory-sha256',
                          '--coverage', '--contracts', '--suites'):
                 self.assertIn(flag, recorded['args'])

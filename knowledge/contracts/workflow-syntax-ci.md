@@ -34,9 +34,10 @@ binario exportado y --repo-root . sin lista fija ni condicion de evento.
 ## Invariants
 
 El mismo check cubre el [job auxiliar post-init Windows](postinit-windows-common-deadline.md).
-Mantener cuatro jobs base, dos matrices Ubuntu/Windows, Python3.11, Node24,
+Mantener los jobs base, dos matrices Ubuntu/Windows, Python3.11, Node24,
 los 19 gates, referencias explicitas y dos comandos/entornos identicos de
-suite. Sin paths filters, otros jobs, supresiones, permisos write, secrets,
+suite. La pareja de la [division Windows](ci-windows-board-routing.md)
+reutiliza estos pasos. Sin paths filters, supresiones, permisos write, secrets,
 continue-on-error ni modificaciones a otros workflows o protecciones.
 Fallo de instalacion o lint falla validate antes de los pasos costosos.
 

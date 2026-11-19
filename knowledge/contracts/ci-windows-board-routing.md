@@ -12,7 +12,7 @@ test_command: 'python -m unittest tests.test_ci_windows_board_routing'
 test_runner: python-unittest
 test_scope: infrastructure
 tests: tests/test_ci_windows_board_routing.py
-tests_sha256: 'f7638859b11c1451898d594a5fe0fd17426158d6d6b12ad7f1ca391df342998d'
+tests_sha256: '1f367944222e90c2e56ce89aee7d7a0096bff2c6734ce6ebb95aa76e7b230e10'
 oracle_files: ['tests/test_ci_windows_board_routing.py', 'tests/__init__.py']
 budget:
   cyclomatic_max: 12
@@ -33,7 +33,9 @@ un reparto nativo que reutiliza el runner Windows de Board.
 Conservar ambos vectores os con ubuntu-latest y windows-latest.
 Solo en el evento nativo del validate.yml de MauricioPerera/KDD
 (push en main o pull_request, sin modo reusable), excluir la fila
-Windows anterior de validate y board. Validate mantiene el rol full.
+Windows anterior de validate y board. Validate mantiene el rol full
+y el nombre explicito validate (matrix.os), que excluye la dimension
+role del nombre del check. Asi conserva los contextos originales.
 Un job validate_windows se habilita solo para esos eventos y contiene
 exactamente las filas Windows win_contracts y win_suite. Las dos
 matrices de validate usan fail-fast false. Validate_windows reutiliza
@@ -70,8 +72,10 @@ IDs distintos y tres digests de artefactos antes de verificar los
 recibos. Solo win_suite publica acceptance-windows-latest en el
 flujo nativo, incluida la evidencia de una aceptacion fallida.
 El paso Download Windows validation artifacts usa el pin existente
-de download-artifact, los tres IDs de needs, skip-decompress y
-digest-mismatch error. Verify Windows validation receipts extrae
+de download-artifact, los tres IDs de needs, skip-decompress true,
+merge-multiple true y digest-mismatch error. Con estos dos flags los
+tres ZIP mantienen sus bytes y nombres en un solo directorio.
+Verify Windows validation receipts extrae
 el blob del commit candidato exacto, sin reemplazos Git, a un
 directorio temporal nuevo fuera del checkout. Compara el SHA-256
 con el pin literal de la revision protegida y solo despues invoca

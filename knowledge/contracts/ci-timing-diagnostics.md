@@ -107,7 +107,8 @@ Crear el padre del output si falta. No ejecutar codigo o comandos del reporte.
   kdd-command-reports o kdd-suite-reports crudos. Sin permisos nuevos.
 - Conservar comandos de pruebas, workers, matrices, dos pasadas consecutivas,
   cobertura solo en la primera, SDK, post-init, Pages, runtime y protecciones.
-  Sin continue-on-error, otros jobs, cache de evidencia o dependencias nuevas.
+  Sin continue-on-error, cache de evidencia o dependencias nuevas. El
+  [reparto nativo](ci-windows-board-routing.md) define los jobs de union.
 
 ## Examples
 
