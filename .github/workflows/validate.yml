@@ -133,12 +133,15 @@ concurrency:
 
 jobs:
   validate:
+    name: validate (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        role: [full]
+        exclude: ${{ fromJSON(github.repository == 'MauricioPerera/KDD' && !inputs.reusable_execution && github.workflow_ref == format('{0}/.github/workflows/validate.yml@{1}', github.repository, github.ref) && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) && '[{"os":"windows-latest"}]' || '[]') }}
     runs-on: ${{ matrix.os }}
-    env:
+    env: &validation_environment
       KDD_SUITE_WORKERS: ${{ inputs.suite_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && (matrix.os == 'windows-latest' && '6' || '4') || '1') }}
       KDD_CONTRACT_WORKERS: ${{ inputs.contract_workers || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && '4' || '1') }}
       KDD_EXCLUSIVE_CONTRACT_COMMANDS: ${{ inputs.exclusive_contract_commands || (!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && matrix.os == 'windows-latest' && '["python -m unittest tests/test_init_project.py"]' || '[]') }}
@@ -168,7 +171,7 @@ jobs:
       KDD_QUALITY_POLICY: ${{ inputs.quality_policy_path || 'quality.json' }}
       KDD_REQUIRED_EVIDENCE: ${{ inputs.required_evidence || '' }}
       KDD_QUALITY_REQUIRE_ORACLE_REVIEWS: ${{ inputs.quality_require_oracle_reviews && 'true' || 'false' }}
-    steps:
+    steps: &validation_steps
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -177,7 +180,7 @@ jobs:
       - name: Set up Python 3.11
         id: postinit-python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
+        with: &validation_python
           python-version: '3.11'
 
       - name: Bind Windows post-init tools
@@ -272,7 +275,7 @@ jobs:
 
       - name: Materialize reviewed isolated CI runtime
         shell: python -I {0}
-        run: |
+        run: &materialize_validation_runtime |
           import os
           from pathlib import Path
           import re
@@ -607,7 +610,7 @@ jobs:
         run: npm ci --ignore-scripts
         working-directory: tools/kdd-board
       - name: Install pinned Pages publisher for PR
-        if: ${{ github.event_name == 'pull_request' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        if: ${{ matrix.role != 'win_contracts' && github.event_name == 'pull_request' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
         shell: bash
         run: npm ci --prefix site --ignore-scripts --no-audit --no-fund
 
@@ -617,13 +620,14 @@ jobs:
         run: python scripts/pages_pr_discovery.py --repo-root . --venv-dir "$RUNNER_TEMP/kdd-pages-discovery-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
 
       - name: Build and validate Pages for PR
-        if: ${{ github.event_name == 'pull_request' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        if: ${{ matrix.role != 'win_contracts' && github.event_name == 'pull_request' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
         shell: bash
         env:
           CI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: python site/build.py --output "$RUNNER_TEMP/kdd-pages-pr-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$RUNNER_OS" --ci-run-url "$CI_RUN_URL"
 
       - name: Run each contract's test_command
+        if: ${{ matrix.role != 'win_suite' }}
         shell: bash
         env:
           KDD_SKIP_INIT_POST_APPLY_SUITE: >-
@@ -642,7 +646,7 @@ jobs:
 
       - name: Report init command duration
         id: init-command-timing
-        if: ${{ always() && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        if: ${{ matrix.role != 'win_suite' && always() && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
         shell: python
         run: |
           import json
@@ -711,7 +715,7 @@ jobs:
         run: python scripts/scan_secrets.py "$KDD_SRC_DIR_SECRETS"
 
       - name: Prepare Python suite coverage
-        if: ${{ !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        if: ${{ matrix.role != 'win_contracts' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
         shell: bash
         run: |
           python -m pip install --require-hashes --only-binary=:all: -r tools/ci-coverage/requirements.txt
@@ -727,7 +731,16 @@ jobs:
 
       # The suite runs twice on purpose (identical command): the second run
       # detects flaky tests / verifies determinism. See specs/CONTRACT-11-ci-windows-suite2x.md.
+      - name: Compute independent Windows suite inventory
+        id: windows-suite-inventory
+        if: ${{ matrix.role == 'win_suite' }}
+        shell: bash
+        run: |
+          python -I site/ci_inventory.py discover --repo-root . |
+            python -I -c 'import hashlib,json,sys; print("sha256=" + hashlib.sha256(("\n".join(json.load(sys.stdin))+"\n").encode("utf-8")).hexdigest())' >> "$GITHUB_OUTPUT"
+
       - name: Run unit tests (1/2)
+        if: ${{ matrix.role != 'win_contracts' }}
         shell: bash
         env:
           KDD_SKIP_INIT_POST_APPLY_SUITE: '1'
@@ -735,20 +748,22 @@ jobs:
         run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" --report-dir "$RUNNER_TEMP/kdd-suite-reports"
 
       - name: Run unit tests (2/2)
+        if: ${{ matrix.role != 'win_contracts' }}
         shell: bash
         env:
           KDD_SKIP_INIT_POST_APPLY_SUITE: '1'
         run: python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . --start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" --report-dir "$RUNNER_TEMP/kdd-suite-reports"
 
       - name: Report Python suite coverage
-        if: ${{ !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        if: ${{ matrix.role != 'win_contracts' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
         shell: bash
         run: |
           test "$(git rev-parse --verify HEAD)" = "$GITHUB_SHA"
           python scripts/ci_coverage.py report --repo-root . --output "$RUNNER_TEMP/kdd-python-coverage-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" --head-sha "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT" --platform "${{ matrix.os }}"
 
       - name: Upload Python suite coverage
-        if: ${{ !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        id: suite-coverage
+        if: ${{ matrix.role != 'win_contracts' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: kdd-coverage-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.os }}
@@ -758,12 +773,7 @@ jobs:
           retention-days: 7
 
       - name: Verify Windows post-init partitions
-        if: >-
-          ${{ matrix.os == 'windows-latest' && github.repository == 'MauricioPerera/KDD' &&
-          !inputs.reusable_execution && github.workflow_ref ==
-          format('{0}/.github/workflows/validate.yml@{1}', github.repository, github.ref) &&
-          (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref ==
-          'refs/heads/main')) }}
+        if: ${{ matrix.role != 'win_contracts' && matrix.os == 'windows-latest' && github.repository == 'MauricioPerera/KDD' && !inputs.reusable_execution && github.workflow_ref == format('{0}/.github/workflows/validate.yml@{1}', github.repository, github.ref) && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
         shell: C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoLogo -NoProfile -NonInteractive -Command "& $env:KDD_POSTINIT_PYTHON -I -X utf8 '{0}'; exit $LASTEXITCODE"
         env:
           KDD_POSTINIT_PYTHON: ${{ steps.postinit-python.outputs.python-path }}
@@ -802,12 +812,12 @@ jobs:
           raise SystemExit(result.returncode)
 
       - name: Export Pages CI inventory
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        if: ${{ matrix.role != 'win_contracts' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
         shell: bash
         run: python site/ci_inventory.py export --repo-root . --reports-dir "$RUNNER_TEMP/kdd-suite-reports" --output "$RUNNER_TEMP/kdd-pages-ci-inventory/inventory.json" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --head-sha "$GITHUB_SHA" --platform "${{ matrix.os }}" --trusted-runtime-ref "$KDD_TRUSTED_RUNTIME_REF"
 
       - name: Upload Pages CI inventory
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        if: ${{ matrix.role != 'win_contracts' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: kdd-ci-inventory-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.os }}
@@ -817,6 +827,7 @@ jobs:
           retention-days: 7
 
       - name: Approve project quality (when configured)
+        if: ${{ matrix.role != 'win_contracts' }}
         id: quality
         shell: python
         env:
@@ -849,6 +860,7 @@ jobs:
           print('SKIP: no project quality policy configured; template validation does not approve a project')
 
       - name: Verify required contract acceptance
+        if: ${{ matrix.role != 'win_contracts' }}
         id: acceptance
         shell: python
         env:
@@ -873,7 +885,7 @@ jobs:
           print('SKIP: legacy project has no acceptance policy; acceptance is NOT_EVALUATED')
 
       - name: Upload acceptance matrix
-        if: always() && steps.acceptance.outcome != 'skipped'
+        if: ${{ always() && matrix.role != 'win_contracts' && steps.acceptance.outcome != 'skipped' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: acceptance-${{ matrix.os }}
@@ -881,7 +893,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Summarize acceptance state
-        if: always()
+        if: ${{ always() && matrix.role != 'win_contracts' }}
         shell: python
         run: |
           import json
@@ -908,6 +920,32 @@ jobs:
           KDD_QUALITY_OUTCOME: ${{ steps.quality.outcome }}
         run: python scripts/optional_evidence.py summary --layers security,compliance,privacy,accessibility,dependency-eol,observability,test-coverage,quality
 
+      - name: Run Windows Board typecheck
+        if: ${{ matrix.role == 'win_contracts' }}
+        run: npm run typecheck
+        working-directory: tools/kdd-board
+      - name: Run Windows Board tests
+        if: ${{ matrix.role == 'win_contracts' }}
+        run: npm test
+        working-directory: tools/kdd-board
+
+      - name: Create Windows validation receipt
+        if: ${{ matrix.role == 'win_contracts' || matrix.role == 'win_suite' }}
+        shell: bash
+        env:
+          KDD_WINDOWS_RECEIPT_ROLE: ${{ matrix.role == 'win_contracts' && 'contracts' || 'suites' }}
+        run: python -I scripts/ci_windows_join.py produce --repo-root . --role "$KDD_WINDOWS_RECEIPT_ROLE"
+
+      - name: Upload Windows validation receipt
+        id: windows-receipt
+        if: ${{ matrix.role == 'win_contracts' || matrix.role == 'win_suite' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kdd-validation-receipt-${{ matrix.role }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kdd-windows-receipts/receipt.json
+          if-no-files-found: error
+          overwrite: false
+
       - name: Export CI timing diagnostics
         id: ci-timings
         if: ${{ always() && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
@@ -925,7 +963,7 @@ jobs:
         if: ${{ always() && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' && steps.ci-timings.outcome == 'success' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: kdd-timings-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.os }}
+          name: ${{ matrix.role != 'full' && format('kdd-timings-source-{0}-{1}-{2}', matrix.role, github.run_id, github.run_attempt) || format('kdd-timings-{0}-{1}-{2}', github.run_id, github.run_attempt, matrix.os) }}
           path: ${{ runner.temp }}/kdd-ci-timings/timings.json
           if-no-files-found: error
           overwrite: false
@@ -935,6 +973,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
+        exclude: ${{ fromJSON(github.repository == 'MauricioPerera/KDD' && !inputs.reusable_execution && github.workflow_ref == format('{0}/.github/workflows/validate.yml@{1}', github.repository, github.ref) && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) && '[{"os":"windows-latest"}]' || '[]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1257,3 +1296,141 @@ jobs:
           if-no-files-found: error
           overwrite: false
           retention-days: 7
+
+  validate_windows:
+    if: ${{ github.repository == 'MauricioPerera/KDD' && !inputs.reusable_execution && github.workflow_ref == format('{0}/.github/workflows/validate.yml@{1}', github.repository, github.ref) && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
+    name: ${{ github.repository == 'MauricioPerera/KDD' && !inputs.reusable_execution && github.workflow_ref == format('{0}/.github/workflows/validate.yml@{1}', github.repository, github.ref) && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) && (matrix.role == 'win_contracts' && 'board (windows-latest)' || 'Windows validation work') || 'Windows validation inactive' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        role: [win_contracts, win_suite]
+    runs-on: ${{ matrix.os }}
+    env: *validation_environment
+    steps: *validation_steps
+    outputs:
+      win_contract_id: ${{ matrix.role == 'win_contracts' && steps.windows-receipt.outputs.artifact-id || '' }}
+      win_contract_digest: ${{ matrix.role == 'win_contracts' && steps.windows-receipt.outputs.artifact-digest || '' }}
+      win_suite_id: ${{ matrix.role == 'win_suite' && steps.windows-receipt.outputs.artifact-id || '' }}
+      win_suite_digest: ${{ matrix.role == 'win_suite' && steps.windows-receipt.outputs.artifact-digest || '' }}
+      win_suite_inventory_sha256: ${{ matrix.role == 'win_suite' && steps.windows-suite-inventory.outputs.sha256 || '' }}
+      win_coverage_id: ${{ matrix.role == 'win_suite' && steps.suite-coverage.outputs.artifact-id || '' }}
+      win_coverage_digest: ${{ matrix.role == 'win_suite' && steps.suite-coverage.outputs.artifact-digest || '' }}
+
+  require_windows:
+    if: ${{ always() && github.repository == 'MauricioPerera/KDD' && !inputs.reusable_execution && github.workflow_ref == format('{0}/.github/workflows/validate.yml@{1}', github.repository, github.ref) && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
+    name: ${{ github.repository == 'MauricioPerera/KDD' && !inputs.reusable_execution && github.workflow_ref == format('{0}/.github/workflows/validate.yml@{1}', github.repository, github.ref) && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) && 'validate (windows-latest)' || 'Windows native verification (inactive)' }}
+    needs: [validate_windows]
+    runs-on: ubuntu-latest
+    env:
+      VALIDATION_STATE: ${{ needs.validate_windows.result }}
+      CONTRACTS_ID: ${{ needs.validate_windows.outputs.win_contract_id }}
+      CONTRACTS_DIGEST: ${{ needs.validate_windows.outputs.win_contract_digest }}
+      SUITES_ID: ${{ needs.validate_windows.outputs.win_suite_id }}
+      SUITES_DIGEST: ${{ needs.validate_windows.outputs.win_suite_digest }}
+      COVERAGE_ID: ${{ needs.validate_windows.outputs.win_coverage_id }}
+      COVERAGE_DIGEST: ${{ needs.validate_windows.outputs.win_coverage_digest }}
+      KDD_SUITE_INVENTORY_SHA256: ${{ needs.validate_windows.outputs.win_suite_inventory_sha256 }}
+      KDD_TRUSTED_RUNTIME_REF: ${{ inputs.trusted_runtime_ref || vars.KDD_TRUSTED_RUNTIME_REF || (github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha) }}
+    steps:
+      - name: Check Windows validation producers
+        shell: bash
+        run: |
+          test "$VALIDATION_STATE" = success
+          [[ "$CONTRACTS_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$SUITES_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$COVERAGE_ID" =~ ^[1-9][0-9]*$ ]]
+          test "$CONTRACTS_ID" != "$SUITES_ID"
+          test "$COVERAGE_ID" != "$CONTRACTS_ID"
+          test "$COVERAGE_ID" != "$SUITES_ID"
+          [[ "$CONTRACTS_DIGEST" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$SUITES_DIGEST" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$COVERAGE_DIGEST" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$KDD_SUITE_INVENTORY_SHA256" =~ ^[0-9a-f]{64}$ ]]
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with: *validation_python
+      - name: Materialize reviewed runtime for the Windows join
+        shell: python -I {0}
+        env:
+          GIT_NO_REPLACE_OBJECTS: '1'
+        run: *materialize_validation_runtime
+      - name: Download Windows validation artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          artifact-ids: ${{ needs.validate_windows.outputs.win_contract_id }},${{ needs.validate_windows.outputs.win_suite_id }},${{ needs.validate_windows.outputs.win_coverage_id }}
+          skip-decompress: true
+          merge-multiple: true
+          digest-mismatch: error
+          path: ${{ runner.temp }}/kdd-windows-validation-artifacts
+      - name: Verify Windows validation receipts
+        shell: python -I {0}
+        env:
+          KDD_WINDOWS_JOIN_DRIVER_SHA256: ac2894531aee1cd623f8b96e7b3068e0725ce2e4950d5210d5d8a7afb7cef3ca
+        run: |
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          import sys
+          import tempfile
+
+          env = os.environ
+          root = Path.cwd().resolve()
+          sha = env['GITHUB_SHA']
+          if not re.fullmatch(r'[0-9a-f]{40}', sha):
+              raise SystemExit('Windows receipts require the full checkout SHA')
+
+          def git(*args):
+              return subprocess.check_output(['git', '--no-replace-objects', *args], timeout=15)
+
+          if git('rev-parse', '--verify', 'HEAD').decode('ascii').strip() != sha:
+              raise SystemExit('Windows receipts checkout mismatch')
+          source = git('show', sha + ':scripts/ci_windows_join.py')
+          if hashlib.sha256(source).hexdigest() != env['KDD_WINDOWS_JOIN_DRIVER_SHA256']:
+              raise SystemExit('Windows receipt verifier digest mismatch')
+          with tempfile.TemporaryDirectory(prefix='kdd-windows-join-', dir=env['RUNNER_TEMP']) as folder:
+              work = Path(folder).resolve()
+              if work.is_relative_to(root):
+                  raise SystemExit('Windows receipt verifier must be outside checkout')
+              driver = work / 'ci_windows_join.py'
+              driver.write_bytes(source)
+              run, attempt = env['GITHUB_RUN_ID'], env['GITHUB_RUN_ATTEMPT']
+              identity = work / 'identity.json'
+              producer = work / 'producers.json'
+              identity.write_text(json.dumps({
+                  'repository': env['GITHUB_REPOSITORY'],
+                  'workflow': '.github/workflows/validate.yml',
+                  'run_id': int(run), 'run_attempt': int(attempt),
+                  'head_sha': sha, 'tree': git('rev-parse', sha + '^{tree}').decode('ascii').strip(),
+                  'runtime_ref': env['KDD_TRUSTED_RUNTIME_REF'], 'platform': 'windows-latest',
+              }), encoding='utf-8')
+              producer.write_text(json.dumps({
+                  name.lower(): {'id': int(env[name + '_ID']), 'digest': env[name + '_DIGEST'],
+                                 'result': env['VALIDATION_STATE']}
+                  for name in ('CONTRACTS', 'SUITES', 'COVERAGE')
+              }), encoding='utf-8')
+              artifacts = Path(env['RUNNER_TEMP']) / 'kdd-windows-validation-artifacts'
+              subprocess.run([
+                  sys.executable, '-I', str(driver), 'verify', '--repo-root', str(root),
+                  '--runtime-bundle', env['KDD_TRUSTED_BUNDLE'],
+                  '--identity', str(identity), '--producers', str(producer),
+                  '--suite-inventory-sha256', env['KDD_SUITE_INVENTORY_SHA256'],
+                  '--contracts', str(artifacts / f'kdd-validation-receipt-win_contracts-{run}-{attempt}.zip'),
+                  '--suites', str(artifacts / f'kdd-validation-receipt-win_suite-{run}-{attempt}.zip'),
+                  '--coverage', str(artifacts / f'kdd-coverage-{run}-{attempt}-windows-latest.zip'),
+                  '--timings-output', str(Path(env['RUNNER_TEMP']) / 'kdd-ci-timings/timings.json'),
+              ], check=True, timeout=120)
+      - name: Upload joined Windows timing diagnostics
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kdd-timings-${{ github.run_id }}-${{ github.run_attempt }}-windows-latest
+          path: ${{ runner.temp }}/kdd-ci-timings/timings.json
+          if-no-files-found: error
+          overwrite: false
