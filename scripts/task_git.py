@@ -17,6 +17,7 @@ from validate_contracts import parse_frontmatter, validate_file
 
 
 _OBJECT_CACHE = ContextVar('kdd_git_objects', default=None)
+_JOURNAL_BATCH_SIZE = 32
 
 
 class _MutationContext(NamedTuple):
@@ -706,14 +707,50 @@ def _history(root, task_id):
     path = task_path(task_id)
     if task_id not in read_tasks(root):
         raise TaskError('TASK_MISSING: ' + task_id)
-    commits = git(root, 'log', '--topo-order', '--reverse', '--format=%H', 'main', '--', path)
-    revisions = commits.splitlines()
+    revisions = _journal_revisions(root, 'main', path)
     _remember_git_commits(root, revisions)
-    result = []
-    for revision in revisions:
-        data, _ = parse_task(blob(root, revision, path), path)
-        result.append({'commit': revision, 'status': data['status'], 'reason': data['reason']})
-    return result
+    return [_journal_entry(revision, path, blob(root, revision, path)) for revision in revisions]
+
+
+def _journal_revisions(root, ref, path):
+    return git(root, 'log', '--topo-order', '--reverse', '--format=%H', ref, '--', path).splitlines()
+
+
+def _journal_entry(revision, path, content):
+    data, _ = parse_task(content, path)
+    return {'commit': revision, 'status': data['status'], 'reason': data['reason']}
+
+
+def _journal_blob(record, path):
+    if record is None or record[0] != b'blob':
+        raise TaskError('TASK_GIT: missing or invalid blob: ' + path)
+    try:
+        return record[2].decode('utf-8').replace('\r\n', '\n').replace('\r', '\n')
+    except UnicodeError as error:
+        raise TaskError('TASK_GIT: ' + str(error)) from error
+
+
+def _snapshot_journal(root, ref, path):
+    revisions = _journal_revisions(root, ref, path)
+    entries = []
+    for offset in range(0, len(revisions), _JOURNAL_BATCH_SIZE):
+        batch = revisions[offset:offset + _JOURNAL_BATCH_SIZE]
+        specifications = [revision + ':' + path for revision in batch]
+        records = _raw_objects(root, specifications)
+        entries.extend(_journal_entry(revision, path, _journal_blob(records[name], path))
+                       for revision, name in zip(batch, specifications))
+    return entries
+
+
+def snapshot(root, task_id):
+    """Return a task and its journal from one observed commit of main."""
+    with object_cache():
+        revision = commit_sha(root, 'main')
+        nodes = _read_nodes(root, revision)
+        path = task_path(task_id)
+        if task_id not in nodes:
+            raise TaskError('TASK_MISSING: ' + task_id)
+        return {'task': nodes[task_id][0], 'journal': _snapshot_journal(root, revision, path)}
 
 
 def _clean_main(root, expected=None):

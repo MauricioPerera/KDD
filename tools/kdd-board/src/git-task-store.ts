@@ -100,13 +100,13 @@ export class GitTaskStore {
   readonly root: string;
   constructor(projectDir: string) {this.root = path.resolve(projectDir);}
 
-  private async command(args: string[], binary=process.env.KDD_PYTHON || 'python'): Promise<string> {
+  private async command(args: string[], binary=process.env.KDD_PYTHON || 'python', snapshot=false): Promise<string> {
     const env: NodeJS.ProcessEnv = {...process.env,PYTHONUTF8:'1',PYTHONDONTWRITEBYTECODE:'1'};
     delete env.NODE_TEST_CONTEXT;
     delete env.KDD_BOARD_TOKEN;
     try {
-      const {stdout} = await execute(binary,args,{cwd:this.root,encoding:'utf8',timeout:180_000,
-        maxBuffer:8*1024*1024,windowsHide:true,env});
+      const {stdout} = await execute(binary,args,{cwd:this.root,encoding:'utf8',
+        timeout:snapshot ? 360_000 : 180_000,maxBuffer:(snapshot ? 16 : 8)*1024*1024,windowsHide:true,env});
       return stdout;
     } catch (error: any) {
       const message = String(error.stderr || error.message || 'Coordinator failed').trim();
@@ -120,7 +120,7 @@ export class GitTaskStore {
   }
 
   private async query(args: string[]): Promise<any> {
-    return JSON.parse(await this.command([cli,'--repo-root',this.root,...args,'--json']));
+    return JSON.parse(await this.command([cli,'--repo-root',this.root,...args,'--json'],undefined,args[0] === 'snapshot'));
   }
 
   private async git(...args: string[]) {return (await this.command(['--literal-pathspecs','-C',this.root,...args],'git')).trim();}
@@ -144,7 +144,10 @@ export class GitTaskStore {
 
   async get(id: string): Promise<GitTask & {journal:JournalEntry[]}> {
     identifier(id);
-    return this.stable(async () => ({...project(await this.query(['show',id])),journal:await this.query(['history',id])}));
+    return this.stable(async () => {
+      const result = await this.query(['snapshot',id]);
+      return {...project(result.task),journal:result.journal};
+    });
   }
 
   async history(id: string): Promise<JournalEntry[]> {

@@ -13,7 +13,7 @@ def _parser():
     parser.add_argument('--repo-root', default='.')
     subcommands = parser.add_subparsers(dest='command', required=True)
     commands = {}
-    for name in ('create', 'ready', 'start', 'block', 'resume', 'finish', 'list', 'show', 'history'):
+    for name in ('create', 'ready', 'start', 'block', 'resume', 'finish', 'list', 'show', 'history', 'snapshot'):
         command = subcommands.add_parser(name)
         command.add_argument('--json', action='store_true', help='print structured JSON')
         if name != 'list':
@@ -30,6 +30,8 @@ def _parser():
 
 
 def _query(root, args):
+    if args.command == 'snapshot':
+        return journal.snapshot(root, args.task_id)
     tasks = journal.read_tasks(root)
     if args.command == 'list':
         return [tasks[key] for key in sorted(tasks)]
@@ -42,6 +44,9 @@ def _query(root, args):
 
 
 def _print(result, args):
+    if args.command == 'snapshot':
+        print(json.dumps(result, ensure_ascii=True, separators=(',', ':')))
+        return
     if args.json:
         print(json.dumps(result, ensure_ascii=True, indent=2))
         return
@@ -64,7 +69,7 @@ def main(argv=None):
     args = _parser().parse_args(argv)
     root = Path(args.repo_root).resolve()
     try:
-        if args.command in ('list', 'show', 'history'):
+        if args.command in ('list', 'show', 'history', 'snapshot'):
             result = _query(root, args)
         else:
             options = {key: value for key, value in vars(args).items()
