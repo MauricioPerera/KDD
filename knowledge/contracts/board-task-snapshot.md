@@ -16,7 +16,7 @@ budget:
   nesting_max: 4
   params_max: 5
 tests: tests/test_board_task_snapshot.py
-tests_sha256: 'fd04f69eda44987d9a8e79dc9ff322c28e4800d83c0858f7ed7a2bfca9122c1e'
+tests_sha256: 'fb8235cef4c32ec9cad7f62754c1bbeb3d0c6558f15e6221b38c0903ce7999c0'
 oracle_files: ['tests/test_board_task_snapshot.py', 'tests/test_generated_task_evidence.py', 'tests/test_fixture_preparation.py', 'scripts/trusted_ci.py', 'tests/__init__.py']
 touch_only: ['tools/kdd-board/src/git-task-store.ts', 'scripts/tasks.py', 'scripts/task_git.py']
 deps_allowed: ['node', 'stdlib', 'git']
@@ -32,7 +32,8 @@ Conservar el [diario de Board](board-git-journal.md).
 
 `tasks.py snapshot ID --json` devuelve `task` y `journal` desde un SHA de main.
 Board comprueba main antes y despues de leer. Un error del hijo se propaga.
-Por intento estable, el detalle invoca un coordinador y la transicion dos.
+Un detalle exitoso con main estable invoca un coordinador directo.
+Una transicion exitosa con main estable invoca dos, sin contar sus oraculos.
 Solo la consulta combinada permite hasta 16 MiB y 360 segundos. Son los
 presupuestos acumulados de las dos consultas previas de 8 MiB y 180 segundos.
 Los demas comandos conservan sus limites individuales.

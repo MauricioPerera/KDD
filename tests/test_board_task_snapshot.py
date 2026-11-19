@@ -15,6 +15,24 @@ BOARD = (ROOT / 'tools/kdd-board/src/git-task-store.ts').as_uri()
 
 
 BOARD_CLIENT = r"""
+import processTools from 'node:child_process';
+import {appendFileSync} from 'node:fs';
+import {syncBuiltinESMExports} from 'node:module';
+import {promisify} from 'node:util';
+
+const optionsTrace = process.env.KDD_FIXTURE_BOARD_OPTIONS;
+if (optionsTrace) {
+  const original = processTools.execFile;
+  const run = promisify(original);
+  const observer = (...args) => original(...args);
+  observer[promisify.custom] = (binary, args, options) => {
+    const evidence = [binary === 'git' ? 'git' : args[3], options.timeout, options.maxBuffer];
+    appendFileSync(optionsTrace, JSON.stringify(evidence) + '\n');
+    return run(binary, args, options);
+  };
+  processTools.execFile = observer;
+  syncBuiltinESMExports();
+}
 const {GitTaskStore} = await import(process.argv[1]);
 const store = new GitTaskStore(process.argv[2]);
 try {
@@ -79,22 +97,35 @@ import tasks
 previous, advanced, boundary = sys.argv[1:]
 actual = subprocess.run
 moved = False
+resolutions = 0
 
-def move_before_history(*args, **kwargs):
+def move_main():
     global moved
+    actual(['git', 'update-ref', 'refs/heads/main', advanced, previous],
+           cwd=root, check=True, capture_output=True, timeout=20)
+    moved = True
+
+def observe_git(*args, **kwargs):
+    global resolutions
     argv = args[0] if args else kwargs.get('args', ())
     inventory = ('ls-tree' in argv and 'knowledge/tasks' in argv)
     history = ('log' in argv or 'rev-list' in argv) and 'knowledge/tasks/TASK-001.md' in argv
-    if not moved and (inventory if boundary == 'inventory' else history):
-        actual(['git', 'update-ref', 'refs/heads/main', advanced, previous],
-               cwd=root, check=True, capture_output=True, timeout=20)
-        moved = True
-    return actual(*args, **kwargs)
+    resolve_main = 'rev-parse' in argv and any(
+        revision in argv for revision in ('main^{commit}', 'refs/heads/main^{commit}'))
+    if not moved and ((boundary == 'inventory' and inventory) or (boundary == 'history' and history)):
+        move_main()
+    result = actual(*args, **kwargs)
+    if resolve_main:
+        resolutions += 1
+        if not moved and boundary == 'resolution' and result.returncode == 0:
+            move_main()
+    return result
 
-subprocess.run = move_before_history
+subprocess.run = observe_git
 code = tasks.main(['snapshot', 'TASK-001', '--json'])
 if code == 0:
-    assert moved, 'the probe must exercise a real history read'
+    assert moved, 'the probe must exercise the Git boundary'
+    assert resolutions == 1, f'main was resolved {resolutions} times'
 sys.exit(code)
 """
 
@@ -121,6 +152,8 @@ class BoardTaskSnapshot(unittest.TestCase):
                    GIT_TRACE2_EVENT=str(git_trace))
         if move is not None:
             env.update(KDD_FIXTURE_MAIN_BEFORE=move[0], KDD_FIXTURE_MAIN_AFTER=move[1])
+        if (self.area / 'options.log').exists():
+            env['KDD_FIXTURE_BOARD_OPTIONS'] = str(self.area / 'options.log')
         result = self.p.command(['node', '--input-type=module', '-e', BOARD_CLIENT,
                                  BOARD, str(self.p.root), operation, json.dumps(data), task_id],
                                 check=False, env=env)
@@ -219,15 +252,24 @@ class BoardTaskSnapshot(unittest.TestCase):
         self.assertEqual(changes, 1)
         self.p.write(NODE, updated)
         tip = self.p.commit('Record a long task reason')
-        result, value, _, _ = self.board('get')
+        options = self.area / 'options.log'
+        options.touch()
+        result, value, commands, _ = self.board('get')
         self.assertEqual(result.returncode, 0, result.stderr or str(result.returncode))
         self.assertGreater(len(result.stdout.encode('utf-8')), 8 * 1024 * 1024)
         self.assertTrue(value['reason'] == reason)
         self.assertEqual(value['journal'][-1]['commit'], tip)
         self.assertTrue(value['journal'][-1]['reason'] == reason)
+        self.assertEqual(commands, ['snapshot'])
+        mib = 1024 * 1024
+        self.assertEqual([json.loads(line) for line in options.read_text(encoding='utf-8').splitlines()],
+                         [['git', 180_000, 8 * mib], ['snapshot', 360_000, 16 * mib],
+                          ['git', 180_000, 8 * mib]])
 
     def test_ready_uses_one_read_and_the_real_mutation(self):
         before = self.p.git('rev-parse', 'HEAD')
+        options = self.area / 'options.log'
+        options.touch()
         result, value, commands, _ = self.board('ready', {'status': 'ready', 'approved_ref': self.p.ref})
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(value['task']['status'], 'ready')
@@ -236,6 +278,8 @@ class BoardTaskSnapshot(unittest.TestCase):
         self.assertEqual(self.p.git('rev-parse', 'HEAD^'), before)
         self.assertEqual(self.p.git('status', '--porcelain'), '')
         self.assertEqual(commands, ['snapshot', 'ready'])
+        self.assertEqual(json.loads(options.read_text(encoding='utf-8').splitlines()[-1]),
+                         ['ready', 180_000, 8 * 1024 * 1024])
 
     def test_detail_rejects_a_corrupt_unrelated_node_in_the_current_snapshot(self):
         self.p.write('knowledge/tasks/TASK-002.md', 'Missing Task metadata\n')
@@ -297,7 +341,7 @@ class BoardTaskSnapshot(unittest.TestCase):
 
     def test_cli_reads_the_initial_commit_when_main_moves(self):
         previous, advanced = self.alternative()
-        for boundary in ('inventory', 'history'):
+        for boundary in ('resolution', 'inventory', 'history'):
             with self.subTest(boundary=boundary):
                 self.p.git('reset', '--hard', previous)
                 result = self.p.command([sys.executable, '-B', '-c', PIN_PROBE, previous,
