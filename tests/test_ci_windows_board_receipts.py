@@ -31,6 +31,8 @@ class WindowsBoardReceipts(unittest.TestCase):
         cls.addClassCleanup(fixture.doCleanups)
         fixture.workspace()
         fixture.prepare()
+        cls.runtime_ref = fixture.base
+        cls.bundle = fixture.bundle()
         contracts = fixture.repo / 'knowledge/contracts'
         alias = (contracts / 'feature.md').read_text(encoding='utf-8').replace(
             'task: fixture\n', 'task: fixture-alias\n', 1)
@@ -41,11 +43,10 @@ class WindowsBoardReceipts(unittest.TestCase):
                     str(fixture.repo), str(suite_root))
         cls.fixture = fixture
         cls.suite_root = suite_root
-        cls.bundle = fixture.bundle()
         cls.identity = dict(repository='MauricioPerera/KDD', workflow='.github/workflows/validate.yml',
                             run_id=17, run_attempt=2, head_sha=fixture.base,
                             tree=fixture.git('rev-parse', 'HEAD^{tree}'),
-                            runtime_ref=fixture.base, platform='windows-latest')
+                            runtime_ref=cls.runtime_ref, platform='windows-latest')
         cls.contracts = cls._contract_receipt()
         discovered = fixture.run_command([
             sys.executable, '-I', str(ROOT / 'site/ci_inventory.py'),
@@ -75,7 +76,7 @@ class WindowsBoardReceipts(unittest.TestCase):
         cls.fixture.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         data = _read(report)
         cls.fixture.assertIs(data['ok'], True)
-        cls.fixture.assertEqual(data['trusted_runtime_ref'], cls.fixture.base)
+        cls.fixture.assertEqual(data['trusted_runtime_ref'], cls.runtime_ref)
         return data
 
     @classmethod
@@ -198,7 +199,8 @@ class WindowsBoardReceipts(unittest.TestCase):
         self.rejects()
 
     def test_wrong_bundle_in_any_pass_fails(self):
-        self.transfers[1]['passes'][0]['runtime'] = 'a' * 40
+        self.assertNotEqual(self.identity['runtime_ref'], self.identity['head_sha'])
+        self.transfers[1]['passes'][0]['runtime'] = self.identity['head_sha']
         self.rejects()
 
     def test_coverage_on_second_pass_fails(self):

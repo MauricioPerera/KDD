@@ -12,7 +12,7 @@ test_command: 'python -m unittest tests.test_ci_windows_board_receipts'
 test_runner: python-unittest
 test_scope: infrastructure
 tests: tests/test_ci_windows_board_receipts.py
-tests_sha256: '905ac66fcc5d2027114b73871c54f8484ac8420b0b130aa571cdf8118001db9c'
+tests_sha256: '7a577c1732cdb22f9c34df7b75e3093decc6363977c2e8bde2d5b063087d4359'
 oracle_files: ['tests/test_ci_windows_board_receipts.py', 'tests/test_ci_trusted_execution.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py']
 budget:
   cyclomatic_max: 12
@@ -111,7 +111,8 @@ No publican los reportes crudos del runner.
 
 ## Tests
 
-El oraculo crea un proyecto Git real, materializa el runtime externo,
+El oraculo crea un proyecto Git real, materializa el runtime externo
+desde un commit distinto del checkout sometido a pruebas,
 ejecuta el comando del contrato y dos pasadas con el interprete real,
 y usa esos datos para probar transporte, inventario e identidad.
 Los IDs de upload y el resumen de cobertura del fixture se simulan.

@@ -33,6 +33,10 @@ CONTRACT_COMMAND = (TRUSTED_COMMAND + ' commands --repo-root . --contracts-dir "
                     ' --report-dir "$RUNNER_TEMP/kdd-command-reports"'
                     ' --exclusive-commands-json "$KDD_EXCLUSIVE_CONTRACT_COMMANDS"')
 NATIVE_REPO = "!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD'"
+COVERAGE_COMMAND_SHA256 = {
+    'Prepare': '0993b9c8c3f380b93d29b7a7cb33813ef190495a7ef34bd3c88b1c512396df11',
+    'Report': 'ab80c9d9382b2ae659f7b7bdd44febfd0dfd4b572fde186e53a5555d86907d33',
+}
 
 
 class WindowsBoardRouting(unittest.TestCase):
@@ -55,6 +59,18 @@ class WindowsBoardRouting(unittest.TestCase):
     def windows(self):
         self.assertIn('validate_windows', self.jobs)
         return self.jobs['validate_windows']
+
+    def run_bash(self, body, *, cwd, **values):
+        bash = shutil.which('bash')
+        if os.name == 'nt':
+            git = Path(shutil.which('git') or 'git.exe').resolve()
+            paths = (parent / 'bin/bash.exe' for parent in git.parents)
+            bash = next((str(path) for path in paths if path.is_file()), bash)
+        self.assertTrue(bash, 'The workflow requires Bash')
+        env = dict(os.environ, **values)
+        env['PATH'] = str(Path(sys.executable).parent) + os.pathsep + env.get('PATH', '')
+        return subprocess.run([bash, '--noprofile', '--norc', '-e', '-o', 'pipefail', '-c', body],
+                              cwd=cwd, env=env, capture_output=True, text=True, timeout=20)
 
     def native_rows(self, matrix, key):
         self.assertIn(key, matrix)
@@ -124,11 +140,10 @@ class WindowsBoardRouting(unittest.TestCase):
             self.assertEqual(suite['run'], SUITE_COMMAND)
             self.assertEqual(suite['env']['KDD_SKIP_INIT_POST_APPLY_SUITE'], '1')
             self.assertEqual('COVERAGE_PROCESS_START' in suite['env'], number == 1)
-        for name, invocation in [('Prepare Python suite coverage', 'prepare'),
-                                 ('Report Python suite coverage', 'report')]:
-            with self.subTest(name=name):
-                body = self.step(self.validation, name)['run']
-                self.assertRegex(body, r'(?m)^python scripts/ci_coverage\.py ' + invocation + r' --repo-root \. --output ')
+        for prefix, expected in COVERAGE_COMMAND_SHA256.items():
+            with self.subTest(prefix=prefix):
+                body = self.step(self.validation, prefix + ' Python suite coverage')['run']
+                self.assertEqual(hashlib.sha256(body.encode('utf-8')).hexdigest(), expected)
         env = self.validation['env']
         self.assertIn("matrix.os == 'windows-latest' && '6' || '4'", env['KDD_SUITE_WORKERS'])
         self.assertIn("github.repository == 'MauricioPerera/KDD' && '4'", env['KDD_CONTRACT_WORKERS'])
@@ -177,6 +192,7 @@ class WindowsBoardRouting(unittest.TestCase):
         self.assertIn('site/ci_inventory.py', inventory['run'])
         self.assertIn('discover', inventory['run'])
         self.assertIn('sha256', inventory['run'])
+        self.assertEqual(inventory['shell'], 'bash')
         self.assertLess(self.validation['steps'].index(inventory),
                         self.validation['steps'].index(self.step(self.validation, 'Run unit tests (1/2)')))
         coverage = self.step(self.validation, 'Upload Python suite coverage')
@@ -186,6 +202,25 @@ class WindowsBoardRouting(unittest.TestCase):
                               ('coverage_digest', 'suite-coverage.outputs.artifact-digest')]:
             self.assertEqual(' '.join(self.windows()['outputs']['win_' + label].split()),
                              "${{ matrix.role == 'win_suite' && steps." + output + " || '' }}")
+        with tempfile.TemporaryDirectory(prefix='kdd windows discovery ') as folder:
+            repo = Path(folder).resolve()
+            (repo / 'site').mkdir()
+            (repo / 'tests').mkdir()
+            shutil.copyfile(ROOT / 'site/ci_inventory.py', repo / 'site/ci_inventory.py')
+            output = repo / 'discovery-output'
+            for count in (1, 2):
+                with self.subTest(count=count):
+                    case_file = repo / 'tests/test_probe.py'
+                    methods = ''.join(f'    def test_case_{number}(self): pass\n' for number in range(count))
+                    case_file.write_text('import unittest\nclass Probe(unittest.TestCase):\n' + methods,
+                                         encoding='ascii')
+                    output.write_text('', encoding='ascii')
+                    result = self.run_bash(inventory['run'], cwd=repo, GITHUB_OUTPUT=str(output),
+                                           PYTHONDONTWRITEBYTECODE='1')
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    case_ids = ''.join(f'test_probe.Probe.test_case_{number}\n' for number in range(count))
+                    expected = hashlib.sha256(case_ids.encode('utf-8')).hexdigest()
+                    self.assertEqual(output.read_text(encoding='ascii').splitlines(), ['sha256=' + expected])
 
     def test_required_check_joins_after_producers_and_keeps_attempt_diagnostics(self):
         join = self.join()
@@ -313,9 +348,14 @@ Path(os.environ['KDD_TEST_MARKER']).write_text(json.dumps({
                 'suites': {'id': 12, 'result': 'success', 'digest': 'b' * 64},
                 'coverage': {'id': 13, 'result': 'success', 'digest': 'c' * 64},
             })
-            for flag in ('--repo-root', '--runtime-bundle', '--identity', '--producers', '--suite-inventory-sha256',
-                         '--coverage', '--contracts', '--suites'):
-                self.assertIn(flag, recorded['args'])
+            argv = dict(zip(recorded['args'][1::2], recorded['args'][2::2]))
+            self.assertEqual(argv['--repo-root'], str(repo))
+            self.assertEqual(argv['--runtime-bundle'], env['KDD_TRUSTED_BUNDLE'])
+            self.assertEqual(argv['--suite-inventory-sha256'], env['KDD_SUITE_INVENTORY_SHA256'])
+            for flag, archive in [('--contracts', 'kdd-validation-receipt-win_contracts-17-2.zip'),
+                                  ('--suites', 'kdd-validation-receipt-win_suite-17-2.zip'),
+                                  ('--coverage', 'kdd-coverage-17-2-windows-latest.zip')]:
+                self.assertEqual(Path(argv[flag]).resolve(), receipt_dir / archive)
 
     def test_real_bash_guard_fails_when_a_producer_did_not_supply_valid_outputs(self):
         step = self.step(self.join(), 'Check Windows validation producers')
@@ -332,12 +372,6 @@ Path(os.environ['KDD_TEST_MARKER']).write_text(json.dumps({
             'KDD_SUITE_INVENTORY_SHA256': '${{ needs.validate_windows.outputs.win_suite_inventory_sha256 }}',
         }
         self.assertEqual({key: env[key] for key in expected}, expected)
-        bash = shutil.which('bash')
-        if os.name == 'nt':
-            git = Path(shutil.which('git') or 'git.exe').resolve()
-            paths = (parent / 'bin/bash.exe' for parent in git.parents)
-            bash = next((str(path) for path in paths if path.is_file()), bash)
-        self.assertTrue(bash, 'The workflow requires Bash')
         good = dict(VALIDATION_STATE='success', CONTRACTS_ID='11', CONTRACTS_DIGEST='a' * 64,
                     SUITES_ID='12', SUITES_DIGEST='b' * 64, COVERAGE_ID='13',
                     COVERAGE_DIGEST='c' * 64, KDD_SUITE_INVENTORY_SHA256='d' * 64)
@@ -350,9 +384,7 @@ Path(os.environ['KDD_TEST_MARKER']).write_text(json.dumps({
         ]
         for changes in [{}, *bad]:
             with self.subTest(changes=changes):
-                result = subprocess.run([bash, '--noprofile', '--norc', '-e', '-o', 'pipefail',
-                                         '-c', step['run']], cwd=ROOT, env=dict(os.environ, **(good | changes)),
-                                        capture_output=True, text=True, timeout=10)
+                result = self.run_bash(step['run'], cwd=ROOT, **(good | changes))
                 self.assertEqual(result.returncode == 0, not changes, result.stdout + result.stderr)
 
 

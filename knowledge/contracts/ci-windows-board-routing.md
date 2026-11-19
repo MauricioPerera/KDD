@@ -12,7 +12,7 @@ test_command: 'python -m unittest tests.test_ci_windows_board_routing'
 test_runner: python-unittest
 test_scope: infrastructure
 tests: tests/test_ci_windows_board_routing.py
-tests_sha256: '1f367944222e90c2e56ce89aee7d7a0096bff2c6734ce6ebb95aa76e7b230e10'
+tests_sha256: 'bee8ef8b5057a847f702028d47328db7543f421dfe3dc6e2528a9b8812eb09d2'
 oracle_files: ['tests/test_ci_windows_board_routing.py', 'tests/__init__.py']
 budget:
   cyclomatic_max: 12
@@ -125,7 +125,10 @@ inventarios originales y nombres por plataforma.
 ## Tests
 
 Comprobar la matriz y los guards del workflow real con PyYAML.
-Ejecutar el guard de procedencia en Bash real. Las pruebas existentes
+Ejecutar en Bash real el guard de procedencia y el discovery con dos
+inventarios distintos. El wrapper usa Git real y un blob de prueba que
+lee la identidad, los productores y las tres rutas descargadas.
+Las pruebas existentes
 de post-init, cobertura, exclusividad y diagnosticos conservan sus
 controles y admiten solo el nuevo reparto explicitamente contratado.
 
