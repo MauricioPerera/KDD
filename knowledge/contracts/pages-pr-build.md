@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_pages_pr_ci.py
-tests_sha256: '3dda9d6023f296cf7883d59e9f9793e938804dba8ad184e6cd825cee11872089'
+tests_sha256: '8ecd54e7343c69dd9cdab85874c9795717a4c99c9554321db3095b676b48b02f'
 touch_only: ['.github/workflows/validate.yml']
 deps_allowed: ['stdlib', 'Git', 'Node.js', '@rckflr/llms-skills@0.4.1']
 forbids: ['llm']
@@ -28,6 +28,9 @@ Aplicar la [frontera de PR](../pages-pr-validation.md) y conservar el
   Build and validate Pages for PR; shell bash. Ambos se ejecutan solo con
   github.event_name == 'pull_request', !inputs.reusable_execution y
   github.repository == 'MauricioPerera/KDD'.
+- La [division nativa Windows](ci-windows-board-routing.md) utiliza los
+  pasos compartidos de validate. El rol win_suite ejecuta ambos pasos,
+  preservando un build por SO.
 - Instalacion: npm ci --prefix site --ignore-scripts --no-audit --no-fund.
 - Build: python site/build.py --output
   "$RUNNER_TEMP/kdd-pages-pr-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$RUNNER_OS"
@@ -38,8 +41,8 @@ Aplicar la [frontera de PR](../pages-pr-validation.md) y conservar el
   el job y evitan que el PR acredite PASS.
 
 ## Invariants
-Cumplir el [protocolo](../pages-pr-validation.md). Se mantienen dos matrices,
-cuatro jobs, Ubuntu/Windows y los dos comandos identicos de suite. Sin nuevos
+Cumplir el [protocolo](../pages-pr-validation.md). Se mantienen las matrices
+y jobs base de Ubuntu/Windows y los dos comandos identicos de suite. Sin nuevos
 permisos, secrets, environments, despliegues, subidas ni continue-on-error.
 No usar hashFiles como condicion para omitir un build nativo incompleto.
 El runtime confiable permanece intacto. La [extension de inventario](../pages-ci-inventory.md)

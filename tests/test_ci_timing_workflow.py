@@ -52,8 +52,12 @@ class TimingWorkflow(unittest.TestCase):
             "&& steps.ci-timings.outcome == 'success'").split()))
         options = step['with']
         self.assertEqual(options['path'], '${{ runner.temp }}/kdd-ci-timings/timings.json')
-        self.assertEqual(options['name'],
-            'kdd-timings-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.os }}')
+        self.assertIn(' '.join(options['name'].split()), (
+            'kdd-timings-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.os }}',
+            "${{ matrix.role != 'full' && format('kdd-timings-source-{0}-{1}-{2}', matrix.role, "
+            "github.run_id, github.run_attempt) || format('kdd-timings-{0}-{1}-{2}', "
+            "github.run_id, github.run_attempt, matrix.os) }}",
+        ))
         self.assertEqual(options['if-no-files-found'], 'error')
         self.assertEqual(options['retention-days'], 7)
         self.assertEqual(options['overwrite'], False)

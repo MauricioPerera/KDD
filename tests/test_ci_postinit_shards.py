@@ -572,7 +572,10 @@ class WindowsPostInitWorkflow(unittest.TestCase):
         native = "matrix.os == 'windows-latest' && " + NATIVE_EVENTS
         self.assertEqual(condition, '${{ ' + native + " && '1' || '' }}")
         verify = self.steps.get('Verify Windows post-init partitions', {})
-        self.assertEqual(' '.join(verify.get('if', '').split()), '${{ ' + native + ' }}')
+        self.assertIn(' '.join(verify.get('if', '').split()), (
+            '${{ ' + native + ' }}',
+            "${{ matrix.role != 'win_contracts' && " + native + ' }}',
+        ))
         self.assertIn('collect', verify['run'])
         self.assertEqual(verify['env']['GH_TOKEN'], '${{ github.token }}')
         self.assertNotIn('continue-on-error', verify)
@@ -605,7 +608,7 @@ class WindowsPostInitWorkflow(unittest.TestCase):
                 'python -I "$KDD_TRUSTED_BUNDLE/trusted_ci.py" suite --repo-root . '
                 '--start-directory tests --pattern "test_*.py" --workers "$KDD_SUITE_WORKERS" '
                 '--report-dir "$RUNNER_TEMP/kdd-suite-reports"')
-            self.assertNotIn('if', step)
+            self.assertIn(step.get('if'), (None, "${{ matrix.role != 'win_contracts' }}"))
             self.assertNotIn('continue-on-error', step)
             self.assertEqual(step['env']['KDD_SKIP_INIT_POST_APPLY_SUITE'], '1')
         self.assertEqual(first['env']['COVERAGE_PROCESS_START'],

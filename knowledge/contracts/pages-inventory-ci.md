@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_pages_inventory_ci.py
-tests_sha256: 'dc04d4bfdd2486cd215831d2ee87ca546b7c2f48e3898496922356702e7e9dd8'
+tests_sha256: 'a2be5904662944a3af4ba9cc288f1cf049f801af1c62c0bb4906aecacc201213'
 touch_only: ['.github/workflows/deploy-pages.yml', '.github/workflows/validate.yml']
 deps_allowed: ['GitHub Actions', 'Python3.11', 'Node24', 'Git']
 forbids: ['llm']
@@ -24,20 +24,23 @@ Conectar el [protocolo](../pages-ci-inventory.md) al
 [build en PR](pages-pr-build.md) y al [build publico](pages-build.md).
 
 ## Interface
-En validate: Export Pages CI inventory y Upload Pages CI inventory, despues
+En los pasos compartidos de validate: Export Pages CI inventory y Upload Pages CI inventory, despues
 de Run unit tests (2/2), solo push nativo de main. El export usa los reportes
 reales y github.run_id/run_attempt/sha, matrix.os y KDD_TRUSTED_RUNTIME_REF.
+En la [division nativa Windows](ci-windows-board-routing.md) los ejecuta
+solo win_suite, con el mismo nombre de artefacto.
 Pages agrega Install pinned discovery parsers, Download Ubuntu CI inventory
 y Download Windows CI inventory antes de Build and validate public bundle.
 El build recibe directorio de ambos manifests, intento y runtime explicitos.
 
 ## Invariants
 
-Los inventarios de Pages siguen saliendo de validate. La matriz auxiliar
+Los inventarios de Pages siguen saliendo de las filas que ejecutan las
+dos suites. La matriz auxiliar
 [post-init Windows](postinit-windows-common-deadline.md) entrega evidencia
 de bootstrap al mismo check obligatorio.
 Cumplir [procedencia, pins y permisos](../pages-ci-inventory.md). Mantener
-cuatro jobs base, dos matrices Ubuntu/Windows, dos comandos identicos de suite,
+los jobs base, dos matrices Ubuntu/Windows, dos comandos identicos de suite,
 Python3.11, Node24 y los 19 gates. Sin cambios a trusted-pr-gate, runtime o
 protecciones; sin permissions write adicionales ni despliegue desde PR.
 El unico permiso nuevo en deploy es actions:read. Descargar manifests JSON,

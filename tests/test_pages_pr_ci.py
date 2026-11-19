@@ -29,9 +29,12 @@ class PagesPrWorkflow(unittest.TestCase):
     def test_steps_are_required_for_native_pr_in_both_existing_validate_jobs(self):
         validate = self.text.split('\n  validate:\n', 1)[1].split('\n  board:\n', 1)[0]
         self.assertIn('os: [ubuntu-latest, windows-latest]', validate)
+        condition = CONDITION
+        if '\n  validate_windows:\n' in self.text:
+            condition = CONDITION.replace('${{ ', "${{ matrix.role != 'win_contracts' && ", 1)
         for name in (INSTALL, BUILD):
             body = step(validate, name)
-            self.assertIn('        if: ' + CONDITION, body)
+            self.assertIn('        if: ' + condition + '\n', body)
             self.assertIn('        shell: bash', body)
             self.assertNotIn('hashFiles', body)
             self.assertLess(validate.index('- name: ' + name), validate.index("- name: Run each contract's test_command"))

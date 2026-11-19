@@ -274,7 +274,7 @@ class ProgressWorkflow(unittest.TestCase):
         first = self.step("name", "Run unit tests (1/2)")
         second = self.step("name", "Run unit tests (2/2)")
         for step in first, second:
-            self.assertNotIn("if", step)
+            self.assertIn(step.get("if"), (None, "${{ matrix.role != 'win_contracts' }}"))
             self.assertNotIn("continue-on-error", step)
             self.assertEqual(step["env"]["KDD_SKIP_INIT_POST_APPLY_SUITE"], "1")
         self.assertEqual(first["run"], second["run"])
