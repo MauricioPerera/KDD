@@ -16,7 +16,7 @@ budget:
   nesting_max: 4
   params_max: 5
 tests: tests/test_board_task_snapshot.py
-tests_sha256: '9ead9fcfc40d3a2facc047563ec1b72c584ff75f06a539bc0e71027d013bde09'
+tests_sha256: 'fd04f69eda44987d9a8e79dc9ff322c28e4800d83c0858f7ed7a2bfca9122c1e'
 oracle_files: ['tests/test_board_task_snapshot.py', 'tests/test_generated_task_evidence.py', 'tests/test_fixture_preparation.py', 'scripts/trusted_ci.py', 'tests/__init__.py']
 touch_only: ['tools/kdd-board/src/git-task-store.ts', 'scripts/tasks.py', 'scripts/task_git.py']
 deps_allowed: ['node', 'stdlib', 'git']
@@ -31,25 +31,29 @@ Conservar el [diario de Board](board-git-journal.md).
 ## Interface
 
 `tasks.py snapshot ID --json` devuelve `task` y `journal` desde un SHA de main.
-Board conserva sus respuestas y comprueba main antes y despues de cada intento.
-Un detalle estable invoca Python una vez y una transicion exitosa dos veces.
+Board comprueba main antes y despues de leer. Un error del hijo se propaga.
+Por intento estable, el detalle invoca un coordinador y la transicion dos.
+Solo la consulta combinada permite hasta 16 MiB y 360 segundos. Son los
+presupuestos acumulados de las dos consultas previas de 8 MiB y 180 segundos.
+Los demas comandos conservan sus limites individuales.
 
 ## Invariants
 
 - Resolver main una vez en el hijo. Leer nodo e historia desde ese SHA,
   sin usar checkout ni seguir main por separado para los dos resultados.
-- Leer blobs de la tarea en lotes acotados. Con siete registros, un detalle
-  estable usa como maximo ocho arranques Git, contando ambos de Board.
-- Conservar diarios, errores y reintento de Board. Una entrada malformada
-  intermedia impide una mutacion aunque el nodo actual sea valido.
+- Agrupar hasta 32 versiones de la tarea por lote. El detalle estable
+  usa hasta ocho arranques Git con siete registros y nueve con 35.
+- Validar el inventario y todo el diario en el SHA observado antes de
+  mutar. Conservar rechazos y la verificacion independiente bajo el lock.
 - Conservar CLI previa, permisos, lock, validacion del coordinador y recibos.
   Conservar 2563 IDs, Ubuntu/Windows, dos pasadas, cobertura inicial y 600 s.
 
 ## Examples
 
-- Consultar desde otra rama devuelve el diario de main.
-- Si main cambia durante la lectura, Board repite la consulta.
+- El diario importado conserva los SHA originales al consultar desde otra rama.
+- Si una lectura exitosa observa main cambiado, Board vuelve a leer.
 - Un diario corrupto no permite publicar ready.
+- Un resultado antes admitido por separado puede superar 8 MiB al combinarse.
 
 ## Do / Don't
 
