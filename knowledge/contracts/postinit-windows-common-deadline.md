@@ -15,7 +15,7 @@ budget:
   nesting_max: 4
   params_max: 4
 tests: tests/test_ci_postinit_shards.py
-tests_sha256: '763cd35fbc775185277ca648b36da39c38b45023beebc8b83c46fa95030873a4'
+tests_sha256: '7fdd076ba6b77552127aabb1b1128eb7df6d6aa6aca320cbb470ca704d226da5'
 oracle_files: ['tests/test_ci_postinit_shards.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py', 'scripts/init_project.py', 'scripts/bootstrap_transaction.py', 'scripts/run_test_suite.py', 'scripts/process_tree.py', 'scripts/validate_contracts.py', 'scripts/validate_okf.py']
 touch_only: ['.github/workflows/validate.yml', 'scripts/ci_postinit_shards.py']
 deps_allowed: ['stdlib', 'GitHub Actions']
@@ -153,3 +153,8 @@ Mantener el resultado de los dos timeouts y medir en GitHub el nuevo SHA.
 PARAR y reportar si cambia el perimetro, el runtime, los permisos, las
 protecciones o el limite de 600 s. Aprobar primero el baseline y revisar
 los cambios protegidos del workflow y oraculos preexistentes.
+
+En el [reparto nativo](ci-windows-board-routing.md) la fila Windows de
+contratos conserva sus resultados sin ejecutar las suites o el verificador
+de particiones. La fila de suites realiza ambos pasos de suite y la misma
+verificacion de post-init. Los perfiles anteriores conservan sus criterios.

@@ -14,7 +14,7 @@ budget:
   nesting_max: 4
   params_max: 4
 tests: tests/test_postinit_ci_progress.py
-tests_sha256: 'b8d0b3c7c7c1f0692cd92cf2dfa4de42432dda43d62f220a58568c157eed7b03'
+tests_sha256: 'b3f1cb26a5f81fd9cc302dba60ca2370c72c97762d8f55672f06e00d627b47ab'
 oracle_files: ['tests/test_postinit_ci_progress.py', 'tests/test_postinit_timeout_observation.py', 'tests/test_postinit_command_timing.py', 'tests/test_init_project.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py', 'scripts/run_test_suite.py', 'scripts/process_tree.py', 'scripts/init_post_apply_suite.py']
 touch_only: ['scripts/postinit_timeout_observation.py', '.github/workflows/validate.yml']
 deps_allowed: ['stdlib', 'GitHub Actions']
@@ -105,3 +105,8 @@ La adaptacion del control previo usa la ruta canonica del temporal en Windows.
 La referencia de contratos y oraculos se aprueba antes de implementar.
 PARAR y reportar si se necesita cambiar el runtime fijado o una proteccion remota.
 La integracion del workflow sigue la revision de [cambios protegidos](trusted-ci-change-review.md).
+
+En el [reparto nativo](ci-windows-board-routing.md) la fila Windows de
+contratos conserva sus resultados sin ejecutar las suites o el verificador
+de particiones. La fila de suites realiza ambos pasos de suite y la misma
+verificacion de post-init. Los perfiles anteriores conservan sus criterios.

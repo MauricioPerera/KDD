@@ -358,5 +358,6 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Diagnostico de tiempos de CI](ci-timing-diagnostics.md)
 - [Publicacion de tiempos por modulo y contrato](contracts/ci-timing-diagnostics.md)
 - [Recibos de la validacion Windows](contracts/ci-windows-board-receipts.md)
+- [Reparto de la validacion Windows](contracts/ci-windows-board-routing.md)
 
 - [Lectura conjunta de nodo y diario en Board](contracts/board-task-snapshot.md)
