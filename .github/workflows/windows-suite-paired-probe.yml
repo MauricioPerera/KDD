@@ -16,8 +16,8 @@ jobs:
       run:
         shell: pwsh
     env:
-      REFERENCE_SHA: dae79b1f9be9490f14a9441a8324788e978f58e9
-      CANDIDATE_SHA: a622c147ff2cc20d96e31347400c884c6ee7ad4b
+      REFERENCE_SHA: a622c147ff2cc20d96e31347400c884c6ee7ad4b
+      CANDIDATE_SHA: fa9b71eda8aba79e135b7a3de490df88cc1dc1b2
       RUNTIME_SHA: 74d357f7099651b9b39dc8088f725183a672ec94
     steps:
       - name: Use a common Git checkout policy
@@ -120,12 +120,12 @@ jobs:
             schema_version=1; order=$roles; runtime_ref=$runtime; bundle=$bundle
             arms=[ordered]@{
               reference=[ordered]@{
-                checkout=$a; commit=$env:REFERENCE_SHA; tree='71cbb9283a7d44461f686c611fd9ac8392dcb833'
-                ids_sha256='31d3c189d3d56ccb96435ed664a0c9be05135e0882c547aba7a2a3db77b8f314'
+                checkout=$a; commit=$env:REFERENCE_SHA; tree='d3eaec377d887519e7c9965d223aadafd65d1239'
+                ids_sha256='52967dc03c075f02e89c6f138524afd26190152f88420bcd0dfa8db9c57e7984'
               }
               candidate=[ordered]@{
-                checkout=$b; commit=$env:CANDIDATE_SHA; tree='d3eaec377d887519e7c9965d223aadafd65d1239'
-                ids_sha256='52967dc03c075f02e89c6f138524afd26190152f88420bcd0dfa8db9c57e7984'
+                checkout=$b; commit=$env:CANDIDATE_SHA; tree='4e9972f0b0fb3b9e852ea0c7fd769fbb01e9b843'
+                ids_sha256='cbc911c33ce07248699d80a924a0422d10585f13cc8e7c9e6ae7fab62dff60cc'
               }
             }
           }
