@@ -58,6 +58,10 @@ def _arm(raw):
     return dict(raw, checkout=Path(raw['checkout']).resolve(strict=True))
 
 
+def _absolute_path(value):
+    return isinstance(value, str) and Path(value).is_absolute()
+
+
 def _load_plan(path):
     try:
         plan = _json(path)
@@ -66,7 +70,7 @@ def _load_plan(path):
                 or type(plan['schema_version']) is not int or plan['schema_version'] != 1
                 or plan['order'] not in (list(ROLES), list(reversed(ROLES)))
                 or not isinstance(plan['runtime_ref'], str) or not SHA.fullmatch(plan['runtime_ref'])
-                or not isinstance(plan['bundle'], str) or not Path(plan['bundle']).is_absolute()
+                or not _absolute_path(plan['bundle'])
                 or not isinstance(plan['arms'], dict) or plan['arms'].keys() != set(ROLES)):
             raise ValueError('invalid plan schema, order or runtime reference')
         plan['arms'] = {role: _arm(raw) for role, raw in plan['arms'].items()}
