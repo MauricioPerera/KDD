@@ -160,13 +160,13 @@ jobs:
               $root = @($events | Where-Object { $_.pid -eq $pass.pid -and $_.parent -eq $driver.Id })
               if ($root.Count -ne 1) { throw "Missing or ambiguous process root for $role pass $number" }
               $tree = @{}
+              $tree[$root[0].pid] = $true
               $gitCount = 0
               $pythonCount = 0
               foreach ($item in $events) {
-                if ($item.sequence -lt $root[0].sequence) { continue }
-                if ($item.sequence -eq $root[0].sequence) {
-                  $tree[$item.pid] = $true
-                } elseif ($tree.ContainsKey($item.parent)) {
+                # A descendant can be delivered before its root reaches the event queue.
+                if ($item.filetime -lt $root[0].filetime -or $item.sequence -eq $root[0].sequence) { continue }
+                if ($tree.ContainsKey($item.parent)) {
                   $tree[$item.pid] = $true
                   if ($item.image -ieq 'git.exe') { $gitCount++ }
                   if ($item.image -match '^python(?:[0-9.]+)?\.exe$') { $pythonCount++ }
@@ -182,7 +182,8 @@ jobs:
             throw "Paired suite failed or produced incomplete process evidence, exit $($driver.ExitCode)"
           }
           [ordered]@{
-            method='Win32_ProcessStartTrace'; image=$env:ImageVersion; node=(& node --version)
+            method='Win32_ProcessStartTrace'; count_scope='observed_start_events'
+            image=$env:ImageVersion; node=(& node --version)
             run_id=$env:GITHUB_RUN_ID; attempt=$env:GITHUB_RUN_ATTEMPT; measurements=$measurements
           } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath "$evidence/process-counts.json" -Encoding utf8
           Get-Content -Raw -LiteralPath "$evidence/comparison.json"
