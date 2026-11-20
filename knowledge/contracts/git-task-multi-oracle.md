@@ -14,7 +14,7 @@ budget:
   nesting_max: 4
   params_max: 5
 tests: tests/test_git_task_multi_oracle.py
-tests_sha256: '0bd2e672316a65247887e086c75b554973f2084f7f966ae1a562b9f06122803d'
+tests_sha256: 'c9ade940d3e9aac3732b86228679a3b5a044f598ec0a31c2868bf1dd032d07a7'
 oracle_files: ['tests/test_git_task_multi_oracle.py', 'tests/test_generated_task_evidence.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py', 'scripts/trusted_ci.py']
 touch_only: ['scripts/task_git.py', 'scripts/task_evidence.py', 'scripts/oracle_execution.py', 'scripts/validate_tasks.py', 'knowledge/git-tasks.md', 'knowledge/data_models/git-task.md']
 deps_allowed: ['stdlib', 'oracle_execution', 'oracle_inventory']

@@ -1,9 +1,15 @@
 """Exercise task_git through the CLI and verify_quality from the approved commit."""
+import atexit
+from functools import cache
 import hashlib
 import json
+import os
 from pathlib import Path
+import shutil
+import stat
 import sys
 import tempfile
+from threading import RLock
 import unittest
 
 from tests.test_generated_task_evidence import TaskProject
@@ -30,14 +36,102 @@ def fixture():
 NODE_FILES = ('tests/primary.mjs', 'tests/second case.mjs')
 NODE_TEST = "import {test} from 'node:test';\nimport assert from 'node:assert/strict';\n"
 ROW = {'executed': 1, 'skipped': 0, 'ok': True}
+_SEED_LOCK = RLock()
+
+
+def _remove_seed(area, owner):
+    if os.getpid() != owner:
+        return
+
+    def retry_readonly(remove, path, error):
+        if not isinstance(error[1], PermissionError):
+            raise error[1]
+        os.chmod(path, os.lstat(path).st_mode | stat.S_IWUSR)
+        remove(path)
+
+    shutil.rmtree(area, onerror=retry_readonly)
+
+
+def _object_format(root):
+    explicit = os.environ.get('GIT_DEFAULT_HASH')
+    if explicit is not None:
+        return explicit
+    if not (os.environ.get('GIT_CONFIG_COUNT') or os.environ.get('GIT_CONFIG_PARAMETERS')):
+        return 'sha1'
+
+    # Repo-local config and GIT_CONFIG affect `git config`, but not a fresh `git init`.
+    probe = TaskProject(root.parent, initialize=False)
+    probe.env.pop('GIT_CONFIG', None)
+    probe.env['GIT_CEILING_DIRECTORIES'] = str(root.parent.parent)
+    if 'init.defaultobjectformat' not in probe.git('help', '--config').lower().splitlines():
+        return 'sha1'
+    value = probe.git('config', '--default', 'sha1', '--get', 'init.defaultObjectFormat')
+    return value if value in ('sha1', 'sha256') else 'sha1'
+
+
+@cache
+def _fixture_seed(owner, object_format, stage):
+    area = Path(tempfile.mkdtemp(prefix='kdd-task-oracle-seed-'))
+    root = area / 'product'
+    try:
+        if stage == 'base':
+            project = TaskProject(root)
+        else:
+            builder = GitTaskMultiOracle()
+            project = _copy_stage(root, 'base', object_format)
+            builder._configure_project(project, None, 'python-unittest', True, SECONDARY_TEST, ())
+            builder.integrated(project)
+        alternates = root / '.git/objects/info/alternates'
+        if alternates.exists() or alternates.is_symlink():
+            raise ValueError('task fixture seed must keep its objects inside the repository')
+    except BaseException:
+        _remove_seed(area, owner)
+        raise
+    atexit.register(_remove_seed, area, owner)
+    return root, project.ref
+
+
+def _reset_seed_after_fork():
+    global _SEED_LOCK
+    _SEED_LOCK = RLock()
+    _fixture_seed.cache_clear()
+
+
+if __name__ == 'tests.test_git_task_multi_oracle' and hasattr(os, 'register_at_fork'):
+    os.register_at_fork(after_in_child=_reset_seed_after_fork)
+
+
+def _copy_stage(root, stage, object_format):
+    with _SEED_LOCK:
+        seed, approved_ref = _fixture_seed(os.getpid(), object_format, stage)
+    shutil.copytree(seed, root)
+    project = TaskProject(root, initialize=False)
+    project.ref = approved_ref
+    return project
 
 
 class GitTaskMultiOracle(unittest.TestCase):
     def project(self, *, command=None, runner='python-unittest', inventory=True,
                 secondary=SECONDARY_TEST, unprotected=()):
+        project = self._case_project('base')
+        return self._configure_project(project, command, runner, inventory, secondary, unprotected)
+
+    def integrated_project(self):
+        return self._case_project('integrated')
+
+    def _case_project(self, stage):
+        # Discovery can import this TestCase by its short name. Use one canonical cache.
+        from tests.test_git_task_multi_oracle import _copy_stage
+
+        if os.environ.get('GIT_OBJECT_DIRECTORY') or os.environ.get('GIT_ALTERNATE_OBJECT_DIRECTORIES'):
+            raise ValueError('task fixtures require a private object store')
         area = tempfile.TemporaryDirectory(prefix='kdd-task-oracles-')
         self.addCleanup(area.cleanup)
-        project = TaskProject(Path(area.name) / 'product')
+        root = Path(area.name) / 'product'
+        return _copy_stage(root, stage, _object_format(root))
+
+    @staticmethod
+    def _configure_project(project, command, runner, inventory, secondary, unprotected):
         project.write(SUPPORT, SUPPORT_SOURCE)
         (project.root / BINARY).write_bytes(b'left\r\nright\r\n')
         project.write('.gitattributes', BINARY + ' -text\n')
@@ -110,8 +204,7 @@ class GitTaskMultiOracle(unittest.TestCase):
                                 str(project.root), '--head-ref', revision], check=False)
 
     def test_python_close_records_only_the_two_selected_modules(self):
-        project = self.project()
-        self.integrated(project)
+        project = self.integrated_project()
         task, report = self.finish(project)
         self.assertEqual(report['schema_version'], 2)
         self.assertEqual(report['oracle_results'], {PRIMARY: dict(ROW, executed=2), SECONDARY: ROW})
@@ -185,8 +278,7 @@ class GitTaskMultiOracle(unittest.TestCase):
         self.reject(project, 'ready', '--approved-ref', project.ref, pattern=r'TASK_APPROVAL')
 
     def test_finish_rejects_checkout_drift_hidden_from_status(self):
-        project = self.project()
-        self.integrated(project)
+        project = self.integrated_project()
         project.git('update-index', '--assume-unchanged', SUPPORT)
         project.write(SUPPORT, SUPPORT_SOURCE + '\nPath("oracle-ran").touch()\n')
         self.assertEqual(project.git('status', '--porcelain'), '')
@@ -226,8 +318,7 @@ class GitTaskMultiOracle(unittest.TestCase):
                 self.assertEqual(project.act('show', 1)['status'], 'in_progress')
 
     def test_committed_audit_rejects_incomplete_extra_duplicate_or_legacy_receipts(self):
-        project = self.project()
-        self.integrated(project)
+        project = self.integrated_project()
         task, report = self.finish(project)
         original = project.git('rev-parse', 'HEAD')
         node_path = 'knowledge/tasks/TASK-001.md'
