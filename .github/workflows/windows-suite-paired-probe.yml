@@ -1,0 +1,201 @@
+name: Windows suite paired probe
+
+on:
+  push:
+    branches: [codex/windows-ci-paired-probe]
+
+permissions:
+  contents: read
+
+jobs:
+  paired-windows-suite-diagnostic:
+    if: github.repository == 'MauricioPerera/KDD' && github.ref == 'refs/heads/codex/windows-ci-paired-probe'
+    runs-on: windows-latest
+    timeout-minutes: 145
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      REFERENCE_SHA: dae79b1f9be9490f14a9441a8324788e978f58e9
+      CANDIDATE_SHA: a622c147ff2cc20d96e31347400c884c6ee7ad4b
+      RUNTIME_SHA: 74d357f7099651b9b39dc8088f725183a672ec94
+    steps:
+      - name: Use a common Git checkout policy
+        working-directory: ${{ runner.temp }}
+        run: |
+          $config = Join-Path $env:RUNNER_TEMP 'kdd-pair.gitconfig'
+          "[core]`nautocrlf = false" | Set-Content -LiteralPath $config -Encoding ascii
+          "GIT_CONFIG_GLOBAL=$config" >> $env:GITHUB_ENV
+          'GIT_CONFIG_NOSYSTEM=1' >> $env:GITHUB_ENV
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: probe
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.REFERENCE_SHA }}
+          path: a
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          path: b
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        id: python
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Use the same native Git and dependencies for both arms
+        working-directory: ${{ runner.temp }}
+        env:
+          PYTHON_EXE: ${{ steps.python.outputs.python-path }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $git = (Get-Command git.exe -CommandType Application | Select-Object -First 1).Source
+          $homeDir = Split-Path (Split-Path $git)
+          $native = @('ucrt64', 'mingw64') | ForEach-Object {
+            Join-Path $homeDir "$_/bin/git.exe"
+          } | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+          if ($native) {
+            if ((& $native --version) -ne (& $git --version)) { throw 'Native Git version mismatch' }
+            $git = $native
+          }
+          $env:PATH = "$(Split-Path $git);$env:PATH"
+          (Split-Path $git) >> $env:GITHUB_PATH
+          $a = Join-Path $env:GITHUB_WORKSPACE 'a'
+          $b = Join-Path $env:GITHUB_WORKSPACE 'b'
+          $npm = (Get-Command npm.cmd -CommandType Application | Select-Object -First 1).Source
+          $locks = @('requirements-change-audit.txt', 'tools/context-v03/requirements.txt',
+            'tools/ci-coverage/requirements.txt', 'tools/mcp-sdk/windows.txt',
+            'tools/kdd-board/package-lock.json', 'site/package-lock.json',
+            'tools/workflow-syntax/actionlint.json')
+          foreach ($lock in $locks) {
+            if ((Get-FileHash -LiteralPath "$a/$lock").Hash -ne (Get-FileHash -LiteralPath "$b/$lock").Hash) {
+              throw "Different dependency input $lock"
+            }
+          }
+          & $env:PYTHON_EXE -I -m pip install --only-binary=:all: -r "$a/requirements-change-audit.txt"
+          foreach ($lock in @('tools/context-v03/requirements.txt', 'tools/ci-coverage/requirements.txt')) {
+            & $env:PYTHON_EXE -I -m pip install --require-hashes --only-binary=:all: -r "$a/$lock"
+          }
+          $sdk = Join-Path $env:RUNNER_TEMP 'kdd-pair-sdk'
+          & $env:PYTHON_EXE -I -m venv $sdk
+          $sdkPython = Join-Path $sdk 'Scripts/python.exe'
+          & $sdkPython -I -m pip install --require-hashes --only-binary=:all: -r "$a/tools/mcp-sdk/windows.txt"
+          "KDD_MCP_SDK_PYTHON=$sdkPython" >> $env:GITHUB_ENV
+          'KDD_MCP_SDK_REQUIRED=1' >> $env:GITHUB_ENV
+          & $env:PYTHON_EXE "$a/scripts/validate_workflows.py" install --cache-dir "$env:RUNNER_TEMP/kdd-actionlint" --github-env $env:GITHUB_ENV --github-path $env:GITHUB_PATH
+          foreach ($checkout in @($a, $b)) {
+            foreach ($component in @('site', 'tools/kdd-board')) {
+              & $npm ci --prefix "$checkout/$component" --ignore-scripts --no-audit --no-fund
+            }
+          }
+      - name: Run a paired comparison and count process launches
+        id: measure
+        working-directory: ${{ runner.temp }}
+        env:
+          PYTHON_EXE: ${{ steps.python.outputs.python-path }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $a = Join-Path $env:GITHUB_WORKSPACE 'a'
+          $b = Join-Path $env:GITHUB_WORKSPACE 'b'
+          $evidence = Join-Path $env:RUNNER_TEMP 'kdd-pair-evidence'
+          $prepare = Join-Path $env:RUNNER_TEMP 'prepare-kdd-runtime.py'
+          $bundle = Join-Path $env:RUNNER_TEMP 'kdd-pair-runtime'
+          $git = (Get-Command git.exe -CommandType Application | Select-Object -First 1).Source
+          $runtime = $env:RUNTIME_SHA
+          $blob = & $git --no-replace-objects -C $a show "${runtime}:scripts/trusted_ci.py"
+          [IO.File]::WriteAllLines($prepare, [string[]]$blob, [Text.UTF8Encoding]::new($false))
+          & $env:PYTHON_EXE -I $prepare prepare --repo-root $a --trusted-ref $runtime --bundle-dir $bundle
+          $roles = @('reference', 'candidate')
+          if ([int]$env:GITHUB_RUN_ATTEMPT % 2 -eq 0) { $roles = @('candidate', 'reference') }
+          $plan = [ordered]@{
+            schema_version=1; order=$roles; runtime_ref=$runtime; bundle=$bundle
+            arms=[ordered]@{
+              reference=[ordered]@{
+                checkout=$a; commit=$env:REFERENCE_SHA; tree='71cbb9283a7d44461f686c611fd9ac8392dcb833'
+                ids_sha256='31d3c189d3d56ccb96435ed664a0c9be05135e0882c547aba7a2a3db77b8f314'
+              }
+              candidate=[ordered]@{
+                checkout=$b; commit=$env:CANDIDATE_SHA; tree='d3eaec377d887519e7c9965d223aadafd65d1239'
+                ids_sha256='52967dc03c075f02e89c6f138524afd26190152f88420bcd0dfa8db9c57e7984'
+              }
+            }
+          }
+          $planPath = Join-Path $env:RUNNER_TEMP 'kdd-pair-plan.json'
+          $plan | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $planPath -Encoding utf8
+          $source = 'kdd-pair-process-' + [guid]::NewGuid().ToString('N')
+          $null = Register-CimIndicationEvent -Query 'SELECT * FROM Win32_ProcessStartTrace' -SourceIdentifier $source
+          try {
+            $probe = Join-Path $env:GITHUB_WORKSPACE 'probe/scripts/ci_windows_paired.py'
+            $arguments = @('-I', '-B', ('"' + $probe + '"'), '--plan', ('"' + $planPath + '"'),
+              '--output', ('"' + $evidence + '"'))
+            $driver = Start-Process -FilePath $env:PYTHON_EXE -ArgumentList $arguments -NoNewWindow -Wait -PassThru
+            Start-Sleep -Seconds 5
+            $events = @(Get-Event -SourceIdentifier $source -ErrorAction SilentlyContinue | ForEach-Object {
+              $item = $_.SourceEventArgs.NewEvent
+              [pscustomobject]@{
+                image=[string]$item.ProcessName; pid=[int]$item.ProcessID; parent=[int]$item.ParentProcessID
+                filetime=[long]$item.TIME_CREATED; sequence=$_.EventIdentifier
+              }
+            } | Sort-Object filetime,sequence)
+          } finally {
+            Unregister-Event -SourceIdentifier $source -ErrorAction SilentlyContinue
+            Get-Event -SourceIdentifier $source -ErrorAction SilentlyContinue | Remove-Event -ErrorAction SilentlyContinue
+          }
+          $measurements = @(foreach ($role in $roles) {
+            foreach ($number in @(1, 2)) {
+              $path = "$evidence/$role/suite-$number-process.json"
+              if (!(Test-Path -LiteralPath $path)) { continue }
+              $pass = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
+              # WMI batches notifications. Use the suite PID and its parent to
+              # bind the trace, independent of notification delivery time.
+              $root = @($events | Where-Object { $_.pid -eq $pass.pid -and $_.parent -eq $driver.Id })
+              if ($root.Count -ne 1) { throw "Missing or ambiguous process root for $role pass $number" }
+              $tree = @{}
+              $gitCount = 0
+              $pythonCount = 0
+              foreach ($item in $events) {
+                if ($item.sequence -lt $root[0].sequence) { continue }
+                if ($item.sequence -eq $root[0].sequence) {
+                  $tree[$item.pid] = $true
+                } elseif ($tree.ContainsKey($item.parent)) {
+                  $tree[$item.pid] = $true
+                  if ($item.image -ieq 'git.exe') { $gitCount++ }
+                  if ($item.image -match '^python(?:[0-9.]+)?\.exe$') { $pythonCount++ }
+                } else {
+                  $tree.Remove($item.pid)
+                }
+              }
+              if ($gitCount -le 0 -or $pythonCount -le 0) { throw "Incomplete process trace for $role pass $number" }
+              [ordered]@{role=$role; number=$number; git_launches=$gitCount; python_launches=$pythonCount}
+            }
+          })
+          if ($driver.ExitCode -ne 0 -or $measurements.Count -ne 4) {
+            throw "Paired suite failed or produced incomplete process evidence, exit $($driver.ExitCode)"
+          }
+          [ordered]@{
+            method='Win32_ProcessStartTrace'; image=$env:ImageVersion; node=(& node --version)
+            run_id=$env:GITHUB_RUN_ID; attempt=$env:GITHUB_RUN_ATTEMPT; measurements=$measurements
+          } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath "$evidence/process-counts.json" -Encoding utf8
+          Get-Content -Raw -LiteralPath "$evidence/comparison.json"
+      - name: Upload paired suite evidence
+        if: always() && steps.measure.outcome != 'skipped'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kdd-windows-paired-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/kdd-pair-evidence/comparison.json
+            ${{ runner.temp }}/kdd-pair-evidence/process-counts.json
+            ${{ runner.temp }}/kdd-pair-evidence/*/suite-*.json
+            ${{ runner.temp }}/kdd-pair-evidence/*/startup.json
+            ${{ runner.temp }}/kdd-pair-evidence/*/coverage/coverage.json
+          if-no-files-found: warn
+          retention-days: 7
