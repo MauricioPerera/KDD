@@ -21,23 +21,29 @@ jobs:
       RUNTIME_SHA: 74d357f7099651b9b39dc8088f725183a672ec94
     steps:
       - name: Use a common Git checkout policy
+        id: checkout-policy
         working-directory: ${{ runner.temp }}
         run: |
           $config = Join-Path $env:RUNNER_TEMP 'kdd-pair.gitconfig'
           "[core]`nautocrlf = false" | Set-Content -LiteralPath $config -Encoding ascii
-          "GIT_CONFIG_GLOBAL=$config" >> $env:GITHUB_ENV
-          'GIT_CONFIG_NOSYSTEM=1' >> $env:GITHUB_ENV
+          "config=$config" >> $env:GITHUB_OUTPUT
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: probe
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        env:
+          GIT_CONFIG_GLOBAL: ${{ steps.checkout-policy.outputs.config }}
+          GIT_CONFIG_NOSYSTEM: '1'
         with:
           ref: ${{ env.REFERENCE_SHA }}
           path: a
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        env:
+          GIT_CONFIG_GLOBAL: ${{ steps.checkout-policy.outputs.config }}
+          GIT_CONFIG_NOSYSTEM: '1'
         with:
           ref: ${{ env.CANDIDATE_SHA }}
           path: b
@@ -131,21 +137,33 @@ jobs:
           }
           $planPath = Join-Path $env:RUNNER_TEMP 'kdd-pair-plan.json'
           $plan | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $planPath -Encoding utf8
+          $fixtureAutocrlf = & $git config --default unset --get core.autocrlf
+          function Receive-ProcessStarts($source, $buffer) {
+            foreach ($queued in @(Get-Event -SourceIdentifier $source -ErrorAction SilentlyContinue)) {
+              $item = $queued.SourceEventArgs.NewEvent
+              $buffer.Add([pscustomobject]@{
+                image=[string]$item.ProcessName; pid=[int]$item.ProcessID; parent=[int]$item.ParentProcessID
+                filetime=[long]$item.TIME_CREATED; sequence=$queued.EventIdentifier
+              })
+              Remove-Event -EventIdentifier $queued.EventIdentifier
+            }
+          }
           $source = 'kdd-pair-process-' + [guid]::NewGuid().ToString('N')
+          $buffer = [System.Collections.Generic.List[object]]::new()
           $null = Register-CimIndicationEvent -Query 'SELECT * FROM Win32_ProcessStartTrace' -SourceIdentifier $source
           try {
             $probe = Join-Path $env:GITHUB_WORKSPACE 'probe/scripts/ci_windows_paired.py'
             $arguments = @('-I', '-B', ('"' + $probe + '"'), '--plan', ('"' + $planPath + '"'),
               '--output', ('"' + $evidence + '"'))
-            $driver = Start-Process -FilePath $env:PYTHON_EXE -ArgumentList $arguments -NoNewWindow -Wait -PassThru
+            $driver = Start-Process -FilePath $env:PYTHON_EXE -ArgumentList $arguments -NoNewWindow -PassThru
+            while (!$driver.HasExited) {
+              Receive-ProcessStarts $source $buffer
+              Start-Sleep -Milliseconds 750
+            }
+            $driver.WaitForExit()
             Start-Sleep -Seconds 5
-            $events = @(Get-Event -SourceIdentifier $source -ErrorAction SilentlyContinue | ForEach-Object {
-              $item = $_.SourceEventArgs.NewEvent
-              [pscustomobject]@{
-                image=[string]$item.ProcessName; pid=[int]$item.ProcessID; parent=[int]$item.ParentProcessID
-                filetime=[long]$item.TIME_CREATED; sequence=$_.EventIdentifier
-              }
-            } | Sort-Object filetime,sequence)
+            Receive-ProcessStarts $source $buffer
+            $events = @($buffer | Sort-Object filetime,sequence)
           } finally {
             Unregister-Event -SourceIdentifier $source -ErrorAction SilentlyContinue
             Get-Event -SourceIdentifier $source -ErrorAction SilentlyContinue | Remove-Event -ErrorAction SilentlyContinue
@@ -158,7 +176,11 @@ jobs:
               # WMI batches notifications. Use the suite PID and its parent to
               # bind the trace, independent of notification delivery time.
               $root = @($events | Where-Object { $_.pid -eq $pass.pid -and $_.parent -eq $driver.Id })
-              if ($root.Count -ne 1) { throw "Missing or ambiguous process root for $role pass $number" }
+              if ($root.Count -ne 1) {
+                [ordered]@{role=$role; number=$number; status='unavailable'; reason='root_missing_or_ambiguous'
+                  git_launches=$null; python_launches=$null}
+                continue
+              }
               $tree = @{}
               $tree[$root[0].pid] = $true
               $gitCount = 0
@@ -174,18 +196,24 @@ jobs:
                   $tree.Remove($item.pid)
                 }
               }
-              if ($gitCount -le 0 -or $pythonCount -le 0) { throw "Incomplete process trace for $role pass $number" }
-              [ordered]@{role=$role; number=$number; git_launches=$gitCount; python_launches=$pythonCount}
+              if ($gitCount -le 0 -or $pythonCount -le 0) {
+                [ordered]@{role=$role; number=$number; status='unavailable'; reason='insufficient_events'
+                  git_launches=$null; python_launches=$null}
+                continue
+              }
+              [ordered]@{role=$role; number=$number; status='observed'; git_launches=$gitCount; python_launches=$pythonCount}
             }
           })
-          if ($driver.ExitCode -ne 0 -or $measurements.Count -ne 4) {
-            throw "Paired suite failed or produced incomplete process evidence, exit $($driver.ExitCode)"
-          }
+          if (!(Test-Path -LiteralPath $evidence)) { New-Item -ItemType Directory -Path $evidence | Out-Null }
           [ordered]@{
             method='Win32_ProcessStartTrace'; count_scope='observed_start_events'
             image=$env:ImageVersion; node=(& node --version)
+            fixture_autocrlf=$fixtureAutocrlf; observed_events=$events.Count
             run_id=$env:GITHUB_RUN_ID; attempt=$env:GITHUB_RUN_ATTEMPT; measurements=$measurements
           } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath "$evidence/process-counts.json" -Encoding utf8
+          if ($driver.ExitCode -ne 0 -or $measurements.Count -ne 4) {
+            throw "Paired suite failed or produced incomplete suite evidence, exit $($driver.ExitCode)"
+          }
           Get-Content -Raw -LiteralPath "$evidence/comparison.json"
       - name: Upload paired suite evidence
         if: always() && steps.measure.outcome != 'skipped'
