@@ -25,13 +25,13 @@ def assert_private(test, first, second):
         test.assertFalse((project.root / '.git/objects/info/alternates').exists())
         test.assertEqual(Path(project.git('rev-parse', '--show-toplevel')).resolve(),
                          project.root.resolve())
-    files = {'.git/config', '.git/index', 'src/feature1.py',
+    files = {'.git/HEAD', '.git/config', '.git/index', 'src/feature1.py',
              'quality/product.json'}
-    tree = first.root / '.git/objects'
-    objects = {path.relative_to(first.root) for path in tree.rglob('*')
-               if path.is_file() and (second.root / path.relative_to(first.root)).is_file()}
-    test.assertTrue(objects, 'the equivalent fixtures have Git objects in common')
-    for name in files | objects:
+    shared_names = {path.relative_to(first.root) for path in (first.root / '.git').rglob('*')
+                    if path.is_file() and (second.root / path.relative_to(first.root)).is_file()}
+    test.assertTrue(any(name.parts[:2] == ('.git', 'objects') for name in shared_names),
+                    'the equivalent fixtures have Git objects in common')
+    for name in files | shared_names:
         left, right = first.root / name, second.root / name
         test.assertFalse(left.is_symlink() or right.is_symlink(), str(name))
         test.assertFalse(os.path.samefile(left, right), str(name))
@@ -42,18 +42,19 @@ def assert_private(test, first, second):
     test.assertFalse((second.root / 'case-marker.txt').exists())
     test.assertNotEqual(second.command(['git', 'cat-file', '-e', unique],
                                       check=False).returncode, 0)
+    return unique
 
 
-def base_projects(test, builder, trace):
+def base_projects(test, builder, other, trace):
     from tests.test_git_task_multi_oracle import SECONDARY, SECONDARY_TEST
 
     updated = SECONDARY_TEST + '\n# different private oracle for one case\n'
     with patch.dict(os.environ, {'GIT_DEFAULT_HASH': 'sha1'}):
         first = builder.project()
-        second = builder.project()
-        variant = builder.project(secondary=updated)
+        second = other.project()
+        variant = other.project(secondary=updated)
     with patch.dict(os.environ, {'GIT_DEFAULT_HASH': 'sha256'}):
-        sha256 = builder.project()
+        sha256 = other.project()
     starts = trace_starts(trace)
     test.assertEqual(sum('init' in argv for argv in starts), 2,
                      'one real Git init for each format')
@@ -65,26 +66,53 @@ def base_projects(test, builder, trace):
     test.assertEqual((variant.root / SECONDARY).read_bytes(), updated.encode('utf-8'))
     test.assertEqual((first.root / SECONDARY).read_bytes(), SECONDARY_TEST.encode('utf-8'))
     test.assertEqual(first.git('rev-parse', 'HEAD^{tree}'), second.git('rev-parse', 'HEAD^{tree}'))
-    assert_private(test, first, second)
+    unique = assert_private(test, first, second)
+    builder.doCleanups()
+    with patch.dict(os.environ, {'GIT_DEFAULT_HASH': 'sha1'}):
+        next_case = other.project()
+    test.assertEqual(sum('init' in argv for argv in trace_starts(trace)), 2)
+    test.assertEqual(next_case.git('rev-parse', 'HEAD^{tree}'), second.git('rev-parse', 'HEAD^{tree}'))
+    test.assertFalse((next_case.root / 'case-marker.txt').exists())
+    test.assertNotEqual(next_case.command(['git', 'cat-file', '-e', unique],
+                                         check=False).returncode, 0)
 
 
-def integrated_projects(test, builder, trace):
+def integrated_projects(test, builder, other, trace):
     scenario = getattr(builder, 'integrated_project', None)
     test.assertTrue(callable(scenario), 'integrated_project() is the fixture entrypoint')
     with patch.dict(os.environ, {'GIT_DEFAULT_HASH': 'sha1'}):
-        first, second = scenario(), scenario()
+        first, second = scenario(), other.integrated_project()
     starts = trace_starts(trace)
     test.assertEqual(sum('init' in argv for argv in starts), 1)
     test.assertLessEqual(len(starts), 85, 'build one integrated fixture for both cases')
-    test.assertEqual(first.git('show-ref'), second.git('show-ref'))
+    refs = second.git('show-ref')
+    head = second.git('rev-parse', 'HEAD')
+    test.assertEqual(first.git('show-ref'), refs)
     test.assertEqual(first.ref, second.ref)
     test.assertEqual(first.git('rev-parse', 'HEAD'), second.git('rev-parse', 'HEAD'))
     for project in (first, second):
         test.assertEqual(project.act('show', 1)['status'], 'in_progress')
         test.assertEqual(project.git('rev-parse', project.ref), project.ref)
         test.assertFalse(list((project.root / 'docs/task-evidence').glob('*.json')))
-    assert_private(test, first, second)
+    unique = assert_private(test, first, second)
+    builder.doCleanups()
     test.assertEqual(second.act('show', 1)['status'], 'in_progress')
+    task, receipt = other.finish(second)
+    test.assertEqual(task['status'], 'done')
+    test.assertEqual(receipt['passed_tests'], 3)
+    test.assertTrue((second.root / task['evidence']).is_file())
+    offset = len(trace_starts(trace))
+    with patch.dict(os.environ, {'GIT_DEFAULT_HASH': 'sha1'}):
+        next_case = other.integrated_project()
+    launches = trace_starts(trace)[offset:]
+    test.assertFalse(any('init' in argv for argv in launches))
+    test.assertLessEqual(len(launches), 30, 'a later case also copies the integrated seed')
+    test.assertEqual(next_case.git('show-ref'), refs)
+    test.assertEqual(next_case.git('rev-parse', 'HEAD'), head)
+    test.assertFalse(list((next_case.root / 'docs/task-evidence').glob('*.json')))
+    test.assertFalse((next_case.root / 'case-marker.txt').exists())
+    test.assertNotEqual(next_case.command(['git', 'cat-file', '-e', unique],
+                                         check=False).returncode, 0)
 
 
 class TaskFixtureStageReuse(unittest.TestCase):
@@ -115,9 +143,11 @@ if __name__ == '__main__':
 
         mode = {'base': base_projects, 'integrated': integrated_projects}[sys.argv[2]]
         builder = GitTaskMultiOracle()
+        other = GitTaskMultiOracle()
         try:
-            mode(unittest.TestCase(), builder, Path(os.environ['GIT_TRACE2_EVENT']))
+            mode(unittest.TestCase(), builder, other, Path(os.environ['GIT_TRACE2_EVENT']))
         finally:
+            other.doCleanups()
             builder.doCleanups()
     else:
         unittest.main()
