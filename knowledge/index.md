@@ -362,3 +362,5 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Reparto de la validacion Windows](contracts/ci-windows-board-routing.md)
 
 - [Lectura conjunta de nodo y diario en Board](contracts/board-task-snapshot.md)
+
+- [Lecturas agrupadas en ready y finish de tareas Git](contracts/task-transition-read-cost.md)
