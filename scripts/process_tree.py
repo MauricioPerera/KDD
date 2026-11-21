@@ -194,12 +194,15 @@ def _windows_job_attributes(job):
         function = getattr(kernel, name)
         function.argtypes, function.restype = arguments, result
     size = ctypes.c_size_t()
-    kernel.InitializeProcThreadAttributeList(None, 2, 0, ctypes.byref(size))
-    job._check(size.value)
+    ctypes.set_last_error(0)
+    sized = kernel.InitializeProcThreadAttributeList(None, 2, 0, ctypes.byref(size))
+    if sized or not size.value or ctypes.get_last_error() != 122:  # ERROR_INSUFFICIENT_BUFFER
+        raise OSError('could not determine the Windows process attribute list size')
     attributes = ctypes.create_string_buffer(size.value)
     job._check(kernel.InitializeProcThreadAttributeList(attributes, 2, 0, ctypes.byref(size)))
     job_list = (w.HANDLE * 1)(job.handle)
     try:
+        ctypes.set_last_error(0)
         supported = kernel.UpdateProcThreadAttribute(
             attributes, 0, _JOB_LIST, job_list, ctypes.sizeof(job_list), None, None)
         if not supported and ctypes.get_last_error() == _NOT_SUPPORTED:
@@ -212,17 +215,38 @@ def _windows_job_attributes(job):
         kernel.DeleteProcThreadAttributeList(attributes)
 
 
-def _windows_environment(environment):
+def _ordinal_environment(entries, job):
+    compare = job.k.CompareStringOrdinal
+    compare.argtypes = [w.LPCWSTR, ctypes.c_int, w.LPCWSTR, ctypes.c_int, w.BOOL]
+    compare.restype = ctypes.c_int
+    # CPython orders Windows environment names using the invariant Windows locale.
+    ordered = sorted(entries, key=lambda key: _winapi.LCMapStringEx('', 0x200, key))
+    names = []
+    for index, key in enumerate(ordered):
+        if index + 1 < len(ordered):
+            relation = compare(key, -1, ordered[index + 1], -1, True)
+            job._check(relation)
+            if relation == 2:  # CSTR_EQUAL. Keep the last occurrence.
+                continue
+        names.append(key)
+    return names
+
+
+def _windows_environment(environment, job):
     if environment is None:
         return None
-    entries = {}
-    for key, value in environment.items():
+    entries = dict(environment)
+    for key, value in entries.items():
         if not isinstance(key, str) or not isinstance(value, str):
             raise TypeError('Windows environment names and values must be strings')
         if not key or '=' in key[1:] or '\0' in key or '\0' in value:
             raise ValueError('invalid Windows environment entry')
-        entries.setdefault(key.upper(), key + '=' + value)
-    block = '\0'.join(entries[key] for key in sorted(entries))
+    if all(key.isascii() for key in entries):
+        folded = {key.upper(): key for key in entries}
+        names = [folded[key] for key in sorted(folded)]
+    else:
+        names = _ordinal_environment(entries, job)
+    block = '\0'.join(key + '=' + entries[key] for key in names)
     return ctypes.create_unicode_buffer(block + '\0')
 
 
@@ -251,10 +275,11 @@ class _WindowsJobPopen(subprocess.Popen):
         self._job = job
         self._attributes = attributes
         self._initial_thread = None
+        self._handle = None
         try:
             super().__init__(argv, **options)
         except BaseException:
-            self.close_initial_thread()
+            self.close_handles()
             raise
 
     def _execute_child(self, args, executable, *launch):
@@ -289,13 +314,24 @@ class _WindowsJobPopen(subprocess.Popen):
             flags = creationflags | _EXTENDED_STARTUP | _UNICODE_ENVIRONMENT | _SUSPENDED
             job._check(job.k.CreateProcessW(
                 application, ctypes.create_unicode_buffer(command), None, None, bool(handles), flags,
-                _windows_environment(env), cwd, ctypes.byref(native), ctypes.byref(information)))
+                _windows_environment(env, job), cwd, ctypes.byref(native), ctypes.byref(information)))
+            self._adopt_handles(information)
+        finally:
+            self._close_pipe_fds(*pipes)
+
+    def _adopt_handles(self, information):
+        try:
             self._handle = subprocess.Handle(information.process)
             self._initial_thread = subprocess.Handle(information.thread)
             self.pid = information.pid
             self._child_created = True
-        finally:
-            self._close_pipe_fds(*pipes)
+        except BaseException:
+            with ExitStack() as raw:
+                if self._handle is None:
+                    raw.callback(self._job.k.CloseHandle, information.process)
+                if self._initial_thread is None:
+                    raw.callback(self._job.k.CloseHandle, information.thread)
+            raise
 
     def resume(self):
         self._job._check(self._job.k.ResumeThread(self._initial_thread) != 0xffffffff)
@@ -304,6 +340,17 @@ class _WindowsJobPopen(subprocess.Popen):
         if self._initial_thread is not None:
             self._initial_thread.Close()
             self._initial_thread = None
+
+    def close_handles(self):
+        with ExitStack() as resources:
+            if self._handle is not None:
+                resources.callback(self._handle.Close)
+                self._child_created = False  # Popen.__del__ must not poll a closed handle.
+                self._handle = None
+            resources.callback(self.close_initial_thread)
+            for stream in (getattr(self, 'stdin', None), getattr(self, 'stdout', None), getattr(self, 'stderr', None)):
+                if stream is not None:
+                    resources.callback(stream.close)
 
 
 def _start_windows_job_target(argv, *, cwd, job, options):
@@ -327,7 +374,7 @@ def _windows_executable(command, cwd, environment):
     else:
         system = os.environ.get('SystemRoot')
         system_directories = [os.path.join(system, part) for part in ('System32', 'System', '')] if system else []
-        path = next((value for key, value in environment.items() if key.upper() == 'PATH'), '')
+        path = next((value for key, value in reversed(list(environment.items())) if key.upper() == 'PATH'), '')
         locations = [os.path.dirname(sys.executable), directory, *system_directories, *path.split(os.pathsep)]
         filename = command + '.exe' if command and not os.path.splitext(command)[1] else command
     for location in locations:
@@ -421,7 +468,7 @@ def run(argv, *, cwd, timeout, **kwargs):
                     proc = subprocess.Popen(bootstrap, cwd=cwd, **options)
                     job.assign(proc.pid)
                 else:
-                    resources.callback(proc.close_initial_thread)
+                    resources.callback(proc.close_handles)
                 if time.monotonic() >= deadline:
                     raise subprocess.TimeoutExpired(argv, timeout)
                 _release_windows_target(proc, legacy_directory, options)
