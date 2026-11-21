@@ -77,9 +77,10 @@ class PagesPrWorkflow(unittest.TestCase):
                          "github.event.workflow_run.conclusion == 'success'",
                          "github.event.workflow_run.event == 'push'",
                          "github.event.workflow_run.head_branch == 'main'",
-                         'ref: ${{ github.event.workflow_run.head_sha }}',
-                         'run: python site/build.py'):
+                         'ref: ${{ github.event.workflow_run.head_sha }}'):
             self.assertIn(required, deploy)
+        build = step(deploy, 'Build and validate public bundle')
+        self.assertRegex(build, r'(?m)^        (?:run: |  )python site/build\.py(?: |$)')
         self.assertNotIn('pull_request_target:', deploy)
         # Main may read raw CI inventories, while rebuilding its own bundle.
         # A candidate HTML artifact from a PR is still never deployed.
