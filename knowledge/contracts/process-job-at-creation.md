@@ -17,8 +17,8 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_process_job_at_creation.py
-tests_sha256: '74190e30b2eb16c75c9392c9122a83f8ca890e8dc13c8be3414eca754a1bf845'
-oracle_files: ['tests/test_process_job_at_creation.py', 'tests/__init__.py']
+tests_sha256: '73a41559fc100ae160c1ba84a0f3290b4ce024a3a986f942fdc31ea08a094d3a'
+oracle_files: ['tests/test_process_job_at_creation.py', 'tests/test_process_exit_barrier.py', 'tests/__init__.py']
 touch_only: ['scripts/process_tree.py']
 deps_allowed: ['stdlib']
 forbids: ['network', 'llm']
@@ -37,6 +37,13 @@ Conservar la API de run y su CompletedProcess. En el perfil Windows
 compatible, crear el objetivo en su Job con un solo lanzamiento del
 objetivo. Su padre directo debe ser quien llama a run, incluso bajo un
 Job exterior. El perfil POSIX conserva su grupo y su ruta directa.
+
+El limite interno `_start_windows_job_target(argv, *, cwd, job, options)`
+crea el proceso mediante la API nativa con el Job de esa invocacion.
+Usa el enlace Win32 del Job propio para que el oraculo pueda observar
+la creacion real. Devuelve un proceso compatible con el manejo de
+E/S y espera de run. Solo devuelve None si falta la capacidad y se
+sabe que el objetivo no se inicio. Demas fallos se propagan.
 
 ## Invariants
 
@@ -68,16 +75,31 @@ pruebas existentes de arbol, pipes, plazos y limpieza.
 
 ## Tests
 
-El oraculo prueba E/S real y la relacion de padre desde un llamador
-normal y otro contenido. Verifica ademas la pertenencia al Job de un
-hijo vivo, o a su propio grupo POSIX. Windows 10 y posteriores
-comprueban la relacion directa. No se omiten casos en Ubuntu.
+El oraculo prueba E/S real, salida a archivo y stderr combinado.
+En Windows compatible, observa la pertenencia al Job exacto al
+retornar CreateProcessW, antes de que run pueda asignar por separado.
+Repite la comprobacion bajo un Job exterior y contrasta la ruta
+anterior con una falta de capacidad controlada. Verifica que los
+errores de permisos y los fallos tras un posible arranque no
+reintenten el objetivo. Dos llamadas reales concurrentes comprueban
+Jobs propios y el exito de la vecina tras un timeout. En POSIX se
+observan los grupos elegidos y la interfaz directa.
 La [barrera](process-exit-barrier.md) conserva sus controles reales.
 
 ## Constraints
 
 PARAR y reportar si falta el baseline revisado o se necesita otra
-ruta protegida. Aprobar el runtime final por separado. Mantener gates,
-workflows y protecciones. Acreditar la reduccion con tres CI
-comparables del mismo candidato, incluyendo la ruta critica completa
-del check Windows. El microbenchmark local solo mide una fase.
+ruta protegida. El fichero es tambien dependencia de oraculos
+congelados. Para el arbol implementado se requieren una
+[referencia final de oraculos](../quality-approval.md),
+la [revision exacta de la ruta protegida](trusted-ci-change-review.md)
+y la referencia aprobada del
+[runtime materializado](ci-trusted-execution.md), con su manifiesto
+completo. Conservar los demas bytes del runtime de referencia.
+
+Mantener gates, workflows y protecciones. Medir tres CI comparables
+del mismo candidato. Identificar en cada brazo el SHA de checkout,
+el runtime efectivo y los hashes de su manifiesto. Medir desde el
+inicio del workflow hasta el check requerido, con ambos productores
+Windows y la ventana de post-init. El microbenchmark local solo
+mide una fase.
