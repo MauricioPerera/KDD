@@ -63,3 +63,9 @@ Antes de fusionar, el [intento 3 del PR #203](https://github.com/MauricioPerera/
 falló al agotar el plazo de 2 s de una prueba de deduplicación en la primera
 pasada de Windows. Los tres intentos consecutivos del cierre corresponden al
 run de `main` indicado arriba.
+
+## Lanzamiento directo
+
+El [cierre del lanzamiento directo](CI-WINDOWS-LANZAMIENTO-DIRECTO-2026-11-21.md)
+registra los tres intentos de `4172d71` y el ahorro frente a `dae79b1` sobre
+este reparto de la validación.
