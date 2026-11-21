@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 16
   nesting_max: 4
 tests: tests/test_pages_inventory.py
-tests_sha256: '65072b6a38464cb7e4e43ce2b17b85ac4a87b3988b53551d5920b83a0ae3890c'
+tests_sha256: 'fceb75845294f5c237e3e43d0257b87bfb43ac95ad7e1b9f9f5733d466bf9a69'
 touch_only: ['site/ci_inventory.py', 'site/build.py', 'site/index.html']
 deps_allowed: ['stdlib', 'Git', 'Node.js', '@rckflr/llms-skills@0.4.1']
 forbids: ['llm']
@@ -41,6 +41,10 @@ igualdad de IDs, cuatro reportes distintos, identidad exacta y aborto antes
 del output. Sin fallback ni ejecucion de casos para contar. Conservar los
 skips contabilizados por el runner; no presentar inventario como cobertura.
 Mantener las seis fuentes del runtime revisado y sus validadores intactas.
+El SHA explicito del build publico procede del consenso del CI productor
+segun [el contrato de transporte](pages-inventory-ci.md). El build coteja
+ese SHA con ambos manifests antes de generar salida, tambien si el valor
+vigente de la variable externa cambio entre CI y Pages.
 
 ## Examples
 - Dos reportes reales por SO, identidad e IDs coincidentes: ci-verified.
@@ -55,7 +59,10 @@ Mantener las seis fuentes del runtime revisado y sus validadores intactas.
 ## Tests
 tests/test_pages_inventory.py cubre discovery, export de reportes reales,
 consenso, identidad, replay, corrupcion, CLI y aborto del build real antes
-de crear output. Los controles del publisher completo corresponden al
+de crear output. La regresion de rotacion ejecuta el codigo Python del
+paso de Pages contra los cuatro reportes reales exportados, comprueba
+su salida y conserva el rechazo de evidencia ajena antes del output.
+Los controles del publisher completo corresponden al
 workflow real; no se declaran ejecutados si solo corrio un probe de inventario.
 
 ## Constraints

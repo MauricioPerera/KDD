@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -311,6 +312,80 @@ class PagesInventoryIntegration(unittest.TestCase):
 
     def test_real_build_rejects_invalid_ci_identity_before_output(self):
         self.build_error(SOURCE,inventory=True)
+
+    def resolve_runtime(self, directory):
+        deployment = (ROOT / '.github/workflows/deploy-pages.yml').read_text(encoding='utf-8')
+        marker = '      - name: Resolve CI inventory runtime\n'
+        self.assertIn(marker, deployment)
+        step = deployment.split(marker, 1)[1].split('\n      - ', 1)[0]
+        self.assertIn('        run: |\n', step)
+        script = self.area / 'resolve-runtime.py'
+        script.write_text(textwrap.dedent(step.split('        run: |\n', 1)[1]), encoding='utf-8')
+        output = self.area / 'github-output.txt'
+        output.write_bytes(b'prior=value\n')
+        env = dict(self.env, CI_INVENTORY_DIR=str(directory), GITHUB_OUTPUT=str(output))
+        result = subprocess.run([sys.executable, '-I', str(script)], cwd=self.repo,
+                                env=env, capture_output=True, text=True, encoding='utf-8', timeout=60)
+        return result, output.read_text(encoding='utf-8')
+
+    def test_deploy_runtime_survives_rotation_with_four_real_passes(self):
+        directory, _ = self.manifests()
+        commit = self.command(['git', 'commit', '--allow-empty', '-qm', 'New runtime pin'], self.repo)
+        self.assertEqual(commit.returncode, 0, commit.stderr)
+        second = self.command(['git', 'rev-parse', 'HEAD'], self.repo)
+        self.assertEqual(second.returncode, 0, second.stderr)
+        active = second.stdout.strip()
+        self.assertNotEqual(active, self.sha)
+        checkout = self.command(['git', 'switch', '--detach', self.sha], self.repo)
+        self.assertEqual(checkout.returncode, 0, checkout.stderr)
+
+        self.env['KDD_TRUSTED_RUNTIME_REF'] = active
+        self.rejected(self.inspect(directory, runtime=active), 'PAGES_CI_INVENTORY')
+        result, output = self.resolve_runtime(directory)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(output, 'prior=value\ntrusted_runtime_ref=' + self.sha + '\n')
+        checked = self.inspect(directory, runtime=output.splitlines()[1].split('=', 1)[1])
+        self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        evidence = json.loads(checked.stdout)
+        self.assertEqual(evidence['inventory_source'], 'ci-verified')
+        self.assertEqual(evidence['ids'], self.ids)
+
+    def test_deploy_runtime_rejects_bad_or_conflicting_artifacts_without_output(self):
+        directory, paths = self.manifests()
+        originals = [path.read_text(encoding='utf-8') for path in paths]
+        comparable = json.loads(originals[1])
+        for label, replacement in (
+            ('different', json.dumps(dict(comparable, trusted_runtime_ref='1' * 40))),
+            ('noncanonical', json.dumps(dict(comparable, trusted_runtime_ref='A' * 40))),
+            ('invalid type', json.dumps(dict(comparable, trusted_runtime_ref=True))),
+            ('duplicate field', '{"trusted_runtime_ref":' + json.dumps(self.sha) + ',' + originals[1].lstrip()[1:]),
+            ('missing file', None),
+        ):
+            with self.subTest(label=label):
+                if replacement is None:
+                    paths[1].unlink()
+                else:
+                    paths[1].write_text(replacement, encoding='utf-8')
+                result, output = self.resolve_runtime(directory)
+                self.rejected(result, 'PAGES_CI_INVENTORY')
+                self.assertEqual(output, 'prior=value\n')
+
+    def test_deploy_build_still_rejects_foreign_attempt_after_runtime_resolution(self):
+        directory, paths = self.manifests()
+        wrong = json.loads(paths[1].read_text(encoding='utf-8'))
+        wrong['run_attempt'] = 2
+        paths[1].write_text(json.dumps(wrong), encoding='utf-8')
+        result, output = self.resolve_runtime(directory)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        runtime = output.splitlines()[1].split('=', 1)[1]
+        self.assertEqual(runtime, self.sha)
+        destination = self.area / 'public-bundle'
+        build = self.command([sys.executable, '-I', str(self.repo / 'site/build.py'),
+                              '--output', str(destination), '--ci-run-url', RUN_URL,
+                              '--ci-inventory-dir', str(directory), '--ci-run-attempt', '1',
+                              '--ci-trusted-runtime-ref', runtime])
+        self.rejected(build, 'manifest identity differs')
+        self.assertFalse(destination.exists())
 
     def test_missing_ci_evidence_does_not_fall_back_to_preview(self):
         directory=self.area/'empty-artifacts';directory.mkdir()
