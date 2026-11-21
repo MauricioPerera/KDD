@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_pages_inventory_ci.py
-tests_sha256: '0679b696b50d63c629bc607d21c224f4654232ac33e91439dac09c9a425ac709'
+tests_sha256: 'fce30c8f825fd05b8dcf2b64ffb455d4be6fe5c1fc9e0bf59450e023363e373f'
 touch_only: ['.github/workflows/deploy-pages.yml', '.github/workflows/validate.yml']
 deps_allowed: ['GitHub Actions', 'Python3.11', 'Node24', 'Git']
 forbids: ['llm']

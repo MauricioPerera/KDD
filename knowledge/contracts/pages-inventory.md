@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 16
   nesting_max: 4
 tests: tests/test_pages_inventory.py
-tests_sha256: '3994efa2ed825d75047048e677a88dfc8cab4a04a221142485560a13ee14b280'
+tests_sha256: '51a2192cc93d805160882bc42f3435f255d0128c1fb938b66cd91d092b9ecbca'
 touch_only: ['site/ci_inventory.py', 'site/build.py', 'site/index.html']
 deps_allowed: ['stdlib', 'Git', 'Node.js', '@rckflr/llms-skills@0.4.1']
 forbids: ['llm']

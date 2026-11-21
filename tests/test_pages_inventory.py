@@ -106,7 +106,7 @@ class PagesInventoryIntegration(unittest.TestCase):
                    '--ci-trusted-runtime-ref',runtime or self.sha]
         return self.command(argv)
 
-    def exported(self,platform='ubuntu-latest',reports=None,output=None):
+    def exported(self,platform='ubuntu-latest',reports=None,output=None,*,head_sha=None):
         source=self.area/('reports-'+platform)
         source.mkdir(exist_ok=True)
         offset=0 if platform=='ubuntu-latest' else 2
@@ -116,14 +116,14 @@ class PagesInventoryIntegration(unittest.TestCase):
         target=output or self.area/'artifacts'/platform/'inventory.json'
         argv=[sys.executable,'-I',str(self.repo/'site/ci_inventory.py'),'export',
               '--repo-root',str(self.repo),'--reports-dir',str(source),'--output',str(target),
-              '--run-id','41','--run-attempt','1','--head-sha',self.sha,
+              '--run-id','41','--run-attempt','1','--head-sha',head_sha or self.sha,
               '--platform',platform,'--trusted-runtime-ref',self.sha]
         return self.command(argv),target
 
-    def manifests(self):
+    def manifests(self, *, head_sha=None):
         paths=[]
         for platform in ('ubuntu-latest','windows-latest'):
-            proc,path=self.exported(platform)
+            proc,path=self.exported(platform,head_sha=head_sha)
             self.assertEqual(proc.returncode,0,proc.stdout+proc.stderr)
             paths.append(path)
         return self.area/'artifacts',paths
@@ -329,14 +329,20 @@ class PagesInventoryIntegration(unittest.TestCase):
         return result, output.read_text(encoding='utf-8')
 
     def test_deploy_runtime_survives_rotation_with_four_real_passes(self):
-        directory, _ = self.manifests()
-        commit = self.command(['git', 'commit', '--allow-empty', '-qm', 'New runtime pin'], self.repo)
-        self.assertEqual(commit.returncode, 0, commit.stderr)
-        second = self.command(['git', 'rev-parse', 'HEAD'], self.repo)
-        self.assertEqual(second.returncode, 0, second.stderr)
-        active = second.stdout.strip()
-        self.assertNotEqual(active, self.sha)
-        checkout = self.command(['git', 'switch', '--detach', self.sha], self.repo)
+        def next_commit(message):
+            commit = self.command(['git', 'commit', '--allow-empty', '-qm', message], self.repo)
+            self.assertEqual(commit.returncode, 0, commit.stderr)
+            current = self.command(['git', 'rev-parse', 'HEAD'], self.repo)
+            self.assertEqual(current.returncode, 0, current.stderr)
+            return current.stdout.strip()
+
+        # The producer has the same tracked source as the four real passes,
+        # but its checkout, runtime and rotated variable are distinct commits.
+        producer = next_commit('CI checkout with unchanged source')
+        directory, _ = self.manifests(head_sha=producer)
+        active = next_commit('New runtime pin')
+        self.assertEqual(len({producer, self.sha, active}), 3)
+        checkout = self.command(['git', 'switch', '--detach', producer], self.repo)
         self.assertEqual(checkout.returncode, 0, checkout.stderr)
 
         self.env['KDD_TRUSTED_RUNTIME_REF'] = active
@@ -359,6 +365,7 @@ class PagesInventoryIntegration(unittest.TestCase):
             ('different canonical SHAs', [originals[0], json.dumps(dict(comparable, trusted_runtime_ref='1' * 40))]),
             ('repeated runtime field', [originals[0], '{"trusted_runtime_ref":' + json.dumps(self.sha) + ','
                                        + originals[1].lstrip()[1:]]),
+            ('repeated attempt field', [originals[0], '{"run_attempt":1,' + originals[1].lstrip()[1:]]),
         ]
         for label, invalid in (('uppercase', 'A' * 40), ('wrong length', '1' * 39),
                                ('invalid type', True), ('line break', 'a' * 39 + '\n')):
@@ -375,6 +382,23 @@ class PagesInventoryIntegration(unittest.TestCase):
                         path.unlink()
                     else:
                         path.write_text(replacement, encoding='utf-8')
+                result, output = self.resolve_runtime(directory)
+                self.rejected(result, 'PAGES_CI_INVENTORY')
+                self.assertEqual(output, 'prior=value\n')
+
+    def test_deploy_runtime_rejects_unsafe_manifest_paths_without_output(self):
+        directory, paths = self.manifests()
+        outside = self.area / 'outside-inventory.json'
+        paths[1].replace(outside)
+        paths[1].mkdir()
+        with self.subTest(path='directory instead of regular file'):
+            result, output = self.resolve_runtime(directory)
+            self.rejected(result, 'PAGES_CI_INVENTORY')
+            self.assertEqual(output, 'prior=value\n')
+        if os.name != 'nt':
+            paths[1].rmdir()
+            paths[1].symlink_to(outside)
+            with self.subTest(path='symlink to a good manifest outside the inventory'):
                 result, output = self.resolve_runtime(directory)
                 self.rejected(result, 'PAGES_CI_INVENTORY')
                 self.assertEqual(output, 'prior=value\n')

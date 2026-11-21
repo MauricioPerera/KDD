@@ -81,6 +81,7 @@ class PagesInventoryWorkflow(unittest.TestCase):
         self.assertLess(position,self.pages.index('- name: Build and validate public bundle'))
         self.assertNotIn('vars.KDD_TRUSTED_RUNTIME_REF',self.pages)
         self.assertNotIn('continue-on-error',resolver)
+        self.assertNotIn('\n        if:',resolver)
 
     def test_deployment_gate_and_least_permissions_are_preserved(self):
         step(self.pages,'Download Ubuntu CI inventory')
