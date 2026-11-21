@@ -2,7 +2,41 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 import { projectFixture, tempOutsideGit } from './project-fixture.ts';
+
+test('document budget metadata stays text in scalar and object rendering', async () => {
+  const markup = '<img src=x onerror="window.auditExecuted=true">';
+  for (const budget of [markup, { [markup]: markup }, { lines_max: 100 }]) {
+    const nodes = new Map<string, any>();
+    const node = (id: string) => {
+      if (!nodes.has(id)) nodes.set(id, {innerHTML: '', value: '', dataset: {}, style: {},
+        addEventListener(){}, classList: {add(){}, remove(){}, toggle(){}}});
+      return nodes.get(id);
+    };
+    const context: any = vm.createContext({
+      document: {getElementById: node, querySelectorAll: () => [], addEventListener(){}},
+      location: {hash: '', pathname: '/', search: ''},
+      sessionStorage: {getItem: () => 'test-token'},
+      URLSearchParams, Headers, console, setInterval: () => 0,
+      fetch: async (url: string) => ({ok: true, json: async () => url.startsWith('/api/docs/item')
+        ? {item: {id: 'project-definition', title: 'Definition', path: 'DEFINITION.md'},
+           body: '', frontmatter: {type: 'Concept', budget}}
+        : []}),
+    });
+    context.window = context;
+    vm.runInContext(fs.readFileSync(new URL('../public/app.js', import.meta.url), 'utf8'), context);
+    await context.loadDocItem('project-definition');
+    const html = node('docs-reader-pane').innerHTML;
+    assert.doesNotMatch(html, /<img\b/);
+    if (typeof budget === 'string' || Object.hasOwn(budget, markup)) {
+      assert.match(html, /&lt;img/);
+    } else {
+      assert.match(html, /lines_max/);
+      assert.match(html, /100/);
+    }
+  }
+});
 
 test('HTTP rejects anonymous and cross-origin access; runs linked project evidence', async () => {
   const root = tempOutsideGit('kdd-http-');
