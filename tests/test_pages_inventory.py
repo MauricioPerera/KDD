@@ -353,19 +353,28 @@ class PagesInventoryIntegration(unittest.TestCase):
     def test_deploy_runtime_rejects_bad_or_conflicting_artifacts_without_output(self):
         directory, paths = self.manifests()
         originals = [path.read_text(encoding='utf-8') for path in paths]
-        comparable = json.loads(originals[1])
-        for label, replacement in (
-            ('different', json.dumps(dict(comparable, trusted_runtime_ref='1' * 40))),
-            ('noncanonical', json.dumps(dict(comparable, trusted_runtime_ref='A' * 40))),
-            ('invalid type', json.dumps(dict(comparable, trusted_runtime_ref=True))),
-            ('duplicate field', '{"trusted_runtime_ref":' + json.dumps(self.sha) + ',' + originals[1].lstrip()[1:]),
-            ('missing file', None),
-        ):
+        manifests = [json.loads(original) for original in originals]
+        comparable = manifests[1]
+        variants = [
+            ('different canonical SHAs', [originals[0], json.dumps(dict(comparable, trusted_runtime_ref='1' * 40))]),
+            ('repeated runtime field', [originals[0], '{"trusted_runtime_ref":' + json.dumps(self.sha) + ','
+                                       + originals[1].lstrip()[1:]]),
+        ]
+        for label, invalid in (('uppercase', 'A' * 40), ('wrong length', '1' * 39),
+                               ('invalid type', True), ('line break', 'a' * 39 + '\n')):
+            variants.append((label, [json.dumps(dict(manifest, trusted_runtime_ref=invalid))
+                                     for manifest in manifests]))
+        variants.append(('missing runtime', [json.dumps({key: value for key, value in manifest.items()
+                                                         if key != 'trusted_runtime_ref'})
+                                             for manifest in manifests]))
+        variants.append(('missing file', [originals[0], None]))
+        for label, replacements in variants:
             with self.subTest(label=label):
-                if replacement is None:
-                    paths[1].unlink()
-                else:
-                    paths[1].write_text(replacement, encoding='utf-8')
+                for path, replacement in zip(paths, replacements, strict=True):
+                    if replacement is None:
+                        path.unlink()
+                    else:
+                        path.write_text(replacement, encoding='utf-8')
                 result, output = self.resolve_runtime(directory)
                 self.rejected(result, 'PAGES_CI_INVENTORY')
                 self.assertEqual(output, 'prior=value\n')
