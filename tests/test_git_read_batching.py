@@ -27,15 +27,15 @@ class GitReadBatching(unittest.TestCase):
 
     def counted(self, operation):
         calls = []
-        original = subprocess.Popen
+        original = subprocess.Popen.__init__
 
-        def start(argv, *args, **kwargs):
+        def start(process, argv, *args, **kwargs):
             if isinstance(argv, (list, tuple)) and Path(str(argv[0])).stem == 'git':
                 calls.append(tuple(str(x) for x in argv))
-            return original(argv, *args, **kwargs)
+            return original(process, argv, *args, **kwargs)
 
         begin = time.perf_counter()
-        with patch.object(subprocess, 'Popen', side_effect=start):
+        with patch.object(subprocess.Popen, '__init__', start):
             result = operation()
         return result, calls, time.perf_counter() - begin
 
@@ -49,6 +49,7 @@ class GitReadBatching(unittest.TestCase):
         nodes, calls, elapsed = self.counted(lambda: journal.read_nodes(self.root))
         self.assertEqual(set(nodes), {'TASK-%03d' % n for n in range(1, 13)})
         self.assertEqual(nodes['TASK-012'][0]['title'], 'Tarea numero 12 \u00f1')
+        self.assertGreater(len(calls), 0)
         self.assertLessEqual(len(calls), 5, 'real Git calls=%s elapsed=%.3f' % (len(calls), elapsed))
 
     def test_moving_main_between_calls_never_reuses_an_old_snapshot(self):
@@ -91,6 +92,7 @@ class GitReadBatching(unittest.TestCase):
             _, calls, elapsed = self.counted(lambda: module.approve(p.root, 'quality/product.json', p.ref))
         self.assertIn('PASS quality:', output.getvalue())
         self.assertEqual(output.getvalue().count('RUN '), 4)
+        self.assertGreater(len(calls), 0)
         self.assertLessEqual(len(calls), 30,
                              'real Git calls=%s elapsed=%.3f' % (len(calls), elapsed))
 

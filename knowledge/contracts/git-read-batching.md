@@ -15,7 +15,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_git_read_batching.py
-tests_sha256: '5b57b9979c3386c6590c3e23fc7e5f32ec5c37f6e51d206fff0ec95d2e9b33e9'
+tests_sha256: '3b91f91b2c53533a6e3f18c74c110af55dfe4ce063fa3f7a96a1a23cacf2df49'
 touch_only: ['scripts/task_git.py', 'scripts/validate_tasks.py', 'scripts/verify_quality.py']
 deps_allowed: ['stdlib']
 forbids: ['llm']
@@ -46,6 +46,8 @@ Mantener compatibilidad con los contratos anteriores salvo extension documentada
 Oraculo sellado en tests/test_git_read_batching.py. Los casos negativos deben comprobar la
 ausencia de efectos y distinguir una asercion esperada de un error de entorno.
 Los escenarios, mediciones y limites viven en [pendientes](../pending-improvements.md).
+El contador debe registrar procesos Git reales sin sustituir la clase Popen,
+que el ejecutor aprobado de Windows usa para contener los procesos hijos.
 
 ## Constraints
 PARAR y reportar si se necesita cambiar oraculos no revisados, ampliar
