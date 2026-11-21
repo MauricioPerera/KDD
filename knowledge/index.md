@@ -314,6 +314,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Particiones completas del post-init de Windows](contracts/postinit-windows-partitions.md)
 - [Plazo comun de las particiones de Windows](contracts/postinit-windows-common-deadline.md)
 - [Reducir trabajo repetido de fixtures del post-init](contracts/postinit-fixture-work.md)
+- [Copia acotada del fixture de perfil ya inicializado](contracts/postinit-initialized-profile-copy.md)
 - [Orden medido de modulos post-init](postinit-module-order.md)
 - [Prioridades opt-in del runner](contracts/ci-module-order.md)
 - [Prioridades del post-init Windows](contracts/postinit-module-order.md)
