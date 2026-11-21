@@ -365,8 +365,13 @@ def _start_windows_job_target(argv, *, cwd, job, options):
 
 
 def _windows_executable(command, cwd, environment):
-    """Resolve in the target's directory and environment, as the former Python parent did."""
+    """Keep the preflight check, then resolve as the former Python parent did."""
     command = os.fsdecode(command)
+    eligible = shutil.which(command, path=environment.get('PATH', ''))
+    if eligible is None:
+        raise FileNotFoundError(errno.ENOENT, 'executable not found', command)
+    if os.path.isabs(command):
+        return eligible
     directory = os.path.abspath(os.fsdecode(cwd) if cwd is not None else os.getcwd())
     if os.path.dirname(command):
         locations = [directory]
