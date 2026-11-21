@@ -17,7 +17,7 @@ budget:
   lines_max: 150
   params_max: 5
 tests: tests/test_process_job_at_creation.py
-tests_sha256: '73a41559fc100ae160c1ba84a0f3290b4ce024a3a986f942fdc31ea08a094d3a'
+tests_sha256: '2b779ab321148d3d9217478d61d8c5ed5115aead91763f0e845e3fbec5a5ea32'
 oracle_files: ['tests/test_process_job_at_creation.py', 'tests/test_process_exit_barrier.py', 'tests/__init__.py']
 touch_only: ['scripts/process_tree.py']
 deps_allowed: ['stdlib']
@@ -41,9 +41,12 @@ Job exterior. El perfil POSIX conserva su grupo y su ruta directa.
 El limite interno `_start_windows_job_target(argv, *, cwd, job, options)`
 crea el proceso mediante la API nativa con el Job de esa invocacion.
 Usa el enlace Win32 del Job propio para que el oraculo pueda observar
-la creacion real. Devuelve un proceso compatible con el manejo de
-E/S y espera de run. Solo devuelve None si falta la capacidad y se
-sabe que el objetivo no se inicio. Demas fallos se propagan.
+la preparacion del atributo `JOB_LIST` y la creacion real.
+Devuelve un proceso compatible con el manejo de E/S y espera de run.
+Si Windows no admite `JOB_LIST`, se puede usar la barrera anterior
+cuando el objetivo aun no se intento crear. En la configuracion del
+atributo, `ERROR_NOT_SUPPORTED` autoriza esa ruta. Otro error de
+configuracion o cualquier fallo al crear el proceso se propaga.
 
 ## Invariants
 
@@ -78,12 +81,14 @@ pruebas existentes de arbol, pipes, plazos y limpieza.
 El oraculo prueba E/S real, salida a archivo y stderr combinado.
 En Windows compatible, observa la pertenencia al Job exacto al
 retornar CreateProcessW, antes de que run pueda asignar por separado.
-Repite la comprobacion bajo un Job exterior y contrasta la ruta
-anterior con una falta de capacidad controlada. Verifica que los
-errores de permisos y los fallos tras un posible arranque no
-reintenten el objetivo. Dos llamadas reales concurrentes comprueban
-Jobs propios y el exito de la vecina tras un timeout. En POSIX se
-observan los grupos elegidos y la interfaz directa.
+Repite la comprobacion bajo un Job exterior. Inyecta falta de
+capacidad, denegacion y parametro invalido en `UpdateProcThreadAttribute`
+para `JOB_LIST`. Comprueba que el retorno de `CreateProcessW` con el
+mismo codigo de falta de capacidad bloquea el reintento, incluso si el
+control ejecuto el objetivo. La ruta anterior deja una sola marca.
+Dos llamadas reales concurrentes comprueban Jobs propios y el exito de
+la vecina tras un timeout. En POSIX se observan los grupos elegidos y
+la interfaz directa.
 La [barrera](process-exit-barrier.md) conserva sus controles reales.
 
 ## Constraints
@@ -97,9 +102,11 @@ y la referencia aprobada del
 [runtime materializado](ci-trusted-execution.md), con su manifiesto
 completo. Conservar los demas bytes del runtime de referencia.
 
-Mantener gates, workflows y protecciones. Medir tres CI comparables
-del mismo candidato. Identificar en cada brazo el SHA de checkout,
-el runtime efectivo y los hashes de su manifiesto. Medir desde el
-inicio del workflow hasta el check requerido, con ambos productores
-Windows y la ventana de post-init. El microbenchmark local solo
-mide una fase.
+Mantener gates, workflows y protecciones. Fijar antes de medir el
+checkout y runtime de referencia. Comparar tres intentos completos
+del mismo candidato con tres de la referencia. Registrar por intento
+el SHA de checkout, el runtime efectivo, su manifiesto, los arranques
+Git y Python, la cobertura de la primera pasada y cualquier fallo.
+Medir desde el inicio del workflow hasta el check requerido, con ambos
+productores Windows y la ventana de post-init. Comparar las duraciones
+individuales y la mediana. El microbenchmark local mide solo una fase.

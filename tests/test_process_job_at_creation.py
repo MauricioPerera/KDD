@@ -16,11 +16,15 @@ from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+if __name__ == '__main__':
+    sys.path.insert(0, str(ROOT))
 from tests.test_process_exit_barrier import KernelObserver
 
 RUN = runpy.run_path(str(ROOT / 'scripts/process_tree.py'))['run']
-START = '_start_windows_job_target'
+JOB_LIST = 0x2000D
+NOT_SUPPORTED = 50
+ACCESS_DENIED = 5
+INVALID_PARAMETER = 87
 INPUT = 'entrada por archivo: sí\n'
 ENVIRONMENT = 'entorno explícito'
 ARGUMENTS = ['literal & con espacios', 'comilla " final', 'dato café']
@@ -43,10 +47,12 @@ from pathlib import Path
 import sys
 from time import monotonic, sleep
 directory = Path(sys.argv[1])
+with (directory / 'started').open('ab') as marker:
+    marker.write(b'x')
 staged = directory / 'ready.tmp'
 staged.write_text(str(os.getpid()), encoding='ascii')
 staged.replace(directory / 'ready')
-deadline = monotonic() + 16
+deadline = monotonic() + 25
 while not (directory / 'release').exists():
     if monotonic() >= deadline:
         raise SystemExit(91)
@@ -102,26 +108,86 @@ def member_of(kernel, process, job_handle):
     return bool(member.value)
 
 
+def observe_call(job, name, callback):
+    original = getattr(job.k, name)
+
+    def observed(*args):
+        original.argtypes = observed.argtypes
+        original.restype = observed.restype
+        return callback(original, *args)
+
+    observed.argtypes = original.argtypes
+    observed.restype = original.restype
+    setattr(job.k, name, observed)
+
+
 def watch_creation(job, states):
     """Query the returned process before the real CreateProcessW caller resumes."""
     import ctypes
     from ctypes import wintypes as w
 
-    create = job.k.CreateProcessW
-
-    def observed(*args):
-        create.argtypes = observed.argtypes
-        create.restype = observed.restype
-        created = create(*args)
+    def receipt(original, *args):
+        created = original(*args)
         if created:
             # PROCESS_INFORMATION starts with hProcess, from the real call.
             handle = ctypes.cast(args[-1], ctypes.POINTER(w.HANDLE))[0]
             states.append(member_of(job.k, handle, job.handle))
         return created
 
-    observed.argtypes = create.argtypes
-    observed.restype = create.restype
-    job.k.CreateProcessW = observed
+    observe_call(job, 'CreateProcessW', receipt)
+
+
+def finish_fault_fixture_child(job, creation_flags, process_info):
+    """Wait for the controlled child and release its handles before reporting a simulated error."""
+    from ctypes import wintypes as w
+
+    handles = job.c.cast(process_info, job.c.POINTER(w.HANDLE))
+    try:
+        if creation_flags & 4:  # CREATE_SUSPENDED
+            resume = job.k.ResumeThread
+            resume.argtypes, resume.restype = [w.HANDLE], w.DWORD
+            assert resume(handles[1]) == 1
+        assert job.k.WaitForSingleObject(handles[0], 8000) == 0
+    finally:
+        for index in (1, 0):
+            assert job.k.CloseHandle(handles[index])
+            handles[index] = None
+
+
+@contextmanager
+def native_fault(stage, error, *, after_start=False):
+    """Inject one native result while public RUN uses its real backend."""
+    make_job = RUN.__globals__['_WindowsJob']
+    calls = []
+
+    def fault_binding():
+        job = make_job()
+
+        def set_attribute(original, *args):
+            attribute = getattr(args[2], 'value', args[2])
+            if stage != 'attribute' or attribute != JOB_LIST:
+                return original(*args)
+            calls.append('attribute')
+            job.c.set_last_error(error)
+            return False
+
+        def create(original, *args):
+            calls.append('creation')
+            if stage != 'creation':
+                return original(*args)
+            if after_start:
+                assert original(*args), job.c.WinError(job.c.get_last_error())
+                flags = getattr(args[5], 'value', args[5])
+                finish_fault_fixture_child(job, flags, args[-1])
+            job.c.set_last_error(error)
+            return False
+
+        observe_call(job, 'UpdateProcThreadAttribute', set_attribute)
+        observe_call(job, 'CreateProcessW', create)
+        return job
+
+    with patch.dict(RUN.__globals__, {'_WindowsJob': fault_binding}):
+        yield calls
 
 
 def ready_pid(directory, future):
@@ -153,7 +219,7 @@ def wait_posix_exit(pids):
 
 
 @contextmanager
-def live_targets(root, timeouts, backend=None):
+def live_targets(root, timeouts):
     """Keep each target alive until assertions and retain independent exit handles."""
     directories = {name: root / name for name in timeouts}
     for directory in directories.values():
@@ -175,11 +241,8 @@ def live_targets(root, timeouts, backend=None):
         return RUN(argv, cwd=root, timeout=timeouts[name], capture_output=True)
 
     owned = KernelObserver() if os.name == 'nt' else None
-    overrides = {'_WindowsJob': remember_job}
-    if backend is not None:
-        overrides[START] = backend
     pids = []
-    with patch.dict(RUN.__globals__, overrides):
+    with patch.dict(RUN.__globals__, {'_WindowsJob': remember_job}):
         with ThreadPoolExecutor(len(timeouts)) as pool:
             operations = {name: pool.submit(launch, name, directory)
                           for name, directory in directories.items()}
@@ -206,8 +269,8 @@ def live_targets(root, timeouts, backend=None):
                     wait_posix_exit(pids)
 
 
-def observe_membership(directory, backend=None):
-    with live_targets(directory, {'child': 20}, backend=backend) as (records, operations, scopes, _):
+def observe_membership(directory):
+    with live_targets(directory, {'child': 20}) as (records, operations, scopes, _):
         (scopes['child'] / 'release').touch()
         result = operations['child'].result(timeout=23)
     assert result.returncode == 0 and result.stdout.splitlines() == [b'released'] and not result.stderr
@@ -262,45 +325,40 @@ class ProcessJobAtCreation(unittest.TestCase):
                                      'the real new target must already belong to its Job at creation')
 
     def test_only_confirmed_absent_native_capability_runs_the_legacy_job(self):
-        invoked = []
-
-        def unavailable(*args, **kwargs):
-            invoked.append(True)
-            return None
-
         with tempfile.TemporaryDirectory(prefix='kdd-job-unavailable-') as temporary:
-            row = observe_membership(Path(temporary), backend=unavailable)
-        self.assertTrue(row['own_group'])
-        self.assertEqual(row['at_creation'], [])
-        self.assertEqual(len(invoked), int(modern_windows()))
+            directory = Path(temporary)
+            with native_fault('attribute', NOT_SUPPORTED) as calls:
+                receipt = observe_membership(directory)
+            self.assertTrue(receipt['own_group'])
+            self.assertEqual(receipt['at_creation'], [])
+            self.assertEqual((directory / 'child' / 'started').read_bytes(), b'x')
+            if modern_windows():
+                self.assertEqual(calls, ['attribute'])
 
     def test_backend_failure_does_not_restart_a_target(self):
-        for already_started in (False, True):
-            with self.subTest(already_started=already_started):
+        failures = [('attribute', ACCESS_DENIED, False), ('attribute', INVALID_PARAMETER, False),
+                    ('creation', NOT_SUPPORTED, False), ('creation', NOT_SUPPORTED, True)]
+        for stage, error, after_start in failures:
+            with self.subTest(stage=stage, error=error, after_start=after_start):
                 with tempfile.TemporaryDirectory(prefix='kdd-job-denied-') as temporary:
                     directory = Path(temporary)
                     marker = directory / 'started'
                     argv = [sys.executable, '-I', '-B', '-c', MARK_CHILD]
-                    failure = (OSError('native launch state is uncertain') if already_started
-                               else PermissionError('native launch was denied'))
-
-                    def refuse(arguments, *, cwd, job, options):
-                        if already_started:
-                            # Fixed benign control, with no descendants.
-                            subprocess.run(arguments, cwd=cwd, timeout=8, check=True)
-                        raise failure
-
-                    with patch.dict(RUN.__globals__, {START:refuse}):
+                    with native_fault(stage, error, after_start=after_start) as calls:
                         if modern_windows():
-                            with self.assertRaisesRegex(type(failure), str(failure)):
+                            with self.assertRaises(OSError) as observed:
                                 RUN(argv, cwd=directory, timeout=20)
-                            if already_started:
-                                self.assertEqual(marker.read_bytes(), b'x')
-                            else:
-                                self.assertFalse(marker.exists())
                         else:
                             self.assertEqual(RUN(argv, cwd=directory, timeout=20).returncode, 0)
+                    if modern_windows():
+                        self.assertEqual(observed.exception.winerror, error)
+                        self.assertEqual(calls, [stage])
+                        if after_start:
                             self.assertEqual(marker.read_bytes(), b'x')
+                        else:
+                            self.assertFalse(marker.exists())
+                    else:
+                        self.assertEqual(marker.read_bytes(), b'x')
 
     def test_cancelled_invocation_leaves_its_concurrent_neighbor_running(self):
         with tempfile.TemporaryDirectory(prefix='kdd-job-concurrent-') as temporary:
