@@ -66,22 +66,22 @@ class PagesInventoryWorkflow(unittest.TestCase):
         for required in ('--ci-inventory-dir "$RUNNER_TEMP/kdd-ci-inventory"',
                          '--ci-run-attempt "$CI_RUN_ATTEMPT"','--ci-trusted-runtime-ref "$KDD_TRUSTED_RUNTIME_REF"',
                          'CI_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}',
-                         'KDD_TRUSTED_RUNTIME_REF: ${{ steps.ci-runtime.outputs.trusted_runtime_ref }}',
                          'CI_RUN_URL: ${{ github.event.workflow_run.html_url }}'):
             self.assertIn(required,build)
 
-    def test_deploy_resolves_the_runtime_after_exact_downloads_and_before_build(self):
-        resolver=step(self.pages,'Resolve CI inventory runtime')
-        for required in ('id: ci-runtime','shell: python -I {0}',
-                         'CI_INVENTORY_DIR: ${{ runner.temp }}/kdd-ci-inventory', 'run: |'):
-            self.assertIn(required,resolver)
-        position=self.pages.index('- name: Resolve CI inventory runtime')
+    def test_deploy_resolves_runtime_inside_existing_build_step(self):
+        build=step(self.pages,'Build and validate public bundle')
+        for required in ('shell: bash','CI_INVENTORY_DIR: ${{ runner.temp }}/kdd-ci-inventory',
+                         'run: |', """KDD_TRUSTED_RUNTIME_REF="$(python -I - <<'PY'"""):
+            self.assertIn(required,build)
         for title in ('Ubuntu','Windows'):
-            self.assertLess(self.pages.index('- name: Download '+title+' CI inventory'),position)
-        self.assertLess(position,self.pages.index('- name: Build and validate public bundle'))
+            self.assertLess(self.pages.index('- name: Download '+title+' CI inventory'),
+                            self.pages.index('- name: Build and validate public bundle'))
+        self.assertLess(build.index('KDD_TRUSTED_RUNTIME_REF='),
+                        build.index('python site/build.py'))
         self.assertNotIn('vars.KDD_TRUSTED_RUNTIME_REF',self.pages)
-        self.assertNotIn('continue-on-error',resolver)
-        self.assertNotIn('\n        if:',resolver)
+        self.assertNotIn('continue-on-error',build)
+        self.assertNotIn('\n        if:',build)
 
     def test_deployment_gate_and_least_permissions_are_preserved(self):
         step(self.pages,'Download Ubuntu CI inventory')

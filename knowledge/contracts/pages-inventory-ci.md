@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_pages_inventory_ci.py
-tests_sha256: 'fce30c8f825fd05b8dcf2b64ffb455d4be6fe5c1fc9e0bf59450e023363e373f'
+tests_sha256: '164a29d52af8ecbca78d6b8033d1cc4a879c73a961da298a11e63887a719ca1b'
 touch_only: ['.github/workflows/deploy-pages.yml', '.github/workflows/validate.yml']
 deps_allowed: ['GitHub Actions', 'Python3.11', 'Node24', 'Git']
 forbids: ['llm']
@@ -31,14 +31,17 @@ En la [division nativa Windows](ci-windows-board-routing.md) los ejecuta
 solo win_suite, con el mismo nombre de artefacto.
 Pages agrega Install pinned discovery parsers, Download Ubuntu CI inventory
 y Download Windows CI inventory antes de Build and validate public bundle.
-Entre las descargas y el build, Resolve CI inventory runtime lee los dos
-inventory.json con Python aislado y emite trusted_runtime_ref como salida
-del paso ci-runtime. Exige dos valores hexadecimales completos en minuscula
-e identicos, con un solo valor por clave en cada manifest. Ante falta,
-ambiguedad, ruta insegura o desacuerdo falla sin emitir la referencia.
-El build recibe ambos manifests, intento y el SHA explicito de esa salida.
-La seleccion vive en el workflow de despliegue y conserva compatibilidad
-con el build y los manifests v1 de un checkout historico.
+El paso existente Build and validate public bundle usa Bash con fallo
+inmediato. Antes del build, un interprete Python aislado lee los dos
+inventory.json y devuelve por stdout el SHA para el argumento explicito.
+Exige dos valores hexadecimales completos en minuscula e identicos, con
+un solo valor por clave en cada manifest. Ante falta, ambiguedad, ruta
+insegura o desacuerdo falla sin emitir la referencia ni invocar el build.
+El build recibe ambos manifests, intento y ese SHA. La seleccion vive
+en el workflow de despliegue y conserva compatibilidad con el build y
+los manifests v1 de un checkout historico. Al permanecer en el paso
+existente, la [paridad del PR](pages-pr-deploy-environment.md) conserva
+su conjunto de preparacion revisado.
 
 ## Invariants
 

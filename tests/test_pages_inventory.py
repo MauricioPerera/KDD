@@ -315,18 +315,20 @@ class PagesInventoryIntegration(unittest.TestCase):
 
     def resolve_runtime(self, directory):
         deployment = (ROOT / '.github/workflows/deploy-pages.yml').read_text(encoding='utf-8')
-        marker = '      - name: Resolve CI inventory runtime\n'
+        marker = '      - name: Build and validate public bundle\n'
         self.assertIn(marker, deployment)
         step = deployment.split(marker, 1)[1].split('\n      - ', 1)[0]
         self.assertIn('        run: |\n', step)
+        command = textwrap.dedent(step.split('        run: |\n', 1)[1])
+        start = "python -I - <<'PY'\n"
+        self.assertIn(start, command)
+        body = command.split(start, 1)[1]
+        self.assertIn('\nPY\n', body)
         script = self.area / 'resolve-runtime.py'
-        script.write_text(textwrap.dedent(step.split('        run: |\n', 1)[1]), encoding='utf-8')
-        output = self.area / 'github-output.txt'
-        output.write_bytes(b'prior=value\n')
-        env = dict(self.env, CI_INVENTORY_DIR=str(directory), GITHUB_OUTPUT=str(output))
-        result = subprocess.run([sys.executable, '-I', str(script)], cwd=self.repo,
-                                env=env, capture_output=True, text=True, encoding='utf-8', timeout=60)
-        return result, output.read_text(encoding='utf-8')
+        script.write_text(body.split('\nPY\n', 1)[0] + '\n', encoding='utf-8')
+        env = dict(self.env, CI_INVENTORY_DIR=str(directory))
+        return subprocess.run([sys.executable, '-I', str(script)], cwd=self.repo, env=env,
+                              capture_output=True, text=True, encoding='utf-8', timeout=60)
 
     def test_deploy_runtime_survives_rotation_with_four_real_passes(self):
         def next_commit(message):
@@ -347,10 +349,10 @@ class PagesInventoryIntegration(unittest.TestCase):
 
         self.env['KDD_TRUSTED_RUNTIME_REF'] = active
         self.rejected(self.inspect(directory, runtime=active), 'PAGES_CI_INVENTORY')
-        result, output = self.resolve_runtime(directory)
+        result = self.resolve_runtime(directory)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(output, 'prior=value\ntrusted_runtime_ref=' + self.sha + '\n')
-        checked = self.inspect(directory, runtime=output.splitlines()[1].split('=', 1)[1])
+        self.assertEqual(result.stdout, self.sha + '\n')
+        checked = self.inspect(directory, runtime=result.stdout.strip())
         self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
         evidence = json.loads(checked.stdout)
         self.assertEqual(evidence['inventory_source'], 'ci-verified')
@@ -382,9 +384,9 @@ class PagesInventoryIntegration(unittest.TestCase):
                         path.unlink()
                     else:
                         path.write_text(replacement, encoding='utf-8')
-                result, output = self.resolve_runtime(directory)
+                result = self.resolve_runtime(directory)
                 self.rejected(result, 'PAGES_CI_INVENTORY')
-                self.assertEqual(output, 'prior=value\n')
+                self.assertEqual(result.stdout, '')
 
     def test_deploy_runtime_rejects_unsafe_manifest_paths_without_output(self):
         directory, paths = self.manifests()
@@ -392,25 +394,25 @@ class PagesInventoryIntegration(unittest.TestCase):
         paths[1].replace(outside)
         paths[1].mkdir()
         with self.subTest(path='directory instead of regular file'):
-            result, output = self.resolve_runtime(directory)
+            result = self.resolve_runtime(directory)
             self.rejected(result, 'PAGES_CI_INVENTORY')
-            self.assertEqual(output, 'prior=value\n')
+            self.assertEqual(result.stdout, '')
         if os.name != 'nt':
             paths[1].rmdir()
             paths[1].symlink_to(outside)
             with self.subTest(path='symlink to a good manifest outside the inventory'):
-                result, output = self.resolve_runtime(directory)
+                result = self.resolve_runtime(directory)
                 self.rejected(result, 'PAGES_CI_INVENTORY')
-                self.assertEqual(output, 'prior=value\n')
+                self.assertEqual(result.stdout, '')
 
     def test_deploy_build_still_rejects_foreign_attempt_after_runtime_resolution(self):
         directory, paths = self.manifests()
         wrong = json.loads(paths[1].read_text(encoding='utf-8'))
         wrong['run_attempt'] = 2
         paths[1].write_text(json.dumps(wrong), encoding='utf-8')
-        result, output = self.resolve_runtime(directory)
+        result = self.resolve_runtime(directory)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        runtime = output.splitlines()[1].split('=', 1)[1]
+        runtime = result.stdout.strip()
         self.assertEqual(runtime, self.sha)
         destination = self.area / 'public-bundle'
         build = self.command([sys.executable, '-I', str(self.repo / 'site/build.py'),
