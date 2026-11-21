@@ -1,7 +1,7 @@
 """Exercise process creation, fallback and live containment with real children."""
 
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import json
 import os
 from pathlib import Path
@@ -327,7 +327,8 @@ class ProcessJobAtCreation(unittest.TestCase):
     def test_only_confirmed_absent_native_capability_runs_the_legacy_job(self):
         with tempfile.TemporaryDirectory(prefix='kdd-job-unavailable-') as temporary:
             directory = Path(temporary)
-            with native_fault('attribute', NOT_SUPPORTED) as calls:
+            fault = native_fault('attribute', NOT_SUPPORTED) if modern_windows() else nullcontext([])
+            with fault as calls:
                 receipt = observe_membership(directory)
             self.assertTrue(receipt['own_group'])
             self.assertEqual(receipt['at_creation'], [])
@@ -336,6 +337,14 @@ class ProcessJobAtCreation(unittest.TestCase):
                 self.assertEqual(calls, ['attribute'])
 
     def test_backend_failure_does_not_restart_a_target(self):
+        argv = [sys.executable, '-I', '-B', '-c', MARK_CHILD]
+        if not modern_windows():
+            with tempfile.TemporaryDirectory(prefix='kdd-job-compatibility-') as temporary:
+                directory = Path(temporary)
+                self.assertEqual(RUN(argv, cwd=directory, timeout=20).returncode, 0)
+                self.assertEqual((directory / 'started').read_bytes(), b'x')
+            return
+
         failures = [('attribute', ACCESS_DENIED, False), ('attribute', INVALID_PARAMETER, False),
                     ('creation', NOT_SUPPORTED, False), ('creation', NOT_SUPPORTED, True)]
         for stage, error, after_start in failures:
@@ -343,22 +352,15 @@ class ProcessJobAtCreation(unittest.TestCase):
                 with tempfile.TemporaryDirectory(prefix='kdd-job-denied-') as temporary:
                     directory = Path(temporary)
                     marker = directory / 'started'
-                    argv = [sys.executable, '-I', '-B', '-c', MARK_CHILD]
                     with native_fault(stage, error, after_start=after_start) as calls:
-                        if modern_windows():
-                            with self.assertRaises(OSError) as observed:
-                                RUN(argv, cwd=directory, timeout=20)
-                        else:
-                            self.assertEqual(RUN(argv, cwd=directory, timeout=20).returncode, 0)
-                    if modern_windows():
-                        self.assertEqual(observed.exception.winerror, error)
-                        self.assertEqual(calls, [stage])
-                        if after_start:
-                            self.assertEqual(marker.read_bytes(), b'x')
-                        else:
-                            self.assertFalse(marker.exists())
-                    else:
+                        with self.assertRaises(OSError) as observed:
+                            RUN(argv, cwd=directory, timeout=20)
+                    self.assertEqual(observed.exception.winerror, error)
+                    self.assertEqual(calls, [stage])
+                    if after_start:
                         self.assertEqual(marker.read_bytes(), b'x')
+                    else:
+                        self.assertFalse(marker.exists())
 
     def test_cancelled_invocation_leaves_its_concurrent_neighbor_running(self):
         with tempfile.TemporaryDirectory(prefix='kdd-job-concurrent-') as temporary:
