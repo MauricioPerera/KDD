@@ -22,6 +22,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Revision ODD y EGM](./contracts/plugin-odd-egm-review.md)
 - [IDs por pasada](./contracts/adoption-oracle-pass-identity.md)
 - [Bateria adversarial](./contracts/adoption-adversarial.md)
+- [Preparacion de la semilla de adopcion](./contracts/adoption-runtime-fixture-seed.md)
 - [Metodo enlazado](./contracts/adoption-bound-method-identity.md) · [Pin del piloto](./contracts/plugin-pilot-pin-guide.md)
 - [Referencia aprobada de calidad](./contracts/adoption-quality-reference.md)
 - [Validación confiable de PR del consumidor](./contracts/adoption-trusted-pr.md)
@@ -164,6 +165,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Correccion de confianza y fiabilidad del CI](./ci-audit-remediation.md)
 - [Arranque de CI desde runtime confiable](./contracts/ci-trusted-execution.md)
 - [Timeout del arbol de procesos](./contracts/process-tree-timeout.md)
+- [Creacion directa de procesos Windows](./contracts/process-job-at-creation.md)
 - [Readiness de fixtures de procesos](./process-fixture-readiness.md)
 - [Contrato de regresion del fixture de procesos](./contracts/process-fixture-readiness.md)
 - [Arranque y causa del timeout de tareas](./process-task-fixture.md)
@@ -361,3 +363,6 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Reparto de la validacion Windows](contracts/ci-windows-board-routing.md)
 
 - [Lectura conjunta de nodo y diario en Board](contracts/board-task-snapshot.md)
+
+- [Lecturas agrupadas en ready y finish de tareas Git](contracts/task-transition-read-cost.md)
+- [Semillas privadas de tareas Git](contracts/task-fixture-stage-reuse.md)
