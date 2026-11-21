@@ -80,11 +80,47 @@ jobs:
           python scripts/validate_contracts.py knowledge/contracts
 
       - name: Build and validate public bundle
+        shell: bash
         env:
           CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
           CI_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
-          KDD_TRUSTED_RUNTIME_REF: ${{ vars.KDD_TRUSTED_RUNTIME_REF }}
-        run: python site/build.py --output "$RUNNER_TEMP/kdd-pages" --ci-run-url "$CI_RUN_URL" --ci-inventory-dir "$RUNNER_TEMP/kdd-ci-inventory" --ci-run-attempt "$CI_RUN_ATTEMPT" --ci-trusted-runtime-ref "$KDD_TRUSTED_RUNTIME_REF"
+          CI_INVENTORY_DIR: ${{ runner.temp }}/kdd-ci-inventory
+        run: |
+          KDD_TRUSTED_RUNTIME_REF="$(python -I - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import re
+
+          def unique_object(pairs):
+              fields = dict(pairs)
+              if len(fields) != len(pairs):
+                  raise ValueError('duplicate key in inventory manifest')
+              return fields
+
+          def read_runtime(directory):
+              path = directory / 'inventory.json'
+              if (directory.is_symlink() or path.is_symlink() or not path.is_file()
+                      or path.resolve(strict=True).parent != directory):
+                  raise ValueError('missing or unsafe inventory manifest: ' + directory.name)
+              manifest = json.loads(path.read_text(encoding='utf-8'), object_pairs_hook=unique_object)
+              runtime = manifest.get('trusted_runtime_ref') if isinstance(manifest, dict) else None
+              if not isinstance(runtime, str) or not re.fullmatch(r'[0-9a-f]{40}', runtime):
+                  raise ValueError('invalid inventory runtime: ' + directory.name)
+              return runtime
+
+          try:
+              root = Path(os.environ['CI_INVENTORY_DIR']).resolve(strict=True)
+              runtimes = {read_runtime(root / platform) for platform in ('ubuntu-latest', 'windows-latest')}
+              if len(runtimes) != 1:
+                  raise ValueError('CI inventory runtimes disagree')
+          except (OSError, ValueError) as error:
+              raise SystemExit('PAGES_CI_INVENTORY: ' + str(error))
+          print(runtimes.pop())
+          PY
+          )"
+          printf 'CI inventory runtime: %s\n' "$KDD_TRUSTED_RUNTIME_REF"
+          python site/build.py --output "$RUNNER_TEMP/kdd-pages" --ci-run-url "$CI_RUN_URL" --ci-inventory-dir "$RUNNER_TEMP/kdd-ci-inventory" --ci-run-attempt "$CI_RUN_ATTEMPT" --ci-trusted-runtime-ref "$KDD_TRUSTED_RUNTIME_REF"
 
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 

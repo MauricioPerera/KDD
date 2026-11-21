@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -105,7 +106,7 @@ class PagesInventoryIntegration(unittest.TestCase):
                    '--ci-trusted-runtime-ref',runtime or self.sha]
         return self.command(argv)
 
-    def exported(self,platform='ubuntu-latest',reports=None,output=None):
+    def exported(self,platform='ubuntu-latest',reports=None,output=None,*,head_sha=None):
         source=self.area/('reports-'+platform)
         source.mkdir(exist_ok=True)
         offset=0 if platform=='ubuntu-latest' else 2
@@ -115,14 +116,14 @@ class PagesInventoryIntegration(unittest.TestCase):
         target=output or self.area/'artifacts'/platform/'inventory.json'
         argv=[sys.executable,'-I',str(self.repo/'site/ci_inventory.py'),'export',
               '--repo-root',str(self.repo),'--reports-dir',str(source),'--output',str(target),
-              '--run-id','41','--run-attempt','1','--head-sha',self.sha,
+              '--run-id','41','--run-attempt','1','--head-sha',head_sha or self.sha,
               '--platform',platform,'--trusted-runtime-ref',self.sha]
         return self.command(argv),target
 
-    def manifests(self):
+    def manifests(self, *, head_sha=None):
         paths=[]
         for platform in ('ubuntu-latest','windows-latest'):
-            proc,path=self.exported(platform)
+            proc,path=self.exported(platform,head_sha=head_sha)
             self.assertEqual(proc.returncode,0,proc.stdout+proc.stderr)
             paths.append(path)
         return self.area/'artifacts',paths
@@ -311,6 +312,115 @@ class PagesInventoryIntegration(unittest.TestCase):
 
     def test_real_build_rejects_invalid_ci_identity_before_output(self):
         self.build_error(SOURCE,inventory=True)
+
+    def resolve_runtime(self, directory):
+        deployment = (ROOT / '.github/workflows/deploy-pages.yml').read_text(encoding='utf-8')
+        marker = '      - name: Build and validate public bundle\n'
+        self.assertIn(marker, deployment)
+        step = deployment.split(marker, 1)[1].split('\n      - ', 1)[0]
+        self.assertIn('        run: |\n', step)
+        command = textwrap.dedent(step.split('        run: |\n', 1)[1])
+        start = "python -I - <<'PY'\n"
+        self.assertIn(start, command)
+        body = command.split(start, 1)[1]
+        self.assertIn('\nPY\n', body)
+        script = self.area / 'resolve-runtime.py'
+        script.write_text(body.split('\nPY\n', 1)[0] + '\n', encoding='utf-8')
+        env = dict(self.env, CI_INVENTORY_DIR=str(directory))
+        return subprocess.run([sys.executable, '-I', str(script)], cwd=self.repo, env=env,
+                              capture_output=True, text=True, encoding='utf-8', timeout=60)
+
+    def test_deploy_runtime_survives_rotation_with_four_real_passes(self):
+        def next_commit(message):
+            commit = self.command(['git', 'commit', '--allow-empty', '-qm', message], self.repo)
+            self.assertEqual(commit.returncode, 0, commit.stderr)
+            current = self.command(['git', 'rev-parse', 'HEAD'], self.repo)
+            self.assertEqual(current.returncode, 0, current.stderr)
+            return current.stdout.strip()
+
+        # The producer has the same tracked source as the four real passes,
+        # but its checkout, runtime and rotated variable are distinct commits.
+        producer = next_commit('CI checkout with unchanged source')
+        directory, _ = self.manifests(head_sha=producer)
+        active = next_commit('New runtime pin')
+        self.assertEqual(len({producer, self.sha, active}), 3)
+        checkout = self.command(['git', 'switch', '--detach', producer], self.repo)
+        self.assertEqual(checkout.returncode, 0, checkout.stderr)
+
+        self.env['KDD_TRUSTED_RUNTIME_REF'] = active
+        self.rejected(self.inspect(directory, runtime=active), 'PAGES_CI_INVENTORY')
+        result = self.resolve_runtime(directory)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout, self.sha + '\n')
+        checked = self.inspect(directory, runtime=result.stdout.strip())
+        self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        evidence = json.loads(checked.stdout)
+        self.assertEqual(evidence['inventory_source'], 'ci-verified')
+        self.assertEqual(evidence['ids'], self.ids)
+
+    def test_deploy_runtime_rejects_bad_or_conflicting_artifacts_without_output(self):
+        directory, paths = self.manifests()
+        originals = [path.read_text(encoding='utf-8') for path in paths]
+        manifests = [json.loads(original) for original in originals]
+        comparable = manifests[1]
+        variants = [
+            ('different canonical SHAs', [originals[0], json.dumps(dict(comparable, trusted_runtime_ref='1' * 40))]),
+            ('repeated runtime field', [originals[0], '{"trusted_runtime_ref":' + json.dumps(self.sha) + ','
+                                       + originals[1].lstrip()[1:]]),
+            ('repeated attempt field', [originals[0], '{"run_attempt":1,' + originals[1].lstrip()[1:]]),
+        ]
+        for label, invalid in (('uppercase', 'A' * 40), ('wrong length', '1' * 39),
+                               ('invalid type', True), ('line break', 'a' * 39 + '\n')):
+            variants.append((label, [json.dumps(dict(manifest, trusted_runtime_ref=invalid))
+                                     for manifest in manifests]))
+        variants.append(('missing runtime', [json.dumps({key: value for key, value in manifest.items()
+                                                         if key != 'trusted_runtime_ref'})
+                                             for manifest in manifests]))
+        variants.append(('missing file', [originals[0], None]))
+        for label, replacements in variants:
+            with self.subTest(label=label):
+                for path, replacement in zip(paths, replacements, strict=True):
+                    if replacement is None:
+                        path.unlink()
+                    else:
+                        path.write_text(replacement, encoding='utf-8')
+                result = self.resolve_runtime(directory)
+                self.rejected(result, 'PAGES_CI_INVENTORY')
+                self.assertEqual(result.stdout, '')
+
+    def test_deploy_runtime_rejects_unsafe_manifest_paths_without_output(self):
+        directory, paths = self.manifests()
+        outside = self.area / 'outside-inventory.json'
+        paths[1].replace(outside)
+        paths[1].mkdir()
+        with self.subTest(path='directory instead of regular file'):
+            result = self.resolve_runtime(directory)
+            self.rejected(result, 'PAGES_CI_INVENTORY')
+            self.assertEqual(result.stdout, '')
+        if os.name != 'nt':
+            paths[1].rmdir()
+            paths[1].symlink_to(outside)
+            with self.subTest(path='symlink to a good manifest outside the inventory'):
+                result = self.resolve_runtime(directory)
+                self.rejected(result, 'PAGES_CI_INVENTORY')
+                self.assertEqual(result.stdout, '')
+
+    def test_deploy_build_still_rejects_foreign_attempt_after_runtime_resolution(self):
+        directory, paths = self.manifests()
+        wrong = json.loads(paths[1].read_text(encoding='utf-8'))
+        wrong['run_attempt'] = 2
+        paths[1].write_text(json.dumps(wrong), encoding='utf-8')
+        result = self.resolve_runtime(directory)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        runtime = result.stdout.strip()
+        self.assertEqual(runtime, self.sha)
+        destination = self.area / 'public-bundle'
+        build = self.command([sys.executable, '-I', str(self.repo / 'site/build.py'),
+                              '--output', str(destination), '--ci-run-url', RUN_URL,
+                              '--ci-inventory-dir', str(directory), '--ci-run-attempt', '1',
+                              '--ci-trusted-runtime-ref', runtime])
+        self.rejected(build, 'manifest identity differs')
+        self.assertFalse(destination.exists())
 
     def test_missing_ci_evidence_does_not_fall_back_to_preview(self):
         directory=self.area/'empty-artifacts';directory.mkdir()

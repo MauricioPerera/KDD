@@ -66,9 +66,22 @@ class PagesInventoryWorkflow(unittest.TestCase):
         for required in ('--ci-inventory-dir "$RUNNER_TEMP/kdd-ci-inventory"',
                          '--ci-run-attempt "$CI_RUN_ATTEMPT"','--ci-trusted-runtime-ref "$KDD_TRUSTED_RUNTIME_REF"',
                          'CI_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}',
-                         'KDD_TRUSTED_RUNTIME_REF: ${{ vars.KDD_TRUSTED_RUNTIME_REF }}',
                          'CI_RUN_URL: ${{ github.event.workflow_run.html_url }}'):
             self.assertIn(required,build)
+
+    def test_deploy_resolves_runtime_inside_existing_build_step(self):
+        build=step(self.pages,'Build and validate public bundle')
+        for required in ('shell: bash','CI_INVENTORY_DIR: ${{ runner.temp }}/kdd-ci-inventory',
+                         'run: |', """KDD_TRUSTED_RUNTIME_REF="$(python -I - <<'PY'"""):
+            self.assertIn(required,build)
+        for title in ('Ubuntu','Windows'):
+            self.assertLess(self.pages.index('- name: Download '+title+' CI inventory'),
+                            self.pages.index('- name: Build and validate public bundle'))
+        self.assertLess(build.index('KDD_TRUSTED_RUNTIME_REF='),
+                        build.index('python site/build.py'))
+        self.assertNotIn('vars.KDD_TRUSTED_RUNTIME_REF',self.pages)
+        self.assertNotIn('continue-on-error',build)
+        self.assertNotIn('\n        if:',build)
 
     def test_deployment_gate_and_least_permissions_are_preserved(self):
         step(self.pages,'Download Ubuntu CI inventory')

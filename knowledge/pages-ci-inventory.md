@@ -81,8 +81,22 @@ Instala requirements-change-audit.txt antes del discovery estricto.
 
 El build recibe ci_inventory con directory, run_attempt y trusted_runtime_ref.
 El run_id procede de ci_run_url y el SHA de git rev-parse HEAD; esa identidad
-**no es una aprobacion de baseline**. Se exige el runtime proporcionado por la
-configuracion revisada, conforme a [aprobacion](quality-approval.md).
+**no es una aprobacion de baseline**. El runtime se obtiene en el workflow
+de Pages a partir de ambos manifests descargados con digest para ese
+evento. Deben declarar un mismo SHA hexadecimal completo y en minuscula.
+El build recibe la referencia como argumento explicito y valida otra vez
+la identidad completa. Los manifests siguen siendo datos, y el desplegador
+conserva el build del checkout del evento, incluso para un CI anterior a
+una rotacion del runtime.
+
+La variable KDD_TRUSTED_RUNTIME_REF selecciona el bundle en el CI productor.
+Pages conserva la referencia registrada por ese CI aunque se cambie o se
+restaure la variable antes del despliegue. Para medir la activacion, fijar
+el mismo checkout en las muestras comparadas, registrar runtime efectivo,
+pared hasta ambos checks Windows y plazo comun del post-init. Exigir dos
+pasadas en Ubuntu y Windows, cobertura en la primera y post-init Windows
+inferior a 600 s. Informar la diferencia observada y la variacion del runner.
+Conservar la [aprobacion de la referencia](quality-approval.md).
 
 Ambos manifests deben concordar en repositorio, workflow, run, intento, SHA,
 runtime, IDs y digest. Cada uno contiene dos pasadas; sus cuatro hashes deben

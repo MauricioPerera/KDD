@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_pages_pr_ci.py
-tests_sha256: '8ecd54e7343c69dd9cdab85874c9795717a4c99c9554321db3095b676b48b02f'
+tests_sha256: 'fb9db56f8f367828f29075bbc27887622da5f5ac3d52fd67d98ec78060c94f41'
 touch_only: ['.github/workflows/validate.yml']
 deps_allowed: ['stdlib', 'Git', 'Node.js', '@rckflr/llms-skills@0.4.1']
 forbids: ['llm']
@@ -62,6 +62,9 @@ bundle candidato ni artifacts de otro intento. El build de PR es preview estrict
 - DON'T: desplegar ni reutilizar el artefacto candidato en el workflow de main.
 
 ## Tests
+El oraculo del deploy exige la llamada real a site/build.py dentro del paso
+publico, tanto en comando simple como en el bloque de
+[seleccion del runtime](pages-inventory-ci.md).
 tests/test_pages_pr_ci.py combina invariantes del workflow con procesos reales
 de paquete/CLI y gate real en fixtures aisladas, incluidos fallo de gate y cwd
 ajeno. Los oraculos previos de Pages, CI y bootstrap se conservan.

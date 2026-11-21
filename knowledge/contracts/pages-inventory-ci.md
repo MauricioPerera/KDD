@@ -13,7 +13,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_pages_inventory_ci.py
-tests_sha256: 'a2be5904662944a3af4ba9cc288f1cf049f801af1c62c0bb4906aecacc201213'
+tests_sha256: '164a29d52af8ecbca78d6b8033d1cc4a879c73a961da298a11e63887a719ca1b'
 touch_only: ['.github/workflows/deploy-pages.yml', '.github/workflows/validate.yml']
 deps_allowed: ['GitHub Actions', 'Python3.11', 'Node24', 'Git']
 forbids: ['llm']
@@ -31,7 +31,17 @@ En la [division nativa Windows](ci-windows-board-routing.md) los ejecuta
 solo win_suite, con el mismo nombre de artefacto.
 Pages agrega Install pinned discovery parsers, Download Ubuntu CI inventory
 y Download Windows CI inventory antes de Build and validate public bundle.
-El build recibe directorio de ambos manifests, intento y runtime explicitos.
+El paso existente Build and validate public bundle usa Bash con fallo
+inmediato. Antes del build, un interprete Python aislado lee los dos
+inventory.json y devuelve por stdout el SHA para el argumento explicito.
+Exige dos valores hexadecimales completos en minuscula e identicos, con
+un solo valor por clave en cada manifest. Ante falta, ambiguedad, ruta
+insegura o desacuerdo falla sin emitir la referencia ni invocar el build.
+El build recibe ambos manifests, intento y ese SHA. La seleccion vive
+en el workflow de despliegue y conserva compatibilidad con el build y
+los manifests v1 de un checkout historico. Al permanecer en el paso
+existente, la [paridad del PR](pages-pr-deploy-environment.md) conserva
+su conjunto de preparacion revisado.
 
 ## Invariants
 
@@ -41,14 +51,21 @@ dos suites. La matriz auxiliar
 de bootstrap al mismo check obligatorio.
 Cumplir [procedencia, pins y permisos](../pages-ci-inventory.md). Mantener
 los jobs base, dos matrices Ubuntu/Windows, dos comandos identicos de suite,
-Python3.11, Node24 y los 19 gates. Sin cambios a trusted-pr-gate, runtime o
-protecciones; sin permissions write adicionales ni despliegue desde PR.
+Python3.11, Node24 y los 19 gates. Los seis archivos del runtime y
+trusted-pr-gate conservan sus bytes. La activacion de un SHA de runtime
+aprobado se verifica por separado. Pages toma la identidad del CI que
+produjo los artifacts y prescinde de la variable de runtime vigente en el
+despliegue. El build conserva la validacion completa de run, intento, SHA,
+runtime, IDs, cuatro hashes distintos y discovery local.
+Conservar protecciones y permisos, con despliegue solo del push aprobado.
 El unico permiso nuevo en deploy es actions:read. Descargar manifests JSON,
 nunca HTML, codigo ejecutable ni artifacts de otro run/intento.
 
 ## Examples
 - Main exitoso con cuatro reportes exportados: build y despliegue coherentes.
+- El CI termino con A y la variable apunta a B: desplegar la evidencia de A.
 - Un artifact falta, expira o no valida su digest: abortar antes del build/upload.
+- Dos artifacts del mismo run declaran runtimes distintos: abortar sin salida.
 - Consumidor reusable o PR: no export/upload nativo; el PR conserva preview.
 
 ## Do / Don't
@@ -59,8 +76,9 @@ nunca HTML, codigo ejecutable ni artifacts de otro run/intento.
 ## Tests
 tests/test_pages_inventory_ci.py comprueba cableado, procedencia, pins,
 instalacion de parsers, argumentos del build y preservacion de la matriz.
-La [integracion real](pages-inventory.md) verifica el comportamiento con
-reportes reales; la ejecucion remota queda pendiente hasta ser autorizada.
+La [integracion real](pages-inventory.md) ejecuta la seleccion del workflow
+contra artifacts de Git real y cuatro pasadas. Comprueba rotacion,
+consenso, ausencia de salida en errores y procedencia antes del bundle.
 
 ## Constraints
 Baseline humano antes de implementar. No autoriza publicar, fusionar ni
