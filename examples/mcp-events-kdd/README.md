@@ -21,6 +21,9 @@ Git y acceso SSH al VPS con permiso para seguir el journal del receptor. En la
 federación, el propietario que envía las tareas debe tener ALPHA y DELTA como
 pares. Las suscripciones del receptor y el runner local de DELTA deben estar
 activos. Cargar `KDD_MCP_OWNER_TOKEN` en el entorno privado del proceso.
+Para modelos locales lentos, ajustar `inferenceTimeoutMs` en el runner.
+El plazo de respuesta del orquestador se puede fijar con
+`KDD_MCP_REPLY_TIMEOUT_MS`. Conservar margen para entregar el webhook.
 
 ```text
 node examples/mcp-events-kdd/run.mjs HOST https://WORKER/agent/mcp OWNER_ID ABSOLUTE_EVIDENCE_PATH

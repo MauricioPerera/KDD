@@ -13,7 +13,9 @@ const previousOracle = 'tests/test_validate_commit_message.py';
 const previousContract = 'knowledge/contracts/commit-message-gate.md';
 const [host, endpoint, sender, evidenceArg] = process.argv.slice(2);
 const python = process.env.KDD_PYTHON || 'python';
+const replyTimeoutMs = Number(process.env.KDD_MCP_REPLY_TIMEOUT_MS ?? 650_000);
 const { KDD_MCP_OWNER_TOKEN: token, ...childEnv } = process.env;
+assert.ok(Number.isInteger(replyTimeoutMs) && replyTimeoutMs >= 1_000 && replyTimeoutMs <= 700_000);
 assert.match(host ?? '', /^[A-Za-z0-9][A-Za-z0-9_.-]*$/);
 assert.match(sender ?? '', /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const url = new URL(endpoint);
@@ -97,7 +99,7 @@ function reviewPrompt(base, diff) {
   return [
     `Goldfish read-only review for KDD ${task}, base ${base}.`,
     'True must exit 1 with CONFIG_INVALID. Integer 0 must continue to the existing validator.',
-    'Does this change satisfy both cases? Start your one-line reply with PASS or FINDING and state both actual outcomes. Use reply_task.',
+    'Does this change satisfy both cases? Use reply_task with a single line starting PASS or FINDING. Give both outcomes in at most 15 words.',
     code,
   ].join('\n');
 }
@@ -112,7 +114,7 @@ async function dispatch(journal, peerId, message, role) {
   const matchesReply = callbackMatch({ agent: sender, peerId, taskId, threadId }, 'task.replied');
   const failed = row => row.agent === peerId && row.eventId === inbound.eventId &&
     (row.event === 'agent.failed' || (row.event === 'runner.ack' && row.status === 'failed'));
-  const notification = await journal.waitFor(row => matchesReply(row) || failed(row), role + ' response');
+  const notification = await journal.waitFor(row => matchesReply(row) || failed(row), role + ' response', replyTimeoutMs);
   assert.ok(matchesReply(notification), role + ' failed for ' + inbound.eventId);
   const result = await mcp('get_task_result', { peerId, taskId }, notification.eventId);
   assert.equal(result.taskId, taskId);
