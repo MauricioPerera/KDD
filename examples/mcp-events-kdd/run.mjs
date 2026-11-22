@@ -93,15 +93,12 @@ function proposalPrompt(base) {
     'You can use length, type(length), int, comparison operators and short-circuit boolean operators. The caller emits CONFIG_INVALID and exit 1 if your expression is true.',
   ].join('\n');
 }
-function reviewPrompt(base, diff) {
-  const additions = diff.split('\n').filter(line => line.startsWith('+') && !line.startsWith('+++'));
-  const code = additions.map(line => line.slice(5).trimEnd()).join('\n').trimEnd();
-  return [
-    `Goldfish read-only review for KDD ${task}, base ${base}.`,
-    'True must exit 1 with CONFIG_INVALID. Integer 0 must continue to the existing validator.',
-    'Does this change satisfy both cases? Use reply_task with a single line starting PASS or FINDING. Give both outcomes in at most 15 words.',
-    code,
-  ].join('\n');
+function reviewPrompt(diff) {
+  const guard = diff.split('\n').find(line => line.startsWith('+    if '));
+  assert.ok(guard, 'Expected exactly one added CLI guard.');
+  return 'Goldfish review. Python ' + guard.slice(5).trimEnd() + ' return CONFIG_INVALID. ' +
+    'Should reject True and allow 0. Check both against this code. ' +
+    'Call reply_task with one short line starting PASS or FINDING and state both results.';
 }
 async function dispatch(journal, peerId, message, role) {
   const taskId = randomUUID();
@@ -162,7 +159,7 @@ try {
   const diff = git('diff', '--', target);
   const candidate = digest(target);
   report.candidate = { sha256: candidate, diff };
-  const reviewText = await dispatch(journal, 'delta', reviewPrompt(base, diff), 'goldfish');
+  const reviewText = await dispatch(journal, 'delta', reviewPrompt(diff), 'goldfish');
   const verdict = /^(PASS|FINDING)\b[\s:–-]*([\s\S]+)/i.exec(reviewText.trim());
   assert.ok(verdict && verdict[2].trim(), 'Expected a Goldfish verdict with the observed cases.');
   const review = { verdict: verdict[1].toLowerCase(), reason: verdict[2].trim() };
