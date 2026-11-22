@@ -29,8 +29,11 @@ RUNTIME_FILES = {'trusted_ci.py', 'run_test_suite.py', 'validate_test_commands.p
 MANAGED_FILES = {'oracle_execution.py', 'oracle_inventory.py', 'unittest_oracle_runner.py',
                  'node_oracle_reporter.mjs'}
 CONTRACT_FIELDS = ('path', 'test_command', 'scope', 'shared_from', 'ok', 'exit_code')
-PASS_FIELDS = ('number', 'runtime', 'workers', 'expected_ids', 'executed_ids', 'ok',
-               'errors', 'failures', 'fixture_omitted_ids', 'coverage')
+PASS_METADATA = ('number', 'runtime', 'workers', 'ok', 'errors', 'failures',
+                 'fixture_omitted_ids', 'coverage')
+LEGACY_PASS_FIELDS = {*PASS_METADATA, 'expected_ids', 'executed_ids'}
+COMPACT_PASS_FIELDS = {*PASS_METADATA, 'expected_ids_sha256', 'executed_ids_sha256'}
+TIMING_FIELDS = {'schema_version', 'kind', 'identity', 'complete', 'missing', 'sources'}
 
 
 class EvidenceError(ValueError):
@@ -134,10 +137,15 @@ def _receipt(payload, role, identity):
     value = _json(payload)
     field = 'rows' if role == 'contracts' else 'passes'
     expected = {'schema_version', 'role', 'identity', 'ok', field}
-    _require(set(value).difference({'timing'}) == expected, 'unexpected receipt fields')
-    _require(type(value['schema_version']) is int and value['schema_version'] == 1
+    version = value['schema_version']
+    _require(type(version) is int and (version == 1 or (version == 2 and role == 'suites'))
              and value['ok'] is True and value['role'] == role and value['identity'] == identity,
              'stale or mismatched receipt')
+    if version == 2:
+        _require(set(value) == expected | {'inventory', 'timing'}, 'unexpected receipt fields')
+        _compact_suite_timing(value['timing'], identity)
+    else:
+        _require(set(value).difference({'timing'}) == expected, 'unexpected receipt fields')
     _require(type(value['identity']['run_id']) is int and type(value['identity']['run_attempt']) is int,
              'receipt run identifiers must be integers')
     return value
@@ -251,19 +259,37 @@ def _inventory(value):
 
 
 def _check_pass(value, number, runtime, inventory, coverage):
-    _require(set(value) == set(PASS_FIELDS) and _integer(value['number'])
-             and value['number'] == number and value['runtime'] == runtime
+    _require(_integer(value['number']) and value['number'] == number and value['runtime'] == runtime
              and value['workers'] == 6 and type(value['workers']) is int
              and value['ok'] is True and value['fixture_omitted_ids'] == [],
              'invalid suite pass identity or outcome')
     _require(all(_integer(value[k], 0) and value[k] == 0 for k in ('errors', 'failures')),
              'suite reported failures')
-    _require(_inventory(value['expected_ids']) == _inventory(value['executed_ids']) == inventory,
-             'suite inventory differs from independent discovery')
+    if 'expected_ids' in value:
+        expected = _inventory(value['expected_ids'])
+        executed = _inventory(value['executed_ids'])
+    else:
+        expected, executed = value['expected_ids_sha256'], value['executed_ids_sha256']
+    _require(expected == executed == inventory, 'suite inventory differs from the required inventory')
     actual = value['coverage']
     _require(actual == coverage and (coverage is None or all(
         type(actual[key]) is type(coverage[key]) for key in coverage)),
         'coverage is missing, misplaced or inconsistent')
+
+
+def _check_suite_passes(suites, runtime, discovery, coverage):
+    rows = suites['passes']
+    _require(_hex(discovery, 64) and isinstance(rows, list) and len(rows) == 2, 'missing suite passes')
+    compact = suites['schema_version'] == 2
+    if compact:
+        inventory = suites['inventory']
+        _require(_inventory(inventory) == discovery and inventory == sorted(inventory),
+                 'suite inventory differs from independent discovery or is not sorted')
+    fields = COMPACT_PASS_FIELDS if compact else LEGACY_PASS_FIELDS
+    for number, row in enumerate(rows, 1):
+        _require(isinstance(row, dict) and set(row) == fields, 'invalid suite pass fields')
+        _check_pass(row, number, runtime, discovery, coverage if number == 1 else None)
+    return [len(inventory)] * len(rows) if compact else [len(row['expected_ids']) for row in rows]
 
 
 def _path(root, value):
@@ -299,9 +325,19 @@ def _reports(path, count):
 
 def _suite_row(data, number, coverage):
     return dict(number=number, runtime=data['trusted_runtime_ref'], workers=data['workers'],
-                expected_ids=data['expected_ids'], executed_ids=data['executed_ids'], ok=data['ok'],
+                expected_ids_sha256=_inventory(data['expected_ids']),
+                executed_ids_sha256=_inventory(data['executed_ids']), ok=data['ok'],
                 errors=len(data['errors']), failures=len(data['failures']),
                 fixture_omitted_ids=data['fixture_omitted_ids'], coverage=coverage)
+
+
+def _project_suites(reports, runtime, coverage):
+    passes = [_suite_row(report, number, coverage if number == 1 else None)
+              for number, report in enumerate(reports, 1)]
+    expected = passes[0]['expected_ids_sha256']
+    for number, row in enumerate(passes, 1):
+        _check_pass(row, number, runtime, expected, coverage if number == 1 else None)
+    return dict(schema_version=2, inventory=sorted(reports[0]['expected_ids']), passes=passes)
 
 
 def _timing_identity(identity):
@@ -356,6 +392,21 @@ def _check_timing_source(source, contracts):
         _check_suite_timings(source['rows'])
 
 
+def _compact_suite_timing(timing, identity):
+    _require(isinstance(timing, dict) and set(timing) == TIMING_FIELDS
+             and type(timing['schema_version']) is int and timing['schema_version'] == 1
+             and timing['kind'] == 'kdd-ci-timings' and timing['identity'] == _timing_identity(identity)
+             and timing['complete'] is False and timing['missing'] == ['commands-report'],
+             'unexpected diagnostics metadata in the compact suites receipt')
+    sources = timing['sources']
+    _require(isinstance(sources, list) and len(sources) == 2
+             and all(isinstance(source, dict) and source.get('kind') == 'suite' for source in sources),
+             'unexpected diagnostics sources in the compact suites receipt')
+    for source in sources:
+        _check_timing_source(source, ())
+    _require(len({source['source_sha256'] for source in sources}) == 2, 'repeated diagnostic sources')
+
+
 def _publish(path, value, limit=None):
     raw = json.dumps(value, ensure_ascii=True, separators=(',', ':'), allow_nan=False).encode('utf-8') + b'\n'
     _require(limit is None or len(raw) <= limit, 'projected evidence exceeds byte limit')
@@ -394,13 +445,10 @@ def _verify(args):
     rows, expected = contracts['rows'], _contract_plan(args, identity)
     _require(expected and rows == expected and all(
         row['ok'] is True and type(row['exit_code']) is int for row in rows), 'contract plan differs from the receipt')
-    _require(_hex(args.suite_inventory_sha256, 64) and len(suites['passes']) == 2, 'missing suite passes')
-    for number, row in enumerate(suites['passes'], 1):
-        _check_pass(row, number, identity['runtime_ref'], args.suite_inventory_sha256,
-                    coverage if number == 1 else None)
+    passes = _check_suite_passes(suites, identity['runtime_ref'], args.suite_inventory_sha256, coverage)
     if args.timings_output is not None:
         _join_timings(args.timings_output, contracts, suites, identity)
-    print(json.dumps(dict(ok=True, contracts=len(rows), passes=[len(row['expected_ids']) for row in suites['passes']],
+    print(json.dumps(dict(ok=True, contracts=len(rows), passes=passes,
                           suite_inventory_sha256=args.suite_inventory_sha256,
                           coverage_sha256=coverage['sha256'])))
 
@@ -424,9 +472,11 @@ def _produce(args):
     else:
         source = temp / f"kdd-python-coverage-{identity['run_id']}-{identity['run_attempt']}" / 'coverage.json'
         coverage = _coverage(_read(source, 16 * MIB), identity)
-        data['passes'] = [_suite_row(report, number, coverage if number == 1 else None)
-                          for number, report in enumerate(_reports(temp / 'kdd-suite-reports', 2), 1)]
+        reports = _reports(temp / 'kdd-suite-reports', 2)
+        data.update(_project_suites(reports, identity['runtime_ref'], coverage))
     data['timing'] = _timing_projection(root, temp, identity)
+    if args.role == 'suites':
+        _compact_suite_timing(data['timing'], identity)
     _publish(temp / 'kdd-windows-receipts' / 'receipt.json', data, MIB)
 
 

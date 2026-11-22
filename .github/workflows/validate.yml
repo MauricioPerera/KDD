@@ -1370,7 +1370,7 @@ jobs:
       - name: Verify Windows validation receipts
         shell: python -I {0}
         env:
-          KDD_WINDOWS_JOIN_DRIVER_SHA256: ac2894531aee1cd623f8b96e7b3068e0725ce2e4950d5210d5d8a7afb7cef3ca
+          KDD_WINDOWS_JOIN_DRIVER_SHA256: 8321fcae3f33e43c7dc1e19f6968f1130d3530e02ce429ebf6d6a46bbbca7639
         run: |
           import hashlib
           import json
