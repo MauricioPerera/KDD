@@ -122,3 +122,6 @@ entrega del informe, y medir aparte la implementación y el retrabajo.
 El [piloto con tres tareas reales](../docs/reports/DELEGACION-EFIMERA-GOLDFISH.md)
 documenta por qué estos controles se aplican al encargo, al oráculo y a los
 consumidores vecinos.
+
+El [piloto con MCP Events](../docs/reports/KDD-MCP-EVENTS-IMPACTO.md) mide
+la coordinación entre máquinas con el mismo cambio y encargo de revisión.

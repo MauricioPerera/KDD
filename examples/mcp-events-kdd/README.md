@@ -13,6 +13,9 @@ insumos, la propuesta, el dictamen y la salida real de los comandos. La
 revisión de DELTA se conserva como evidencia separada del veredicto de los
 oráculos. Los hallazgos requieren revisión antes de cerrar el encargo.
 
+La [evaluación de impacto en KDD](../../docs/reports/KDD-MCP-EVENTS-IMPACTO.md)
+documenta la comparación con invocación directa y el costo de coordinación.
+
 ## Ejecutar
 
 Usar un worktree limpio de la rama del piloto en el commit de la infraestructura,
