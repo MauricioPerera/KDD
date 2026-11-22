@@ -9,6 +9,23 @@ conserva la responsabilidad de comprobar la entrega con el contrato y el
 oráculo. [Piloto](../../examples/mcp-events-kdd/README.md) ·
 [Evidencia estructurada](mcp-events-kdd-2026-11-22/evidencia.json)
 
+## Estado del piloto al 22 de noviembre de 2026
+
+El piloto combina una medición de coordinación y una prueba de recuperación
+sobre el mismo validador de mensajes de commit. Los resultados se refieren
+a ese encargo y a los entornos usados en el ensayo.
+
+| Entrega | Referencia | Evidencia |
+| --- | --- | --- |
+| Comparación directa y por eventos | `16387aaf` | Cuatro corridas con el mismo artefacto y encargo de revisión. [Medición](#evidencia-y-costo) |
+| Reanudación tras guardar la respuesta | `14dab669` | Reinicio real, reentrega del mismo evento y cierre en el mismo hilo. [Prueba](#recuperación-del-orquestador-tras-un-reinicio) |
+| Operación desde un worktree de prueba | `f5030c97` | Instrucciones de ejecución y reanudación. [Guía del piloto](../../examples/mcp-events-kdd/README.md) |
+
+Al cierre de este registro, la rama `codex/kdd-mcp-events-goldfish-recovery`
+contiene el piloto local y `main` está en `addb96b`. La publicación del PR,
+el CI de integración y la promoción del baseline quedan pendientes. Las
+verificaciones reportadas pertenecen al piloto y a sus oráculos dirigidos.
+
 ## Impacto en el flujo de trabajo
 
 | Etapa | Responsabilidad de KDD | Aporte observado de MCP Events |
@@ -72,6 +89,46 @@ Este caso muestra por qué el orquestador debe poder contrastar un hallazgo del
 modelo con una prueba dirigida antes de resolverlo.
 [Comprobación independiente registrada](mcp-events-kdd-2026-11-22/evidencia.json)
 
+## Recuperación del orquestador tras un reinicio
+
+El piloto de recuperación usó la implementación
+`14dab6695e8926bdf743990d2db5be8d73d56112`. Se terminó el proceso después
+de guardar en SQLite la respuesta de ALPHA y antes de aplicar la propuesta
+o enviar el encargo a Goldfish. El segundo proceso arrancó con `--resume`
+y recuperó el mismo hilo, las identidades de los encargos, la respuesta
+guardada y el cursor del journal.
+[Contrato de recuperación](../../knowledge/contracts/kdd-mcp-events-recovery.md) ·
+[Cómo reanudar](../../examples/mcp-events-kdd/README.md#reanudar)
+
+Se reentregó el evento firmado `evt_924ea5a9dfd9f8378886ca8b5f974d85`.
+El receptor respondió **HTTP 202** con `duplicate: true`. El proceso
+continuó en el hilo `e61f0034-9a4b-40f1-8247-aa633ab8ee8c`, aplicó
+la propuesta una vez y abrió un solo encargo a DELTA. El registro final
+contiene dos envíos y dos lecturas de respuesta en total, uno de cada
+por agente. Las cuatro comprobaciones guardadas antes del corte aparecen
+una sola vez entre las diez registradas. KDD terminó en `verified` con
+dos pasadas de 32 pruebas.
+
+Para KDD, esto permite separar la duración del encargo de la vida del
+proceso orquestador. El checkpoint conserva la trazabilidad entre el
+encargo original, la respuesta, Goldfish y las verificaciones locales.
+La reconciliación del journal evita sondear respuestas. En esta ejecución,
+el orquestador tampoco registró llamadas a Work ni aprobó el baseline.
+El estado `verified` acredita la ejecución del piloto y la promoción sigue
+requiriendo aprobación humana del SHA exacto.
+[Aprobación de calidad](../../knowledge/quality-approval.md)
+
+La prueba viva cubre el reinicio después de confirmar una respuesta y
+la reentrega de ese evento. Reanudar requiere el mismo checkout, identidad
+de ejecución, estado SQLite y un journal que conserve el cursor necesario.
+Una comprobación interrumpida antes de guardar su salida puede volver a
+ejecutarse.
+
+El extracto de recuperación conserva el SHA de la implementación, las
+identidades del hilo y de la reentrega, los resultados de prueba y las
+huellas de los cuatro archivos originales del ensayo.
+[Evidencia de recuperación](mcp-events-kdd-2026-11-22/recuperacion.json)
+
 ## Criterio de adopción propuesto
 
 El flujo directo tiene menos componentes para encargos que se pueden
@@ -86,11 +143,10 @@ Para evaluar una adopción más amplia, llevar estos controles al siguiente pilo
    diff, el contrato, el oráculo y las salidas de verificación con el revisor
    y los IDs del encargo. Aplicar las perspectivas y el número de revisores
    que correspondan al riesgo.
-2. **Probar recuperación en KDD.** Interrumpir el orquestador entre guardar
-   el resultado y avanzar a la siguiente etapa. Reentregar el mismo evento
-   y comprobar que se retome el encargo con la evidencia original y una sola
-   transición. El piloto actual sigue el journal en una sesión y guarda
-   evidencia parcial si esa sesión se interrumpe.
+2. **Conservar la capacidad de reanudar.** Mantener el checkpoint y la
+   retención del journal para recuperar el hilo con la misma identidad.
+   La [prueba de recuperación](#recuperación-del-orquestador-tras-un-reinicio)
+   verificó el corte después de guardar la respuesta del ejecutor.
 3. **Medir en tareas distintas.** Repetir con cambios de tamaños y riesgos
    diferentes. Registrar preparación de servicios, coordinación, ejecución
    de agentes y verificaciones de KDD como intervalos distintos. Comparar

@@ -125,3 +125,5 @@ consumidores vecinos.
 
 El [piloto con MCP Events](../docs/reports/KDD-MCP-EVENTS-IMPACTO.md) mide
 la coordinación entre máquinas con el mismo cambio y encargo de revisión.
+En el mismo piloto se verificó [reanudar el hilo y reconocer una reentrega](../docs/reports/KDD-MCP-EVENTS-IMPACTO.md#recuperación-del-orquestador-tras-un-reinicio)
+tras reiniciar el proceso que conserva el estado.
