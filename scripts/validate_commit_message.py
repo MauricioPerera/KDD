@@ -178,6 +178,13 @@ def main(argv):
         print("Resumen: 1 error(es), 0 warning(s)")
         return 1
 
+    length = config['max_subject_length']
+    if type(length) is not int or length < 0:
+        print('ERROR [CONFIG_INVALID] max_subject_length debe ser un entero mayor o igual a cero', file=sys.stderr)
+        print()
+        print("Resumen: 1 error(es), 0 warning(s)")
+        return 1
+
     # Determine message source
     msg = None
     if '--message' in argv:
