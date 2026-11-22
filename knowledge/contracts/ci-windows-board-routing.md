@@ -78,8 +78,8 @@ tres ZIP mantienen sus bytes y nombres en un solo directorio.
 Verify Windows validation receipts extrae
 el blob del commit candidato exacto, sin reemplazos Git, a un
 directorio temporal nuevo fuera del checkout. Compara el SHA-256
-con el pin literal de la revision protegida y solo despues invoca
-python -I sobre ese archivo. Los datos de contexto y needs entran
+con el pin literal de la revision protegida del mismo driver que emite
+el recibo compacto y solo despues invoca python -I sobre ese archivo. Los datos de contexto y needs entran
 en el entorno, como datos y no como codigo Bash. El paso se ejecuta
 antes de publicar los tiempos unidos. Guard, checkout, descarga y
 verificacion carecen de continue-on-error y omisiones condicionales.

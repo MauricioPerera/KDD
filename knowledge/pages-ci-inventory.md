@@ -98,9 +98,6 @@ pasadas en Ubuntu y Windows, cobertura en la primera y post-init Windows
 inferior a 600 s. Informar la diferencia observada y la variacion del runner.
 Conservar la [aprobacion de la referencia](quality-approval.md).
 
-La [comparacion en `00e1af7`](../docs/reports/CI-WINDOWS-LANZAMIENTO-DIRECTO-2026-11-21.md#runtimes-en-00e1af7)
-documenta las muestras por runtime y la recuperacion del despliegue.
-
 Ambos manifests deben concordar en repositorio, workflow, run, intento, SHA,
 runtime, IDs y digest. Cada uno contiene dos pasadas; sus cuatro hashes deben
 ser distintos. Los directorios y platform deben corresponder sin duplicaciones.
