@@ -11,6 +11,8 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Contrato de revision proporcional](./contracts/baseline-risk-review.md)
 - [Entrada previa al baseline](./contracts/baseline-review-entrypoint.md)
 - [Preparacion local de revisiones con Codex VPS](./contracts/vps-baseline-review.md)
+- [Coordinacion de revisiones con Codex VPS](./contracts/vps-baseline-automation.md)
+- [Prueba SSH de revisiones con Codex VPS](./contracts/vps-baseline-ssh-proof.md)
 - [Flujo ligero para cambios pequenos](./odd-lightweight.md)
 - [Contrato del flujo ligero](./contracts/odd-lightweight.md)
 - [Referencia aprobada de aceptación en CI](./contracts/acceptance-baseline-routing.md)

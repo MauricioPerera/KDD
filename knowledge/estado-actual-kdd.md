@@ -137,35 +137,7 @@ de definición, ejecución y revisión se desarrollan en la
 
 ## Flujo operativo consolidado
 
-1. **Preparar el proyecto.** Inicializar con su `OWNER/REPO`, definir conocimiento,
-   contratos, oráculos y `quality/product.json` propios. El proyecto comienza
-   sin las tareas de ejemplo TASK-001/TASK-002 ni sus evidencias heredadas.
-2. **Revisar las referencias.** La persona revisora aprueba commits completos
-   para los contratos y oráculos, y para la política de calidad del producto.
-   El CI nativo selecciona `baseline_ref` y `quality_ref` del registro externo
-   por árbol Git. Ambas referencias pueden apuntar al mismo commit revisado.
-   [Registro de aprobaciones](approval-registry.md)
-3. **Registrar y ejecutar la tarea.** CLI o tablero recorren
-   `backlog → ready → in_progress → done`; el bloqueo admite
-   `in_progress → needs_human_input → ready`. Cada transición crea un commit.
-   La implementación se realiza en `task/TASK-NNN`.
-4. **Integrar y cerrar.** El coordinador o la persona responsable integra la
-   rama preservando sus commits. `finish` prueba el `main` limpio con el
-   oráculo aprobado y crea después el commit de cierre con evidencia durable.
-   El tablero no realiza el merge ni el push.
-5. **Publicar y verificar.** El CI de la plantilla usa el runtime revisado
-   para comprobar contratos y ejecutar dos pasadas del inventario. En un
-   proyecto inicializado, el paso de calidad extrae su verificador de la
-   referencia aprobada, comprueba integridad y perímetro, y ejecuta dos rondas
-   de checks del producto. [Calidad desde el arranque](bootstrap-product-quality-ci.md)
-
-El procedimiento y sus precondiciones completas viven en
-[tareas con Git](git-tasks.md) y [calidad desde el arranque](bootstrap-product-quality-ci.md).
-En el workflow generado, una política ausente o una referencia inválida produce
-**FAIL**. El **PASS de calidad** requiere la ejecución satisfactoria del paso;
-la ausencia de configuración no se acepta como SKIP satisfactorio.
-El repositorio plantilla conserva su configuración opcional de ejemplos;
-la obligatoriedad de `quality/product.json` corresponde a los proyectos inicializados.
+El flujo vigente se describe en [tareas con Git](git-tasks.md) y [calidad desde el arranque](bootstrap-product-quality-ci.md). [Secuencia y evidencia](../docs/reports/ARCHIVO-ESTADO-KDD.md#flujo-operativo-consolidado).
 
 ## Evidencia historica de un proyecto nuevo
 
