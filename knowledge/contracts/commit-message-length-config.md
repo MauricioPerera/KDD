@@ -7,12 +7,14 @@ task: commit-message-length-config
 intent: 'Validar el valor max_subject_length del JSON al entrar por el CLI.'
 target: scripts/validate_commit_message.py
 signature: 'def main(argv):'
+test_runner: python-unittest
 test_command: 'python -m unittest tests/test_commit_message_length_config.py'
 budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_commit_message_length_config.py
-tests_sha256: '9caf4abad2bfdd4eb659dae417c30450146e73648808919e044515d723cb2183'
+oracle_files: ['tests/test_commit_message_length_config.py', 'tests/__init__.py']
+tests_sha256: 'f0d2d249028725b716db77a2f90e0f2e079894474fc5128ab5e95464b4a0ba32'
 touch_only: ['scripts/validate_commit_message.py']
 deps_allowed: []
 forbids: ['network', 'subprocess', 'llm']
@@ -34,6 +36,8 @@ la interfaz de `check_commit_message`.
 
 Los booleanos, flotantes, cadenas, null, listas, objetos y numeros negativos
 son invalidos. El valor cero conserva la advertencia de largo sin bloquear.
+Un umbral positivo se aplica literalmente: una cabecera que lo excede
+produce SUBJECT_TOO_LONG sin bloquear. En el limite exacto no hay advertencia.
 
 ## Examples
 

@@ -8,12 +8,14 @@ intent: 'Conservar la respuesta, la identidad del encargo y el punto de avance t
 target: examples/mcp-events-kdd/run.mjs
 language: javascript
 signature: 'export async function run(argv, hooks = {})'
+test_runner: node-test
 test_command: 'node --test examples/mcp-events-kdd/recovery.test.mjs'
 budget:
   cyclomatic_max: 16
   nesting_max: 4
 tests: examples/mcp-events-kdd/recovery.test.mjs
-tests_sha256: 'f3cb491f25d1f4a2b861d5ce412564705d2b8dd2e1f09a25274092d6b8aa6afb'
+oracle_files: ['examples/mcp-events-kdd/recovery.test.mjs', 'examples/mcp-events-kdd/recovery-checkpoint.mjs']
+tests_sha256: 'a26408c5e43d67c3e6c152ac70f4178ec790dd88b0feae8106abdc119a0e94c6'
 touch_only: ['examples/mcp-events-kdd/run.mjs', 'examples/mcp-events-kdd/state.mjs', 'examples/mcp-events-kdd/delegation.mjs', 'examples/mcp-events-kdd/events.mjs', 'examples/mcp-events-kdd/candidate.py', 'examples/mcp-events-kdd/README.md']
 deps_allowed: ['stdlib']
 forbids: ['baseline-approval', 'polling']
@@ -34,6 +36,8 @@ notificaciones y recupera el journal desde el cursor guardado.
 
 Una respuesta confirmada queda persistida con par, tarea, hilo y evento.
 Reentregar el mismo evento conserva la respuesta y la transicion posterior.
+Una notificacion duplicada no satisface la espera de una respuesta nueva.
+Al reanudar, el lector conserva el cursor y abre un solo encargo a Goldfish.
 Los reintentos de envio conservan el ID y el mensaje originales. Una sola
 instancia puede escribir una ejecucion. El oraculo y los insumos protegidos
 se comprueban al reanudar y antes de cerrar.
@@ -52,7 +56,9 @@ se comprueban al reanudar y antes de cerrar.
 ## Tests
 
 El [oraculo local](../../examples/mcp-events-kdd/recovery.test.mjs) verifica
-la reanudacion, la exclusividad y el envio idempotente. La prueba viva
+la exclusividad y el envio idempotente. Tambien reabre SQLite tras terminar
+un proceso real e introduce la reentrega por el lector de journal, con
+transporte simulado y un solo envio a Goldfish. La prueba viva
 complementa ese oraculo con un reinicio y una reentrega firmada.
 
 ## Constraints

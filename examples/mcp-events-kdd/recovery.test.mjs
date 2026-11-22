@@ -1,10 +1,18 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import childProcess, { spawnSync } from 'node:child_process';
+import { EventEmitter } from 'node:events';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { test } from 'node:test';
+import { join, resolve } from 'node:path';
+import { PassThrough } from 'node:stream';
+import { mock, test } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { openRun } from './state.mjs';
 import { delegate } from './delegation.mjs';
+import { followReceiver } from './events.mjs';
+
+const eventId = number => 'evt_' + number.toString(16).padStart(32, '0');
 
 function fixture() {
   const evidence = join(mkdtempSync(join(tmpdir(), 'kdd-events-')), 'evidence.json');
@@ -88,4 +96,92 @@ test('a second process owner cannot resume while a writer is open', () => {
   const resumed = openRun(evidence);
   assert.equal(resumed.report.threadId, 'thread-1');
   resumed.close();
+});
+
+test('a new process replays the journal and sends one Goldfish request on the saved thread', async context => {
+  const directory = mkdtempSync(join(tmpdir(), 'kdd-events-restart-'));
+  context.after(() => {
+    assert.equal(resolve(directory, '..'), resolve(tmpdir()));
+    rmSync(directory, { recursive: true });
+  });
+  const evidence = join(directory, 'evidence.json');
+  const checkpoint = spawnSync(process.execPath, [
+    fileURLToPath(new URL('./recovery-checkpoint.mjs', import.meta.url)), evidence,
+  ], { encoding: 'utf8', timeout: 10000 });
+  assert.equal(checkpoint.error, undefined);
+  assert.equal(checkpoint.status, 17, checkpoint.stderr);
+
+  const resumed = openRun(evidence);
+  const { report, save } = resumed;
+  const original = structuredClone(report.executor);
+  const threadId = report.threadId;
+  const journalProcess = new EventEmitter();
+  journalProcess.stdout = new PassThrough();
+  journalProcess.kill = () => journalProcess.stdout.end();
+  const transport = mock.method(childProcess, 'spawn', (command, args) => {
+    assert.equal(command, 'ssh');
+    assert.match(args.at(-1), /--after-cursor="executor-reply"/);
+    return journalProcess;
+  });
+  syncBuiltinESMExports();
+  let journal;
+
+  function append(event, cursor) {
+    const row = { _SYSTEMD_UNIT: 'agent-mcp-federation-receiver.service',
+      __CURSOR: cursor, MESSAGE: JSON.stringify({ ...event, threadId }) };
+    journalProcess.stdout.write(JSON.stringify(row) + '\n');
+  }
+
+  try {
+    journal = followReceiver('test.invalid', threadId, (event, cursor) => {
+      report.events.push(event);
+      report.cursor = cursor;
+      save();
+    }, process.env, { cursor: report.cursor, history: report.events });
+    append({ event: 'event.received', name: 'task.replied', eventId: original.replyEventId,
+      agent: 'beta', peerId: 'alpha', taskId: original.taskId, duplicate: true }, 'executor-replay');
+    append({ event: 'agent.completed', eventId: original.inboundEventId,
+      agent: 'alpha', runtime: 'codex', tools: ['reply_task'] }, 'executor-completed');
+
+    const services = { report, save, journal, sender: 'beta', replyTimeoutMs: 2000,
+      async mcp(name, args, replyEventId) {
+        assert.equal(args.peerId, 'delta');
+        const { taskId } = args;
+        const identity = { taskId, threadId };
+        report.calls.push({ name, taskId });
+        if (name === 'send_task') {
+          assert.equal(args.threadId, threadId);
+          append({ event: 'event.received', name: 'task.received', eventId: eventId(3),
+            agent: 'delta', peerId: 'beta', taskId, duplicate: false }, 'goldfish-admitted');
+          const reply = { event: 'event.received', name: 'task.replied',
+            eventId: eventId(4), agent: 'beta', peerId: 'delta', taskId };
+          append({ ...reply, duplicate: true }, 'goldfish-replay');
+          append({ ...reply, eventId: eventId(5), duplicate: false }, 'goldfish-reply');
+          append({ event: 'runner.ack', eventId: eventId(3),
+            agent: 'delta', status: 'completed' }, 'goldfish-completed');
+          return { task: identity };
+        }
+        assert.equal(name, 'get_task_result');
+        assert.equal(replyEventId, eventId(5));
+        return { ...identity, status: 'replied', reply: 'PASS' };
+      },
+    };
+
+    assert.equal(await delegate(services, 'executor', 'alpha', 'original'), original.reply);
+    assert.equal(await delegate(services, 'goldfish', 'delta', 'review'), 'PASS');
+    assert.equal(await delegate(services, 'goldfish', 'delta', 'review'), 'PASS');
+    assert.deepEqual(report.executor, original);
+    assert.equal(report.threadId, 'thread-1');
+    assert.ok(report.events.some(row => row.eventId === original.replyEventId && row.duplicate));
+    assert.equal(report.cursor, 'goldfish-completed');
+    assert.deepEqual(report.calls.map(({ name }) => name),
+      ['send_task', 'get_task_result', 'send_task', 'get_task_result']);
+    assert.deepEqual(report.calls.map(({ taskId }) => taskId),
+      [original.taskId, original.taskId, report.goldfish.taskId, report.goldfish.taskId]);
+  } finally {
+    journal?.close();
+    transport.mock.restore();
+    syncBuiltinESMExports();
+    resumed.close();
+  }
 });
