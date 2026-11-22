@@ -93,3 +93,5 @@ explícito al final de cada mensaje. Distintas revisiones Git bloquearon
 por falta de evidencia en Ubuntu o por recibir solo un extracto del oráculo.
 El resultado final se obtuvo con las ejecuciones de ambos sistemas y los
 dos archivos completos para esa revisión.
+
+[Flujo automatizado para nuevas revisiones](CODEX-VPS-BASELINE-AUTOMATION.md).
