@@ -3,15 +3,17 @@ import { createInterface } from 'node:readline';
 
 // The existing receiver verifies the signature and subscription before emitting event.received.
 // An authenticated SSH stream avoids installing a second receiver or changing the active one.
-export function followReceiver(host, threadId, record, env) {
+export function followReceiver(host, threadId, record, env, { cursor, history = [] } = {}) {
   const service = 'agent-mcp-federation-receiver.service';
   const worker = 'agent-mcp-federation-worker.service';
+  if (cursor && !/^[a-z0-9=;_-]{1,500}$/i.test(cursor)) throw Error('Invalid journal cursor.');
+  const start = cursor ? `--after-cursor="${cursor}"` : '--since="10 seconds ago"';
   const command = 'printf "journal.ready\\n"; exec sudo -n journalctl --no-pager --follow --no-tail ' +
-    `--since="10 seconds ago" --output=json --grep=${threadId}`;
+    `${start} --output=json --grep=${threadId}`;
   const ssh = spawn('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', host, command],
     { env, stdio: ['ignore', 'pipe', 'inherit'] });
   const lines = createInterface({ input: ssh.stdout });
-  const buffered = [];
+  const buffered = [...history];
   let waiting;
   let closed;
 
@@ -59,7 +61,7 @@ export function followReceiver(host, threadId, record, env) {
       'duplicate', 'runtime', 'status', 'tools'];
     const safe = Object.fromEntries(fields.filter(key => key in event).map(key => [key, event[key]]));
     buffered.push(safe);
-    record(safe);
+    record(safe, row.__CURSOR);
     check();
   });
 

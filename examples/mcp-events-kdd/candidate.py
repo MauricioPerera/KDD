@@ -32,7 +32,7 @@ def check_guard(guard):
             raise ValueError("Only type(length) may be called")
 
 
-def apply_proposal(proposal):
+def candidate_bytes(proposal):
     if set(proposal) != {"guard", "diagnostic"}:
         raise ValueError("Expected a guard and diagnostic")
     guard, diagnostic = proposal["guard"], proposal["diagnostic"]
@@ -60,8 +60,14 @@ def apply_proposal(proposal):
         raise ValueError("Expected the unmodified CLI entry point")
     candidate = source.replace(anchor, newline.join(check).encode("ascii"))
     ast.parse(candidate.decode("utf-8"))
-    TARGET.write_bytes(candidate)
+    return candidate
 
 
 if __name__ == "__main__":
-    apply_proposal(json.load(sys.stdin))
+    candidate = candidate_bytes(json.load(sys.stdin))
+    if sys.argv[1:] == ["--preview"]:
+        sys.stdout.buffer.write(candidate)
+    elif not sys.argv[1:]:
+        TARGET.write_bytes(candidate)
+    else:
+        raise SystemExit("Usage: candidate.py [--preview]")

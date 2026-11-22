@@ -35,7 +35,24 @@ node examples/mcp-events-kdd/run.mjs HOST https://WORKER/agent/mcp OWNER_ID ABSO
 La ruta de evidencia debe ser nueva y estar fuera del worktree. El candidato
 queda como diff para inspección y el propio orquestador compara su perímetro
 con el contrato. El piloto admite únicamente una expresión pura y un mensaje
-de diagnóstico para este punto de inserción. El receptor sigue usando sus
-suscripciones existentes. Esta ejecución de una sola sesión escribe evidencia
-parcial si vence el plazo o se cierra el stream. La promoción del baseline es
-una operación separada.
+de diagnóstico para este punto de inserción. La promoción del baseline es una
+operación separada.
+
+## Reanudar
+
+Usar los mismos argumentos y el mismo worktree, añadiendo `--resume`.
+El SQLite junto al informe es el estado de la ejecución. El JSON permite
+inspeccionar una copia del último punto guardado. Conservar ambos archivos
+SQLite y sus archivos auxiliares durante el reinicio.
+
+El orquestador recupera el hilo, los IDs de tareas, las respuestas y el
+cursor del journal. Una respuesta confirmada se reutiliza tras la reentrega
+del mismo evento. Si se perdió un recibo de envío, se puede reintentar con el
+mismo ID y el mismo mensaje. Las comprobaciones con salida guardada se
+reutilizan. Una comprobación interrumpida antes de guardar su salida puede
+volver a ejecutarse. Conservar el journal del receptor durante la interrupción
+para poder recuperar las observaciones pendientes.
+
+Ejecutar `node --test examples/mcp-events-kdd/recovery.test.mjs` para los
+controles locales. El [contrato de recuperación](../../knowledge/contracts/kdd-mcp-events-recovery.md)
+describe las condiciones del piloto.
