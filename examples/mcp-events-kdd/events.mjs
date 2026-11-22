@@ -3,13 +3,13 @@ import { createInterface } from 'node:readline';
 
 // The existing receiver verifies the signature and subscription before emitting event.received.
 // An authenticated SSH stream avoids installing a second receiver or changing the active one.
-export function followReceiver(host, threadId, record) {
+export function followReceiver(host, threadId, record, env) {
   const service = 'agent-mcp-federation-receiver.service';
   const worker = 'agent-mcp-federation-worker.service';
   const command = 'printf "journal.ready\\n"; exec sudo -n journalctl --no-pager --follow --no-tail ' +
     `--since="10 seconds ago" --output=json --grep=${threadId}`;
   const ssh = spawn('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', host, command],
-    { stdio: ['ignore', 'pipe', 'inherit'] });
+    { env, stdio: ['ignore', 'pipe', 'inherit'] });
   const lines = createInterface({ input: ssh.stdout });
   const buffered = [];
   let waiting;

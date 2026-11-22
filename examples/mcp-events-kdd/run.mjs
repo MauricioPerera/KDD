@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { isAbsolute, relative, resolve } from 'node:path';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { callbackMatch, followReceiver } from './events.mjs';
 
 const task = 'commit-message-length-config';
@@ -21,7 +21,8 @@ assert.equal(url.protocol, 'https:');
 assert.equal(url.pathname, '/agent/mcp');
 assert.ok(!url.username && !url.password && !url.search && !url.hash && token);
 const evidence = resolve(evidenceArg);
-assert.ok(relative(process.cwd(), evidence).startsWith('..') && isAbsolute(evidenceArg),
+const evidenceRelative = relative(process.cwd(), evidence);
+assert.ok(isAbsolute(evidenceArg) && (isAbsolute(evidenceRelative) || evidenceRelative.startsWith('..' + sep)),
   'Use an absolute evidence path outside the candidate worktree.');
 
 const threadId = randomUUID();
@@ -91,14 +92,13 @@ function proposalPrompt(base) {
   ].join('\n');
 }
 function reviewPrompt(base, diff) {
+  const additions = diff.split('\n').filter(line => line.startsWith('+') && !line.startsWith('+++'));
+  const code = additions.map(line => line.slice(5).trimEnd()).join('\n').trimEnd();
   return [
-    `Act as a fresh, read-only KDD Goldfish. Task ${task}, base ${base}.`,
-    'Review the candidate source below against the approved interface of the existing CLI:',
-    'max_subject_length accepts nonnegative integers including zero. Boolean, null, string, float, negative, list and dictionary inputs must report CONFIG_INVALID and exit 1.',
-    'Zero may emit SUBJECT_TOO_LONG, which is a non-blocking warning. Existing missing-key behavior stays the same.',
-    'The frozen regression checks every invalid type above and valid values 0 and 72.',
-    'Return one JSON object with verdict ("pass" or "finding"), case (a concrete input and expected outcome) and reason (why the candidate passes or fails that case). Review just the supplied material.',
-    diff,
+    `Goldfish read-only review for KDD ${task}, base ${base}.`,
+    'True must exit 1 with CONFIG_INVALID. Integer 0 must continue to the existing validator.',
+    'Does this change satisfy both cases? Start your one-line reply with PASS or FINDING and state both actual outcomes. Use reply_task.',
+    code,
   ].join('\n');
 }
 async function dispatch(journal, peerId, message, role) {
@@ -109,8 +109,11 @@ async function dispatch(journal, peerId, message, role) {
   assert.equal(sent.task.threadId, threadId);
   const inbound = await journal.waitFor(callbackMatch({ agent: peerId, peerId: sender, taskId, threadId },
     'task.received'), role + ' admission');
-  const notification = await journal.waitFor(callbackMatch({ agent: sender, peerId, taskId, threadId },
-    'task.replied'), role + ' response');
+  const matchesReply = callbackMatch({ agent: sender, peerId, taskId, threadId }, 'task.replied');
+  const failed = row => row.agent === peerId && row.eventId === inbound.eventId &&
+    (row.event === 'agent.failed' || (row.event === 'runner.ack' && row.status === 'failed'));
+  const notification = await journal.waitFor(row => matchesReply(row) || failed(row), role + ' response');
+  assert.ok(matchesReply(notification), role + ' failed for ' + inbound.eventId);
   const result = await mcp('get_task_result', { peerId, taskId }, notification.eventId);
   assert.equal(result.taskId, taskId);
   assert.equal(result.threadId, threadId);
@@ -147,7 +150,7 @@ try {
   journal = followReceiver(host, threadId, row => {
     report.events.push(row);
     save();
-  });
+  }, childEnv);
   await journal.waitFor(row => row.event === 'journal.ready', 'SSH journal', 15_000);
   console.log(JSON.stringify({ task, threadId, base, status: 'waiting_for_events' }));
   const proposal = replyJson(await dispatch(journal, 'alpha', proposalPrompt(base), 'executor'));
@@ -157,11 +160,10 @@ try {
   const diff = git('diff', '--', target);
   const candidate = digest(target);
   report.candidate = { sha256: candidate, diff };
-  const review = replyJson(await dispatch(journal, 'delta', reviewPrompt(base, diff), 'goldfish'));
-  assert.deepEqual(Object.keys(review).sort(), ['case', 'reason', 'verdict']);
-  assert.ok(typeof review.case === 'string' && review.case.trim() &&
-    typeof review.reason === 'string' && review.reason.trim());
-  assert.ok(['pass', 'finding'].includes(review.verdict));
+  const reviewText = await dispatch(journal, 'delta', reviewPrompt(base, diff), 'goldfish');
+  const verdict = /^(PASS|FINDING)\b[\s:–-]*([\s\S]+)/i.exec(reviewText.trim());
+  assert.ok(verdict && verdict[2].trim(), 'Expected a Goldfish verdict with the observed cases.');
+  const review = { verdict: verdict[1].toLowerCase(), reason: verdict[2].trim() };
   report.review = review;
   save();
 
