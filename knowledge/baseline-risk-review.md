@@ -136,6 +136,10 @@ invalidos. Inspect siempre devuelve `review_ready: false` y no `approved_ref`.
 Verify devuelve `review_ready`, `risk_floor`, `risk`, `required_reviewers`,
 identidades exactas y hallazgos mecanicos. Ningun resultado concede aprobacion.
 
+El [piloto de Codex VPS](../docs/reports/CODEX-VPS-BASELINE-PILOT.md)
+documenta el flujo optativo y el ensayo remoto de entrega, apertura de hilos,
+validacion v1 y reintento sobre el candidato `a7e1c84`.
+
 Las pruebas usan repositorios y procesos Git/Python reales, sin red o modelos.
 Comprueban riesgos, borrados/renombres/modos, identidades, bloqueos, fuentes,
 rechazo de datos ambiguos, lectura del commit pese a un checkout alterado,
