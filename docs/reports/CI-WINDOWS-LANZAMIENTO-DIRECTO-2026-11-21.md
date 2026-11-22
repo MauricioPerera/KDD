@@ -65,3 +65,62 @@ ejecución del `main` anterior. Mide la diferencia observada en el CI
 completo de Windows, con los demás cambios del PR y la variación entre
 runners. El efecto aislado del lanzamiento directo requiere una
 comparación controlada. [CI de `dae79b1`](https://github.com/MauricioPerera/KDD/actions/runs/44613234861/attempts/1)
+
+## Runtimes en 00e1af7
+
+La comparación fijó `main` en `00e1af78c298e0d8f960040cdb7727c5c091640f`
+y repitió el workflow completo del run `44948707100`. Las tres parejas
+originales alternaron el orden de ejecución, con `74d357f` primero en las
+parejas 1 y 3 y `39e402e` primero en la pareja 2. El tiempo de Windows se
+mide desde el inicio del intento hasta que terminan ambos checks requeridos,
+`board (windows-latest)` y `validate (windows-latest)`.
+[Run de main](https://github.com/MauricioPerera/KDD/actions/runs/44948707100)
+
+| Intento | Runtime | Hasta ambos checks de Windows | Pasadas Ubuntu | Pasadas Windows | Post-init Windows | Pages |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| [3](https://github.com/MauricioPerera/KDD/actions/runs/44948707100/attempts/3) | `74d357f` | 25:25 | 6:33 / 4:01 | 13:43 / 9:41 | 382 s | [Verificado](https://github.com/MauricioPerera/KDD/actions/runs/44957593868) |
+| [4](https://github.com/MauricioPerera/KDD/actions/runs/44948707100/attempts/4) | `39e402e` | 35:49 | 4:20 / 3:07 | 19:26 / 14:02 | 378 s | [Verificado](https://github.com/MauricioPerera/KDD/actions/runs/44960665349) |
+| [5](https://github.com/MauricioPerera/KDD/actions/runs/44948707100/attempts/5) | `39e402e` | 27:21 | 4:33 / 3:15 | 14:32 / 10:45 | 406 s | [Verificado](https://github.com/MauricioPerera/KDD/actions/runs/44963033744) |
+| [6](https://github.com/MauricioPerera/KDD/actions/runs/44948707100/attempts/6) | `74d357f` | 19:51 | 5:18 / 3:26 | 10:29 / 7:44 | 398 s | [Falló el despliegue](https://github.com/MauricioPerera/KDD/actions/runs/44964701316/attempts/1) |
+| [7](https://github.com/MauricioPerera/KDD/actions/runs/44948707100/attempts/7) | `74d357f` | 36:14 | 6:30 / 3:59 | 19:56 / 13:59 | 379 s | [Verificado](https://github.com/MauricioPerera/KDD/actions/runs/44967801816) |
+| [8](https://github.com/MauricioPerera/KDD/actions/runs/44948707100/attempts/8) | `39e402e` | 34:50 | 4:44 / 3:17 | 19:02 / 13:29 | 409 s | [Verificado](https://github.com/MauricioPerera/KDD/actions/runs/44970679819) |
+| [9, recuperación](https://github.com/MauricioPerera/KDD/actions/runs/44948707100/attempts/9) | `74d357f` | 25:17 | 5:32 / 3:33 | 13:39 / 9:42 | 403 s | [Verificado](https://github.com/MauricioPerera/KDD/actions/runs/44973260562) |
+
+Cada uno de los siete CI completó dos pasadas en Ubuntu y Windows, con
+los mismos **2.623 IDs por pasada** y el digest
+`aaf9c5d208781288c8327d20f920bdb842847489108d44684e1bbb2aa7edc90b`.
+Los reportes de cobertura de líneas y ramas correspondieron a la primera
+pasada de cada sistema. Las ventanas del post-init de Windows quedaron
+entre **378 y 409 s**, por debajo del plazo común de 600 s.
+[Contrato del plazo común](../../knowledge/contracts/postinit-windows-common-deadline.md)
+
+### Diferencia en Windows
+
+Con tres despliegues verificados por runtime, las medianas fueron **25:25
+(1.525 s)** con `74d357f` y **34:50 (2.090 s)** con `39e402e`. La
+diferencia observada fue de **9:25 (565 s, 37,05 % más)**. En las tres
+parejas originales, `39e402e` tardó 10:24 más, 7:30 más y 1:24 menos,
+respectivamente. La variación entre runners limita cuánto de la
+diferencia se puede atribuir al runtime.
+
+### Recuperación de Pages y runtime activo
+
+El CI del intento 6 pasó y el build de Pages verificó ambos inventarios
+con `74d357f`. El paso de despliegue no encontró el artefacto
+`github-pages` que el paso de subida acababa de finalizar. Al repetir
+solo Pages, la descarga del inventario Ubuntu del intento 6 falló porque
+el artefacto ya no aparecía en la API. El tiempo de Windows de ese CI se
+conservó en la serie original. [Fallo inicial](https://github.com/MauricioPerera/KDD/actions/runs/44964701316/attempts/1) ·
+[Reintento de Pages](https://github.com/MauricioPerera/KDD/actions/runs/44964701316/attempts/2)
+
+El intento 9 repitió el CI completo con `74d357f` sobre el mismo SHA y
+completó el tercer despliegue verificado para ese runtime. La mediana de
+Windows fue 25:25 tanto en los tres CI originales de `74d357f` como en
+los tres que completaron Pages.
+[Despliegue de recuperación](https://github.com/MauricioPerera/KDD/actions/runs/44973260562)
+
+Al cierre se verificó que `KDD_TRUSTED_RUNTIME_REF` quedó fijada a
+`39e402e4377aa5e97947888b9b5934202af8302e`. El despliegue de
+recuperación quedó asociado a `74d357f`, el runtime que registraron los
+inventarios del intento 9.
+[Vinculación de Pages al CI productor](../../knowledge/pages-ci-inventory.md#comprobaciones-antes-de-publicar)
