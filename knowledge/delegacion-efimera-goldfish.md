@@ -55,11 +55,8 @@ Aplicar los pisos, perspectivas y número de revisores de la
 del diff orienta el tiempo de lectura. El riesgo lo determinan las garantías
 que pueden fallar y quién depende de ellas.
 
-| Riesgo | Encargo de revisión |
-| --- | --- |
-| Bajo | Una lectura breve del encargo, el perímetro y la evidencia. Si hay una garantía que verificar, buscar el contraejemplo más plausible. Para una edición elegible, aplicar el [flujo ligero](odd-lightweight.md). |
-| Medio | Al menos un revisor independiente comprueba el encargo contra el código real y busca falsos verdes en las garantías afectadas. Pide una prueba vecina si detecta un consumidor compartido. |
-| Alto | Dos revisores independientes cubren las perspectivas del protocolo. Dar un encargo explícito sobre las fronteras de confianza, compatibilidad y efectos de fallo. En tareas de varias etapas, fijar qué evidencia permite pasar de una a otra. |
+La [tabla de encargos por riesgo](../docs/reports/DELEGACION-EFIMERA-GOLDFISH.md#encargos-por-nivel-de-riesgo)
+recoge ejemplos de aplicación de ese protocolo.
 
 El informe emite dos juicios. El primero comprueba si un agente puede proceder
 sin inventar una decisión. El segundo comprueba si las pruebas distinguen una
@@ -97,27 +94,10 @@ delega de nuevo, entregar el paquete corregido y la evidencia del estado actual.
 
 ## 4. Verificar las pruebas vecinas
 
-Al preparar la spec y al leer el diff, el orquestador recorre las llamadas,
-los artefactos y las configuraciones que usan la garantía afectada. Elige un
-caso dirigido por consumidor o variante
-relevante y registra qué protege. Si un mismo caso cubre varios consumidores,
-anotar la cobertura. Ante un nuevo hallazgo, conservar el fallo y repetir el
-caso en la entrega corregida junto con el conjunto dirigido original.
-
-| Si el cambio toca | Ejecutar también |
-| --- | --- |
-| Helper compartido, API, formato o recibo | Una integración por ruta pública afectada. Probar productor y consumidor juntos, variantes histórica y actual y rechazo de un artefacto inválido. |
-| Aprobación, inventario, sellos o comparación de bytes | Los flujos que pasan identidad o integridad por el mismo punto, incluidos los perfiles sin la función nueva. Probar un caso válido y una alteración rechazada. |
-| Discovery, dependencias o configuración de ejecución | El consumidor real en su entorno de ejecución. Cuando la garantía sea detectar una dependencia ausente, comprobar el fallo sin ella y el inventario esperado con el lock. |
-| Refactor de un validador | La suite anterior de la API y la CLI, el presupuesto aplicable y al menos un comportamiento sensible al cambio. Si se promete releer archivos, modificar la entrada entre dos llamadas en el mismo proceso. |
-
-Registrar la base, el candidato o la huella del diff, los insumos entregados,
-quién revisó y las salidas reales de las pruebas del candidato. Enlazar los
-hallazgos, su resolución y cualquier comprobación pendiente. Las pruebas vecinas
-complementan la [validación habitual](validacion.md), incluidas las dos pasadas
-en Ubuntu y Windows del CI aplicable. Guardar la evidencia antes de cerrar
-la sesión o retirar la copia. Para medir el coste de revisión, anotar inicio y
-entrega del informe, y medir aparte la implementación y el retrabajo.
+Elegir una prueba por consumidor o variante relevante y registrar qué
+protege. Las pruebas vecinas complementan la [validación habitual](validacion.md).
+La [matriz de pruebas vecinas](../docs/reports/DELEGACION-EFIMERA-GOLDFISH.md#matriz-de-pruebas-vecinas)
+reúne los controles y sus requisitos de evidencia.
 
 El [piloto con tres tareas reales](../docs/reports/DELEGACION-EFIMERA-GOLDFISH.md)
 documenta por qué estos controles se aplican al encargo, al oráculo y a los

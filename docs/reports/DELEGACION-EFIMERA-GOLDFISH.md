@@ -64,3 +64,35 @@ Los tiempos son observaciones locales. El piloto no midió CI completo ni
 comparó el desempeño con sesiones que heredaran la conversación. El informe
 de ejecución, los diffs y los logs se conservaron en el directorio local de
 evidencia del piloto. Los SHA de la tabla identifican los insumos históricos.
+
+## Encargos por nivel de riesgo
+
+| Riesgo | Encargo de revisión |
+| --- | --- |
+| Bajo | Una lectura breve del encargo, el perímetro y la evidencia. Si hay una garantía que verificar, buscar el contraejemplo más plausible. Para una edición elegible, aplicar el [flujo ligero](../../knowledge/odd-lightweight.md). |
+| Medio | Al menos un revisor independiente comprueba el encargo contra el código real y busca falsos verdes en las garantías afectadas. Pide una prueba vecina si detecta un consumidor compartido. |
+| Alto | Dos revisores independientes cubren las perspectivas del protocolo. Dar un encargo explícito sobre las fronteras de confianza, compatibilidad y efectos de fallo. En tareas de varias etapas, fijar qué evidencia permite pasar de una a otra. |
+
+## Matriz de pruebas vecinas
+
+Al preparar la spec y al leer el diff, el orquestador recorre las llamadas,
+los artefactos y las configuraciones que usan la garantía afectada. Elige un
+caso dirigido por consumidor o variante
+relevante y registra qué protege. Si un mismo caso cubre varios consumidores,
+anotar la cobertura. Ante un nuevo hallazgo, conservar el fallo y repetir el
+caso en la entrega corregida junto con el conjunto dirigido original.
+
+| Si el cambio toca | Ejecutar también |
+| --- | --- |
+| Helper compartido, API, formato o recibo | Una integración por ruta pública afectada. Probar productor y consumidor juntos, variantes histórica y actual y rechazo de un artefacto inválido. |
+| Aprobación, inventario, sellos o comparación de bytes | Los flujos que pasan identidad o integridad por el mismo punto, incluidos los perfiles sin la función nueva. Probar un caso válido y una alteración rechazada. |
+| Discovery, dependencias o configuración de ejecución | El consumidor real en su entorno de ejecución. Cuando la garantía sea detectar una dependencia ausente, comprobar el fallo sin ella y el inventario esperado con el lock. |
+| Refactor de un validador | La suite anterior de la API y la CLI, el presupuesto aplicable y al menos un comportamiento sensible al cambio. Si se promete releer archivos, modificar la entrada entre dos llamadas en el mismo proceso. |
+
+Registrar la base, el candidato o la huella del diff, los insumos entregados,
+quién revisó y las salidas reales de las pruebas del candidato. Enlazar los
+hallazgos, su resolución y cualquier comprobación pendiente. Las pruebas vecinas
+complementan la [validación habitual](../../knowledge/validacion.md), incluidas las dos pasadas
+en Ubuntu y Windows del CI aplicable. Guardar la evidencia antes de cerrar
+la sesión o retirar la copia. Para medir el coste de revisión, anotar inicio y
+entrega del informe, y medir aparte la implementación y el retrabajo.
