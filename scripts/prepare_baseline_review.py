@@ -54,7 +54,8 @@ def _execution(receipt, candidate):
         _reject('EXECUTION', 'expected an execution receipt for the exact candidate')
     if status not in ('passed', 'failed', 'infrastructure_error'):
         _reject('EXECUTION', 'unknown execution status')
-    if ((status == 'passed' and code != 0) or (status == 'failed' and code == 0)):
+    succeeded = code == 0
+    if status != 'infrastructure_error' and succeeded != (status == 'passed'):
         _reject('EXECUTION', 'execution status contradicts its exit code')
     return receipt
 
