@@ -8,12 +8,12 @@ intent: 'Cerrar el gate requerido solo con los dos productores del mismo intento
 target: .github/workflows/validate.yml
 language: yaml
 signature: 'Verify Windows validation receipts'
-test_command: 'python -m unittest tests.test_ci_windows_board_receipts'
+test_command: 'python -m unittest tests.test_ci_windows_board_receipts tests.test_ci_windows_receipt_inventory'
 test_runner: python-unittest
 test_scope: infrastructure
-tests: tests/test_ci_windows_board_receipts.py
-tests_sha256: '7a577c1732cdb22f9c34df7b75e3093decc6363977c2e8bde2d5b063087d4359'
-oracle_files: ['tests/test_ci_windows_board_receipts.py', 'tests/test_ci_trusted_execution.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py']
+tests: tests/test_ci_windows_receipt_inventory.py
+tests_sha256: 'fd4eff4ee06afa3d7991613b6ca82f065b4190e0e2ee93ad874d8b72c1936438'
+oracle_files: ['tests/test_ci_windows_board_receipts.py', 'tests/test_ci_windows_receipt_inventory.py', 'tests/test_ci_trusted_execution.py', 'tests/test_fixture_preparation.py', 'tests/__init__.py']
 budget:
   cyclomatic_max: 12
   nesting_max: 4
@@ -44,8 +44,10 @@ El workflow materializa estos datos desde needs y su contexto actual.
 
 Cada ZIP contiene un solo archivo regular, receipt.json en los dos
 recibos y coverage.json en el artefacto de cobertura. Los recibos son
-JSON sin claves duplicadas, con schema_version 1, role, identity, ok y
-los datos del rol. Rutas inesperadas, miembros extra y enlaces fallan.
+JSON sin claves duplicadas, con schema_version, role, identity, ok y
+los datos del rol. Contracts conserva v1, suites publica v2. El lector
+admite suites v1 historico con los mismos controles de identidad y limites.
+Rutas inesperadas, miembros extra y enlaces fallan.
 Cada recibo admite hasta 2 MiB comprimidos y 1 MiB descomprimido,
 igual que post-init. Cobertura admite hasta 8 MiB comprimidos y
 16 MiB descomprimidos. Aplicar los limites en un driver autocontenido,
@@ -57,15 +59,23 @@ El recibo contracts agrega rows con los campos path POSIX relativo,
 test_command, scope, shared_from, ok y exit_code. Cotejar su inventario
 con el plan del gate fijado y su deduplicacion exacta desde el arbol
 probado. Se agrupan los textos de comando exactos que usa el runtime
-aprobado; no se introduce otra normalizacion. El recibo suites agrega
-passes, dos filas ordenadas. Cada
-fila contiene number, runtime, workers, expected_ids, executed_ids,
-ok, errors, failures, fixture_omitted_ids y coverage.
-La primera contiene coverage con pass_no=1, sha256, fragments,
-lines_total y branches_total del reporte real. La segunda usa null.
-Comparar los IDs ordenados de cada pasada (UTF-8, un ID por linea y
-salto final LF) con el digest del discovery independiente del
-productor Windows, ligado a su paso directo mediante needs. El
+aprobado; no se introduce otra normalizacion. Suites v2 transporta una
+sola lista inventory ordenada, completa y sin duplicados, y dos filas
+ordenadas passes. Cada fila conserva number, runtime, workers, ok,
+errors, failures, fixture_omitted_ids y coverage. Sustituye sus dos
+listas por expected_ids_sha256 y executed_ids_sha256. En v1 se conservan
+las listas por pasada.
+
+El productor calcula cuatro digest por separado desde expected_ids y
+executed_ids de los dos reportes, tras validar cada lista. El digest es
+SHA-256 de los IDs ordenados, UTF-8, un ID por linea y LF final. Solo
+publica si las cuatro listas representan el mismo inventario. El join
+recalcula el digest de inventory y coteja los cuatro valores con el
+digest del discovery independiente de Windows ligado por needs. Los
+conteos finales corresponden al inventario completo. La primera pasada
+contiene coverage con pass_no=1, sha256, fragments, lines_total y
+branches_total del reporte real. La segunda usa null.
+El
 resumen de cobertura coincide con el reporte descargado del mismo intento, incluido su
 SHA-256 de bytes y su identidad. Los tres ZIP se exigen aunque
 la accion de descarga permita continuar habiendo encontrado uno.
@@ -74,6 +84,9 @@ La CLI devuelve 0 y JSON con ok=true solo con recibos validos. Rechaza
 errores de identidad, transporte, esquema o inventario con exit 2.
 Los recibos transportan solo los datos proyectados especificados y
 los tiempos en el [formato existente](ci-timing-diagnostics.md).
+Suites v2 rechaza claves adicionales en la envoltura de diagnosticos.
+En esa envoltura, complete es false y missing es ["commands-report"],
+porque el reporte de comandos proviene del otro productor.
 No publican los reportes crudos del runner.
 
 ## Invariants
@@ -116,6 +129,11 @@ desde un commit distinto del checkout sometido a pruebas,
 ejecuta el comando del contrato y dos pasadas con el interprete real,
 y usa esos datos para probar transporte, inventario e identidad.
 Los IDs de upload y el resumen de cobertura del fixture se simulan.
+El oraculo de escala ejecuta dos pasadas de 2.661 casos reales en un
+checkout temporal. En su entrega v2 los IDs ocupan una sola lista, la
+proyeccion mide menos de la mitad de v1 y cabe en 1 MiB. Los controles
+de rechazo ejercitan cada lista del productor y vinculan el recibo
+v2 al digest independiente, incluso al mantener el conteo.
 La comprobacion alojada exige la cobertura real y la procedencia
 de los productores del intento actual.
 
@@ -124,6 +142,11 @@ de los productores del intento actual.
 PARAR y reportar si se necesita publicar, cambiar el runtime fijado
 o una proteccion. Revisar y aprobar previamente el baseline de
 contratos/oraculos y luego el arbol exacto del workflow protegido.
-La entrega exige tres CI comparables del mismo SHA con el trabajo
-Windows completo, incluido el tiempo de cola y comprobacion final,
-por debajo de la referencia en la medicion reproducible.
+Medir tres CI del mismo head, arbol y runtime. Verificar ambas pasadas
+por SO, cobertura de la primera, inventario y post-init menor de 600 s.
+Medir los bytes y el tiempo del trabajo Windows hasta ambos checks
+exitosos, incluyendo cola y union. Comparar con referencia de perfil
+y runtime equivalentes. Registrar inventario, imagen y alcance de cada
+muestra. Una ejecucion fallida sirve para reproducir el limite, pero
+no acredita un tiempo hasta un check exitoso. Si las muestras no
+demuestran ahorro de pared, conservar el resultado observado.
