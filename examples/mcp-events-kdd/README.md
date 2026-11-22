@@ -18,9 +18,13 @@ documenta la comparación con invocación directa y el costo de coordinación.
 
 ## Ejecutar
 
-Usar un worktree limpio de la rama del piloto en el commit de la infraestructura,
-previo al candidato que modifica el validador. Se requiere Node.js 24, Python,
-Git y acceso SSH al VPS con permiso para seguir el journal del receptor. En la
+El piloto ejecuta el caso de regresión en un worktree limpio anterior al
+candidato que corrige el validador. Para repetir el caso, usar
+`eae041fe86582fbf323c1f9dd14420318b55d29a` como base de un worktree separado
+en una rama que empiece por `codex/kdd-mcp-events-goldfish-`. Ejecutar desde
+el worktree de prueba con la ruta absoluta del `run.mjs` de la rama que contiene
+el orquestador. Se requiere Node.js 24, Python, Git y acceso SSH al VPS con
+permiso para seguir el journal del receptor. En la
 federación, el propietario que envía las tareas debe tener ALPHA y DELTA como
 pares. Las suscripciones del receptor y el runner local de DELTA deben estar
 activos. Cargar `KDD_MCP_OWNER_TOKEN` en el entorno privado del proceso.
@@ -29,7 +33,7 @@ El plazo de respuesta del orquestador se puede fijar con
 `KDD_MCP_REPLY_TIMEOUT_MS`. Conservar margen para entregar el webhook.
 
 ```text
-node examples/mcp-events-kdd/run.mjs HOST https://WORKER/agent/mcp OWNER_ID ABSOLUTE_EVIDENCE_PATH
+node ABSOLUTE_ORCHESTRATOR_PATH HOST https://WORKER/agent/mcp OWNER_ID ABSOLUTE_EVIDENCE_PATH
 ```
 
 La ruta de evidencia debe ser nueva y estar fuera del worktree. El candidato
