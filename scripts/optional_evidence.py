@@ -309,6 +309,13 @@ def _complete_scan(layer, data):
             and isinstance(data.get('findings'), list))
 
 
+def _example_scan_status(data, required, status):
+    identifier = data.get('scanId', '')
+    if isinstance(identifier, str) and identifier.startswith('example_') and status[0] != 'FAIL':
+        return ('FAIL' if required else 'SKIP'), 'example scan is not project evidence'
+    return status
+
+
 def _scan_status(layer, source, required, status):
     try:
         text = source.read_text(encoding='utf-8-sig')
@@ -318,12 +325,9 @@ def _scan_status(layer, source, required, status):
             raise ValueError('expected a JSON object')
         if strict and status[0] != 'FAIL' and not _complete_scan(layer, data):
             return 'FAIL', 'required scan must contain documentType, schemaVersion, scanId and findings'
-        identifier = data.get('scanId', '')
-        if isinstance(identifier, str) and identifier.startswith('example_') and status[0] != 'FAIL':
-            return ('FAIL' if required else 'SKIP'), 'example scan is not project evidence'
     except (ValueError, OSError, RecursionError):
         return 'FAIL', 'invalid evidence JSON'
-    return status
+    return _example_scan_status(data, required, status)
 
 
 def evaluate_layers(layers, required, environ, summary=False):

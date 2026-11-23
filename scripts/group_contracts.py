@@ -16,6 +16,7 @@ import sys
 
 import validate_contracts
 import validate_test_commands
+from oracle_inventory import inventory_paths
 
 
 class InvalidGroup(ValueError):
@@ -150,6 +151,19 @@ def _group(metadata):
     return children, tests, protected, argv
 
 
+def _check_atomic(root, path, metadata, checked):
+    if metadata.get('type') != 'Task Contract':
+        raise InvalidGroup('child is not an atomic contract or group')
+    findings = validate_contracts.validate_file(str(path), repo_root=str(root))
+    if any(finding.level == 'ERROR' for finding in findings):
+        raise InvalidGroup('invalid atomic contract')
+    for name in inventory_paths(metadata):
+        checked(name)
+    command = metadata.get('test_command')
+    if not isinstance(command, str) or not command.strip():
+        raise InvalidGroup('atomic contract has no test command')
+
+
 def _graph(root, ref, first):
     nodes, protected, ordered, visiting = {}, {}, [], set()
 
@@ -176,17 +190,7 @@ def _graph(root, ref, first):
                 visit(child)
             nodes[value] = ('integration', argv)
         else:
-            if metadata.get('type') != 'Task Contract':
-                raise InvalidGroup('child is not an atomic contract or group')
-            findings = validate_contracts.validate_file(str(path), repo_root=str(root))
-            if any(finding.level == 'ERROR' for finding in findings):
-                raise InvalidGroup('invalid atomic contract')
-            checked(metadata.get('tests'))
-            for oracle in metadata.get('oracle_files', []):
-                checked(oracle)
-            command = metadata.get('test_command')
-            if not isinstance(command, str) or not command.strip():
-                raise InvalidGroup('atomic contract has no test command')
+            _check_atomic(root, path, metadata, checked)
             nodes[value] = ('atomic', metadata)
         visiting.remove(value)
         ordered.append(value)
