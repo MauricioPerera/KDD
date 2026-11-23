@@ -1,4 +1,5 @@
 """Execute the generated concept tool with a scoped loopback origin in Node."""
+import hashlib
 import http.server
 import json
 import os
@@ -6,6 +7,7 @@ from pathlib import Path
 import runpy
 import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 import unittest
@@ -50,6 +52,35 @@ vm.runInNewContext(readFileSync(file, 'utf8'), {host, registerTool: value => { t
 '''
 
 
+FINALIZER = 'scripts/finalize_pages_concepts.py'
+CHECK = (
+    "import hashlib, os, pathlib, sys; "
+    "body = pathlib.Path('scripts/finalize_pages_concepts.py').read_text(encoding='utf-8').encode('utf-8'); "
+    "sys.exit(0 if hashlib.sha256(body).hexdigest() == os.environ['KDD_PAGES_FINALIZER_SHA256'] "
+    "else 'Pages finalizer hash mismatch')"
+)
+FIXTURE_PUBLISHER = """import {appendFileSync, readFileSync, writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+const [mode, parameter, flag] = process.argv.slice(2);
+const filename = 'skills/get_concept/tool.js';
+const bytes = readFileSync(filename);
+const digest = createHash('sha256').update(bytes).digest('hex');
+if (mode === 'publish' && parameter === '--check') {
+  if (readFileSync('fixture-published-digest', 'utf8') !== digest) process.exit(4);
+} else if (mode === 'publish' && !parameter) {
+  writeFileSync('fixture-published-digest', digest);
+} else if (mode === 'validate' && flag === '--strict') {
+  const uri = new URL(filename, parameter);
+  if (uri.pathname !== '/KDD/' + filename) process.exit(5);
+  const response = await fetch(uri, {signal: AbortSignal.timeout(4000)});
+  if (!response.ok || !Buffer.from(await response.arrayBuffer()).equals(bytes)) process.exit(6);
+} else {
+  process.exit(7);
+}
+appendFileSync('fixture-publisher-log', JSON.stringify({mode, option: flag || parameter || null, digest}) + '\\n');
+"""
+
+
 class PagesConceptDelivery(unittest.TestCase):
     def setUp(self):
         node = shutil.which('node')
@@ -65,7 +96,8 @@ class PagesConceptDelivery(unittest.TestCase):
         modules = runpy.run_path(str(ROOT / 'site/build.py'))
         self.build = modules['build_pages']
         self.static_files = modules['STATIC_FILES']
-        self.transform = modules.get('scope_generated_concept')
+        publication = runpy.run_path(str(ROOT / 'scripts/finalize_pages_concepts.py'))
+        self.transform = publication.get('scope_generated_concept')
         self.output = output
 
         class Handler(http.server.BaseHTTPRequestHandler):
@@ -156,9 +188,82 @@ class PagesConceptDelivery(unittest.TestCase):
 
         with patch.dict(self.build.__globals__, {'run_publisher': fixture_publisher}):
             self.build(str(fixture), str(destination), 'https://github.com/MauricioPerera/KDD/actions/runs/1')
+        initial, = published
+        publisher = fixture / 'site/node_modules/@rckflr/llms-skills/bin/llms-skills.mjs'
+        publisher.parent.mkdir(parents=True)
+        publisher.write_text(FIXTURE_PUBLISHER, encoding='utf-8', newline='\n')
+        shutil.copyfile(ROOT / 'site/build.py', fixture / 'site/build.py')
+        entry = fixture / FINALIZER
+        shutil.copyfile(ROOT / FINALIZER, entry)
+        result = subprocess.run([sys.executable, '-I', str(entry), '--output', str(destination)],
+                                cwd=fixture, env=env, capture_output=True, text=True, timeout=25)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        trace = destination / 'fixture-publisher-log'
+        self.assertTrue(trace.is_file(), 'The actual finalizer CLI must publish and verify its artifact')
+        events = [json.loads(line) for line in trace.read_text(encoding='utf-8').splitlines()]
+        self.assertEqual([(event['mode'], event['option']) for event in events],
+                         [('publish', None), ('publish', '--check'), ('validate', '--strict')])
         self.tool = destination / 'skills/get_concept/tool.js'
         self.transform = None
-        self.assertEqual(published, [self.tool.read_bytes()])
+        self.assertNotEqual(initial, self.tool.read_bytes())
+        final = hashlib.sha256(self.tool.read_bytes()).hexdigest()
+        self.assertEqual({event['digest'] for event in events}, {final})
         result = self.get('OKF-SPEC.md')
         self.assertEqual(result['requested'], ['/KDD/knowledge/OKF-SPEC.md'], result)
         self.assertEqual(result.get('value'), {'id': 'OKF-SPEC.md', 'markdown': SHORT_TEXT}, result)
+
+
+    def test_preview_and_deployment_finalize_the_same_artifacts_before_use(self):
+        workflows = ROOT / '.github/workflows'
+        preview = (workflows / 'validate.yml').read_text(encoding='utf-8')
+        deployment = (workflows / 'deploy-pages.yml').read_text(encoding='utf-8')
+        cases = (
+            (preview, 'Build and validate Pages for PR', 'Finalize scoped Pages concepts for PR',
+             "- name: Run each contract's test_command",
+             'kdd-pages-pr-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$RUNNER_OS'),
+            (deployment, 'Build and validate public bundle', 'Finalize scoped Pages concepts',
+             'uses: actions/upload-pages-artifact@', 'kdd-pages'),
+        )
+        for text, build, step, next_use, directory in cases:
+            with self.subTest(step=step):
+                first = text.index('- name: ' + build)
+                marker = '      - name: ' + step + '\n'
+                self.assertIn(marker, text)
+                finalization = text.index(marker)
+                self.assertLess(first, finalization)
+                self.assertLess(finalization, text.index(next_use, first))
+                block = text[finalization:].split('\n      - ', 1)[0]
+                command = 'python -I ' + FINALIZER + ' --output "$RUNNER_TEMP/' + directory + '"'
+                checker = 'python -I -c "' + CHECK + '"'
+                self.assertIn('        shell: bash\n', block)
+                self.assertIn('        run: |\n          ' + checker + '\n          ' + command + '\n', block)
+                body = (ROOT / FINALIZER).read_text(encoding='utf-8').encode('utf-8')
+                digest = hashlib.sha256(body).hexdigest()
+                self.assertIn('KDD_PAGES_FINALIZER_SHA256: ' + digest + '\n', block)
+                self.assertIn('--output "$RUNNER_TEMP/' + directory + '"', text[first:finalization])
+                for forbidden in ('continue-on-error:', '|| true', 'exit 0'):
+                    self.assertNotIn(forbidden, block)
+                if text is preview:
+                    condition = text[first:finalization].split('if: ', 1)[1].splitlines()[0]
+                    self.assertIn('if: ' + condition, block)
+                else:
+                    self.assertNotIn('        if:', block)
+                    upload = text[text.index(next_use, finalization):].split('\n      - ', 1)[0]
+                    self.assertIn('path: $' + '{{ runner.temp }}/kdd-pages', upload)
+
+    def test_protected_finalizer_check_rejects_file_changes(self):
+        entry = self.output / FINALIZER
+        entry.parent.mkdir(parents=True)
+        content = (ROOT / FINALIZER).read_text(encoding='utf-8')
+        entry.write_text(content, encoding='utf-8', newline='\n')
+        env = dict(os.environ, KDD_PAGES_FINALIZER_SHA256=hashlib.sha256(content.encode('utf-8')).hexdigest())
+
+        def check():
+            return subprocess.run([sys.executable, '-I', '-c', CHECK], cwd=self.output, env=env,
+                                  capture_output=True, text=True, timeout=10)
+
+        self.assertEqual(check().returncode, 0)
+        entry.write_text(content + '\n# Different finalizer bytes\n', encoding='utf-8')
+        denied = check()
+        self.assertEqual(denied.returncode, 1)
+        self.assertIn('Pages finalizer hash mismatch', denied.stderr)
