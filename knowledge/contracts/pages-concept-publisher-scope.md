@@ -14,7 +14,7 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tests/test_pages_concept_delivery.py"
-tests_sha256: 'cd517c629b07696d7df1be5d5896036658d91afaab9dbebe21d1714d17ab1803'
+tests_sha256: '9da57a6f076a115e225c29288a07b83bb97e3b550285273f890e18c2db4921db'
 touch_only: ["site/build.py", "site/llms-skills.json"]
 deps_allowed: ["node", "llms-skills"]
 forbids: ['llm']
@@ -38,7 +38,8 @@ Mantener las huellas sobre bytes finales, limite de memoria y scope.
 - DON'T: alterar perfiles o plazos.
 
 ## Tests
-Node y HTTP local. Build con el publisher fijado y ensayo real MCPWASM.
+Node y HTTP local. Comprobar el orden del build con un fixture del publisher.
+Ejecutar el build fijado y MCPWASM para verificar la entrega.
 
 ## Constraints
 Baseline humano antes de implementar. PARAR y reportar si requiere

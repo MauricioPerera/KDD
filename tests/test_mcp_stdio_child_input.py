@@ -16,18 +16,50 @@ ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / 'tools/mcp-sdk/pins.json'
 READ_TIMEOUT = 22
 
+# The portable fixture drives the same dispatcher through live pipes.
+PORTABLE_SERVER = """
+import json, sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from mcp_gate_dispatch import run_gate, seal_tests
+root = str(Path(__file__).resolve().parents[1])
+for raw in sys.stdin:
+    request = json.loads(raw)
+    if 'id' not in request:
+        continue
+    method, params = request['method'], request['params']
+    if method == 'initialize':
+        result = {'serverInfo': {'name': 'dispatcher-stdio-fixture'}}
+    elif method == 'tools/list':
+        result = {'tools': [{'name': name} for name in ('validate_test_commands', 'seal_tests', 'rule_hint')]}
+    else:
+        name = params['name']
+        arguments = params['arguments']
+        if name == 'seal_tests':
+            value = seal_tests(arguments['tests_path'], repo_root=root)
+        elif name == 'validate_test_commands':
+            value = run_gate(name, arguments, repo_root=root)
+        else:
+            value = {'known': True}
+        result = {'structuredContent': value}
+    print(json.dumps({'jsonrpc': '2.0', 'id': request['id'], 'result': result}), flush=True)
+"""
+
 
 def sdk_python():
     configured = os.environ.get('KDD_MCP_SDK_PYTHON')
     if configured:
         return configured
+    expected = json.loads(LOCK.read_text(encoding='utf-8'))['sdk_version']
     try:
-        importlib.metadata.version('mcp')
+        installed = importlib.metadata.version('mcp')
     except importlib.metadata.PackageNotFoundError:
-        if os.environ.get('KDD_MCP_SDK_REQUIRED') == '1':
-            raise RuntimeError('The required pinned MCP SDK interpreter is missing')
-        return None
-    return sys.executable
+        installed = None
+    if installed == expected:
+        return sys.executable
+    if os.environ.get('KDD_MCP_SDK_REQUIRED') == '1':
+        raise RuntimeError('The required pinned MCP SDK interpreter is missing or incompatible')
+    return None
 
 
 class Stdio:
@@ -94,13 +126,12 @@ class Stdio:
 class McpStdioTransport(unittest.TestCase):
     def setUp(self):
         python = sdk_python()
-        if python is None:
-            self.skipTest('Standalone project without the optional MCP SDK profile')
-        check = subprocess.run([python, '-I', '-c',
-                                'from importlib.metadata import version; print(version("mcp"))'],
-                               capture_output=True, text=True, encoding='utf-8', timeout=30)
-        self.assertEqual(check.returncode, 0, check.stderr)
-        self.assertEqual(check.stdout.strip(), json.loads(LOCK.read_text(encoding='utf-8'))['sdk_version'])
+        if python is not None:
+            check = subprocess.run([python, '-I', '-c',
+                                    'from importlib.metadata import version; print(version("mcp"))'],
+                                   capture_output=True, text=True, encoding='utf-8', timeout=30)
+            self.assertEqual(check.returncode, 0, check.stderr)
+            self.assertEqual(check.stdout.strip(), json.loads(LOCK.read_text(encoding='utf-8'))['sdk_version'])
         temp = tempfile.TemporaryDirectory(prefix='kdd-mcp-wire-')
         self.addCleanup(temp.cleanup)
         area = Path(temp.name).resolve()
@@ -117,7 +148,11 @@ class McpStdioTransport(unittest.TestCase):
         (self.contracts / 'sample.md').write_text(
             "---\ntest_command: 'python -m unittest test_sample.py'\n---\n",
             encoding='utf-8', newline='\n')
-        self.connection = Stdio(self.root / 'scripts/mcp_server.py', python, area, self.addCleanup)
+        server = self.root / 'scripts/mcp_server.py'
+        if python is None:
+            server = server.with_name('dispatcher_stdio_fixture.py')
+            server.write_text(PORTABLE_SERVER, encoding='utf-8', newline='\n')
+        self.connection = Stdio(server, python or sys.executable, area, self.addCleanup)
         result = self.connection.request('initialize', dict(
             protocolVersion='2025-06-18', capabilities={}, clientInfo=dict(name='kdd-integration', version='1')))
         self.assertIn('serverInfo', result)

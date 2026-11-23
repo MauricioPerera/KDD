@@ -27,7 +27,7 @@ Conservar garantias de los hijos de un [grupo](../group-contracts.md).
 Proteger oracle_files y ejecutar el test_runner canonico cuando se declara.
 
 ## Invariants
-Cotejar indice y archivos antes y despues de cada etapa. Conservar orden, deduplicacion y comando historico.
+Cotejar indice y archivos antes y despues de cada etapa. Conservar contencion de procesos, plazos, orden y comando historico.
 
 ## Examples
 - Cambio del auxiliar bloquea ejecucion.

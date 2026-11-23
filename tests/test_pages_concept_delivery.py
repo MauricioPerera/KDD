@@ -1,14 +1,15 @@
 """Execute the generated concept tool with a scoped loopback origin in Node."""
 import http.server
 import json
+import os
 from pathlib import Path
 import runpy
 import shutil
 import subprocess
-import sys
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 HOST_LIMIT = 4096
@@ -62,6 +63,8 @@ class PagesConceptDelivery(unittest.TestCase):
         self.tool.parent.mkdir(parents=True)
         self.tool.write_text(PUBLISHER_OUTPUT, encoding='utf-8', newline='\n')
         modules = runpy.run_path(str(ROOT / 'site/build.py'))
+        self.build = modules['build_pages']
+        self.static_files = modules['STATIC_FILES']
         self.transform = modules.get('scope_generated_concept')
         self.output = output
 
@@ -116,18 +119,46 @@ class PagesConceptDelivery(unittest.TestCase):
         self.assertIn('unknown concept id', result['error'])
         self.assertEqual(result['requested'], [])
 
-    def test_real_publisher_build_uses_the_scoped_tool(self):
-        publisher = ROOT / 'site/node_modules/@rckflr/llms-skills/bin/llms-skills.mjs'
-        if not publisher.is_file():
-            self.skipTest('Install the pinned Pages publisher to exercise the real build')
-        destination = self.output / 'real-build'
-        runner = subprocess.run(
-            [sys.executable, str(ROOT / 'site/build.py'), '--output', str(destination),
-             '--ci-run-url', 'https://github.com/MauricioPerera/KDD/actions/runs/1'],
-            cwd=ROOT, capture_output=True, text=True, encoding='utf-8', timeout=120)
-        self.assertEqual(runner.returncode, 0, runner.stdout[-2000:] + runner.stderr[-2000:])
+    def test_build_uses_the_scoped_tool_before_publishing(self):
+        fixture = self.output / 'source'
+        fixture.mkdir()
+        for name in self.static_files:
+            source = ROOT / 'site' / name
+            copied = fixture / 'site' / name
+            copied.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, copied)
+        (fixture / 'scripts').mkdir()
+        shutil.copyfile(ROOT / 'scripts/process_tree.py', fixture / 'scripts/process_tree.py')
+        (fixture / 'tests').mkdir()
+        (fixture / 'tests/test_sample.py').write_text(
+            'import unittest\nclass Sample(unittest.TestCase):\n    def test_value(self): self.assertTrue(True)\n',
+            encoding='utf-8', newline='\n')
+        (fixture / 'knowledge').mkdir()
+        (fixture / 'knowledge/OKF-SPEC.md').write_text(SHORT_TEXT, encoding='utf-8')
+        env = {key: value for key, value in os.environ.items() if not key.startswith('GIT_CONFIG')}
+        env.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM='1')
+        for args in (('init', '-q'), ('add', '--', 'knowledge/OKF-SPEC.md')):
+            result = subprocess.run(['git', *args], cwd=fixture, env=env,
+                                    capture_output=True, text=True, timeout=20)
+            self.assertEqual(result.returncode, 0, result.stderr)
+        destination = self.output / 'build'
+        published = []
+
+        def fixture_publisher(_repo, output, *arguments):
+            target = output / 'skills/get_concept/tool.js'
+            if arguments[0] == 'memory':
+                target.parent.mkdir(parents=True, exist_ok=True)
+                content = PUBLISHER_OUTPUT.replace('"short.md":"/knowledge/short.md"',
+                                                   '"OKF-SPEC.md":"/knowledge/OKF-SPEC.md"')
+                target.write_text(content, encoding='utf-8', newline='\n')
+            elif arguments == ('publish',):
+                published.append(target.read_bytes())
+
+        with patch.dict(self.build.__globals__, {'run_publisher': fixture_publisher}):
+            self.build(str(fixture), str(destination), 'https://github.com/MauricioPerera/KDD/actions/runs/1')
         self.tool = destination / 'skills/get_concept/tool.js'
         self.transform = None
+        self.assertEqual(published, [self.tool.read_bytes()])
         result = self.get('OKF-SPEC.md')
         self.assertEqual(result['requested'], ['/KDD/knowledge/OKF-SPEC.md'], result)
         self.assertEqual(result.get('value'), {'id': 'OKF-SPEC.md', 'markdown': SHORT_TEXT}, result)
