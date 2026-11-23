@@ -272,10 +272,12 @@ def run_gate(tool_name, params, repo_root='.', timeout=None):
     rejected = _confine_params(paths, repo_root)
     if rejected is not None:
         return rejected
+    # Keep the protocol pipe exclusively attached to the MCP server.
     try:
         proc = run_process(
             argv,
             cwd=repo_root,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -343,6 +345,7 @@ def seal_tests(tests_path, repo_root='.'):
         proc = subprocess.run(
             argv,
             cwd=repo_root,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             timeout=120,
