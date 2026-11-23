@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "experimentDate": "2026-11-22",
+  "task": "commit-message-length-config",
+  "git": {
+    "base": "eae041fe86582fbf323c1f9dd14420318b55d29a",
+    "candidate": "9a522357e6414100d6ddc5954b734d4a826281c3",
+    "target": "scripts/validate_commit_message.py",
+    "candidateBlob": "cf4b9c8441b6be6b18c113f62469e303a1aacdb5",
+    "diffSha256": "1809b1cdd50cca47db7757105e42ba500f5713eaf2122e5d5b82c816e5eafe94"
+  },
+  "models": {
+    "executor": "gpt-5.6-sol",
+    "cli": "codex-cli 0.171.0",
+    "goldfish": "qwen3.8-9b-distill"
+  },
+  "goldfish": {
+    "prompt": "Goldfish review. Python if type(length) is not int or length < 0: return CONFIG_INVALID. Should reject True and allow 0. Check both against this code. Call reply_task with one short line starting PASS or FINDING and state both results.",
+    "promptSha256": "8279ad8ae7e8e7abc2e89d40a478e6108388344a410549f77d7c207f7d0ef268",
+    "requestBodySha256": "ed86f58a9db7188a965428a73a0c834b04454af9c76ded72a0f77e7b57b2a390",
+    "inferenceLogSha256": "8c5b3f5a89fd0b2075d43a1a16858cc0921cfaaea6a337136a2df8d0d94764fe"
+  },
+  "runs": [
+    {
+      "order": 1,
+      "run": "direct-1",
+      "route": "direct",
+      "status": "verified",
+      "correlationId": "b96b1581-54a0-43a8-be9f-c0a869406c0c",
+      "milliseconds": {
+        "totalMs": 79195,
+        "qwenMs": 64299.247,
+        "codexMs": 3761.406,
+        "goldfishRouteMs": 16.753,
+        "externalCoordinationMs": 1549.347,
+        "localKddMs": 9585
+      },
+      "operatorLaunches": 1,
+      "operatorInterventions": 0,
+      "tokens": {
+        "prompt_tokens": 400,
+        "completion_tokens": 206,
+        "total_tokens": 606,
+        "completion_tokens_details": {
+          "reasoning_tokens": 149
+        }
+      },
+      "source": {
+        "file": "direct-1.json",
+        "sha256": "3ef20217d77f4b42c37b16b0929d90d4ebc85554fc7efeb3c2e4345487d74f3e"
+      }
+    },
+    {
+      "order": 2,
+      "run": "events-1",
+      "route": "events",
+      "status": "verified",
+      "correlationId": "e479813e-1529-4bbe-801c-5f326f0be412",
+      "milliseconds": {
+        "totalMs": 42662,
+        "qwenMs": 15209.272,
+        "codexMs": 12459.83,
+        "goldfishRouteMs": 3361.728,
+        "externalCoordinationMs": 7274.898,
+        "localKddMs": 7718
+      },
+      "operatorLaunches": 1,
+      "operatorInterventions": 0,
+      "tokens": {
+        "prompt_tokens": 400,
+        "completion_tokens": 206,
+        "total_tokens": 606,
+        "completion_tokens_details": {
+          "reasoning_tokens": 149
+        }
+      },
+      "source": {
+        "file": "events-1.json",
+        "sha256": "066ed8c2b914e0814a4a2e15efa02815506f4642243d084918a648fd87af89ea"
+      },
+      "signedCallbacks": [
+        {
+          "role": "executor",
+          "taskId": "5248136c-c4cc-411f-a80f-c03b49ae5cb4",
+          "taskReceivedEventId": "evt_45387e4ba3513db8cd92f98750ad59b1",
+          "taskRepliedEventId": "evt_ee5d882898e3d4ae1ec6a525be5ce43f"
+        },
+        {
+          "role": "goldfish",
+          "taskId": "8a2b795b-5da3-42ca-9d7e-ab5fd8290c70",
+          "taskReceivedEventId": "evt_533f16349287a53c642a5daf9371488f",
+          "taskRepliedEventId": "evt_ec330952bc0fc52febc4d07a7b646adb"
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "run": "events-2",
+      "route": "events",
+      "status": "verified",
+      "correlationId": "26960128-33bd-4aa6-8e4b-96505cececa8",
+      "milliseconds": {
+        "totalMs": 34926,
+        "qwenMs": 15513.854,
+        "codexMs": 10711.601,
+        "goldfishRouteMs": 2585.146,
+        "externalCoordinationMs": 5872.545,
+        "localKddMs": 2828
+      },
+      "operatorLaunches": 1,
+      "operatorInterventions": 0,
+      "tokens": {
+        "prompt_tokens": 400,
+        "completion_tokens": 206,
+        "total_tokens": 606,
+        "completion_tokens_details": {
+          "reasoning_tokens": 149
+        }
+      },
+      "source": {
+        "file": "events-2.json",
+        "sha256": "24cc039ef7d80929d6ed04e4a0183fb20a580910bf7e574df67c712c9df6395f"
+      },
+      "signedCallbacks": [
+        {
+          "role": "executor",
+          "taskId": "a59b69eb-a76d-41a0-8f67-3322a08053d2",
+          "taskReceivedEventId": "evt_6453bc9491684ad5e6dd603ef1c3f680",
+          "taskRepliedEventId": "evt_fdd50f40e1e4d0f41aa04f6292598cc8"
+        },
+        {
+          "role": "goldfish",
+          "taskId": "65611068-93df-4939-9516-fe84645cd926",
+          "taskReceivedEventId": "evt_7a7cacd681437fb9f485a5df5f879a4d",
+          "taskRepliedEventId": "evt_1eae17d848bc143b23907ed63b1f9779"
+        }
+      ]
+    },
+    {
+      "order": 4,
+      "run": "direct-2",
+      "route": "direct",
+      "status": "verified",
+      "correlationId": "62ea177d-8f6d-4b74-b7b6-7a5b570c6dd4",
+      "milliseconds": {
+        "totalMs": 23278,
+        "qwenMs": 14915.315,
+        "codexMs": 3663.153,
+        "goldfishRouteMs": 22.685,
+        "externalCoordinationMs": 1779.532,
+        "localKddMs": 2920
+      },
+      "operatorLaunches": 1,
+      "operatorInterventions": 0,
+      "tokens": {
+        "prompt_tokens": 400,
+        "completion_tokens": 206,
+        "total_tokens": 606,
+        "completion_tokens_details": {
+          "reasoning_tokens": 149
+        }
+      },
+      "source": {
+        "file": "direct-2.json",
+        "sha256": "60c996e00ab3fcdd80b456e508fe5e7df49e3a0c3b5e3f1bf8c345cc8a8bc8a0"
+      }
+    }
+  ],
+  "meansMilliseconds": {
+    "direct": {
+      "totalMs": 51236.5,
+      "qwenMs": 39607.281,
+      "codexMs": 3712.279,
+      "goldfishRouteMs": 19.719,
+      "externalCoordinationMs": 1664.44,
+      "localKddMs": 6252.5
+    },
+    "events": {
+      "totalMs": 38794,
+      "qwenMs": 15361.563,
+      "codexMs": 11585.716,
+      "goldfishRouteMs": 2973.437,
+      "externalCoordinationMs": 6573.722,
+      "localKddMs": 5273
+    }
+  },
+  "earlierFalsePositive": {
+    "scope": "comparacion anterior al diff fijo",
+    "runSha256": "269a8bf6ee89baddaf5b74aa7a400e25e4b4f1ab40ed8c14ecd00747023df91a",
+    "independentCheck": {
+      "type(True) == int": false,
+      "True rejected": true,
+      "0 rejected": false
+    },
+    "independentCheckSha256": "2d338981b1e33e15adc93f78d42c62af4b410eeef5efc57b67739caa78cdbd18"
+  },
+  "sourceArtifacts": {
+    "summary.json": "36ded04f96f8254d0930b2334370585b273c77a2beaf32508739307963da58aa",
+    "verify.mjs": "49438dca3d97b2fb25cc8d3432fcebb9ba06666e8d6bc05a7db09297a8ae8bd2",
+    "COMPARACION.md": "442d5788ef735c58e6acbe13a725d8656ddf5f4b3ba70f87fc41bf1b8fc27eea"
+  }
+}

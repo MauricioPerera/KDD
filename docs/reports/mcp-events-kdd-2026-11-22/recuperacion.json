@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "experimentDate": "2026-11-22",
+  "task": "commit-message-length-config",
+  "git": {
+    "fixtureBase": "eae041fe86582fbf323c1f9dd14420318b55d29a",
+    "orchestratorCommit": "14dab6695e8926bdf743990d2db5be8d73d56112",
+    "candidateDiffSha256": "a0e1fb9487946cd46cb8659143522ae75f02af222bc48955abf9ebdaeff9262d"
+  },
+  "checkpoint": "executor.reply_saved",
+  "threadId": "e61f0034-9a4b-40f1-8247-aa633ab8ee8c",
+  "redelivery": {
+    "eventId": "evt_924ea5a9dfd9f8378886ca8b5f974d85",
+    "payloadSha256": "e5d23a12d41896a13d5adc9c395a9381b93f39692343761dc85dab58dad8f205",
+    "httpStatus": 202,
+    "duplicate": true
+  },
+  "trace": [
+    {
+      "role": "executor",
+      "taskId": "9961e110-3d77-4304-aae8-e06b7c1b12df",
+      "replyEventId": "evt_924ea5a9dfd9f8378886ca8b5f974d85"
+    },
+    {
+      "role": "goldfish",
+      "taskId": "e4091d5c-21fd-45da-8358-45918604608a",
+      "replyEventId": "evt_f575db9194de225bb179dc133eb2915c"
+    }
+  ],
+  "observations": {
+    "reusedSavedReply": true,
+    "processes": 2,
+    "checksBeforeRestart": 4,
+    "distinctChecks": 10,
+    "sends": 2,
+    "readsAfterReplyEvents": 2,
+    "orchestratorWorkCalls": 0,
+    "orchestratorBaselineApprovalCalls": 0
+  },
+  "verification": {
+    "baseRegressionExit": 1,
+    "passes": [
+      {
+        "pass": 1,
+        "tests": 32,
+        "exitCode": 0
+      },
+      {
+        "pass": 2,
+        "tests": 32,
+        "exitCode": 0
+      }
+    ],
+    "goldfishVerdict": "pass",
+    "status": "verified"
+  },
+  "sourceFingerprints": {
+    "before-restart.json": "87dc25ea255e7d73687163fc69d9b2397616ea1b271d9f869c4789c7e066df1d",
+    "replay.json": "0f007f1cd04697deec4df92211a8444164b11974e6aaa1e8ad88bdf3b50e1b29",
+    "proof.json": "baec7b4ba9afd9b0b9bab723e7ece73568d0655669492d5a48455967438011f3",
+    "run.json": "c69a0bc1448b567d6600f379599b3194181b56c829334956a18d4efa7191023a"
+  }
+}

@@ -129,6 +129,65 @@ def check_commit_message(msg, config):
     return findings
 
 
+def _load_config(config_path):
+    """Load and validate the gate configuration."""
+    # Load config
+    if not os.path.exists(config_path):
+        print("ERROR [CONFIG_MISSING]: config no encontrado: {}".format(config_path))
+        print()
+        print("Resumen: 1 error(es), 0 warning(s)")
+        return None
+
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print("ERROR [CONFIG_INVALID]: config no es JSON valido: {}".format(str(e)))
+        print()
+        print("Resumen: 1 error(es), 0 warning(s)")
+        return None
+
+    # Config valido como JSON pero sin la forma esperada: un config que no es
+    # objeto o que omite claves que check_commit_message indexa directo
+    # ('types', 'max_subject_length') producira KeyError/TypeError (traceback)
+    # en vez de un finding. Reportarlo como CONFIG_INVALID + exit 1.
+    required_keys = ('types', 'max_subject_length')
+    if not isinstance(config, dict):
+        print("ERROR [CONFIG_INVALID]: config no es un objeto JSON (se esperaba "
+              "un dict con al menos: {})".format(', '.join(required_keys)))
+        print()
+        print("Resumen: 1 error(es), 0 warning(s)")
+        return None
+    missing_keys = [k for k in required_keys if k not in config]
+    if missing_keys:
+        print("ERROR [CONFIG_INVALID]: config sin claves requeridas: {}".format(
+            ', '.join(missing_keys)))
+        print()
+        print("Resumen: 1 error(es), 0 warning(s)")
+        return None
+
+    length = config['max_subject_length']
+    if type(length) is not int or length < 0:
+        print('ERROR [CONFIG_INVALID] max_subject_length debe ser un entero mayor o igual a cero', file=sys.stderr)
+        print()
+        print("Resumen: 1 error(es), 0 warning(s)")
+        return None
+    return config
+
+
+def _read_message_file(file_path):
+    """Read a message file and report an I/O failure."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except IOError as e:
+        print("ERROR [MESSAGE_FILE_MISSING]: no se pudo leer el archivo del "
+              "mensaje: {}".format(str(e)))
+        print()
+        print("Resumen: 1 error(es), 0 warning(s)")
+        return None
+
+
 def main(argv):
     """Main entry point.
 
@@ -141,41 +200,8 @@ def main(argv):
         print("ERROR [CONFIG_MISSING]: falta la ruta al config JSON", file=sys.stderr)
         return 1
 
-    config_path = argv[0]
-
-    # Load config
-    if not os.path.exists(config_path):
-        print("ERROR [CONFIG_MISSING]: config no encontrado: {}".format(config_path))
-        print()
-        print("Resumen: 1 error(es), 0 warning(s)")
-        return 1
-
-    try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-    except (json.JSONDecodeError, IOError) as e:
-        print("ERROR [CONFIG_INVALID]: config no es JSON valido: {}".format(str(e)))
-        print()
-        print("Resumen: 1 error(es), 0 warning(s)")
-        return 1
-
-    # Config valido como JSON pero sin la forma esperada: un config que no es
-    # objeto o que omite claves que check_commit_message indexa directo
-    # ('types', 'max_subject_length') producira KeyError/TypeError (traceback)
-    # en vez de un finding. Reportarlo como CONFIG_INVALID + exit 1.
-    required_keys = ('types', 'max_subject_length')
-    if not isinstance(config, dict):
-        print("ERROR [CONFIG_INVALID]: config no es un objeto JSON (se esperaba "
-              "un dict con al menos: {})".format(', '.join(required_keys)))
-        print()
-        print("Resumen: 1 error(es), 0 warning(s)")
-        return 1
-    missing_keys = [k for k in required_keys if k not in config]
-    if missing_keys:
-        print("ERROR [CONFIG_INVALID]: config sin claves requeridas: {}".format(
-            ', '.join(missing_keys)))
-        print()
-        print("Resumen: 1 error(es), 0 warning(s)")
+    config = _load_config(argv[0])
+    if config is None:
         return 1
 
     # Determine message source
@@ -187,15 +213,8 @@ def main(argv):
     elif '--file' in argv:
         idx = argv.index('--file')
         if idx + 1 < len(argv):
-            file_path = argv[idx + 1]
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    msg = f.read()
-            except IOError as e:
-                print("ERROR [MESSAGE_FILE_MISSING]: no se pudo leer el archivo del "
-                      "mensaje: {}".format(str(e)))
-                print()
-                print("Resumen: 1 error(es), 0 warning(s)")
+            msg = _read_message_file(argv[idx + 1])
+            if msg is None:
                 return 1
     else:
         # Read from stdin
