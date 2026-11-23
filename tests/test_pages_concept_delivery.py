@@ -65,7 +65,9 @@ class PagesConceptDelivery(unittest.TestCase):
         modules = runpy.run_path(str(ROOT / 'site/build.py'))
         self.build = modules['build_pages']
         self.static_files = modules['STATIC_FILES']
-        self.transform = modules.get('scope_generated_concept')
+        publication = runpy.run_path(str(ROOT / 'scripts/finalize_pages_concepts.py'))
+        self.transform = publication.get('scope_generated_concept')
+        self.finalize = publication.get('finalize_pages_concepts')
         self.output = output
 
         class Handler(http.server.BaseHTTPRequestHandler):
@@ -119,7 +121,7 @@ class PagesConceptDelivery(unittest.TestCase):
         self.assertIn('unknown concept id', result['error'])
         self.assertEqual(result['requested'], [])
 
-    def test_build_uses_the_scoped_tool_before_publishing(self):
+    def test_build_and_finalization_republish_the_corrected_tool(self):
         fixture = self.output / 'source'
         fixture.mkdir()
         for name in self.static_files:
@@ -156,9 +158,42 @@ class PagesConceptDelivery(unittest.TestCase):
 
         with patch.dict(self.build.__globals__, {'run_publisher': fixture_publisher}):
             self.build(str(fixture), str(destination), 'https://github.com/MauricioPerera/KDD/actions/runs/1')
+        if self.finalize:
+            commands = {'run_publisher': fixture_publisher, 'validate_under_prefix': lambda *_: None}
+            with patch.dict(self.finalize.__globals__, {'load_pages_builder': lambda _: commands}):
+                self.finalize(fixture, destination)
         self.tool = destination / 'skills/get_concept/tool.js'
         self.transform = None
-        self.assertEqual(published, [self.tool.read_bytes()])
+        self.assertEqual(len(published), 2)
+        self.assertNotEqual(published[0], published[-1])
+        self.assertEqual(published[-1], self.tool.read_bytes())
         result = self.get('OKF-SPEC.md')
         self.assertEqual(result['requested'], ['/KDD/knowledge/OKF-SPEC.md'], result)
         self.assertEqual(result.get('value'), {'id': 'OKF-SPEC.md', 'markdown': SHORT_TEXT}, result)
+
+
+    def test_preview_and_deployment_finalize_the_same_artifacts_before_use(self):
+        workflows = ROOT / '.github/workflows'
+        preview = (workflows / 'validate.yml').read_text(encoding='utf-8')
+        deployment = (workflows / 'deploy-pages.yml').read_text(encoding='utf-8')
+        cases = (
+            (preview, 'Build and validate Pages for PR', 'Finalize scoped Pages concepts for PR',
+             "- name: Run each contract's test_command",
+             'kdd-pages-pr-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$RUNNER_OS'),
+            (deployment, 'Build and validate public bundle', 'Finalize scoped Pages concepts',
+             'uses: actions/upload-pages-artifact@', 'kdd-pages'),
+        )
+        for text, build, step, next_use, directory in cases:
+            with self.subTest(step=step):
+                first = text.index('- name: ' + build)
+                marker = '      - name: ' + step + '\n'
+                self.assertIn(marker, text)
+                finalization = text.index(marker)
+                self.assertLess(first, finalization)
+                self.assertLess(finalization, text.index(next_use, first))
+                block = text[finalization:].split('\n      - ', 1)[0]
+                self.assertIn('python -I scripts/finalize_pages_concepts.py --output "$RUNNER_TEMP/' + directory + '"', block)
+                self.assertNotIn('continue-on-error:', block)
+                if text is preview:
+                    condition = text[first:finalization].split('if: ', 1)[1].splitlines()[0]
+                    self.assertIn('if: ' + condition, block)

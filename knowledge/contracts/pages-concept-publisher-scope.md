@@ -5,8 +5,8 @@ description: "Mantener los enlaces y hashes de la herramienta get_concept dentro
 tags: ['audit', 'integration', 'quality']
 task: pages-concept-publisher-scope
 intent: "Resolver los conceptos publicados dentro de /KDD/ antes de calcular las huellas del bundle."
-target: site/build.py
-signature: "def scope_generated_concept(output)"
+target: scripts/finalize_pages_concepts.py
+signature: "def finalize_pages_concepts(repo, output)"
 test_command: "python -m unittest tests.test_pages_concept_delivery"
 test_runner: python-unittest
 oracle_files: ["tests/test_pages_concept_delivery.py", "site/package-lock.json"]
@@ -14,8 +14,8 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tests/test_pages_concept_delivery.py"
-tests_sha256: '9da57a6f076a115e225c29288a07b83bb97e3b550285273f890e18c2db4921db'
-touch_only: ["site/build.py", "site/llms-skills.json"]
+tests_sha256: '01f0c8369e6a93d3d90dfb6c1a6959724f29413df979cacb3f6683593cc16625'
+touch_only: ["scripts/finalize_pages_concepts.py", ".github/workflows/validate.yml", ".github/workflows/deploy-pages.yml"]
 deps_allowed: ["node", "llms-skills"]
 forbids: ['llm']
 ---
@@ -24,10 +24,13 @@ forbids: ['llm']
 Resolver conceptos bajo /KDD/ antes de publicar.
 
 ## Interface
-El build adapta get_concept y advierte truncamiento mediante error.
+Ambos workflows ejecutan el finalizador sobre su salida del build original.
+El finalizador adapta get_concept, vuelve a publicar con el pin vigente y
+valida las huellas finales. Un truncamiento devuelve error explicito.
 
 ## Invariants
-Mantener las huellas sobre bytes finales, limite de memoria y scope.
+Mantener firmas, hashes y scope del publicador. Conservar site/build.py,
+inventarios, pasos del build, condiciones, permisos, limites y protecciones.
 
 ## Examples
 - El concepto corto llega completo.
@@ -38,7 +41,8 @@ Mantener las huellas sobre bytes finales, limite de memoria y scope.
 - DON'T: alterar perfiles o plazos.
 
 ## Tests
-Node y HTTP local. Comprobar el orden del build con un fixture del publisher.
+Node, HTTP y build real con fixture del publisher. Comprobar orden y rutas
+de ambos workflows, con el mismo artefacto final antes de usarlo.
 Ejecutar el build fijado y MCPWASM para verificar la entrega.
 
 ## Constraints
