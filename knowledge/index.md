@@ -102,6 +102,13 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Ejemplo multi-lenguaje: greet en Node.js](./contracts/example-node-greet.md)
   - [Gate de atestacion de reportes locales](./contracts/attestation-gate.md)
   - [Capa de despacho del MCP server de gates KDD](./contracts/mcp-gate-dispatch.md)
+  - [Aislamiento de stdin en MCP stdio](./contracts/mcp-stdio-child-input.md)
+  - [Evidencia minima de escaneos obligatorios](./contracts/required-findings-envelope.md)
+  - [Garantias atomicas heredadas por los grupos](./contracts/group-atomic-oracle-proof.md)
+  - [Perimetro completo de renombres](./contracts/change-audit-rename-endpoints.md)
+  - [Dependencias TypeScript con import equals](./contracts/typescript-import-equals-audit.md)
+  - [Evidencia completa del oraculo de Board legacy](./contracts/board-legacy-oracle-inventory.md)
+  - [Entrega de conceptos bajo el prefijo de Pages](./contracts/pages-concept-publisher-scope.md)
   - [Preflight: dry-run local de los 19 gates](./contracts/preflight.md)
   - [Auditor de seals débiles (advisory, no es un gate)](./contracts/seal-audit.md) — `scripts/audit_seals.py`
   - [Auditor de `forbids` (advisory, no es un gate)](./contracts/forbids-audit.md) — `scripts/audit_forbids.py`
