@@ -21,25 +21,25 @@ forbids: ['llm']
 ---
 
 ## Intent
-Reconocer la dependencia externa en la clausula import_require_clause de TypeScript. El alcance sigue [politica multilenguaje](change-contract-languages.md).
+Aplicar deps_allowed al import externo por asignacion.
 
 ## Interface
-El auditor detecta el especificador del nodo AST import foo igual a require de paquete y aplica la misma politica de import existente. Los alias a simbolos locales no se tratan como paquetes.
+La regla [multilenguaje](change-contract-languages.md) lee import_require_clause.
 
 ## Invariants
-Conservar las versiones fijadas del parser, el diagnostico DEP_UNDECLARED y las reglas para rutas relativas, modulos internos y paquetes aprobados.
+Conservar parser fijado, rutas relativas y alias internos.
 
 ## Examples
-- Un paquete no declarado en deps_allowed produce DEP_UNDECLARED aunque ya figure en package.json.
-- Un paquete permitido y un alias al simbolo importado mantienen un veredicto favorable.
+- Paquete existente sin permiso produce DEP_UNDECLARED.
+- El paquete permitido y el alias interno pasan.
 
 ## Do / Don't
-- DO: reusar el punto de entrada y los controles existentes.
-- DON'T: Evitar heuristicas por texto o ampliar el alcance a semantica de Rust.
+- DO: reusar los controles ya versionados.
+- DON'T: alterar perfiles o plazos.
 
 ## Tests
-Ejecutar la CLI contra commits reales de un proyecto TypeScript aislado con el parser fijado. Probar la asignacion externa prohibida, el control permitido y el alias interno.
+CLI real con commits TypeScript y lista de permisos.
 
 ## Constraints
-Aprobar el SHA del baseline antes de implementar. PARAR y reportar si se
-requiere cambiar controles remotos, el runtime confiable u oraculos previos.
+Baseline humano antes de implementar. PARAR y reportar si requiere
+cambiar oraculos previos, runtime confiable o protecciones.

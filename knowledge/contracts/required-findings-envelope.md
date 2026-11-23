@@ -14,32 +14,32 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tests/test_required_findings_envelope.py"
-tests_sha256: '46ecd29bbd3839bb9bb22875688274489501e03542c39622d12ccb7a9891a388'
+tests_sha256: '2ade9a63acde98728c43d00bbb4718a19491f6c3c970c6cf6a2721723420df3e'
 touch_only: ["scripts/optional_evidence.py"]
 deps_allowed: []
 forbids: ['llm']
 ---
 
 ## Intent
-Validar la estructura minima de la evidencia obligatoria antes de declarar PASS. El alcance sigue [evidencia requerida](optional-evidence.md).
+Comprobar la [evidencia obligatoria](optional-evidence.md).
 
 ## Interface
-Los comandos check y summary conservan su CLI y estados. Para privacidad, accesibilidad, vigencia y observabilidad obligatorias, validar el tipo de documento de la capa, schemaVersion igual a 1.0, scanId de escaneo real no vacio y findings como arreglo explicito. Una salida exitosa del validador no sustituye estos campos.
+Check y summary validan el tipo, version 1.0, scanId no vacio y findings como arreglo.
 
 ## Invariants
-Mantener la compatibilidad opcional y las garantias existentes de security, compliance, test-coverage y quality. Un arreglo explicito vacio puede representar cero hallazgos. Los escaneos de ejemplo siguen sin ser evidencia real.
+Aplicar a privacidad, accesibilidad, vigencia y observabilidad requeridas. Preservar las otras capas y modos.
 
 ## Examples
-- Un escaneo obligatorio con findings ausente o null devuelve FAIL.
-- Un escaneo obligatorio con version, identificador y arreglo vacio valido conserva PASS.
+- Ausencia de datos produce FAIL aunque el validador salga con 0.
+- Un arreglo vacio explicito con metadatos validos pasa.
 
 ## Do / Don't
-- DO: reusar el punto de entrada y los controles existentes.
-- DON'T: Evitar duplicar las reglas de severidad o cambiar el workflow.
+- DO: reusar los controles ya versionados.
+- DON'T: alterar perfiles o plazos.
 
 ## Tests
-Cada caso ejecuta el validador existente y el resumen con su outcome comprobado. Rechazar campos ausentes o invalidos y conservar el caso positivo en las cuatro capas.
+CLI de validacion real con controles de forma y outcome.
 
 ## Constraints
-Aprobar el SHA del baseline antes de implementar. PARAR y reportar si se
-requiere cambiar controles remotos, el runtime confiable u oraculos previos.
+Baseline humano antes de implementar. PARAR y reportar si requiere
+cambiar oraculos previos, runtime confiable o protecciones.

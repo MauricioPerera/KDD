@@ -98,3 +98,22 @@ test('legacy real HTTP rejects stale helper evidence before closing', async () =
     fs.writeFileSync(file, 'exports.value = 1;\n');
   }
 });
+
+test('legacy reload rejects a partial historical receipt for an inventoried contract', async () => {
+  const {id, report} = await runTask();
+  const store = path.join(root, '.kdd-board/tasks.json');
+  const tasks = JSON.parse(fs.readFileSync(store, 'utf8'));
+  const historical = tasks.find((task: {id:string}) => task.id === id);
+  assert.ok(historical);
+  historical.status = 'done';
+  historical.testReport = {...report};
+  const remove = Object.keys(historical.testReport.evidence)
+    .filter(file => path.basename(file) === helper);
+  for (const file of remove) delete historical.testReport.evidence[file];
+  fs.writeFileSync(store, JSON.stringify(tasks));
+  const reloaded = await call('GET', '/tasks');
+  assert.equal(reloaded.status, 200);
+  const item = reloaded.json.find((task: {id:string}) => task.id === id);
+  assert.ok(item);
+  assert.notEqual(item.status, 'done', JSON.stringify(item));
+});

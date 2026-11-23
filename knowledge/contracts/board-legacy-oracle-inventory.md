@@ -15,32 +15,32 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tools/kdd-board/tests/legacy-oracle-inventory.test.ts"
-tests_sha256: '7dc0883f1ce7c7998c22da08b6d93f4232f63d06e5f18b693f3a0a00f157cbc8'
+tests_sha256: '4b40c4248f2f9a4e4d7db2d3f12a331627d97505ce46cbcc57e3db0fa16c42e8'
 touch_only: ["tools/kdd-board/src/task-execution.ts", "tools/kdd-board/src/test-runner.ts", "tools/kdd-board/src/input-validation.ts", "tools/kdd-board/src/types.ts"]
 deps_allowed: ["node", "zod", "python"]
 forbids: ['llm']
 ---
 
 ## Intent
-Cerrar tareas JSON solo con un recibo vigente que incluya el oraculo completo. El alcance sigue [ejecucion de oraculos Board](board-oracle-execution.md).
+Cerrar solo con el [oraculo completo](board-oracle-execution.md).
 
 ## Interface
-El flujo HTTP legacy recoge el inventario del contrato canonico y lo vincula al veredicto, junto con el target y el contrato. El cierre y recarga rechazan un recibo incompleto para ese inventario. Un contrato historico sin inventario declarado conserva su entrada principal.
+El recibo vincula contrato, target y archivos declarados al runner.
 
 ## Invariants
-Cada archivo declarado es regular y esta confinado a la raiz. Comparar los hashes antes y despues de la prueba y al cerrar. Conservar el modo Git, formatos de runners reconocidos y resultados FAIL, SKIP y TIMEOUT.
+Validar confinamiento y hashes antes, despues y al cerrar o recargar. Recibo parcial de un inventario exige rerun. Modo Git intacto.
 
 ## Examples
-- Un helper declarado intacto aparece en el recibo y permite cerrar tras PASS.
-- El mismo helper cambiado invalida el cierre y se conserva el estado anterior.
+- Auxiliar intacto aparece en el recibo y permite cerrar.
+- Cambio del auxiliar o recibo parcial impide cerrar.
 
 ## Do / Don't
-- DO: reusar el punto de entrada y los controles existentes.
-- DON'T: Evitar acreditar recibos parciales ni editar el oraculo anterior para lograr verde.
+- DO: reusar los controles ya versionados.
+- DON'T: alterar perfiles o plazos.
 
 ## Tests
-Servidor HTTP y oraculo Node reales en proyecto externo a Git. Verificar hash del auxiliar, cierre estable y rechazo despues de modificarlo.
+Board HTTP, Node, cambio real y recarga de almacenamiento.
 
 ## Constraints
-Aprobar el SHA del baseline antes de implementar. PARAR y reportar si se
-requiere cambiar controles remotos, el runtime confiable u oraculos previos.
+Baseline humano antes de implementar. PARAR y reportar si requiere
+cambiar oraculos previos, runtime confiable o protecciones.

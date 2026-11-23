@@ -5,6 +5,7 @@ from pathlib import Path
 import runpy
 import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 import unittest
@@ -66,7 +67,8 @@ class PagesConceptDelivery(unittest.TestCase):
 
         class Handler(http.server.BaseHTTPRequestHandler):
             def do_GET(self):
-                documents = {'/KDD/knowledge/short.md': SHORT_TEXT, '/KDD/knowledge/long.md': LONG_TEXT}
+                documents = {'/KDD/knowledge/short.md': SHORT_TEXT, '/KDD/knowledge/long.md': LONG_TEXT,
+                             '/KDD/knowledge/OKF-SPEC.md': SHORT_TEXT}
                 if self.path not in documents:
                     self.send_error(404)
                     return
@@ -113,3 +115,19 @@ class PagesConceptDelivery(unittest.TestCase):
         result = self.get('absent.md')
         self.assertIn('unknown concept id', result['error'])
         self.assertEqual(result['requested'], [])
+
+    def test_real_publisher_build_uses_the_scoped_tool(self):
+        publisher = ROOT / 'site/node_modules/@rckflr/llms-skills/bin/llms-skills.mjs'
+        if not publisher.is_file():
+            self.skipTest('Install the pinned Pages publisher to exercise the real build')
+        destination = self.output / 'real-build'
+        runner = subprocess.run(
+            [sys.executable, str(ROOT / 'site/build.py'), '--output', str(destination),
+             '--ci-run-url', 'https://github.com/MauricioPerera/KDD/actions/runs/1'],
+            cwd=ROOT, capture_output=True, text=True, encoding='utf-8', timeout=120)
+        self.assertEqual(runner.returncode, 0, runner.stdout[-2000:] + runner.stderr[-2000:])
+        self.tool = destination / 'skills/get_concept/tool.js'
+        self.transform = None
+        result = self.get('OKF-SPEC.md')
+        self.assertEqual(result['requested'], ['/KDD/knowledge/OKF-SPEC.md'], result)
+        self.assertEqual(result.get('value'), {'id': 'OKF-SPEC.md', 'markdown': SHORT_TEXT}, result)

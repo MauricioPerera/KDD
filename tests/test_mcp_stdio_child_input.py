@@ -111,8 +111,8 @@ class McpStdioTransport(unittest.TestCase):
                         ignore=shutil.ignore_patterns('__pycache__'))
         self.oracle = self.contracts / 'test_sample.py'
         self.oracle.write_text(
-            'import unittest\nclass Sample(unittest.TestCase):\n'
-            '    def test_real_case(self): self.assertEqual(2 + 2, 4)\n',
+            'import sys, unittest\nclass Sample(unittest.TestCase):\n'
+            '    def test_real_case(self): self.assertEqual(sys.stdin.read(1), "")\n',
             encoding='utf-8', newline='\n')
         (self.contracts / 'sample.md').write_text(
             "---\ntest_command: 'python -m unittest test_sample.py'\n---\n",

@@ -14,42 +14,32 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: 'tests/test_mcp_stdio_child_input.py'
-tests_sha256: 'fd8a2fee0a76d8261773bd21ca7c6d24e5eca7171a979acd0c1413258bb4677d'
+tests_sha256: '1065d70d9c08371232bf3238022cdbbd92cd491fad25a67fa969cfda992956ab'
 touch_only: ['scripts/mcp_gate_dispatch.py']
 deps_allowed: ['mcp']
 forbids: ['network', 'llm']
 ---
 
 ## Intent
-El [servidor MCP](../mcp-server.md) recibe JSON-RPC por stdin. El validador
-hijo y el proceso que calcula el sello deben recibir EOF por su propia entrada.
-El [despacho](mcp-gate-dispatch.md) conserva el lanzador contenido y su perfil.
+Reservar el stdin del servidor [MCP](../mcp-server.md).
 
 ## Interface
-Los consumidores actuales siguen invocando run_gate y seal_tests igual.
-Por stdio real, el SDK fijado inicia el servidor y el cliente recibe el
-resultado del mismo gate y del mismo calculo de sello que por CLI.
+El gate y el sello reciben EOF. Misma API y launcher contenido.
 
 ## Invariants
-La tuberia JSON-RPC queda reservada al servidor. Se preservan los limites,
-la contencion de arboles de procesos, la captura de stdout y stderr, todos
-los campos de respuesta y el confinamiento de rutas. El perfil nativo de
-CI ejecuta la prueba con el SDK fijado, sin omisiones.
+Mantener captura, plazos, rutas y protocolo de consola.
 
 ## Examples
-- Un contrato temporal ejecuta su unittest y devuelve exit_code 0.
-- Sellar un oraculo en el proyecto devuelve su SHA-256.
-- Una ruta exterior devuelve exit_code 2 sin devolver un hash.
+- Unittest real pasa por stdio.
+- El sello coincide y una ruta exterior se rechaza.
 
 ## Do / Don't
-- DO: reutilizar subprocess.DEVNULL en los dos puntos de despacho.
-- DON'T: cerrar la entrada del servidor, cambiar los plazos ni sustituir stdio por un transporte en memoria.
+- DO: reusar los controles ya versionados.
+- DON'T: alterar perfiles o plazos.
 
 ## Tests
-El oraculo abre dos sesiones sobre tuberias reales con el servidor FastMCP
-fijado. Usa un directorio desechable y ejecuta un unittest y el sello real.
-La aplicabilidad sin SDK conserva el perfil optativo fuera del CI nativo.
+SDK fijado y tuberias reales. El oraculo lee EOF.
 
 ## Constraints
-PARAR y reportar si hace falta cambiar el runtime confiable, el SDK fijado,
-los workflows o las protecciones. Aprobar el baseline antes de implementar.
+Baseline humano antes de implementar. PARAR y reportar si requiere
+cambiar oraculos previos, runtime confiable o protecciones.

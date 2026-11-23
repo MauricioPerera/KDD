@@ -21,25 +21,25 @@ forbids: ['llm']
 ---
 
 ## Intent
-Conservar las garantias declaradas por cada hijo atomico durante la ejecucion compuesta. El alcance sigue [contratos de grupo](../group-contracts.md).
+Conservar garantias de los hijos de un [grupo](../group-contracts.md).
 
 ## Interface
-La CLI de grupos incluye cada oracle_files declarado en sus archivos aprobados. Despacha los hijos que declaran test_runner por el ejecutor instrumentado canonico. El hijo historico sin test_runner conserva el comando vigente.
+Proteger oracle_files y ejecutar el test_runner canonico cuando se declara.
 
 ## Invariants
-Cotejar indice y copia de trabajo antes de cualquier ejecucion y despues de cada etapa. Conservar orden del grafo, deduplicacion, timeout, identidad aprobada y ausencia de integraciones posteriores a un hijo inconcluso.
+Cotejar indice y archivos antes y despues de cada etapa. Conservar orden, deduplicacion y comando historico.
 
 ## Examples
-- Un auxiliar del hijo que difiere del aprobado bloquea el grupo antes de ejecutar.
-- Todos los casos del hijo omitidos bloquean las integraciones siguientes.
+- Cambio del auxiliar bloquea ejecucion.
+- Hijo omitido impide integraciones.
 
 ## Do / Don't
-- DO: reusar el punto de entrada y los controles existentes.
-- DON'T: Evitar inferir casos ejecutados a partir del codigo de salida generico.
+- DO: reusar los controles ya versionados.
+- DON'T: alterar perfiles o plazos.
 
 ## Tests
-Grupos anidados y un hijo compartido con Git y unittest reales. Cubrir deriva antes y despues de una etapa, omision total y camino positivo con orden exacto.
+Git, unittest, grupo anidado y controles de integridad y orden.
 
 ## Constraints
-Aprobar el SHA del baseline antes de implementar. PARAR y reportar si se
-requiere cambiar controles remotos, el runtime confiable u oraculos previos.
+Baseline humano antes de implementar. PARAR y reportar si requiere
+cambiar oraculos previos, runtime confiable o protecciones.

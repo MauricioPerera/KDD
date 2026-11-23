@@ -69,3 +69,15 @@ class RequiredFindingsEnvelope(unittest.TestCase):
                     validator, result = self.summary(layer, data)
                     self.assertEqual(result.returncode, 1, (validator.stdout, result.stdout, result.stderr))
                     self.assertIn(f'FAIL [{layer}]', result.stdout)
+
+    def test_precheck_rejects_required_evidence_without_an_explicit_findings_array(self):
+        for layer in LAYERS:
+            with self.subTest(layer=layer):
+                scan = self.artifact_data(layer)
+                del scan['findings']
+                self.artifact.write_text(json.dumps(scan), encoding='utf-8')
+                key = 'KDD_' + layer.replace('-', '_').upper() + '_SCAN_DIR'
+                env = {**self.env, key: str(self.directory), 'KDD_REQUIRED_EVIDENCE': layer}
+                receipt = self.run_cli('optional_evidence.py', 'check', '--layers', layer, env=env)
+                self.assertEqual(receipt.returncode, 1, receipt.stdout + receipt.stderr)
+                self.assertIn(f'FAIL [{layer}]', receipt.stdout)

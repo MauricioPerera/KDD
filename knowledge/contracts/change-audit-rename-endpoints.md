@@ -21,25 +21,25 @@ forbids: ['llm']
 ---
 
 ## Intent
-Aplicar el perimetro a origen y destino de un renombre entre commits. El alcance sigue [auditoria de cambios](change-contract-languages.md).
+Cotejar ambos extremos con el [perimetro](change-contract-languages.md).
 
 ## Interface
-validate_change_contract.py calcula todas las rutas alteradas del intervalo Git aunque diff.renames cambie. La CLI conserva los codigos y OUT_OF_PERIMETER.
+La CLI audita todas las rutas alteradas aunque diff.renames cambie.
 
 ## Invariants
-Las adiciones que mantienen el archivo origen no agregan al perimetro rutas intactas. Conservar lectura de commits, listas delimitadas por NUL y la comprobacion de archivos de prueba protegidos.
+Conservar NUL, codigos de salida y filtro de oraculos protegidos.
 
 ## Examples
-- Mover un archivo desde una ruta excluida a otra permitida devuelve OUT_OF_PERIMETER.
-- Copiar al destino permitido conservando el origen pasa el mismo control.
+- Mover desde afuera devuelve OUT_OF_PERIMETER.
+- Copiar dejando el origen intacto pasa.
 
 ## Do / Don't
-- DO: reusar el punto de entrada y los controles existentes.
-- DON'T: Evitar cambiar el analizador Git global o los perfiles de CI.
+- DO: reusar los controles ya versionados.
+- DON'T: alterar perfiles o plazos.
 
 ## Tests
-El oraculo commitea una copia y un movimiento reales, confirma R100 en Git y exige el mismo veredicto del auditor con renombres activados o desactivados.
+Git real con R100, copia y los dos perfiles de deteccion.
 
 ## Constraints
-Aprobar el SHA del baseline antes de implementar. PARAR y reportar si se
-requiere cambiar controles remotos, el runtime confiable u oraculos previos.
+Baseline humano antes de implementar. PARAR y reportar si requiere
+cambiar oraculos previos, runtime confiable o protecciones.
