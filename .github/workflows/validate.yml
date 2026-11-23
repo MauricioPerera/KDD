@@ -626,6 +626,15 @@ jobs:
           CI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: python site/build.py --output "$RUNNER_TEMP/kdd-pages-pr-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$RUNNER_OS" --ci-run-url "$CI_RUN_URL"
 
+      - name: Finalize scoped Pages concepts for PR
+        if: ${{ matrix.role != 'win_contracts' && github.event_name == 'pull_request' && !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
+        shell: bash
+        env:
+          KDD_PAGES_FINALIZER_SHA256: 6f35ff3624969cb94985cebdfe934bda42ff1549e3ef1d2881a93265a8b92b19
+        run: |
+          python -I -c "import hashlib, os, pathlib, sys; body = pathlib.Path('scripts/finalize_pages_concepts.py').read_text(encoding='utf-8').encode('utf-8'); sys.exit(0 if hashlib.sha256(body).hexdigest() == os.environ['KDD_PAGES_FINALIZER_SHA256'] else 'Pages finalizer hash mismatch')"
+          python -I scripts/finalize_pages_concepts.py --output "$RUNNER_TEMP/kdd-pages-pr-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$RUNNER_OS"
+
       - name: Run each contract's test_command
         if: ${{ matrix.role != 'win_suite' }}
         shell: bash

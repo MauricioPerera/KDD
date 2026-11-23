@@ -50,28 +50,6 @@ def prefix_manifest(manifest: dict) -> dict:
     return manifest
 
 
-def scope_generated_concept(output: Path) -> None:
-    """Make the pinned publisher's generated tool usable under the Pages URL."""
-    tool = output / "skills/get_concept/tool.js"
-    source = tool.read_text(encoding="utf-8")
-    mapping = re.search(r"^var CONCEPTS = (.+);$", source, re.MULTILINE)
-    result = '    return { id: args.id, markdown: r.body };'
-    if mapping is None or source.count(result) != 1:
-        raise ValueError("Unexpected get_concept from the pinned Pages publisher")
-    concepts = json.loads(mapping[1])
-    if not isinstance(concepts, dict) or any(
-        not isinstance(url, str) or not url.startswith(("/knowledge/", "/KDD/knowledge/"))
-        for url in concepts.values()
-    ):
-        raise ValueError("Unexpected get_concept URL outside the knowledge bundle")
-    scoped = {key: "/KDD" + url.removeprefix("/KDD") for key, url in concepts.items()}
-    source = source[:mapping.start(1)] + json.dumps(scoped, ensure_ascii=True) + source[mapping.end(1):]
-    guard = '    if (r.truncated) throw new Error("Concept document truncated by publisher host");'
-    if guard not in source:
-        source = source.replace(result, guard + "\n" + result)
-    tool.write_text(source, encoding="utf-8", newline="\n")
-
-
 def update_landing(html: str, reports: int, gates: int, tests: int, ci_url: str) -> str:
     values = {"report-count": reports, "gate-count": gates, "test-count": tests}
     for element_id, count in values.items():
@@ -163,7 +141,6 @@ def build_pages(repo_root: str, output_dir: str, ci_run_url: str, *, ci_inventor
     landing.write_text(update_landing(landing.read_text(encoding="utf-8"), reports, gates, tests, ci_run_url), encoding="utf-8")
 
     run_publisher(repo, output, "memory", "knowledge")
-    scope_generated_concept(output)
     manifest = output / "llms-skills.json"
     manifest.write_text(json.dumps(prefix_manifest(json.loads(manifest.read_text(encoding="utf-8"))), indent=2) + "\n", encoding="utf-8")
     run_publisher(repo, output, "publish")
