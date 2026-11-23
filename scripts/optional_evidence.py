@@ -23,6 +23,7 @@ LAYERS = {
     'quality': ('KDD_QUALITY_POLICY', ''),
 }
 
+_REQUIRED_SCAN_ENVELOPE = {'privacy', 'accessibility', 'dependency-eol', 'observability'}
 _SCAN_KEYS = {'schema_version', 'source_ref', 'tool', 'inputs', 'findings_sha256'}
 _SHA256 = re.compile(r'[0-9a-f]{64}')
 _UNSAFE_PATH = re.compile(r'[\\:\x00-\x1f*?\[\]<>|\"]')
@@ -300,11 +301,23 @@ def _status(layer, required, evidence):
     return 'FAIL', 'validator outcome: ' + (outcome or 'not run')
 
 
-def _scan_status(source, required, status):
+def _complete_scan(layer, data):
+    identifier = data.get('scanId')
+    return (data.get('documentType') == 'kdd-' + layer + '.findings'
+            and data.get('schemaVersion') == '1.0'
+            and isinstance(identifier, str) and bool(identifier.strip())
+            and isinstance(data.get('findings'), list))
+
+
+def _scan_status(layer, source, required, status):
     try:
-        data = json.loads(source.read_text(encoding='utf-8-sig'))
+        text = source.read_text(encoding='utf-8-sig')
+        strict = required and layer in _REQUIRED_SCAN_ENVELOPE
+        data = _scan_document(text.encode('utf-8')) if strict else json.loads(text)
         if not isinstance(data, dict):
             raise ValueError('expected a JSON object')
+        if strict and status[0] != 'FAIL' and not _complete_scan(layer, data):
+            return 'FAIL', 'required scan must contain documentType, schemaVersion, scanId and findings'
         identifier = data.get('scanId', '')
         if isinstance(identifier, str) and identifier.startswith('example_') and status[0] != 'FAIL':
             return ('FAIL' if required else 'SKIP'), 'example scan is not project evidence'
@@ -323,7 +336,7 @@ def evaluate_layers(layers, required, environ, summary=False):
         outcome = _outcome(layer, environ) if summary else ''
         status = _status(layer, required, (exists, outcome, summary))
         if exists and layer != 'quality':
-            status = _scan_status(source, layer in required, status)
+            status = _scan_status(layer, source, layer in required, status)
             if layer == 'compliance' and status[0] not in ('FAIL', 'SKIP'):
                 status = _compliance_status(source, layer in required, environ, status)
         rows.append({'layer': layer, 'status': status[0], 'source': str(source or ''),

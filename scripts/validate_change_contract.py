@@ -46,7 +46,8 @@ def _blob(root, sha, path):
 
 def _changed_paths(root, base_ref, head_ref):
     _git(root, 'merge-base', '--is-ancestor', base_ref, head_ref)
-    changed = _git(root, 'diff', '--name-only', '-z', base_ref, head_ref)
+    # List every changed path, including the removed endpoint of a rename.
+    changed = _git(root, 'diff', '--no-renames', '--name-only', '-z', base_ref, head_ref)
     return sorted(path.decode('utf-8') for path in changed.split(b'\0') if path)
 
 
