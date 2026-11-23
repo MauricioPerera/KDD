@@ -14,7 +14,7 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tests/test_pages_concept_delivery.py"
-tests_sha256: '01f0c8369e6a93d3d90dfb6c1a6959724f29413df979cacb3f6683593cc16625'
+tests_sha256: '65991ea840d9c039349eac4bbd678345a3cdaa50805721d728e917c80ed507cf'
 touch_only: ["scripts/finalize_pages_concepts.py", ".github/workflows/validate.yml", ".github/workflows/deploy-pages.yml"]
 deps_allowed: ["node", "llms-skills"]
 forbids: ['llm']
@@ -29,7 +29,8 @@ El finalizador adapta get_concept, vuelve a publicar con el pin vigente y
 valida las huellas finales. Un truncamiento devuelve error explicito.
 
 ## Invariants
-Mantener firmas, hashes y scope del publicador. Conservar site/build.py,
+Mantener firmas, hashes y scope del publicador. Ambos pasos fijan el hash LF-normalizado del finalizador y lo comprueban antes de ejecutarlo.
+Conservar site/build.py,
 inventarios, pasos del build, condiciones, permisos, limites y protecciones.
 
 ## Examples
@@ -41,7 +42,8 @@ inventarios, pasos del build, condiciones, permisos, limites y protecciones.
 - DON'T: alterar perfiles o plazos.
 
 ## Tests
-Node, HTTP y build real con fixture del publisher. Comprobar orden y rutas
+CLI real, Node y HTTP con fixture del publisher. Comprobar publish, check,
+validacion estricta y orden y rutas
 de ambos workflows, con el mismo artefacto final antes de usarlo.
 Ejecutar el build fijado y MCPWASM para verificar la entrega.
 
