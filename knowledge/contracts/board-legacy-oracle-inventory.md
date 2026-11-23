@@ -16,7 +16,7 @@ budget:
   nesting_max: 4
 tests: "tools/kdd-board/tests/legacy-oracle-inventory.test.ts"
 tests_sha256: '4b40c4248f2f9a4e4d7db2d3f12a331627d97505ce46cbcc57e3db0fa16c42e8'
-touch_only: ["tools/kdd-board/src/task-execution.ts", "tools/kdd-board/src/test-runner.ts", "tools/kdd-board/src/input-validation.ts", "tools/kdd-board/src/types.ts"]
+touch_only: ["tools/kdd-board/src/task-execution.ts", "tools/kdd-board/src/test-runner.ts", "tools/kdd-board/src/input-validation.ts", "tools/kdd-board/src/types.ts", "tools/kdd-board/src/task-store.ts", "tools/kdd-board/src/server.ts"]
 deps_allowed: ["node", "zod", "python"]
 forbids: ['llm']
 ---
@@ -26,6 +26,7 @@ Cerrar solo con el [oraculo completo](board-oracle-execution.md).
 
 ## Interface
 El recibo vincula contrato, target y archivos declarados al runner.
+La ruta HTTP y su almacenamiento usan la raiz activa al comprobar el recibo.
 
 ## Invariants
 Validar confinamiento y hashes antes, despues y al cerrar o recargar. Recibo parcial de un inventario exige rerun. Modo Git intacto.
