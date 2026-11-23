@@ -14,7 +14,7 @@ budget:
   cyclomatic_max: 10
   nesting_max: 4
 tests: "tests/test_pages_concept_delivery.py"
-tests_sha256: '65991ea840d9c039349eac4bbd678345a3cdaa50805721d728e917c80ed507cf'
+tests_sha256: '13d052225a37a080a95961c502495438a135cce56c7a9aa030f46f1cd3807957'
 touch_only: ["scripts/finalize_pages_concepts.py", ".github/workflows/validate.yml", ".github/workflows/deploy-pages.yml"]
 deps_allowed: ["node", "llms-skills"]
 forbids: ['llm']

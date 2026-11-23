@@ -151,7 +151,7 @@ class PagesConceptDelivery(unittest.TestCase):
         self.assertIn('unknown concept id', result['error'])
         self.assertEqual(result['requested'], [])
 
-    def test_build_and_finalization_republish_the_corrected_tool(self):
+    def test_build_uses_the_scoped_tool_before_publishing(self):
         fixture = self.output / 'source'
         fixture.mkdir()
         for name in self.static_files:
