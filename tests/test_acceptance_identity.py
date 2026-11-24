@@ -41,6 +41,28 @@ def load_tests(loader, tests, pattern):
 """
 
 
+BOUND_METHOD = """\
+import os
+from pathlib import Path
+import unittest
+
+def first(self):
+    self.assertEqual(2 + 2, 4)
+
+def second(self):
+    self.assertEqual(3 + 3, 6)
+
+class Oracle(unittest.TestCase):
+    test_value = first
+
+def load_tests(loader, tests, pattern):
+    marker = Path(os.environ["KDD_FIXTURE_RUN_STATE"])
+    Oracle.test_value = second if marker.exists() else first
+    marker.touch()
+    return unittest.TestSuite([Oracle("test_value")])
+"""
+
+
 NODE_TESTS = """\
 import assert from "node:assert/strict";
 import { writeFileSync, existsSync } from "node:fs";
@@ -122,10 +144,10 @@ class AcceptanceIdentity(unittest.TestCase):
         self.assertEqual(self.fixture.git("status", "--short"), status)
         return result.returncode, json.loads(result.stdout)
 
-    def set_oracle(self, name):
-        self.fixture.write(name, SELECTABLE)
+    def set_oracle(self, name, fixture_text=SELECTABLE):
+        self.fixture.write(name, fixture_text)
         if name == "oracle.py":
-            digest = hashlib.sha256(SELECTABLE.encode("utf-8")).hexdigest()
+            digest = hashlib.sha256(fixture_text.encode("utf-8")).hexdigest()
             contract = re.sub(r"(?m)^tests_sha256: .+$", "tests_sha256: " + digest,
                               self.fixture.contract_text)
             self.fixture.write("knowledge/contracts/task.md", contract)
@@ -160,6 +182,13 @@ class AcceptanceIdentity(unittest.TestCase):
         self.assertEqual(first["stdout"], second["stdout"])
         self.assert_bound_python_names(first, ["oracle.Oracle.test_first"])
         self.assert_bound_python_names(second, ["oracle.Oracle.test_second"])
+
+    def test_same_python_name_with_a_different_bound_method_is_rejected(self):
+        self.set_oracle("oracle.py", BOUND_METHOD)
+        first, second = self.assert_two_different_receipts("oracle-execution")
+        for receipt in (first, second):
+            self.assert_bound_python_names(receipt, ["oracle.Oracle.test_value"])
+        self.assertNotEqual(first["case_ids"], second["case_ids"])
 
     def test_obligation_checks_compare_their_cases(self):
         self.set_oracle("obligations.py")
@@ -209,6 +238,15 @@ class AcceptanceIdentity(unittest.TestCase):
                 self.assertFalse(rejected["ok"])
                 self.assertEqual(rejected["contracts"], [])
                 self.assertIn("commit", rejected["error"].lower())
+
+    def test_sha1_width_is_not_a_complete_sha256_commit_oid(self):
+        self.fixture = self.new_fixture("sha256")
+        self.assertEqual(len(self.fixture.ref), 64)
+        code, result = self.execute(self.fixture.ref[:40])
+        self.assertEqual(code, 1, result)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["contracts"], [])
+
     def test_exact_commit_oid_still_approves_both_git_object_formats(self):
         sha1 = self.fixture
         for object_format, width in (("sha1", 40), ("sha256", 64)):
@@ -225,12 +263,16 @@ class AcceptanceIdentity(unittest.TestCase):
         if shared:
             self.fixture.write("shared.mjs", NODE_SHARED)
             inventory.append("shared.mjs")
+        self.seal_node_contract("oracle.mjs", ["oracle.mjs"], inventory)
+
+    def seal_node_contract(self, primary, selected, inventory):
+        source = (self.fixture.root / primary).read_text(encoding="utf-8")
         updates = {
-            "tests": "oracle.mjs",
+            "tests": primary,
             "oracle_files": json.dumps(inventory),
-            "tests_sha256": hashlib.sha256(fixture_text.encode("utf-8")).hexdigest(),
+            "tests_sha256": hashlib.sha256(source.encode("utf-8")).hexdigest(),
             "test_runner": "node-test",
-            "test_command": "node --test oracle.mjs",
+            "test_command": "node --test " + " ".join(selected),
         }
         start, header, body = self.fixture.contract_text.split("---\n", 2)
         self.assertEqual(start, "")
@@ -331,34 +373,43 @@ class AcceptanceIdentity(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which("node"), "Node is required for the managed Node runner")
     def test_node_default_count_receipt_is_preserved(self):
-        result = execute_oracle(self.multiple_node_files(), self.fixture.root, timeout=30)
+        metadata = self.multiple_node_files()
+        result = execute_oracle(metadata, self.fixture.root, timeout=30)
         self.assertTrue(result["ok"], result)
         self.assertEqual(result["executed_tests"], 2)
         self.assertNotIn("case_ids", result)
         expected = {str((self.fixture.root / filename).resolve()): {"executed": 1, "skipped": 0, "ok": True}
                     for filename in ("first.mjs", "second.mjs")}
         self.assertEqual(result["evidence"]["files"], expected)
+        legacy_receipt = execute_oracle(metadata, self.fixture.root, timeout=30, record_ids=True)
+        self.assertFalse(legacy_receipt["ok"], legacy_receipt)
+        self.assertIn("python-unittest", legacy_receipt["error"])
 
     @unittest.skipUnless(shutil.which("node"), "Node is required for the managed Node runner")
     def test_node_report_keeps_owner_when_two_selected_files_use_a_helper(self):
-        result = execute_oracle(self.multiple_node_files(), self.fixture.root, timeout=30, record_ids=True)
-        self.assertTrue(result["ok"], result)
-        self.assertEqual(result["executed_tests"], 2)
-        self.assertEqual(self.node_placements(result), [
-            ("first.mjs", "shared.mjs", ("shared root", "shared leaf")),
-            ("second.mjs", "shared.mjs", ("shared root", "shared leaf")),
-        ])
-
+        metadata = self.multiple_node_files()
+        inventory = metadata["oracle_files"] + ["helper.py", "obligations.py"]
+        self.seal_node_contract("first.mjs", ["first.mjs", "second.mjs"], inventory)
+        code, result = self.execute(self.fixture.ref)
+        self.assertEqual(code, 0, result)
+        row = self.row(result, "oracle-execution")
+        self.assertEqual(row["status"], "PASS")
+        for receipt in row["evidence"]:
+            self.assertEqual(receipt["executed_tests"], 2)
+            self.assertEqual(self.node_placements(receipt), [
+                ("first.mjs", "shared.mjs", ("shared root", "shared leaf")),
+                ("second.mjs", "shared.mjs", ("shared root", "shared leaf")),
+            ])
 
     @unittest.skipUnless(shutil.which("node"), "Node is required for the managed Node runner")
     def test_ambiguous_node_id_does_not_approve_a_receipt(self):
-        self.fixture.write("identical.mjs", 'import test from "node:test";\n'
-                           'for (let i = 0; i < 2; i++) test("same location", () => {});\n')
-        metadata = dict(tests="identical.mjs", oracle_files=["identical.mjs"],
-                        test_runner="node-test", test_command="node --test identical.mjs")
-        result = execute_oracle(metadata, self.fixture.root, timeout=30, record_ids=True)
-        self.assertFalse(result["ok"], result)
-        self.assertIn("Duplicate oracle case IDs", result["error"])
+        self.node_oracle('import test from "node:test";\n'
+                         'for (let i = 0; i < 2; i++) test("same location", () => {});\n')
+        code, result = self.execute(self.fixture.ref)
+        self.assertEqual(code, 1, result)
+        row = self.row(result, "oracle-execution")
+        self.assertEqual(row["status"], "FAIL")
+        self.assertIn("Duplicate oracle case IDs", json.dumps(row))
 
 
 if __name__ == "__main__":

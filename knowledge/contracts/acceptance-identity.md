@@ -16,7 +16,7 @@ budget:
   lines_max: 80
   params_max: 6
 tests: "tests/test_acceptance_identity.py"
-tests_sha256: '7394d388950b755db1a3438ce6e01b171c9d405ac099528597a895eb0dfba504'
+tests_sha256: '3a5ac2ccbd3d5dd5c585826cc1d03a98567a1f5b457d2c9656864b75e5a70437'
 touch_only: ['scripts/verify_acceptance.py', 'scripts/oracle_execution.py', 'scripts/node_oracle_reporter.mjs']
 deps_allowed: []
 forbids: ['network', 'llm']
@@ -26,13 +26,14 @@ forbids: ['network', 'llm']
 P2-17 y P2-18 de [aceptacion](../acceptance.md).
 
 ## Interface
-La referencia identifica un commit. Ambas pasadas guardan los IDs de cada obligacion.
+OID de commit completo en formato nativo. Guardar ambos recibos por obligacion.
 
 ## Invariants
-Cotejar identidad y archivo seleccionado, independiente del orden.
+Cotejar los IDs vinculados completos y el archivo, independiente del orden.
 Node registra [archivo seleccionado, camino] en JSON. Cada nodo del camino
 conserva archivo de registro, linea, columna y nombre, desde la raiz hasta
-el caso. Un ID ambiguo impide aprobar. El modo de conteo conserva su recibo.
+el caso. Un ID ambiguo impide aprobar.
+Activar IDs Node en aceptacion. El recibo de adopcion sigue siendo Python.
 
 ## Examples
 - Dos hojas del mismo helper bajo padres distintos: IDs distintos.
