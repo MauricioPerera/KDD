@@ -106,6 +106,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Evidencia minima de escaneos obligatorios](./contracts/required-findings-envelope.md)
   - [Diagnosticos JSON de findings](./contracts/findings-json-diagnostics.md)
   - [Entradas de CLI de validacion](./contracts/validator-cli-inputs.md)
+  - [Identidad de aceptacion](./contracts/acceptance-identity.md)
   - [Garantias atomicas heredadas por los grupos](./contracts/group-atomic-oracle-proof.md)
   - [Perimetro completo de renombres](./contracts/change-audit-rename-endpoints.md)
   - [Dependencias TypeScript con import equals](./contracts/typescript-import-equals-audit.md)
