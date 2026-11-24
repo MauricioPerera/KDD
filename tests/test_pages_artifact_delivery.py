@@ -165,6 +165,33 @@ class PagesArtifactDelivery(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len(requests), 1)
 
+    def test_original_protobuf_field_name_preserves_the_upload_id(self):
+        for artifact_id in (ARTIFACT_ID, int(ARTIFACT_ID)):
+            with self.subTest(artifact_id=artifact_id):
+                artifact = {"name": NAME, "database_id": artifact_id}
+                result, requests = self.execute([(200, {"artifacts": [artifact]})])
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn(ARTIFACT_ID, result.stdout)
+                self.assertEqual(len(requests), 1)
+
+    def test_two_id_fields_stop_with_one_lookup(self):
+        for alternative in (ARTIFACT_ID, "7890"):
+            with self.subTest(alternative=alternative):
+                artifact = dict(MATCH, database_id=alternative)
+                result, requests = self.execute([(200, {"artifacts": [artifact]})])
+                self.assertNotEqual(result.returncode, 0)
+                self.assertRegex(result.stderr.lower(), r"ambiguous.*\bid\b")
+                self.assertEqual(len(requests), 1)
+
+    def test_invalid_original_protobuf_id_cannot_be_accepted(self):
+        for wrong in ("7890", [ARTIFACT_ID], None):
+            with self.subTest(wrong=wrong):
+                artifact = {"name": NAME, "database_id": wrong}
+                result, requests = self.execute([(200, {"artifacts": [artifact]})])
+                self.assertNotEqual(result.returncode, 0)
+                self.assertRegex(result.stderr.lower(), r"unexpected.*\bid\b")
+                self.assertEqual(len(requests), 1)
+
     def test_duplicate_name_stops_with_one_lookup(self):
         result, requests = self.execute([(200, {"artifacts": [MATCH, dict(MATCH, databaseId="7890")]})])
         self.assertNotEqual(result.returncode, 0)
