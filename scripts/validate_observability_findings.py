@@ -81,7 +81,8 @@ def main(argv=None):
             file=sys.stderr,
         )
         return 2
-    if findings_doc.get("documentType") != "kdd-observability.findings":
+    if (not isinstance(findings_doc, dict)
+            or findings_doc.get("documentType") != "kdd-observability.findings"):
         print(
             f"ERROR [DOCUMENT_TYPE] {findings_path}: documentType inesperado -- "
             "no parece un artefacto sellado del dominio de observabilidad",

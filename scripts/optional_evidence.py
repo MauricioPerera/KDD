@@ -320,7 +320,8 @@ def _scan_status(layer, source, required, status):
     try:
         text = source.read_text(encoding='utf-8-sig')
         strict = required and layer in _REQUIRED_SCAN_ENVELOPE
-        data = _scan_document(text.encode('utf-8')) if strict else json.loads(text)
+        data = (_scan_document(text.encode('utf-8')) if strict
+                else json.loads(text, parse_constant=_invalid_constant))
         if not isinstance(data, dict):
             raise ValueError('expected a JSON object')
         if strict and status[0] != 'FAIL' and not _complete_scan(layer, data):

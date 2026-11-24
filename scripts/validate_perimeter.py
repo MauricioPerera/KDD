@@ -278,7 +278,10 @@ def main(argv):
     changed_files = []
 
     # Parsear argumentos
-    if len(argv) > 1 and argv[1] == '--changed':
+    if len(argv) > 1:
+        if argv[1] != '--changed':
+            print(f"ERROR: argumento inesperado {argv[1]!r}. Se esperaba --changed", file=sys.stderr)
+            return 1
         changed_files = argv[2:]
     else:
         # Leer de stdin

@@ -73,9 +73,15 @@ def main(argv=None):
         print(f"INFO [PATH_MISSING] {findings_path}: no existe (capa opcional, sin findings que auditar)")
         return 0
 
-    with open(findings_path, "r", encoding="utf-8") as fh:
-        findings_doc = json.load(fh)
-    if findings_doc.get("documentType") != "kdd-dependency-eol.findings":
+    try:
+        with open(findings_path, "r", encoding="utf-8") as fh:
+            findings_doc = json.load(fh)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        print(f"ERROR [PARSE_ERROR] {findings_path}: JSON invalido/corrupto ({exc})",
+              file=sys.stderr)
+        return 2
+    if (not isinstance(findings_doc, dict)
+            or findings_doc.get("documentType") != "kdd-dependency-eol.findings"):
         print(
             f"ERROR [DOCUMENT_TYPE] {findings_path}: documentType inesperado -- "
             "no parece un artefacto sellado del dominio de vigencia de dependencias",

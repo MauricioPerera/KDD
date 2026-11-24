@@ -520,29 +520,28 @@ def main(argv):
     # Parsear argumentos: [--hash RUTA] | [--repo-root DIR] [directorio]
     repo_root = None
     directory = 'knowledge/contracts'
-    hash_mode = False
     hash_path = None
+    path_options = ('--hash', '--repo-root')
 
     i = 1
     while i < len(argv):
-        if argv[i] == '--hash' and i + 1 < len(argv):
-            hash_mode = True
-            hash_path = argv[i + 1]
-            i += 2
-        elif argv[i] == '--repo-root' and i + 1 < len(argv):
-            repo_root = argv[i + 1]
-            i += 2
-        elif not argv[i].startswith('-'):
-            directory = argv[i]
+        argument = argv[i]
+        i += 1
+        if argument in path_options:
+            value = argv[i] if i < len(argv) else ''
+            if not value or value in path_options:
+                print(f"ERROR: {argument} requiere una ruta", file=sys.stderr)
+                return 1
+            if argument == '--hash':
+                hash_path = value
+            else:
+                repo_root = value
             i += 1
-        else:
-            i += 1
+        elif not argument.startswith('-'):
+            directory = argument
 
     # Modo --hash: imprimir SHA256 y salir
-    if hash_mode:
-        if not hash_path:
-            print("ERROR: --hash requiere una ruta de archivo")
-            return 1
+    if hash_path is not None:
         hash_val = _calculate_tests_hash(hash_path)
         if hash_val is None:
             print("ERROR: no se pudo leer el archivo: {}".format(hash_path))

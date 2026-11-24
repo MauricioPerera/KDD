@@ -166,6 +166,13 @@ def _load_config(config_path):
         print("Resumen: 1 error(es), 0 warning(s)")
         return None
 
+    types = config['types']
+    if not isinstance(types, list) or any(not isinstance(item, str) for item in types):
+        print('ERROR [CONFIG_INVALID] types debe ser una lista de cadenas', file=sys.stderr)
+        print()
+        print("Resumen: 1 error(es), 0 warning(s)")
+        return None
+
     length = config['max_subject_length']
     if type(length) is not int or length < 0:
         print('ERROR [CONFIG_INVALID] max_subject_length debe ser un entero mayor o igual a cero', file=sys.stderr)
