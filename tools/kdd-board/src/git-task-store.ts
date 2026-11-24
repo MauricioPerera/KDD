@@ -6,6 +6,7 @@ import path from 'node:path';
 
 const execute = promisify(execFile);
 const cli = fileURLToPath(new URL('../../../scripts/tasks.py', import.meta.url));
+const reviewCli = fileURLToPath(new URL('../../../scripts/board_review_handoff.py', import.meta.url));
 export const transitions: Record<string, Record<string, string>> = {
   backlog: {ready:'ready'}, ready: {in_progress:'start'},
   in_progress: {needs_human_input:'block', done:'finish'}, needs_human_input: {ready:'resume'}, done: {},
@@ -153,6 +154,14 @@ export class GitTaskStore {
   async history(id: string): Promise<JournalEntry[]> {
     identifier(id);
     return this.stable(() => this.query(['history',id]));
+  }
+
+  async reviewHandoff(id: string): Promise<unknown> {
+    const result = JSON.parse(await this.command([reviewCli, '--repo-root', this.root, identifier(id)]));
+    if (result === null) {
+      throw new BoardGitError('No se pudo verificar el relevo de revision',409,'REVIEW_HANDOFF_INVALID');
+    }
+    return result;
   }
 
   async contracts(): Promise<{id:string; title:string}[]> {

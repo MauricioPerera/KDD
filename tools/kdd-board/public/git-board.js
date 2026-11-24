@@ -9,6 +9,7 @@
   let mode;
   let selectedId;
   let pending = false;
+  let reviewState = {};
 
   async function configure(api) {
     if (!configuration) configuration = (async () => {
@@ -72,6 +73,49 @@
     return (task.journal || []).map(h=>`<li><code>${escape(h.commit)}</code> ${escape(h.status)}: ${escape(h.reason)}</li>`).join('');
   }
 
+  function reviewEntry(entry) {
+    const labels = {missing:'Pendiente de revisión',blocked:'Revisión con hallazgos',ready:'Revisión lista'};
+    return `<p><strong>${escape(labels[entry.review_status])}</strong></p>
+      <dl><dt>Candidato</dt><dd><code>${escape(entry.candidate_commit)}</code></dd>
+      <dt>Base</dt><dd><code>${escape(entry.base_commit)}</code></dd>
+      <dt>Árbol</dt><dd><code>${escape(entry.candidate_tree)}</code></dd>
+      <dt>Huella del v1</dt><dd><code>${escape(entry.review_sha256 || 'Pendiente')}</code></dd></dl>
+      ${entry.finding_codes.length ? `<p>${escape(entry.finding_codes.join(', '))}</p>` : ''}`;
+  }
+
+  function reviewHtml(review) {
+    if (!review.current) return '<p>La tarea aún no tiene candidato seleccionado.</p>';
+    const action = review.current.review_status === 'ready' &&
+      review.approved_ref !== review.current.candidate_commit ?
+      '<p>Pendiente de aprobación humana del candidato.</p>' : '';
+    const previous = review.previous.map(entry => `<li>${reviewEntry(entry)}</li>`).join('');
+    return reviewEntry(review.current) + action +
+      (previous ? `<h4>Candidatos anteriores</h4><ol>${previous}</ol>` : '');
+  }
+
+  function paintReview() {
+    const result = node('git-review-result');
+    if (!result) return;
+    node('git-review-load').disabled = Boolean(reviewState.loading);
+    if (reviewState.result) result.innerHTML = reviewHtml(reviewState.result);
+    else result.textContent = reviewState.error || (reviewState.loading ? 'Consultando revisión…' : '');
+  }
+
+  async function loadReview(id, api) {
+    const state = reviewState;
+    if (state.loading) return;
+    Object.assign(state, {loading:true,result:null,error:''});
+    paintReview();
+    try {
+      state.result = await api(`/api/tasks/${encodeURIComponent(id)}/review-handoff`);
+    } catch (error) {
+      state.error = error.message;
+    } finally {
+      state.loading = false;
+      if (state === reviewState) paintReview();
+    }
+  }
+
   function updateFields(task) {
     if (task.status !== 'in_progress') return;
     const finish = node('git-next-status').value === 'done';
@@ -117,12 +161,18 @@
         <dt>Commit verificado</dt><dd><code>${escape(detail.verified_ref || 'Pendiente')}</code></dd>
         <dt>Evidencia</dt><dd><code>${escape(detail.evidence || 'Pendiente')}</code></dd></dl>
         ${actionFields(detail)}<p id="git-action-result" role="status" aria-live="polite"></p>
+        <section aria-labelledby="git-review-heading">
+          <h3 id="git-review-heading">Revisión del candidato</h3>
+          <button type="button" class="btn" id="git-review-load">Consultar revisión</button>
+          <div id="git-review-result" aria-live="polite"></div>
+        </section>
         <h3>Historial de commits</h3><ol>${journalHtml(detail)}</ol></section>`;
   }
 
   async function render(task,api,refresh) {
     const fields = ['git-approved-ref','git-assignee','git-reason','git-next-status'];
     if (selectedId === task.id && (pending || fields.some(id=>node(id) === document.activeElement))) return;
+    if (selectedId !== task.id) reviewState = {};
     selectedId = task.id;
     try {
       const detail = task.journal ? task : await api(`/api/tasks/${encodeURIComponent(task.id)}`);
@@ -131,6 +181,8 @@
       if (pending || fields.some(id=>node(id) === document.activeElement)) return;
       node('workspace-container').innerHTML = taskHtml(detail);
       node('git-back').onclick = () => window.switchView('board');
+      node('git-review-load').onclick = () => loadReview(task.id, api);
+      paintReview();
       if ((edges[detail.status] || []).length) {
         node('git-transition-form').onsubmit = event => submit(event,detail,api,refresh);
         node('git-next-status').onchange = () => updateFields(detail);

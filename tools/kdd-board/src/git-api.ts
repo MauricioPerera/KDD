@@ -19,11 +19,12 @@ export function createGitApi(store:GitTaskStore,readBody:Body,send:Send) {
     if (Object.hasOwn(routes,key)) return routes[key]();
     if (key === 'GET /api/tasks') return store.list(url.searchParams.get('status') ?? undefined);
     if (key === 'POST /api/tasks') return store.create(creationSchema.parse(await readBody(req)));
-    const match=url.pathname.match(/^\/api\/tasks\/(TASK-\d{3,})(?:\/(history|status))?$/);
+    const match=url.pathname.match(/^\/api\/tasks\/(TASK-\d{3,})(?:\/(history|status|review-handoff))?$/);
     if (!match) return unavailable();
     const actions:Record<string,()=>unknown> = {
       'GET task':()=>store.get(match[1]),
       'GET history':()=>store.history(match[1]),
+      'GET review-handoff':()=>store.reviewHandoff(match[1]),
       'PATCH status':async()=>store.transition(match[1],transitionSchema.parse(await readBody(req))),
     };
     const action = `${req.method} ${match[2] || 'task'}`;
