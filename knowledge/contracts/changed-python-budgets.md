@@ -15,7 +15,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_changed_python_budgets.py
-tests_sha256: '85ce3d59c29b6dfc1fd7395c954579a3d2d50c9a8dc1aa7ea15dae9143b7edd3'
+tests_sha256: 'cb8db3e7c704843ae60ccf65e63da70145932178067086645af283f83747c05b'
 touch_only: ['scripts/validate_changed_budgets.py', '.github/workflows/validate.yml', 'knowledge/validacion.md']
 deps_allowed: ['stdlib', 'validate_budgets', 'validate_contracts']
 forbids: ['llm', 'network']

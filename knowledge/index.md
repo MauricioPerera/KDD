@@ -217,6 +217,8 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Perimetro Git en la aprobacion de calidad](contracts/quality-approval-perimeter.md)
 - [Guardrail de tarea antes del recorte](contracts/context-task-guardrail.md)
 - [Presupuestos Python de funciones modificadas](contracts/changed-python-budgets.md)
+- [Recibo del alcance de presupuestos](contracts/changed-budget-receipt.md)
+- [Origen aprobado del auditor de presupuestos](contracts/changed-budget-ci-source.md)
 - [Cobertura de Python en CI](contracts/ci-measured-coverage.md)
 - [Objetivo de cierre operativo de KDD](operational-closure.md)
 - [Aprobaciones externas aisladas](approval-registry.md)

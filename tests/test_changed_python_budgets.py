@@ -197,11 +197,13 @@ class Added:
         for name in ('validate_changed_budgets.py', 'validate_budgets.py', 'validate_contracts.py'):
             source = ROOT / 'scripts' / name
             (self.repo / 'scripts' / name).write_bytes(source.read_bytes())
+        auditor = self.commit('approved auditor fixture')
         self.write('app.py', BASE.replace('return value', 'return str(value)'))
         candidate = self.commit('candidate checked out in CI')
         env = fixture_environment()
         env.update(KDD_BUDGET_BASE_REF=self.base, KDD_BUDGET_HEAD_REF=candidate,
-                   KDD_CONTRACTS_DIR='knowledge/contracts')
+                   KDD_CONTRACTS_DIR='knowledge/contracts', KDD_BUDGET_AUDITOR_REF=auditor,
+                   RUNNER_TEMP=str(self.repo.parent))
         def run():
             return subprocess.run([sys.executable, '-c', body], cwd=self.repo, env=env,
                                   capture_output=True, text=True, encoding='utf-8', timeout=30)
