@@ -8,7 +8,6 @@ import fnmatch
 import hashlib
 import json
 from pathlib import Path
-import re
 import subprocess
 import sys
 
@@ -16,7 +15,7 @@ from oracle_execution import declared_timeout, execute_oracle
 from oracle_inventory import approved_binary_paths, inventory_paths, local_file
 from validate_contracts import parse_frontmatter, validate_file
 from validation_runtime import prepare_runtime
-from verify_quality import git, integrity, safe_path, strings, unique_object
+from verify_quality import approved_commit, git, integrity, safe_path, strings, unique_object
 
 
 REQUIRED = ('signature', 'dependencies', 'budget', 'forbids', 'invariants')
@@ -85,13 +84,11 @@ def _obligations(data, item):
 
 
 def _load(root, policy_path, reference):
-    if not isinstance(reference, str) or not re.fullmatch(r'[0-9a-fA-F]{40}|[0-9a-fA-F]{64}', reference):
-        raise ValueError('An explicitly approved full commit SHA is required')
     actual = Path(git(root, 'rev-parse', '--show-toplevel').decode().strip()).resolve()
     if actual != root:
         raise ValueError('repo-root must be the Git root')
     safe_path(root, policy_path)
-    commit = git(root, 'rev-parse', '--verify', '--end-of-options', reference + '^{commit}').decode().strip()
+    commit = approved_commit(root, reference.lower() if isinstance(reference, str) else reference)
     raw = git(root, 'show', commit + ':' + policy_path)
     policy = _policy(root, json.loads(raw, object_pairs_hook=unique_object))
     protected = {policy_path: raw}
@@ -147,20 +144,26 @@ def _matrix(item, data, protected, snapshot):
 
 def _run(row, metadata, root, timeout, recheck):
     row['status'] = 'FAIL'
+    inventory = None
     for iteration in (1, 2):
-        outcome = execute_oracle(metadata, root, timeout)
-        row['evidence'].append({'iteration': iteration, 'command': metadata['test_command'],
-                                'runner': metadata['test_runner'], 'exit_code': outcome['exit_code'],
-                                'executed_tests': outcome['executed_tests'], 'error': outcome['error'],
-                                'stdout': outcome['stdout'], 'stderr': outcome['stderr'],
-                                'runner_evidence': outcome.get('evidence'),
-                                'instrumented_argv': outcome.get('instrumented_argv'),
-                                'runtime_version': outcome.get('runtime_version'),
-                                'output_sha256': _hash((outcome['stdout'] + outcome['stderr']).encode())})
+        outcome = execute_oracle(metadata, root, timeout, record_ids=True, allow_node_ids=True)
+        receipt = {'iteration': iteration, 'command': metadata['test_command'],
+                   'runner': metadata['test_runner'], 'exit_code': outcome['exit_code'],
+                   'executed_tests': outcome['executed_tests'], 'error': outcome['error'],
+                   'stdout': outcome['stdout'], 'stderr': outcome['stderr'],
+                   'runner_evidence': outcome.get('evidence'), 'case_ids': outcome.get('case_ids'),
+                   'instrumented_argv': outcome.get('instrumented_argv'),
+                   'runtime_version': outcome.get('runtime_version'),
+                   'output_sha256': _hash((outcome['stdout'] + outcome['stderr']).encode())}
+        row['evidence'].append(receipt)
         recheck()
         if not outcome['ok']:
-            row['status'] = 'FAIL'
             return False
+        cases = {path: sorted(ids) for path, ids in outcome['evidence']['case_ids'].items()}
+        if inventory is not None and cases != inventory:
+            receipt['error'] = 'Oracle case inventory changed between passes'
+            return False
+        inventory = cases
     row['status'] = 'PASS'
     return True
 

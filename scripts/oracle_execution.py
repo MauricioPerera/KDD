@@ -106,13 +106,17 @@ def _failed_node_counts(stdout, oracle):
         return totals
 
 
-def _evidence(runner, completed, temp):
+def _evidence(runner, completed, temp, *, record_ids=False):
     if runner == 'python-unittest':
         return json.loads((temp / 'result.json').read_text(encoding='utf-8'))
-    return {'files': {name: {'executed': item['counts']['passed'],
-                            'skipped': item['counts']['skipped'] + item['counts']['todo'],
-                            'ok': item['success']}
-                      for name, item in _node_summaries(completed.stdout).items()}}
+    summaries = _node_summaries(completed.stdout)
+    evidence = {'files': {name: {'executed': item['counts']['passed'],
+                                 'skipped': item['counts']['skipped'] + item['counts']['todo'],
+                                 'ok': item['success']}
+                          for name, item in summaries.items()}}
+    if record_ids:
+        evidence['case_ids'] = {name: item['case_ids'] for name, item in summaries.items()}
+    return evidence
 
 
 def _verified_count(evidence, files, root):
@@ -159,6 +163,9 @@ def _execute(selection, root, timeout, run, result, *, record_ids=False):
         temp = Path(directory)
         env = dict(os.environ)
         env.pop('NODE_OPTIONS', None)
+        env.pop('KDD_NODE_ORACLE_RECORD_IDS', None)
+        if record_ids and runner == 'node-test':
+            env['KDD_NODE_ORACLE_RECORD_IDS'] = '1'
         if interpreter is not None:
             env['PYTHONUTF8'] = '1'
         argv = _command(runner, names, root, temp, interpreter, record_ids=record_ids)
@@ -168,7 +175,7 @@ def _execute(selection, root, timeout, run, result, *, record_ids=False):
         result.update(exit_code=completed.returncode, process_exit_code=completed.returncode,
                       stdout=completed.stdout, stderr=completed.stderr)
         if not completed.returncode:
-            evidence = _evidence(runner, completed, temp)
+            evidence = _evidence(runner, completed, temp, record_ids=record_ids)
             result['executed_tests'] = _verified_count(evidence, files, root)
             if record_ids:
                 result['case_ids'] = _verified_ids(evidence, files, root)
@@ -180,13 +187,13 @@ def _execute(selection, root, timeout, run, result, *, record_ids=False):
     return result
 
 
-def execute_oracle(metadata, repo_root, timeout=180, *, record_ids=False):
+def execute_oracle(metadata, repo_root, timeout=180, *, record_ids=False, allow_node_ids=False):
     """Return fail-closed execution results and counts from managed runners."""
     result = _result()
     try:
         root = Path(repo_root).resolve(strict=True)
         runner, names, files = _invocation(metadata, root)
-        if record_ids and runner != 'python-unittest':
+        if record_ids and runner != 'python-unittest' and not allow_node_ids:
             raise ValueError('Oracle receipts require python-unittest')
         result['runtime_version'] = sys.version.split()[0] if runner == 'python-unittest' else None
         return _execute((runner, names, files, None), root, timeout, subprocess.run, result,
