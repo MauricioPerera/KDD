@@ -132,9 +132,89 @@ jobs:
 
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+      - id: upload_pages
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: ${{ runner.temp }}/kdd-pages
+          name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Wait for uploaded Pages artifact
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        timeout-minutes: 1
+        env:
+          KDD_PAGES_ARTIFACT: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+          KDD_PAGES_ARTIFACT_ID: ${{ steps.upload_pages.outputs.artifact_id }}
+        with:
+          script: |
+            const {setTimeout: pause} = require('node:timers/promises');
+            const {ACTIONS_RESULTS_URL, ACTIONS_RUNTIME_TOKEN, KDD_PAGES_ARTIFACT,
+              KDD_PAGES_ARTIFACT_ID} = process.env;
+            const validId = /^[1-9][0-9]*$/;
+            if (!KDD_PAGES_ARTIFACT || !validId.test(KDD_PAGES_ARTIFACT_ID))
+              throw new Error('Pages upload did not return an artifact name and ID');
+
+            let endpoint;
+            try {
+              endpoint = new URL('/twirp/github.actions.results.api.v1.ArtifactService/ListArtifacts',
+                ACTIONS_RESULTS_URL);
+            } catch {
+              throw new Error('Invalid Actions Results endpoint');
+            }
+            if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password)
+              throw new Error('Actions Results requires an HTTPS endpoint without embedded credentials');
+
+            let scope;
+            try {
+              const payload = Buffer.from(ACTIONS_RUNTIME_TOKEN.split('.')[1], 'base64url');
+              const scopes = JSON.parse(payload.toString('utf8')).scp.split(' ');
+              const resultsScopes = scopes.filter(value => value.startsWith('Actions.Results:'));
+              if (resultsScopes.length === 1)
+                scope = /^Actions\.Results:([^:]+):([^:]+)$/.exec(resultsScopes[0]);
+            } catch {
+              throw new Error('Invalid Actions Results runtime token');
+            }
+            if (!scope) throw new Error('Missing or ambiguous Actions Results scope');
+            const [, workflowRunBackendId, workflowJobRunBackendId] = scope;
+            const signal = AbortSignal.timeout(30000);
+            const request = {
+              method: 'POST', redirect: 'error', signal,
+              headers: {'Authorization': 'Bearer ' + ACTIONS_RUNTIME_TOKEN, 'Content-Type': 'application/json'},
+              body: JSON.stringify({workflowRunBackendId, workflowJobRunBackendId}),
+            };
+
+            // Use the same job-scoped artifact list as deploy-pages.
+            try {
+              for (let checks = 1; ; checks++) {
+                const response = await fetch(endpoint, request);
+                if (!response.ok)
+                  throw new Error('Actions Results lookup failed with HTTP ' + response.status);
+                const result = await response.json().catch(() => {
+                  throw new Error('Invalid Actions Results response');
+                });
+                const artifacts = result?.artifacts === undefined ? [] : result.artifacts;
+                if (!result || typeof result !== 'object' || Array.isArray(result) ||
+                    !Array.isArray(artifacts) || artifacts.some(item => typeof item?.name !== 'string'))
+                  throw new Error('Invalid Actions Results response');
+
+                const matches = artifacts.filter(item => item.name === KDD_PAGES_ARTIFACT);
+                if (matches.length > 1) throw new Error('Duplicate Pages artifact name in Actions Results');
+                if (matches.length === 1) {
+                  const id = matches[0].databaseId;
+                  if (!(typeof id === 'string' || Number.isSafeInteger(id)) ||
+                      String(id) !== KDD_PAGES_ARTIFACT_ID)
+                    throw new Error('Unexpected artifact ID in Actions Results');
+                  signal.throwIfAborted();
+                  core.info('Pages artifact ' + KDD_PAGES_ARTIFACT + ' (' + id + ') visible after ' + checks + ' checks');
+                  break;
+                }
+                await pause(1000, undefined, {signal});
+              }
+            } catch (error) {
+              if (signal.aborted) throw new Error('Pages artifact lookup timed out after 30 s');
+              throw error;
+            }
 
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        with:
+          artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
