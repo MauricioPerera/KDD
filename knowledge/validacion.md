@@ -55,6 +55,17 @@ en el reporte del gate; `SKIP` significa ausencia de evidencia y nunca se
 suma a `PASS`.
 Consulta el [detalle de presupuestos, cobertura y perímetro](../docs/reports/ARCHIVO-VALIDACION.md#auditoria-del-cambio-y-controles-de-codigo), el [contrato del auditor](contracts/change-contract-audit.md) y el [alcance del escaneo de secretos](contracts/secret-scan-gate.md).
 
+El auditor diferencial del CI nativo se ejecuta desde el commit fijado en
+el workflow. El log identifica el SHA y los hashes de los tres módulos
+ejecutados. Su recibo enumera las rutas del diff y explica las exclusiones.
+Por cada función medida publica los valores AST, los topes efectivos y
+`within_budget`, calculado por comparación directa. Un resultado
+`regression_status: PASS` admite deuda anterior estable o reducida.
+La conformidad absoluta de un presupuesto requerido se evalúa con
+[controles requeridos](required-controls.md).
+Ver [recibo](contracts/changed-budget-receipt.md) y
+[origen del auditor](contracts/changed-budget-ci-source.md).
+
 Todos corren localmente y en CI (`.github/workflows/validate.yml`, matriz `ubuntu-latest` + `windows-latest`, que además valida los nodos OKF y corre la suite dos veces — dos corridas son una comprobacion basica de repetibilidad; no prueban ausencia de flaky). El caso costoso de post-init se ejecuta una vez dentro del `test_command` de su contrato y se omite en las dos pasadas generales mediante `KDD_SKIP_INIT_POST_APPLY_SUITE=1`; los demás tests siguen corriendo dos veces. **Ningún contrato se considera terminado hasta que pase el nivel 1.**
 
 ## Preflight — diagnóstico local opt-in (NO es un gate)

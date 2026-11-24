@@ -452,22 +452,81 @@ jobs:
 
       - name: Audit changed Python budgets
         if: ${{ !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}
-        shell: python
+        shell: python -I "{0}"
         env:
+          KDD_BUDGET_AUDITOR_REF: b43f6282c62e0f7f3c39faf997e785039ded2b64
           KDD_BUDGET_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
           KDD_BUDGET_HEAD_REF: ${{ github.sha }}
         run: |
+          import hashlib
+          import json
           import os
+          from pathlib import Path
+          import re
+          import shutil
           import subprocess
           import sys
-          expected = os.environ['KDD_BUDGET_HEAD_REF']
-          actual = subprocess.check_output(['git', 'rev-parse', '--verify', 'HEAD']).decode('ascii').strip()
-          if actual != expected:
+          import tempfile
+
+          root = Path.cwd().resolve()
+          temporary = Path(os.environ['RUNNER_TEMP']).resolve(strict=True)
+          if temporary.is_relative_to(root):
+              raise SystemExit('BUDGET_AUDITOR: runner temp must be outside the checkout')
+          directories = [Path(folder) for folder in os.environ['PATH'].split(os.pathsep)]
+          directories = [folder.resolve() for folder in directories if folder.is_absolute()
+                         and not folder.resolve().is_relative_to(root)]
+          name = 'git.exe' if os.name == 'nt' else 'git'
+          executable = next((found for folder in directories
+                             if (found := shutil.which(str(folder / name)))), None)
+          if executable is None or Path(executable).resolve().is_relative_to(root):
+              raise SystemExit('BUDGET_AUDITOR: installed Git is unavailable')
+          environment = dict(os.environ, PATH=os.pathsep.join(map(str, directories)))
+
+          def git(*args, reason='BUDGET_AUDITOR'):
+              result = subprocess.run([executable, '--no-replace-objects', '--literal-pathspecs',
+                                       '-C', str(root), *args], cwd=temporary, env=environment,
+                                      capture_output=True, timeout=30)
+              if result.returncode:
+                  raise SystemExit(reason + ': ' + result.stderr.decode('utf-8', 'replace').strip())
+              return result.stdout
+
+          head = os.environ['KDD_BUDGET_HEAD_REF']
+          if git('rev-parse', '--verify', 'HEAD', reason='BUDGET_REF').strip() != head.encode('ascii'):
               raise SystemExit('BUDGET_REF: checkout does not match the CI commit')
-          raise SystemExit(subprocess.call([
-              sys.executable, 'scripts/validate_changed_budgets.py',
-              os.environ['KDD_CONTRACTS_DIR'], '--repo-root', '.',
-              '--base-ref', os.environ['KDD_BUDGET_BASE_REF'], '--head-ref', expected]))
+
+          ref = os.environ['KDD_BUDGET_AUDITOR_REF']
+          width = {b'sha1': 40, b'sha256': 64}.get(git('rev-parse', '--show-object-format').strip())
+          if len(ref) != width or not re.fullmatch(r'[0-9a-f]+', ref):
+              raise SystemExit('BUDGET_AUDITOR: expected a full native approved commit ID')
+          if git('cat-file', '-t', ref).strip() != b'commit':
+              raise SystemExit('BUDGET_AUDITOR: expected an approved commit')
+
+          def module(path):
+              record = git('ls-tree', '-z', ref, '--', path)
+              metadata, _, filename = record.partition(b'\t')
+              fields = metadata.split()
+              if (filename != path.encode('ascii') + b'\0' or len(fields) != 3
+                      or fields[0] not in {b'100644', b'100755'} or fields[1] != b'blob'):
+                  raise SystemExit('BUDGET_AUDITOR: expected regular module ' + path)
+              return git('cat-file', 'blob', fields[2].decode('ascii'))
+
+          with tempfile.TemporaryDirectory(prefix='kdd-budget-auditor-', dir=temporary) as folder:
+              bundle = Path(folder)
+              files = {}
+              for name in ('validate_changed_budgets.py', 'validate_budgets.py', 'validate_contracts.py'):
+                  path = 'scripts/' + name
+                  source = module(path)
+                  (bundle / name).write_bytes(source)
+                  files[path] = hashlib.sha256(source).hexdigest()
+              print('BUDGET_AUDITOR ' + json.dumps(dict(ref=ref, files=files), sort_keys=True), flush=True)
+              launcher = ('import os,sys; sys.path.insert(0, os.getcwd()); '
+                          'from validate_changed_budgets import main; sys.exit(main())')
+              result = subprocess.run([
+                  sys.executable, '-I', '-B', '-c', launcher,
+                  os.environ['KDD_CONTRACTS_DIR'], '--repo-root', str(root),
+                  '--base-ref', os.environ['KDD_BUDGET_BASE_REF'], '--head-ref', head, '--json',
+              ], cwd=bundle, env=environment)
+              raise SystemExit(result.returncode)
 
       - name: Audit implementation diff against approved contract (when configured)
         shell: bash
