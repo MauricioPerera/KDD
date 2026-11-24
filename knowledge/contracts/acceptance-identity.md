@@ -16,7 +16,7 @@ budget:
   lines_max: 80
   params_max: 6
 tests: "tests/test_acceptance_identity.py"
-tests_sha256: '4ab8b955ea4a02c9c986d2e221c0dc32ae39c10d5da679b9bb43ca76e319bc85'
+tests_sha256: '7394d388950b755db1a3438ce6e01b171c9d405ac099528597a895eb0dfba504'
 touch_only: ['scripts/verify_acceptance.py', 'scripts/oracle_execution.py', 'scripts/node_oracle_reporter.mjs']
 deps_allowed: []
 forbids: ['network', 'llm']

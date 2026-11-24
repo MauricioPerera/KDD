@@ -77,11 +77,11 @@ writeFileSync(marker, "");
 const alternate = process.env.KDD_FIXTURE_ALTERNATE === "1";
 test("suite", { concurrency: true }, async (root) => {
     await Promise.all([
-        root.test("parent A", async (parent) => {
+        root.test("parent", async (parent) => {
             await delay(25);
             if (!alternate || !repeat) await register(parent);
         }),
-        root.test("parent B", async (parent) => {
+        root.test("parent", async (parent) => {
             if (!alternate || repeat) await register(parent);
         }),
     ]);
@@ -215,7 +215,7 @@ class AcceptanceIdentity(unittest.TestCase):
             with self.subTest(object_format=object_format):
                 self.fixture = sha1 if object_format == "sha1" else self.new_fixture("sha256")
                 self.assertEqual(len(self.fixture.ref), width)
-                code, accepted = self.execute(self.fixture.ref)
+                code, accepted = self.execute(self.fixture.ref.upper())
                 self.assertEqual(code, 0, accepted)
                 self.assertEqual(accepted["approved_ref"], self.fixture.ref)
 
@@ -242,16 +242,22 @@ class AcceptanceIdentity(unittest.TestCase):
 
     def node_placements(self, receipt):
         evidence = []
-        for case_id in receipt.get("case_ids", []):
+        case_ids = receipt.get("case_ids", [])
+        self.assertEqual(len(case_ids), len(set(case_ids)))
+        for case_id in case_ids:
             owner, stack = json.loads(case_id)
             self.assertTrue(stack)
             for filename, line, column, name in stack:
-                self.assertIsInstance(filename, str)
+                location = Path(filename)
+                self.assertFalse(location.is_absolute())
+                self.assertNotIn("..", location.parts)
+                content = (self.fixture.root / location).read_text(encoding="utf-8").splitlines()
                 self.assertGreater(line, 0)
+                self.assertLessEqual(line, len(content))
                 self.assertGreater(column, 0)
-                self.assertIsInstance(name, str)
+                call = content[line - 1][column - 1:]
+                self.assertRegex(call, r'^(?:[A-Za-z_]+\.)?(?:test|describe|it)\(' + re.escape(json.dumps(name)))
             evidence.append((owner, stack[-1][0], tuple(item[3] for item in stack)))
-        self.assertEqual(len(evidence), len(set(evidence)))
         return sorted(evidence)
 
     def assert_node_names(self, receipt, expected):
@@ -278,14 +284,27 @@ class AcceptanceIdentity(unittest.TestCase):
         self.assert_node_names(second, ["second node case"])
 
 
+    def nested_parents(self, receipt):
+        placements = self.node_placements(receipt)
+        leaves = [placement for placement in placements if placement[1] == "shared.mjs"]
+        self.assertTrue(all(leaf == ("oracle.mjs", "shared.mjs", ("suite", "parent", "shared leaf"))
+                            for leaf in leaves))
+        stacks = [json.loads(case_id)[1] for case_id in receipt["case_ids"]]
+        return sorted(stack[-2][1] for stack in stacks if stack[-1][3] == "shared leaf")
+
+    def nested_parent_lines(self):
+        lines = [index for index, line in enumerate(NODE_NESTED.splitlines(), 1)
+                 if 'root.test("parent",' in line]
+        self.assertEqual(len(lines), 2)
+        return lines
+
     @unittest.skipUnless(shutil.which("node"), "Node is required for the managed Node runner")
     def test_nested_node_case_moved_to_a_different_parent_is_rejected(self):
         self.node_oracle(NODE_NESTED, shared=True)
         first, second = self.assert_two_different_receipts("oracle-execution", count=4)
-        for receipt, parent in ((first, "parent A"), (second, "parent B")):
-            placements = self.node_placements(receipt)
-            self.assertIn(("oracle.mjs", "shared.mjs", ("suite", parent, "shared leaf")), placements)
-            self.assertEqual(sum(case[1] == "shared.mjs" for case in placements), 1)
+        first_parent, second_parent = self.nested_parent_lines()
+        self.assertEqual(self.nested_parents(first), [first_parent])
+        self.assertEqual(self.nested_parents(second), [second_parent])
 
     @unittest.skipUnless(shutil.which("node"), "Node is required for the managed Node runner")
     def test_same_node_registration_under_both_parents_stays_distinct(self):
@@ -298,16 +317,15 @@ class AcceptanceIdentity(unittest.TestCase):
         self.assertEqual([first["executed_tests"], second["executed_tests"]], [5, 5])
         self.assertEqual([len(receipt.get("case_ids", [])) for receipt in (first, second)], [5, 5])
         self.assertEqual(sorted(first["case_ids"]), sorted(second["case_ids"]))
-        for parent in ("parent A", "parent B"):
-            self.assertIn(("oracle.mjs", "shared.mjs", ("suite", parent, "shared leaf")),
-                          self.node_placements(first))
+        self.assertEqual(self.nested_parents(first), self.nested_parent_lines())
 
     def multiple_node_files(self):
-        self.fixture.write("shared.mjs", NODE_SHARED)
-        for filename, parent in (("first.mjs", "first file"), ("second.mjs", "second file")):
-            self.fixture.write(filename, 'import test from "node:test";\n'
-                               'import { register } from "./shared.mjs";\n'
-                               f'test("{parent}", async (t) => {{ await register(t); }});\n')
+        self.fixture.write("shared.mjs", 'import { describe, it } from "node:test";\n'
+                           'describe("shared root", () => {\n'
+                           '    it("shared leaf", () => {});\n'
+                           '});\n')
+        for filename in ("first.mjs", "second.mjs"):
+            self.fixture.write(filename, 'import "./shared.mjs";\n')
         return dict(tests="first.mjs", oracle_files=["first.mjs", "second.mjs", "shared.mjs"],
                     test_runner="node-test", test_command="node --test first.mjs second.mjs")
 
@@ -315,21 +333,20 @@ class AcceptanceIdentity(unittest.TestCase):
     def test_node_default_count_receipt_is_preserved(self):
         result = execute_oracle(self.multiple_node_files(), self.fixture.root, timeout=30)
         self.assertTrue(result["ok"], result)
-        self.assertEqual(result["executed_tests"], 4)
+        self.assertEqual(result["executed_tests"], 2)
         self.assertNotIn("case_ids", result)
-        self.assertEqual(len(result["evidence"]["files"]), 2)
-        self.assertTrue(all(row["executed"] == 2 for row in result["evidence"]["files"].values()))
+        expected = {str((self.fixture.root / filename).resolve()): {"executed": 1, "skipped": 0, "ok": True}
+                    for filename in ("first.mjs", "second.mjs")}
+        self.assertEqual(result["evidence"]["files"], expected)
 
     @unittest.skipUnless(shutil.which("node"), "Node is required for the managed Node runner")
     def test_node_report_keeps_owner_when_two_selected_files_use_a_helper(self):
         result = execute_oracle(self.multiple_node_files(), self.fixture.root, timeout=30, record_ids=True)
         self.assertTrue(result["ok"], result)
-        self.assertEqual(result["executed_tests"], 4)
+        self.assertEqual(result["executed_tests"], 2)
         self.assertEqual(self.node_placements(result), [
-            ("first.mjs", "first.mjs", ("first file",)),
-            ("first.mjs", "shared.mjs", ("first file", "shared leaf")),
-            ("second.mjs", "second.mjs", ("second file",)),
-            ("second.mjs", "shared.mjs", ("second file", "shared leaf")),
+            ("first.mjs", "shared.mjs", ("shared root", "shared leaf")),
+            ("second.mjs", "shared.mjs", ("shared root", "shared leaf")),
         ])
 
 
