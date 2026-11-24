@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 from threading import Thread
+from time import sleep
 import unittest
 
 import yaml
@@ -30,14 +31,22 @@ NODE_RUNNER = r"""
 const fs = require('node:fs');
 const fixture = JSON.parse(fs.readFileSync(0, 'utf8'));
 const realFetch = globalThis.fetch;
+let waitSignal;
 globalThis.fetch = (input, options) => {
   const url = new URL(input);
   if (url.origin !== 'https://results.example.invalid') throw new Error('Unexpected service origin');
+  if (fixture.checkDeadline && (!waitSignal || options.signal !== waitSignal))
+    throw new Error('Lookup lacks the common 30-second deadline');
   return realFetch(new URL(url.pathname + url.search, fixture.address), options);
 };
 // Shorten the test's real wall-clock deadline while checking the production bound.
 const realTimeout = AbortSignal.timeout;
-AbortSignal.timeout = ms => realTimeout(ms === 30000 ? fixture.deadline : ms);
+AbortSignal.timeout = ms => {
+  if (!fixture.checkDeadline || ms !== 30000) return realTimeout(ms);
+  if (waitSignal) throw new Error('Lookup restarted the common deadline');
+  waitSignal = realTimeout(fixture.deadline);
+  return waitSignal;
+};
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 const run = new AsyncFunction('require', 'core', fixture.script);
 run(require, {info: console.log, warning: console.warn}).catch(error => {
@@ -57,14 +66,19 @@ def service(responses):
 
         def do_POST(self):
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-            requests.append((self.path, self.headers.get("Authorization"), body))
-            code, payload = responses[min(len(requests) - 1, len(responses) - 1)]
+            requests.append((self.path, self.headers.get("Authorization"), self.headers.get_content_type(), body))
+            code, payload, *delay = responses[min(len(requests) - 1, len(responses) - 1)]
+            if delay:
+                sleep(delay[0])
             raw = json.dumps(payload).encode()
             self.send_response(code)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(raw)))
             self.end_headers()
-            self.wfile.write(raw)
+            try:
+                self.wfile.write(raw)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
 
     with ThreadingHTTPServer(("127.0.0.1", 0), Handler) as server:
         worker = Thread(target=server.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
@@ -76,7 +90,6 @@ def service(responses):
             worker.join(timeout=2)
 
 
-@unittest.skipUnless(shutil.which("node"), "Node is required by the Pages workflow")
 class PagesArtifactDelivery(unittest.TestCase):
     def setUp(self):
         workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
@@ -89,6 +102,9 @@ class PagesArtifactDelivery(unittest.TestCase):
         return ready[0]
 
     def execute(self, responses, *, deadline=5000, origin=ORIGIN, script=None):
+        if not shutil.which("node"):
+            self.skipTest("Node is required by the Pages workflow")
+        check_deadline = script is None
         if script is None:
             script = self.readiness()["with"]["script"]
         env = dict(os.environ, ACTIONS_RUNTIME_TOKEN=TOKEN, ACTIONS_RESULTS_URL=origin,
@@ -97,7 +113,8 @@ class PagesArtifactDelivery(unittest.TestCase):
         with service(responses) as (address, requests):
             result = subprocess.run(
                 ["node", "-e", NODE_RUNNER],
-                input=json.dumps(dict(address=address, script=script, deadline=deadline)),
+                input=json.dumps(dict(address=address, script=script, deadline=deadline,
+                                      checkDeadline=check_deadline)),
                 cwd=ROOT, env=env, encoding="utf-8", capture_output=True, timeout=12,
             )
         self.assertNotIn(TOKEN, result.stdout + result.stderr)
@@ -107,12 +124,13 @@ class PagesArtifactDelivery(unittest.TestCase):
         ready = self.readiness()
         upload, = [step for step in self.steps if step.get("uses", "").startswith("actions/upload-pages-artifact@")]
         deploy, = [step for step in self.steps if step.get("uses", "").startswith("actions/deploy-pages@")]
-        self.assertEqual(self.job["env"]["KDD_PAGES_ARTIFACT"],
-                         "github-pages-${{ github.run_id }}-${{ github.run_attempt }}")
-        shared_name = "${{ env.KDD_PAGES_ARTIFACT }}"
-        self.assertEqual(upload["with"]["name"], shared_name)
-        self.assertEqual(deploy["with"]["artifact_name"], shared_name)
-        self.assertNotIn("KDD_PAGES_ARTIFACT", ready["env"])
+        self.assertEqual(upload["uses"], "actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9")
+        self.assertEqual(deploy["uses"], "actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346")
+        name = "github-pages-${{ github.run_id }}-${{ github.run_attempt }}"
+        self.assertEqual(upload["with"]["name"], name)
+        self.assertEqual(deploy["with"]["artifact_name"], name)
+        self.assertEqual(ready["env"]["KDD_PAGES_ARTIFACT"], name)
+        self.assertNotIn("env", self.job)
         self.assertEqual(ready["env"]["KDD_PAGES_ARTIFACT_ID"],
                          "${{ steps." + upload["id"] + ".outputs.artifact_id }}")
         self.assertEqual(ready["uses"], "actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd")
@@ -125,21 +143,22 @@ class PagesArtifactDelivery(unittest.TestCase):
     def test_http_fixture_serves_a_real_node_request(self):
         probe = (
             "const response = await fetch(process.env.ACTIONS_RESULTS_URL + " + json.dumps(LIST_PATH) + ", "
-            "{ method: 'POST', headers: {Authorization: 'Bearer ' + process.env.ACTIONS_RUNTIME_TOKEN}, "
+            "{ method: 'POST', headers: {Authorization: 'Bearer ' + process.env.ACTIONS_RUNTIME_TOKEN, "
+            "'Content-Type': 'application/json'}, "
             "body: JSON.stringify(" + json.dumps(BODY) + ") }); "
             "if ((await response.json()).artifacts[0].databaseId !== process.env.KDD_PAGES_ARTIFACT_ID)"
             " throw new Error('Invalid fixture');"
         )
         result, requests = self.execute([(200, {"artifacts": [MATCH]})], script=probe)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(requests, [(LIST_PATH, "Bearer " + TOKEN, BODY)])
+        self.assertEqual(requests, [(LIST_PATH, "Bearer " + TOKEN, "application/json", BODY)])
 
     def test_artifact_becomes_visible_after_empty_and_previous_attempt(self):
         previous = dict(MATCH, name="github-pages-1234-1", databaseId="123")
         result, requests = self.execute([(200, {}), (200, {"artifacts": [previous]}),
                                          (200, {"artifacts": [previous, MATCH]})])
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(requests, [(LIST_PATH, "Bearer " + TOKEN, BODY)] * 3)
+        self.assertEqual(requests, [(LIST_PATH, "Bearer " + TOKEN, "application/json", BODY)] * 3)
 
     def test_existing_exact_artifact_is_ready_on_first_request(self):
         result, requests = self.execute([(200, {"artifacts": [MATCH]})])
@@ -165,6 +184,12 @@ class PagesArtifactDelivery(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertRegex(result.stderr.lower(), "30 s|30000|timed out")
         self.assertGreaterEqual(len(requests), 1)
+
+    def test_deadline_aborts_a_slow_lookup_before_accepting_its_result(self):
+        result, requests = self.execute([(200, {"artifacts": [MATCH]}, 2)], deadline=900)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertRegex(result.stderr.lower(), "30 s|30000|timed out")
+        self.assertEqual(len(requests), 1)
 
     def test_denied_request_fails_without_printing_response_body(self):
         result, requests = self.execute([(403, {"msg": "private-response-sentinel"})])
