@@ -15,7 +15,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_changed_budget_ci_source.py
-tests_sha256: '45d62410f5a93f1e3dfadbfddf7bb1ddbed44ad4a087cfbf5c50c901733dba2b'
+tests_sha256: 'e576847cf5c88f966d7d0ee514602a5d57a1a78a22aceecd6650711a0df261e8'
 touch_only: ['.github/workflows/validate.yml', 'knowledge/validacion.md']
 deps_allowed: ['stdlib', 'git']
 forbids: ['llm', 'network']
@@ -58,7 +58,8 @@ del auditor y conserva su codigo de salida.
 Ejecutar el bloque Python real del workflow en un repositorio Git con un
 commit de herramientas independiente de los objetos del diff. Comprobar
 los hashes originales, el recibo y los codigos de salida con commit
-aprobado ausente o invalido, archivos no regulares y HEAD equivocado.
+aprobado ausente o invalido, archivos no regulares, reemplazos Git, imports del entorno, exceso real y
+HEAD equivocado.
 
 ## Examples
 

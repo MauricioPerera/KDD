@@ -44,7 +44,7 @@ class BudgetRepository(unittest.TestCase):
         self.git('commit', '-qm', message)
         return self.git('rev-parse', 'HEAD')
 
-    def contract(self, task, target, touch=None):
+    def contract(self, task, target, touch=None, budget=LIMIT):
         oracle = f'def test_{task}():\n    assert 1 + 1 == 2\n'
         tests = f'test_{task}.py'
         self.write(tests, oracle)
@@ -59,7 +59,7 @@ intent: Measure functions by approved target.
 target: {target}
 signature: 'def result(flag):'
 test_command: python fixture
-{LIMIT}
+{budget}
 tests: {tests}
 tests_sha256: '{digest}'
 touch_only: {json.dumps(touch or [target])}
@@ -173,6 +173,29 @@ class BudgetReceiptTests(BudgetRepository):
                                  ('app.py', 'deleted'), ('public/panel.ts', 'not_python')])
         self.assertTrue(all(not item['contracts'] and not item['measurements']
                             for item in report['files']))
+
+    def test_receipt_reports_original_limits_for_two_policies(self):
+        self.contract('secondary', 'app.py', budget='budget:\n  cyclomatic_max: 3')
+        self.base = self.commit('freeze distinct policies for the same file')
+        self.contract('app', 'app.py', budget='budget:\n  cyclomatic_max: 20')
+        (self.repo / 'knowledge/contracts/secondary.md').unlink()
+        self.write('app.py', BASE_SOURCE + '\ndef new_branch(flag):\n'
+                   '    if flag > 1:\n        return 1\n'
+                   '    if flag < 0:\n        return -1\n    return 0\n')
+        head = self.commit('change candidate policy and add a function')
+        data = self.receipt(self.cli(head), head, code=1)
+        measured = data['files'][0]
+        primary = 'knowledge/contracts/app.md'
+        secondary = 'knowledge/contracts/secondary.md'
+        self.assertEqual(measured['contracts'], [primary, secondary])
+        values = [(row['contract'], row['function'], row['limits'], row['within_budget'])
+                  for row in measured['measurements']]
+        self.assertEqual(values, [
+            (primary, 'new_branch',
+             {'cyclomatic_max': 2, 'nesting_max': 2, 'lines_max': 12, 'params_max': 2}, False),
+            (secondary, 'new_branch', {'cyclomatic_max': 3}, True),
+        ])
+
 
     def test_exactly_the_same_objects_return_an_empty_inventory(self):
         report = self.receipt(self.cli(self.base), self.base)

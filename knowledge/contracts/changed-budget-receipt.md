@@ -15,7 +15,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_changed_budget_receipt.py
-tests_sha256: '16541f0f4ed96fd98b492266c867d2ca4694ff02bf145d1d0b417e5c7db910b9'
+tests_sha256: '0fa45479c19f06a49ab612930941c2bf0baf2b9ba839bc37ff960401a73b6177'
 touch_only: ['scripts/validate_changed_budgets.py', 'knowledge/validacion.md']
 deps_allowed: ['stdlib', 'validate_budgets', 'validate_contracts']
 forbids: ['llm', 'network']
@@ -67,7 +67,7 @@ distinto de cero y un diagnostico; solo un diff completo produce un recibo.
 
 CLI Python y repositorios Git reales. Se coteja el inventario exacto de rutas
 del diff y el veredicto, incluyendo un cambio equivalente al del relevo Board,
-comentarios, medidas, excesos, eliminaciones y rango invalido.
+comentarios, medidas, excesos, eliminaciones, multiples politicas y rango invalido.
 
 ## Examples
 
