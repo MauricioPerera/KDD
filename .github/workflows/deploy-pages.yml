@@ -199,12 +199,18 @@ jobs:
                 const matches = artifacts.filter(item => item.name === KDD_PAGES_ARTIFACT);
                 if (matches.length > 1) throw new Error('Duplicate Pages artifact name in Actions Results');
                 if (matches.length === 1) {
-                  const id = matches[0].databaseId;
+                  const artifact = matches[0];
+                  const hasJsonName = Object.hasOwn(artifact, 'databaseId');
+                  if (hasJsonName && Object.hasOwn(artifact, 'database_id'))
+                    throw new Error('Ambiguous artifact ID in Actions Results');
+                  const idField = hasJsonName ? 'databaseId' : 'database_id';
+                  const id = Object.hasOwn(artifact, idField) ? artifact[idField] : undefined;
                   if (!(typeof id === 'string' || Number.isSafeInteger(id)) ||
                       String(id) !== KDD_PAGES_ARTIFACT_ID)
                     throw new Error('Unexpected artifact ID in Actions Results');
                   signal.throwIfAborted();
-                  core.info('Pages artifact ' + KDD_PAGES_ARTIFACT + ' (' + id + ') visible after ' + checks + ' checks');
+                  core.info('Pages artifact ' + KDD_PAGES_ARTIFACT + ' (' + id + ') visible after ' +
+                    checks + ' checks using ' + idField);
                   break;
                 }
                 await pause(1000, undefined, {signal});

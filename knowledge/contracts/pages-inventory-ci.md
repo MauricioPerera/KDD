@@ -50,6 +50,7 @@ su conjunto de preparacion revisado.
 Upload y deploy comparten nombre por run/intento de Pages. Antes de publicar,
 cotejar nombre unico e ID del upload en Actions Results. Reintentar listas
 sin el nombre por hasta 30 s. Duplicados, ID ajeno o fallo de consulta bloquean.
+En la coincidencia, aceptar una sola grafia del ID: databaseId o database_id.
 Usar TLS y conservar permisos, acciones de upload/deploy y triggers.
 
 Los inventarios de Pages siguen saliendo de las filas que ejecutan las
