@@ -42,6 +42,7 @@ export interface TaskTestReport {
   cwd?: string;
   contractId?: string;
   evidence?: Record<string, string>;
+  evidenceFiles?: string[];
 }
 
 export interface TaskMetrics {

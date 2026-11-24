@@ -16,6 +16,7 @@ import sys
 
 import validate_contracts
 import validate_test_commands
+from oracle_inventory import inventory_paths
 
 
 class InvalidGroup(ValueError):
@@ -150,6 +151,19 @@ def _group(metadata):
     return children, tests, protected, argv
 
 
+def _check_atomic(root, path, metadata, checked):
+    if metadata.get('type') != 'Task Contract':
+        raise InvalidGroup('child is not an atomic contract or group')
+    findings = validate_contracts.validate_file(str(path), repo_root=str(root))
+    if any(finding.level == 'ERROR' for finding in findings):
+        raise InvalidGroup('invalid atomic contract')
+    for name in inventory_paths(metadata):
+        checked(name)
+    command = metadata.get('test_command')
+    if not isinstance(command, str) or not command.strip():
+        raise InvalidGroup('atomic contract has no test command')
+
+
 def _graph(root, ref, first):
     nodes, protected, ordered, visiting = {}, {}, [], set()
 
@@ -176,16 +190,8 @@ def _graph(root, ref, first):
                 visit(child)
             nodes[value] = ('integration', argv)
         else:
-            if metadata.get('type') != 'Task Contract':
-                raise InvalidGroup('child is not an atomic contract or group')
-            findings = validate_contracts.validate_file(str(path), repo_root=str(root))
-            if any(finding.level == 'ERROR' for finding in findings):
-                raise InvalidGroup('invalid atomic contract')
-            checked(metadata.get('tests'))
-            command = metadata.get('test_command')
-            if not isinstance(command, str) or not command.strip():
-                raise InvalidGroup('atomic contract has no test command')
-            nodes[value] = ('atomic', command)
+            _check_atomic(root, path, metadata, checked)
+            nodes[value] = ('atomic', metadata)
         visiting.remove(value)
         ordered.append(value)
 
@@ -232,18 +238,39 @@ def _atomic_command(command):
     return shlex.join(tokens) if posix else subprocess.list2cmdline(tokens)
 
 
+def _managed_atomic(root, metadata, timeout):
+    bridge = Path(__file__).resolve().with_name('board_oracle_bridge.py')
+    process = validate_test_commands.run_process(
+        [sys.executable, '-I', '-B', str(bridge), json.dumps(metadata), str(root), str(timeout)],
+        cwd=root, timeout=timeout, capture_output=True, text=True, encoding='utf-8',
+        errors='replace', env=dict(os.environ, NO_COLOR='1', PYTHONUTF8='1'))
+    if process.returncode:
+        return {'ok': False, 'error': 'oracle bridge failed'}
+    result = json.loads(process.stdout)
+    if not isinstance(result, dict):
+        raise InvalidGroup('invalid managed oracle result')
+    return result
+
+
+def _atomic_result(root, metadata, timeout):
+    if 'test_runner' in metadata:
+        outcome = _managed_atomic(root, metadata, timeout)
+        launched = True
+    else:
+        outcome = validate_test_commands.run_test_command(
+            _atomic_command(metadata['test_command']), str(root), timeout, capture=True)
+        launched = outcome.get('error') in (None, 'timeout')
+    return (outcome.get('error') == 'timeout', not launched,
+            outcome.get('ok') is True, launched)
+
+
 def _execute(root, nodes, protected, ordered, timeout, result):
     for name in ordered:
         stage, command = nodes[name]
         launched = False
         try:
             if stage == 'atomic':
-                outcome = validate_test_commands.run_test_command(
-                    _atomic_command(command), str(root), timeout, capture=True)
-                timed_out = outcome.get('error') == 'timeout'
-                ok = outcome.get('ok') is True
-                execution_error = outcome.get('error') not in (None, 'timeout')
-                launched = not execution_error
+                timed_out, execution_error, ok, launched = _atomic_result(root, command, timeout)
             else:
                 argv = list(command)
                 if argv[0].lower() in ('python', 'python3', 'python.exe'):

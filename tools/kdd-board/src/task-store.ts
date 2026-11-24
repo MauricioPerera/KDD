@@ -13,9 +13,12 @@ export class TaskStore {
   private legacyTasks: Map<string, Task> = new Map();
   private secretAvailable: (key: string) => boolean;
 
-  constructor(filePath: string, secretAvailable: (key: string) => boolean = () => false) {
+  private projectRoot?: string;
+
+  constructor(filePath: string, secretAvailable: (key: string) => boolean = () => false, projectRoot?: string) {
     this.filePath = filePath;
     this.secretAvailable = secretAvailable;
+    this.projectRoot = projectRoot;
     this.load();
   }
 
@@ -44,11 +47,12 @@ export class TaskStore {
             t.testReport = undefined;
           }
         }
+        const current = evidenceCurrent(t, this.projectRoot);
         if (t.testReport) {
           t.testReport.status ??= !t.testReport.success ? 'FAIL' : t.testReport.verifiedOracle && t.testReport.passedTests > 0 ? 'PASS' : 'SKIP';
-          if (t.testReport.status === 'PASS' && !evidenceCurrent(t)) t.testReport.status = 'SKIP';
+          if (t.testReport.status === 'PASS' && !current) t.testReport.status = 'SKIP';
         }
-        if (t.status === 'done' && !evidenceCurrent(t)) t.status = 'ready';
+        if (t.status === 'done' && !current) t.status = 'ready';
         loaded.set(t.id, t);
       }
       this.legacyTasks = new Map(original.filter((t: any) => Object.keys(t).every(key => ['id','title','status','updatedAt'].includes(key))).map((t: Task) => [t.id, {...t, status:loaded.get(t.id)!.status}]));
@@ -139,8 +143,8 @@ export class TaskStore {
       throw new Error(`TaskStore: task with id "${id}" not found`);
     }
     if (!['backlog', 'ready', 'in_progress', 'needs_human_input', 'done'].includes(newStatus)) throw new Error('Invalid status');
-    if (newStatus === 'done' && (!evidenceCurrent(task) || task.requirements.some(r => !r.isSatisfied || (r.isSecret && !this.secretAvailable(r.fieldKey))))) {
-      throw new Error('Current contract evidence and satisfied requirements are required');
+    if (newStatus === 'done' && (!evidenceCurrent(task, this.projectRoot) || task.requirements.some(r => !r.isSatisfied || (r.isSecret && !this.secretAvailable(r.fieldKey))))) {
+      throw new InputError('Current contract evidence and satisfied requirements are required');
     }
     task.status = newStatus;
     task.updatedAt = new Date().toISOString();
@@ -278,8 +282,9 @@ export class TaskStore {
     }
     report.status ??= !report.success ? 'FAIL' : report.verifiedOracle && report.passedTests > 0 ? 'PASS' : 'SKIP';
     task.testReport = report;
-    if (report.status === 'PASS' && !evidenceCurrent(task)) report.status = 'SKIP';
-    if (task.status === 'done' && !evidenceCurrent(task)) task.status = 'ready';
+    const current = evidenceCurrent(task, this.projectRoot);
+    if (report.status === 'PASS' && !current) report.status = 'SKIP';
+    if (task.status === 'done' && !current) task.status = 'ready';
     task.metrics = {
       requirementsCount: task.requirements.length,
       satisfiedCount: task.requirements.filter((r) => r.isSatisfied).length,
@@ -340,7 +345,7 @@ export class TaskStore {
       throw new Error(`TaskStore: task with id "${id}" not found`);
     }
 
-    if (!evidenceCurrent(task) || task.requirements.some(r => !r.isSatisfied || (r.isSecret && !this.secretAvailable(r.fieldKey)))) throw new Error('Current contract evidence and satisfied requirements are required for a verified report');
+    if (!evidenceCurrent(task, this.projectRoot) || task.requirements.some(r => !r.isSatisfied || (r.isSecret && !this.secretAvailable(r.fieldKey)))) throw new Error('Current contract evidence and satisfied requirements are required for a verified report');
     const slug =
       task.title
         .toUpperCase()

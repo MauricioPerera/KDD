@@ -122,6 +122,14 @@ jobs:
           printf 'CI inventory runtime: %s\n' "$KDD_TRUSTED_RUNTIME_REF"
           python site/build.py --output "$RUNNER_TEMP/kdd-pages" --ci-run-url "$CI_RUN_URL" --ci-inventory-dir "$RUNNER_TEMP/kdd-ci-inventory" --ci-run-attempt "$CI_RUN_ATTEMPT" --ci-trusted-runtime-ref "$KDD_TRUSTED_RUNTIME_REF"
 
+      - name: Finalize scoped Pages concepts
+        shell: bash
+        env:
+          KDD_PAGES_FINALIZER_SHA256: 6f35ff3624969cb94985cebdfe934bda42ff1549e3ef1d2881a93265a8b92b19
+        run: |
+          python -I -c "import hashlib, os, pathlib, sys; body = pathlib.Path('scripts/finalize_pages_concepts.py').read_text(encoding='utf-8').encode('utf-8'); sys.exit(0 if hashlib.sha256(body).hexdigest() == os.environ['KDD_PAGES_FINALIZER_SHA256'] else 'Pages finalizer hash mismatch')"
+          python -I scripts/finalize_pages_concepts.py --output "$RUNNER_TEMP/kdd-pages"
+
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

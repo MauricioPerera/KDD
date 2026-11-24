@@ -5,6 +5,7 @@ import type { TaskTestReport } from './types.ts';
 
 type OracleRunner = NonNullable<TaskTestReport['oracleRunner']>;
 type Invocation = {interpreter: string; command: string; runner: OracleRunner};
+type OracleSelection = {primary: string; files: string[]};
 
 function redact(output: string, secrets: Record<string, string>): string {
   for (const value of Object.values(secrets).filter(Boolean).sort((a, b) => b.length - a.length)) {
@@ -51,12 +52,13 @@ function verifiedInvocation(command: string, oracle: string): Invocation | null 
 }
 
 function executeVerifiedOracle(invocation: Invocation, cwd: string, env: NodeJS.ProcessEnv,
-                               secrets: Record<string, string>, oracle: string, timeoutMs: number): Promise<TaskTestReport> {
+                               secrets: Record<string, string>, oracle: OracleSelection, timeoutMs: number): Promise<TaskTestReport> {
   const start = performance.now();
   const bridge = fileURLToPath(new URL('../../../scripts/board_oracle_bridge.py', import.meta.url));
-  const name = path.relative(cwd, oracle).replace(/\\/g, '/');
+  const relative = (file: string) => path.relative(cwd, file).replace(/\\/g, '/');
   const runner = invocation.runner === 'node-test-reporter-v1' ? 'node-test' : 'python-unittest';
-  const metadata = {tests: name, oracle_files: [name], test_runner: runner, test_command: invocation.command};
+  const metadata = {tests: relative(oracle.primary), oracle_files: oracle.files.map(relative),
+    test_runner: runner, test_command: invocation.command};
   return new Promise(resolve => {
     execFile(invocation.interpreter, ['-I', '-B', bridge, JSON.stringify(metadata), cwd, String(timeoutMs / 1000)],
       {cwd, env, timeout: timeoutMs + 5000}, (error, stdout, stderr) => {
@@ -98,14 +100,15 @@ function testTotals(runner: 'node' | 'unittest' | null, stdout: string, stderr: 
   return {passed: 0, failed: 0};
 }
 
-export function executeTaskTest(command: string, cwd: string, secrets: Record<string, string> = {}, oracle?: string, timeoutMs = 30000): Promise<TaskTestReport> {
+export function executeTaskTest(command: string, cwd: string, secrets: Record<string, string> = {}, oracle?: string | OracleSelection, timeoutMs = 30000): Promise<TaskTestReport> {
   const start = performance.now();
   const env = { ...process.env, ...secrets };
   delete env.NODE_TEST_CONTEXT;
   delete env.KDD_BOARD_TOKEN;
   if (oracle) {
-    const invocation = verifiedInvocation(command, path.relative(cwd, oracle));
-    if (invocation) return executeVerifiedOracle(invocation, cwd, env, secrets, oracle, timeoutMs);
+    const selection = typeof oracle === 'string' ? {primary: oracle, files: [oracle]} : oracle;
+    const invocation = verifiedInvocation(command, path.relative(cwd, selection.primary));
+    if (invocation) return executeVerifiedOracle(invocation, cwd, env, secrets, selection, timeoutMs);
     return Promise.resolve({
       lastRun: new Date().toISOString(), success: false, status: 'FAIL', durationMs: 0,
       passedTests: 0, failedTests: 0, output: 'The test command must run the sealed oracle with node --test or python -m unittest.',

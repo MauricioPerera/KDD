@@ -35,6 +35,7 @@ const reportSchema = z.object({
   verifiedOracle: z.boolean().optional(), status: z.enum(['PASS', 'FAIL', 'SKIP', 'TIMEOUT']).optional(),
   output: z.string(), reportPath: z.string().optional(), command: z.string().optional(),
   cwd: z.string().optional(), contractId: z.string().optional(), evidence: z.record(z.string(), z.string()).optional(),
+  evidenceFiles: z.array(z.string()).optional(),
 }).strict();
 export const storedTasksSchema = z.array(z.object({
   id: z.string().regex(/^task-[\w-]+$/), title: nonempty, description: z.string().default(''),

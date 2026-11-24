@@ -150,7 +150,7 @@ def _manifest(target, source):
 def _js_imports(root, source):
     names, unsupported = set(), []
     for node in _walk(root):
-        if node.type in ('import_statement', 'export_statement'):
+        if node.type in ('import_statement', 'export_statement', 'import_require_clause'):
             value = node.child_by_field_name('source')
             if value is None:
                 continue

@@ -42,7 +42,7 @@ const publicDir = path.join(rootDir, 'public');
 
 const gitStore = isGitProject(projectDir) ? new GitTaskStore(projectDir) : undefined;
 const vault = new BlindVault(vaultFile, legacyVaultFile);
-const taskStore = gitStore ? undefined : new TaskStore(tasksFile, key => Boolean(vault.getSecretValue(key)?.trim()));
+const taskStore = gitStore ? undefined : new TaskStore(tasksFile, key => Boolean(vault.getSecretValue(key)?.trim()), projectDir);
 const bridge = gitStore ? createGitBridge(gitStore) : createWebMcpBridge(taskStore!, vault, projectDir);
 const gitApi = gitStore ? createGitApi(gitStore, parseJsonBody, sendJson) : undefined;
 const runGit = promisify(execFile);
