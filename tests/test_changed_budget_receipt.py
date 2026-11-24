@@ -214,6 +214,20 @@ class BudgetReceiptTests(BudgetRepository):
         self.assertEqual(original.stdout, repeated.stdout)
 
 
+    def test_invalid_later_target_emits_no_partial_receipt(self):
+        self.write('zbroken.py', BASE_SOURCE)
+        self.contract('zbroken', 'zbroken.py')
+        self.base = self.commit('establish two regular contracted targets')
+        self.write('app.py', BASE_SOURCE.replace('int(flag)', 'bool(flag)'))
+        self.write('zbroken.py', 'def broken(:\n')
+        head = self.commit('change valid target and introduce parse failure')
+        done = self.cli(head)
+        self.assertEqual(done.returncode, 1, done.stdout + done.stderr)
+        self.assertEqual(done.stdout, '')
+        self.assertIn('BUDGET_PARSE', done.stderr)
+        self.assertIn('zbroken.py', done.stderr)
+
+
     def test_invalid_scope_does_not_emit_a_complete_receipt(self):
         done = self.cli('f' * len(self.base))
         self.assertEqual(done.returncode, 1, done.stdout + done.stderr)

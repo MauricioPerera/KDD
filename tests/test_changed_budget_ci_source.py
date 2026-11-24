@@ -34,6 +34,8 @@ class BudgetCISourceTests(BudgetRepository):
             path.write_bytes(raw)
             self.hashes[relative] = hashlib.sha256(raw).hexdigest()
         self.approved = self.commit('reviewed measurement modules')
+        base_module = self.repo / MODULES[1]
+        base_module.write_bytes(base_module.read_bytes() + b'\n# Distinct base object\n')
         self.write('app.py', BASE_SOURCE)
         self.contract('app', 'app.py')
         self.base = self.commit('approved product policy')
@@ -51,8 +53,15 @@ class BudgetCISourceTests(BudgetRepository):
 
     def test_pin_is_literal_and_native_scope_stays_unchanged(self):
         self.assertIn('        shell: python\n', self.step)
-        self.assertIn("!inputs.reusable_execution && github.repository == 'MauricioPerera/KDD'",
-                      self.step)
+        self.assertIn(
+            "        if: ${{ !inputs.reusable_execution && github.repository == 'MauricioPerera/KDD' }}\n",
+            self.step,
+        )
+        self.assertIn(
+            '          KDD_BUDGET_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}\n',
+            self.step,
+        )
+        self.assertIn('          KDD_BUDGET_HEAD_REF: ${{ github.sha }}\n', self.step)
         self.assertTrue(re.search(r'(?m)^\s+KDD_BUDGET_AUDITOR_REF:\s+[a-f0-9]{40}(?:[a-f0-9]{24})?$',
                                   self.step), self.step)
 

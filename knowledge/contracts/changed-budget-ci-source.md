@@ -15,7 +15,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_changed_budget_ci_source.py
-tests_sha256: 'e576847cf5c88f966d7d0ee514602a5d57a1a78a22aceecd6650711a0df261e8'
+tests_sha256: '9af1800ebe7b6e40fb079c662f792f9c551f105a6f6519265b6a822ffeeec53e'
 touch_only: ['.github/workflows/validate.yml', 'knowledge/validacion.md']
 deps_allowed: ['stdlib', 'git']
 forbids: ['llm', 'network']
@@ -76,5 +76,6 @@ HEAD equivocado.
 
 Mantener el catalogo de jobs y el runtime global. El pin del auditor se revisa
 con el diff protegido del workflow y debe ser alcanzable desde el checkout
-completo de CI.
+completo de CI. Crear el commit del auditor antes del que fija el workflow,
+conservar ambos en la integracion y comprobar el pin en el CI del arbol final.
 PARAR y reportar si hace falta cambiar el runtime global o las protecciones.
