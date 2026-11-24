@@ -8,12 +8,14 @@ intent: 'Vincular la cifra publica al CI terminado del mismo commit conservando 
 target: .github/workflows/deploy-pages.yml
 language: yaml
 signature: 'validate_and_publish_pages_ci_inventory(workflow_run)'
-test_command: 'python -m unittest tests/test_pages_inventory_ci.py'
+test_command: 'python -m unittest tests/test_pages_inventory_ci.py tests/test_pages_artifact_delivery.py'
+test_runner: python-unittest
 budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_pages_inventory_ci.py
 tests_sha256: '164a29d52af8ecbca78d6b8033d1cc4a879c73a961da298a11e63887a719ca1b'
+oracle_files: ['tests/test_pages_inventory_ci.py', 'tests/test_pages_artifact_delivery.py', 'tests/__init__.py']
 touch_only: ['.github/workflows/deploy-pages.yml', '.github/workflows/validate.yml']
 deps_allowed: ['GitHub Actions', 'Python3.11', 'Node24', 'Git']
 forbids: ['llm']
@@ -44,6 +46,11 @@ existente, la [paridad del PR](pages-pr-deploy-environment.md) conserva
 su conjunto de preparacion revisado.
 
 ## Invariants
+
+Upload y deploy comparten nombre por run/intento de Pages. Antes de publicar,
+cotejar nombre unico e ID del upload en Actions Results. Reintentar listas
+sin el nombre por hasta 30 s. Duplicados, ID ajeno o fallo de consulta bloquean.
+Usar TLS y conservar permisos, acciones de upload/deploy y triggers.
 
 Los inventarios de Pages siguen saliendo de las filas que ejecutan las
 dos suites. La matriz auxiliar
