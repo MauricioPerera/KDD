@@ -181,8 +181,9 @@ class BudgetReceiptTests(BudgetRepository):
         (self.repo / 'knowledge/contracts/secondary.md').unlink()
         self.write('app.py', BASE_SOURCE + '\ndef new_branch(flag):\n'
                    '    if flag > 1:\n        return 1\n'
-                   '    if flag < 0:\n        return -1\n    return 0\n')
-        head = self.commit('change candidate policy and add a function')
+                   '    if flag < 0:\n        return -1\n    return 0\n'
+                   '\ndef a_simple(flag):\n    return str(flag)\n')
+        head = self.commit('change policy and add functions out of alphabetical order')
         data = self.receipt(self.cli(head), head, code=1)
         measured = data['files'][0]
         primary = 'knowledge/contracts/app.md'
@@ -191,8 +192,11 @@ class BudgetReceiptTests(BudgetRepository):
         values = [(row['contract'], row['function'], row['limits'], row['within_budget'])
                   for row in measured['measurements']]
         self.assertEqual(values, [
+            (primary, 'a_simple',
+             {'cyclomatic_max': 2, 'nesting_max': 2, 'lines_max': 12, 'params_max': 2}, True),
             (primary, 'new_branch',
              {'cyclomatic_max': 2, 'nesting_max': 2, 'lines_max': 12, 'params_max': 2}, False),
+            (secondary, 'a_simple', {'cyclomatic_max': 3}, True),
             (secondary, 'new_branch', {'cyclomatic_max': 3}, True),
         ])
 

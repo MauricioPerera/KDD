@@ -15,7 +15,7 @@ budget:
   cyclomatic_max: 14
   nesting_max: 4
 tests: tests/test_changed_budget_ci_source.py
-tests_sha256: '9af1800ebe7b6e40fb079c662f792f9c551f105a6f6519265b6a822ffeeec53e'
+tests_sha256: '4807002250168ac42fefe12da1af82bafc8a24bf09714d6143915f74434d3190'
 touch_only: ['.github/workflows/validate.yml', 'knowledge/validacion.md']
 deps_allowed: ['stdlib', 'git']
 forbids: ['llm', 'network']
@@ -45,7 +45,8 @@ del auditor y conserva su codigo de salida.
   `scripts/validate_changed_budgets.py`, `scripts/validate_budgets.py` y
   `scripts/validate_contracts.py`. Ausencia o referencia invalida falla.
 - Extraer los tres modulos a un directorio temporal fuera del checkout.
-  Ejecutar en modo aislado de Python con imports del bundle y biblioteca
+  Usar el shell Python aislado para el paso y ejecutar tambien el auditor en
+  modo aislado con imports del bundle y biblioteca
   estandar. El checkout candidato aporta el repositorio para las lecturas Git.
   Su ausencia de copias ejecutables del auditor no impide el control.
 - Comprobar que el HEAD real del checkout es el SHA candidato solicitado.
