@@ -14,7 +14,7 @@ budget:
   cyclomatic_max: 12
   nesting_max: 4
 tests: "tests/test_validator_cli_inputs.py"
-tests_sha256: '6f528da455862e1e3d8bc437d8265cd331f54ca71a2faaf6e029a58f52ce8450'
+tests_sha256: '1192f30372acbf662eb5bd054a0663214670ad9ca0f324716320b5252a11b606'
 touch_only: ['scripts/validate_perimeter.py', 'scripts/validate_contracts.py', 'scripts/validate_commit_message.py']
 deps_allowed: []
 forbids: ['network', 'llm']

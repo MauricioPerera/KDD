@@ -81,7 +81,7 @@ class ValidatorCliInputs(unittest.TestCase):
         result = self.execute("validate_contracts.py", "--hash", str(evidence))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(result.stdout.strip(), hashlib.sha256(payload).hexdigest())
-        contract = ROOT / "knowledge" / "contracts" / "perimeter-gate.md"
+        contract = ROOT / "knowledge" / "contracts" / "validator-cli-inputs.md"
         result = self.execute("validate_contracts.py", "--repo-root", str(ROOT), str(contract))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("1 archivo(s)", result.stdout)
