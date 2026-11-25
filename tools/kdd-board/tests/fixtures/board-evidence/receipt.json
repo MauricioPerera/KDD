@@ -1,0 +1,49 @@
+{
+  "checkout": "4b63be53d61cc7e0765b464169b213cea7f02fec",
+  "approved_ref": "467deac32c22b5df3d64275a0cfd4078ba4d06ac",
+  "report_sha256": "ca8a616b008c35b5405b4d4f54a864ca4e970252edcbc4d7e1f3ca69606e0ce1",
+  "run_id": "01a213b3-7efd-7967-bb76-2ee573829426",
+  "exit_code": 0,
+  "ids": [
+    "tests/handoff.e2e.ts::missing%20evidence%20stays%20pending",
+    "tests/handoff.e2e.ts::ready%20candidate%20requires%20human%20approval"
+  ],
+  "inputs": {
+    "knowledge/contracts/board-browser-pilot.md": "c06c741ef9f255b7c13a3bd7e7624e843f9230119b9dda28d05fb6acb4da246e",
+    "tools/kdd-board/package-lock.json": "a43536084f6e2aea4b53b82e4569cca7c41501e93df4817e19f17f48f1ee724e",
+    "tools/kdd-board/tests/project-fixture.ts": "fd9028d3fbcc4177de19615ca2ea572986a0291bf7b5481d1a6c1944e88fe595",
+    "tools/kdd-board/tests/browser-pilot-receipt.test.mjs": "44e6022b8d5cf886e2146a5ba4f165248c9f13fdf87356ff5b72e246a3436e06",
+    "tools/kdd-board/browser-pilot/package.json": "463f7f289166c75220a83c1e9f31e08aa2edf123d8f521909f5d5e051487c88c",
+    "tools/kdd-board/browser-pilot/package-lock.json": "3e2967443fe6b5604e8a4421a6bd87ae67bfef1fcb4df32d3207621146befdc1",
+    "tools/kdd-board/browser-pilot/pins.json": "db9a6c0608502ef90ae34d0e59bcf82ebb205bfc1b0ec10b237436a42b8a729c",
+    "tools/kdd-board/browser-pilot/e2e.config.mjs": "6a97ef915d0376dae2921a3eb286673dcbeae86845c7a8e7b94aa59be9d558ce",
+    "tools/kdd-board/browser-pilot/tests/handoff.e2e.ts": "ab97e4749bde5d898031b257a5e5341a051c648e0abdcb6fb4defbd564b7db57",
+    "tools/kdd-board/browser-pilot/tests/fixture.mjs": "4cb58da2ed0913c41e882a556251614fadf69b8ff9b6962c8bb2fd2b5016b6cf",
+    "tools/kdd-board/browser-pilot/tests/pilot-live.test.mjs": "103a85b222a7de358e005654aa5ea9a77e1bffd34de7e67e5e671aba0dc3266a",
+    "tools/kdd-board/browser-pilot/tests/report-v1-pilot.json": "84ba08f09f33e47ed645ec5a8fdda8f8875b9eadd1100bdb7806cf5fb522c358",
+    "tools/kdd-board/browser-pilot/run.mjs": "0a0e1a26aef576dcb96854a77ac1f9a62cad8ef2373b6549248b969538e11887"
+  },
+  "runtime": {
+    "schema_version": 1,
+    "node": "24.16.0",
+    "e2e": "0.24.0",
+    "web": "0.16.1",
+    "core": "0.24.0",
+    "playwright": "1.65.1",
+    "browser": "chromium-headless-shell",
+    "revision": "1255",
+    "browser_version": "159.0.8154.6"
+  },
+  "chromium_executable_sha256": "b23921f57bcff971495917b208b63df393788525120c6ce23a79c1e3e1583114",
+  "browser_ms": 8783,
+  "journal": {
+    "refs": "ef04a46b2a5ac9c2a92a767ac52526d18ff8b9211a078d8d9649489775af5f8d",
+    "index": "b0e44d933d293779fdf3fcbec61b76afd0309525e3fa943a342435dc045376b1",
+    "worktree": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "records": [
+      "b80247a2f3477786ae47eb75067464a5d0659d86e6270c14c30ad70392b7ad2a",
+      "9f4d54923937fa4c2e13484f4b5e72de796b195a63cd70fcb28e811f98fc34c5",
+      "96333fde9b875f031b58f10202156a04e198172ddc2ca8f66730e005907720dc"
+    ]
+  }
+}
