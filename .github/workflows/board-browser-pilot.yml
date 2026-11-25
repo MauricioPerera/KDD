@@ -110,7 +110,83 @@ jobs:
 
           node --test tools/kdd-board/browser-pilot/tests/evidence-browser.test.mjs |
             Tee-Object -FilePath (Join-Path $evidence 'visor.log')
-          if ($LASTEXITCODE -ne 0) { throw 'A Board evidence viewer case failed' }
+          $viewerExit = $LASTEXITCODE
+          if ($IsWindows -and $viewerExit -ne 0) {
+            $probeFile = Join-Path $work 'viewer-probe.mjs'
+            @'
+          import {Session} from 'node:inspector';
+          import {channel} from 'node:diagnostics_channel';
+          import {createRequire} from 'node:module';
+          import {realpathSync} from 'node:fs';
+          import {tmpdir} from 'node:os';
+          import path from 'node:path';
+
+          const endpoint = '/api/board/evidence/browser-pilot';
+          const emit = data => console.log('BOARD_VIEWER_PROBE ' + JSON.stringify(data));
+          let requestedAt;
+          channel('http.server.request.start').subscribe(({request}) => {
+            if (request.url === endpoint) {
+              requestedAt = performance.now();
+              emit({kind: 'http-request'});
+            }
+          });
+          channel('http.server.response.finish').subscribe(({request, response}) => {
+            if (request.url === endpoint)
+              emit({kind: 'http-response', status: response.statusCode, elapsedMs: Math.round(performance.now() - requestedAt)});
+          });
+
+          const program = new Session();
+          const scripts = new Map();
+          program.connect();
+          program.on('Debugger.scriptParsed', ({params}) => {
+            if (params.url.endsWith('/tools/kdd-board/src/browser-evidence.ts'))
+              scripts.set(params.scriptId, 'browser-evidence.ts');
+          });
+          program.on('Debugger.paused', ({params}) => {
+            try {
+              const frame = params.callFrames.find(item => scripts.has(item.location.scriptId));
+              if (frame && ['exception','promiseRejection'].includes(params.reason)) {
+                const nativeCode = /\b(?:EACCES|EPERM|ENOENT|EEXIST|EBUSY|ETIMEDOUT|ENOEXEC)\b/.exec(params.data?.description || '');
+                emit({kind: 'viewer-exception', category: params.data?.className,
+                      code: nativeCode?.[0], function: frame.functionName,
+                      line: frame.location.lineNumber + 1});
+              }
+            } finally {
+              program.post('Debugger.resume');
+            }
+          });
+          program.post('Debugger.enable');
+          program.post('Debugger.setPauseOnExceptions', {state: 'all'});
+
+          const localRequire = createRequire(path.resolve('tools/kdd-board/browser-pilot/package.json'));
+          const {chromium} = localRequire('playwright-core');
+          const openBrowser = chromium.launch.bind(chromium);
+          chromium.launch = async (...args) => {
+            const browser = await openBrowser(...args);
+            const openPage = browser.newPage.bind(browser);
+            browser.newPage = async (...pageArgs) => {
+              const page = await openPage(...pageArgs);
+              page.on('requestfailed', request => {
+                if (new URL(request.url()).pathname === endpoint)
+                  emit({kind: 'browser-request-failed', error: request.failure()?.errorText});
+              });
+              page.on('pageerror', error => emit({kind: 'browser-page-error', category: error.name}));
+              return page;
+            };
+            return browser;
+          };
+          const tmp = tmpdir();
+          emit({kind: 'runtime', platform: process.platform, node: process.version,
+                temporaryPathCanonical: path.relative(tmp,realpathSync(tmp)) === ''});
+          '@ | Set-Content -LiteralPath $probeFile -Encoding utf8
+            $probeUri = ([uri]$probeFile).AbsoluteUri
+            $probeLog = Join-Path $evidence 'visor-diagnostico.log'
+            node --import $probeUri --test tools/kdd-board/browser-pilot/tests/evidence-browser.test.mjs *> $probeLog
+            $probeExit = $LASTEXITCODE
+            Get-Content -LiteralPath $probeLog
+            Write-Host "Diagnostic viewer exit code: $probeExit"
+          }
+          if ($viewerExit -ne 0) { throw 'A Board evidence viewer case failed' }
 
           @{checkout = $checkout; approved_ref = $env:KDD_PILOT_APPROVED_REF;
             platform = $env:RUNNER_OS; passes = $passes; live_controls = 'passed'} |
