@@ -100,3 +100,21 @@ test('run identity and version of the pinned e2e runner are required', t => {
   version.run.runner.version = '0.25.0';
   rejected(t, version);
 });
+
+for (const [label, mutate] of [
+  ['a nonpassing run status', run => { run.status = 'failed'; }],
+  ['a contradictory report exit code', run => { run.exitCode = 1; }],
+  ['a nonpassing result status', run => { run.results[0].status = 'failed'; }],
+  ['a nonzero token count', run => { run.usage.modelTokens = 1; }],
+  ['a different Node used to produce the report', run => { run.environment.runtime = 'node v24.0.0'; }],
+  ['a different web engine version', run => { run.targets[0].engine.version = '0.0.0'; }],
+  ...['failed', 'interrupted', 'flaky', 'skipped'].map(field => [
+    `a nonzero ${field} count`, run => { run.summary[field] = 1; },
+  ]),
+]) {
+  test(`the receipt rejects ${label}`, t => {
+    const report = known();
+    mutate(report.run);
+    rejected(t, report);
+  });
+}
