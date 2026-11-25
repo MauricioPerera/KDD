@@ -24,6 +24,9 @@
       <button type="button" class="nav-tab" id="tab-docs">
         📚 Documentación KDD
       </button>
+      <button type="button" class="nav-tab hidden" id="tab-browser-evidence">
+        Evidencia Chromium
+      </button>
       <button type="button" class="nav-tab hidden" id="tab-task">
         🔍 Detalle de Tarea
       </button>
@@ -53,6 +56,11 @@
   </div>
 
   <p id="git-board-notice" role="status" style="padding:0.75rem 1.5rem" hidden></p>
+
+  <section class="view-container hidden task-workspace" id="view-browser-evidence" aria-labelledby="browser-evidence-heading">
+    <h2 id="browser-evidence-heading">Evidencia Chromium</h2>
+    <div id="browser-evidence-result" aria-live="polite"></div>
+  </section>
 
   <!-- View 1: Kanban Board -->
   <div class="view-container" id="view-board">

@@ -10,6 +10,7 @@
   let selectedId;
   let pending = false;
   let reviewState = {};
+  let evidenceState = {};
 
   async function configure(api) {
     if (!configuration) configuration = (async () => {
@@ -116,6 +117,46 @@
     }
   }
 
+  function evidenceHtml(data) {
+    if (data.status === 'pending') return '<p>La tarea todavía carece de un cierre verificado.</p>';
+    const {artifact, receipt} = data;
+    const total = receipt.total === 1 ? '1 caso' : escape(receipt.total) + ' casos';
+    const files = receipt.granularity === 'file' ? '<h4>Archivos del oráculo</h4><ul>' +
+      receipt.files.map(file => `<li><code>${escape(file.path)}</code> · ${escape(file.executed)} ejecutados · ${escape(file.skipped)} omitidos</li>`).join('') + '</ul>' : '';
+    return `<dl>
+      <dt>Commit consultado de main</dt><dd><code>${escape(data.observed_commit)}</code></dd>
+      <dt>Commit probado</dt><dd><code>${escape(data.tested_commit)}</code></dd>
+      <dt>SHA aprobado</dt><dd><code>${escape(data.approved_ref)}</code></dd>
+      <dt>Recibo Git</dt><dd><code>${escape(artifact.path)}</code></dd>
+      <dt>Huella del recibo</dt><dd><code>${escape(artifact.sha256)}</code></dd>
+      <dt>Ejecutor</dt><dd>${escape(receipt.runner)}</dd>
+      <dt>Casos</dt><dd>${total}</dd>
+    </dl>${files}<p>Detalle por caso no registrado</p>`;
+  }
+
+  function paintEvidence() {
+    const result = node('git-evidence-result');
+    if (!result) return;
+    node('git-evidence-load').disabled = Boolean(evidenceState.loading);
+    if (evidenceState.result) result.innerHTML = evidenceHtml(evidenceState.result);
+    else result.textContent = evidenceState.error || (evidenceState.loading ? 'Consultando evidencia…' : '');
+  }
+
+  async function loadEvidence(id, api) {
+    const state = evidenceState;
+    if (state.loading) return;
+    Object.assign(state,{loading:true,result:null,error:''});
+    paintEvidence();
+    try {
+      state.result = await api('/api/tasks/' + encodeURIComponent(id) + '/evidence');
+    } catch (error) {
+      state.error = error.message;
+    } finally {
+      state.loading = false;
+      if (state === evidenceState) paintEvidence();
+    }
+  }
+
   function updateFields(task) {
     if (task.status !== 'in_progress') return;
     const finish = node('git-next-status').value === 'done';
@@ -166,13 +207,21 @@
           <button type="button" class="btn" id="git-review-load">Consultar revisión</button>
           <div id="git-review-result" aria-live="polite"></div>
         </section>
+        <section aria-labelledby="git-evidence-heading">
+          <h3 id="git-evidence-heading">Evidencia de la tarea</h3>
+          <button type="button" class="btn" id="git-evidence-load">Consultar evidencia</button>
+          <div id="git-evidence-result" aria-live="polite"></div>
+        </section>
         <h3>Historial de commits</h3><ol>${journalHtml(detail)}</ol></section>`;
   }
 
   async function render(task,api,refresh) {
     const fields = ['git-approved-ref','git-assignee','git-reason','git-next-status'];
     if (selectedId === task.id && (pending || fields.some(id=>node(id) === document.activeElement))) return;
-    if (selectedId !== task.id) reviewState = {};
+    if (selectedId !== task.id) {
+      reviewState = {};
+      evidenceState = {};
+    }
     selectedId = task.id;
     try {
       const detail = task.journal ? task : await api(`/api/tasks/${encodeURIComponent(task.id)}`);
@@ -183,6 +232,9 @@
       node('git-back').onclick = () => window.switchView('board');
       node('git-review-load').onclick = () => loadReview(task.id, api);
       paintReview();
+      const evidenceButton = node('git-evidence-load');
+      if (evidenceButton) evidenceButton.onclick = () => loadEvidence(task.id, api);
+      paintEvidence();
       if ((edges[detail.status] || []).length) {
         node('git-transition-form').onsubmit = event => submit(event,detail,api,refresh);
         node('git-next-status').onchange = () => updateFields(detail);

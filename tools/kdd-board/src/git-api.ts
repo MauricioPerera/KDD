@@ -1,6 +1,7 @@
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {BoardGitError,GitTaskStore,transitions,taskError} from './git-task-store.ts';
 import {creationSchema,transitionSchema,createGitBridge} from './git-bridge.ts';
+import {browserEvidence} from './browser-evidence.ts';
 
 type Send = (res:ServerResponse,status:number,data:unknown)=>void;
 type Body = <T>(req:IncomingMessage)=>Promise<T>;
@@ -11,6 +12,7 @@ export function createGitApi(store:GitTaskStore,readBody:Body,send:Send) {
   const routes:Record<string,()=>unknown> = {
     'GET /api/board':()=>({mode:'git',sourceRef:'main',transitions}),
     'GET /api/board/contracts':()=>store.contracts(),
+    'GET /api/board/evidence/browser-pilot':browserEvidence,
     'GET /api/tools':()=>bridge.getDefinedTools().map(t=>({name:t.name,description:t.description,inputSchema:t.inputSchema})),
   };
 
@@ -19,12 +21,13 @@ export function createGitApi(store:GitTaskStore,readBody:Body,send:Send) {
     if (Object.hasOwn(routes,key)) return routes[key]();
     if (key === 'GET /api/tasks') return store.list(url.searchParams.get('status') ?? undefined);
     if (key === 'POST /api/tasks') return store.create(creationSchema.parse(await readBody(req)));
-    const match=url.pathname.match(/^\/api\/tasks\/(TASK-\d{3,})(?:\/(history|status|review-handoff))?$/);
+    const match=url.pathname.match(/^\/api\/tasks\/(TASK-\d{3,})(?:\/(history|status|review-handoff|evidence))?$/);
     if (!match) return unavailable();
     const actions:Record<string,()=>unknown> = {
       'GET task':()=>store.get(match[1]),
       'GET history':()=>store.history(match[1]),
       'GET review-handoff':()=>store.reviewHandoff(match[1]),
+      'GET evidence':()=>store.evidence(match[1]),
       'PATCH status':async()=>store.transition(match[1],transitionSchema.parse(await readBody(req))),
     };
     const action = `${req.method} ${match[2] || 'task'}`;
