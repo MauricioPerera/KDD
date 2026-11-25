@@ -18,8 +18,8 @@ budget:
   lines_max: 100
   params_max: 5
 tests: 'tools/kdd-board/tests/board-test-evidence.test.ts'
-tests_sha256: 'e01527bb4ff32a753b79ef93567d3d3a6a8d4234f4d3ea5e648507ab2ceb6561'
-oracle_files: ['tools/kdd-board/tests/board-test-evidence.test.ts', 'tools/kdd-board/tests/project-fixture.ts', 'tools/kdd-board/package.json', 'tools/kdd-board/package-lock.json', 'tools/kdd-board/tests/fixtures/board-evidence/.gitattributes', 'tools/kdd-board/tests/fixtures/board-evidence/receipt.json', 'tools/kdd-board/tests/fixtures/board-evidence/report.json', 'tools/kdd-board/browser-pilot/tests/evidence-browser.test.mjs', 'tools/kdd-board/browser-pilot/package.json', 'tools/kdd-board/browser-pilot/package-lock.json', 'tools/kdd-board/browser-pilot/pins.json']
+tests_sha256: 'ff15e15f28a8431acc714b5b5e7dd0102817d0eee11e1ceee40ee9beb78761ff'
+oracle_files: ['tools/kdd-board/tests/board-test-evidence.test.ts', 'tools/kdd-board/tests/project-fixture.ts', 'tools/kdd-board/package.json', 'tools/kdd-board/package-lock.json', 'tools/kdd-board/tests/fixtures/board-evidence/.gitattributes', 'tools/kdd-board/tests/fixtures/board-evidence/receipt.json', 'tools/kdd-board/tests/fixtures/board-evidence/report.json', 'tools/kdd-board/browser-pilot/tests/evidence-browser.test.mjs', 'tools/kdd-board/tests/windows-short-path.ts', 'tools/kdd-board/browser-pilot/package.json', 'tools/kdd-board/browser-pilot/package-lock.json', 'tools/kdd-board/browser-pilot/pins.json']
 touch_only: ['scripts/board_test_evidence.py', 'tools/kdd-board/src/git-task-store.ts', 'tools/kdd-board/src/git-api.ts', 'tools/kdd-board/src/browser-evidence.ts', 'tools/kdd-board/public/git-board.js', 'tools/kdd-board/public/app.js', 'tools/kdd-board/public/index.html', 'tools/kdd-board/public/style.css', 'tools/kdd-board/browser-pilot/README.md']
 deps_allowed: ['node', 'python', 'git']
 forbids: ['network', 'llm']
@@ -65,9 +65,12 @@ checkout, dos puntos, SHA-256 de receipt.json). Sin configuracion devuelve
   detalle. El panel Chromium muestra la procedencia local, la huella del
   reporte y una fila por caso con resultado, numero y duracion del intento. Ausencia
   de adjuntos se indica por caso.
-- Configurar una carpeta directa y archivos regulares. Rechazar enlaces en
-  esa carpeta o sus dos entradas. No acceder a red, descargar adjuntos ni
-  escribir refs, indice, evidencia o aprobaciones al consultar. Mostrar texto.
+- Aceptar el alias 8.3 de un directorio local de Windows si cada componente
+  es un directorio ordinario y conserva la identidad de su ruta canonica.
+  Comprobar el recorrido antes y despues de leer el paquete. Rechazar symlinks
+  y junctions en la carpeta y sus antecesores, tambien junto a un alias 8.3.
+  Exigir archivos regulares de un solo enlace. No acceder a red, descargar
+  adjuntos ni escribir refs, indice, evidencia o aprobaciones al consultar. Mostrar texto.
 
 ## Examples
 
@@ -83,7 +86,8 @@ DO conservar los recibos, el piloto optativo y las dos pasadas vigentes.
 Git y HTTP reales, cierre historico v1, cierre v2 instrumentado y paquete
 capturado del piloto Chromium real. Prueba optativa del visor con el Chromium
 fijado: `node --test tools/kdd-board/browser-pilot/tests/evidence-browser.test.mjs`.
-Ejecutarla para verificar la entrega visual del piloto en ambos sistemas.
+Ejecutarla en ambos sistemas. Windows usa un alias 8.3 real del mismo
+directorio en HTTP y Chromium. Las contramuestras usan enlaces reales.
 
 ## Constraints
 

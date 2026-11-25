@@ -8,6 +8,7 @@ import path from 'node:path';
 import {test, type TestContext} from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {projectFixture, tempOutsideGit} from './project-fixture.ts';
+import {createWindowsAliasDirectory} from './windows-short-path.ts';
 
 const here = fileURLToPath(new URL('../../../', import.meta.url));
 const cli = path.join(here, 'scripts/tasks.py');
@@ -304,4 +305,72 @@ test('pin coherence cannot replace the original Chromium verification', async t 
       assert.ok(!Object.hasOwn(body,'cases'));
     });
   }
+});
+
+test('regular evidence directories accept native aliases and reject links', async t => {
+  const {root} = historical(t);
+  const receipt = fs.readFileSync(new URL('receipt.json',evidenceDir));
+  const report = fs.readFileSync(new URL('report.json',evidenceDir));
+  const recorded = JSON.parse(receipt.toString('utf8'));
+  const parent = fs.realpathSync.native(temporary(t));
+  const fixture = process.platform === 'win32' ? createWindowsAliasDirectory(parent) :
+    {directory:fs.mkdtempSync(path.join(parent,'evidence-')),alias:null};
+  t.after(() => fs.rmSync(fixture.directory,{force:true,recursive:true,maxRetries:4}));
+  const bundle = path.join(fixture.directory,'attested-bundle');
+  fs.mkdirSync(bundle);
+  fs.writeFileSync(path.join(bundle,'receipt.json'),receipt);
+  fs.writeFileSync(path.join(bundle,'report.json'),report);
+  const read = async (scope: TestContext, directory: string) => {
+    const request = await serve(scope,root,{KDD_BOARD_BROWSER_EVIDENCE_DIR:directory,
+      KDD_BOARD_BROWSER_EVIDENCE_PIN:recorded.checkout+':'+sha(receipt)});
+    const response = await request(pilot);
+    return {status:response.status,body:await response.json()};
+  };
+  const linkedParent = path.join(parent,'linked-parent');
+  const linkType = process.platform === 'win32' ? 'junction' : 'dir';
+  fs.symlinkSync(fixture.directory,linkedParent,linkType);
+
+  await t.test('reads the regular directory by its canonical path', async scope => {
+    const {status,body} = await read(scope,bundle);
+    assert.equal(status,200);
+    assert.equal(body.run_id,recorded.run_id);
+    assert.equal(body.receipt_sha256,sha(receipt));
+  });
+  const alias = fixture.alias;
+  if (alias) {
+    await t.test('reads the same receipt through a real Windows 8.3 ancestor', async scope => {
+      const aliasedBundle = path.join(alias,'attested-bundle');
+      assert.notEqual(path.relative(bundle,aliasedBundle),'');
+      assert.equal(path.relative(bundle,fs.realpathSync.native(aliasedBundle)),'');
+      const {status,body} = await read(scope,aliasedBundle);
+      assert.equal(status,200);
+      assert.equal(body.run_id,recorded.run_id);
+      assert.equal(body.report_sha256,recorded.report_sha256);
+    });
+  }
+  const rejected = async (scope: TestContext, directory: string) => {
+    const {status,body} = await read(scope,directory);
+    assert.equal(status,409);
+    assert.equal(body.code,'BROWSER_EVIDENCE_INVALID');
+    assert.ok(!Object.hasOwn(body,'cases'));
+  };
+  await t.test('rejects a link in an ancestor of the bundle', async scope => {
+    await rejected(scope,path.join(linkedParent,'attested-bundle'));
+  });
+  if (alias) {
+    await t.test('rejects a junction beneath a real Windows 8.3 ancestor', async scope => {
+      const junction = 'linked-container';
+      fs.symlinkSync(fixture.directory,path.join(fixture.directory,junction),linkType);
+      const linkedAlias = path.join(alias,junction,'attested-bundle');
+      assert.equal(fs.lstatSync(path.dirname(linkedAlias)).isSymbolicLink(),true);
+      assert.equal(fs.lstatSync(linkedAlias).isDirectory(),true);
+      await rejected(scope,linkedAlias);
+    });
+  }
+  await t.test('rejects a hardlinked report even when its bytes match', async scope => {
+    const otherName = path.join(fixture.directory,'same-report.json');
+    fs.linkSync(path.join(bundle,'report.json'),otherName);
+    assert.equal(fs.lstatSync(otherName).nlink,2);
+    await rejected(scope,bundle);
+  });
 });

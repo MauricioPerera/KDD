@@ -8,6 +8,7 @@ import {test, before, after} from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright-core';
 import {tempOutsideGit} from '../../tests/project-fixture.ts';
+import {createWindowsAliasDirectory} from '../../tests/windows-short-path.ts';
 
 const pins = JSON.parse(fs.readFileSync(new URL('../pins.json',import.meta.url),'utf8'));
 const source = fileURLToPath(new URL('../../../../',import.meta.url));
@@ -15,7 +16,7 @@ const artifacts = fileURLToPath(new URL('../../tests/fixtures/board-evidence/',i
 const observations = JSON.parse(fs.readFileSync(path.join(artifacts,'receipt.json'),'utf8'));
 const report = JSON.parse(fs.readFileSync(path.join(artifacts,'report.json'),'utf8')).run;
 const token = 'synthetic-board-evidence-ui';
-let root, server, browser, origin;
+let root, bundle, server, browser, origin;
 const env = Object.fromEntries(Object.entries(process.env).filter(([name])=>!name.startsWith('GIT_')));
 Object.assign(env,{GIT_CONFIG_GLOBAL:process.platform==='win32'?'NUL':'/dev/null',GIT_CONFIG_NOSYSTEM:'1',
   GIT_NO_LAZY_FETCH:'1',GIT_TERMINAL_PROMPT:'0'});
@@ -24,7 +25,9 @@ const git = (cwd,...args) => execFileSync('git',['--no-replace-objects',...args]
 before(async () => {
   root = tempOutsideGit('kdd-evidence-browser-');
   const repo = path.join(root,'project');
-  const bundle = path.join(root,'bundle');
+  const selected = process.platform === 'win32' ? createWindowsAliasDirectory(root) :
+    {directory:path.join(root,'bundle'),alias:null};
+  bundle = selected.directory;
   fs.mkdirSync(repo);
   fs.cpSync(artifacts,bundle,{recursive:true});
   git(repo,'init','-q','-b','main');
@@ -33,7 +36,7 @@ before(async () => {
   git(repo,'update-ref','refs/heads/main',git(source,'rev-parse','HEAD'));
   const sum = createHash('sha256').update(fs.readFileSync(path.join(bundle,'receipt.json'))).digest('hex');
   for (const key of Object.keys(process.env)) if (key.startsWith('GIT_')) delete process.env[key];
-  Object.assign(process.env,{KDD_PROJECT_DIR:repo,KDD_BOARD_BROWSER_EVIDENCE_DIR:bundle,
+  Object.assign(process.env,{KDD_PROJECT_DIR:repo,KDD_BOARD_BROWSER_EVIDENCE_DIR:selected.alias || bundle,
     KDD_BOARD_BROWSER_EVIDENCE_PIN:observations.checkout+':'+sum});
   const {createServer} = await import('../../src/server.ts');
   server = createServer(token);
@@ -47,6 +50,7 @@ before(async () => {
 after(async () => {
   await browser?.close();
   if (server) await new Promise(resolve=>server.close(resolve));
+  if (bundle) await fs.promises.rm(bundle,{force:true,recursive:true,maxRetries:12,retryDelay:125});
   if (root) await fs.promises.rm(root,{force:true,recursive:true,maxRetries:12,retryDelay:125});
 });
 
