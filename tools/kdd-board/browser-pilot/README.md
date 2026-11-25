@@ -34,6 +34,8 @@ Con KDD_PILOT_APPROVED_REF igual al SHA completo del baseline, el control optati
 node --test tools/kdd-board/browser-pilot/tests/pilot-live.test.mjs
 ```
 
+El workflow optativo **Board browser pilot** permite ejecución manual y se ejecuta en los PR que cambian el piloto o el propio workflow. Conserva reportes y recibos de una pasada en frío y otra con el navegador preparado por sistema. Comprueba los reportes con el esquema de la versión fijada y ejecuta el control live. El workflow principal de KDD usa la prueba del recibo sin instalar Chromium.
+
 ## Proponer pasos con Goldfish
 
 Prepara un proyecto e2e temporal y entrega al Goldfish solo el contrato, el SHA y el descriptor de la instancia sintética. Usa el e2e del lock para iniciar el MCP stdio, con una sesión nueva acotada a esa instancia.
