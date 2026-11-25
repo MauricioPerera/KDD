@@ -2,6 +2,8 @@
 
 El [contrato](../../../knowledge/contracts/board-browser-pilot.md) fija dos casos. Ambos usan un repositorio Git desechable y el Board real en loopback. El candidato con v1 presenta su SHA, el estado listo y la aprobación humana pendiente. El candidato sin v1 muestra su propio SHA y queda pendiente de revisión. La consulta conserva refs, índice, estado del diario y evidencia sintética.
 
+El [informe del piloto](../../../docs/reports/KDD-BOARD-BROWSER-PILOT.md) conserva la evidencia del PR #221, los tiempos en Ubuntu y Windows y la identidad de cada reporte.
+
 ## Preparar y ejecutar
 
 Usa Node 24.16.0, Git y Python 3.11 con las actualizaciones de seguridad vigentes. Ejecuta desde la raíz de KDD. Usa un checkout que contenga el SHA completo del baseline aprobado y su historial. Puedes seleccionar Python con KDD_PYTHON.
