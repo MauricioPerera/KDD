@@ -18,7 +18,7 @@ budget:
   lines_max: 100
   params_max: 5
 tests: 'tools/kdd-board/tests/board-test-evidence.test.ts'
-tests_sha256: 'ce060a124873b245299a6b98d25e2dff821e75ea042a5120ffac5760aa3cee29'
+tests_sha256: 'e01527bb4ff32a753b79ef93567d3d3a6a8d4234f4d3ea5e648507ab2ceb6561'
 oracle_files: ['tools/kdd-board/tests/board-test-evidence.test.ts', 'tools/kdd-board/tests/project-fixture.ts', 'tools/kdd-board/package.json', 'tools/kdd-board/package-lock.json', 'tools/kdd-board/tests/fixtures/board-evidence/.gitattributes', 'tools/kdd-board/tests/fixtures/board-evidence/receipt.json', 'tools/kdd-board/tests/fixtures/board-evidence/report.json', 'tools/kdd-board/browser-pilot/tests/evidence-browser.test.mjs', 'tools/kdd-board/browser-pilot/package.json', 'tools/kdd-board/browser-pilot/package-lock.json', 'tools/kdd-board/browser-pilot/pins.json']
 touch_only: ['scripts/board_test_evidence.py', 'tools/kdd-board/src/git-task-store.ts', 'tools/kdd-board/src/git-api.ts', 'tools/kdd-board/src/browser-evidence.ts', 'tools/kdd-board/public/git-board.js', 'tools/kdd-board/public/app.js', 'tools/kdd-board/public/index.html', 'tools/kdd-board/public/style.css', 'tools/kdd-board/browser-pilot/README.md']
 deps_allowed: ['node', 'python', 'git']

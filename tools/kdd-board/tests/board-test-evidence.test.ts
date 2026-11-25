@@ -73,7 +73,9 @@ async function serve(t: TestContext, root: string, settings: Record<string,strin
     server.listen(0,'127.0.0.1');
     await once(server,'listening');
     const origin = 'http://127.0.0.1:'+(server.address() as AddressInfo).port;
-    return (url:string,headers:Record<string,string>=auth) => fetch(origin+url,{headers});
+    // Git subprocesses block this fixture between requests. Use a fresh socket.
+    return (url:string,headers:Record<string,string>=auth) =>
+      fetch(origin+url,{headers:{...headers,Connection:'close'}});
   } catch(error) {
     for (const [key,value] of old) {
       if (value === undefined) delete process.env[key];
