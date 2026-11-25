@@ -22,18 +22,57 @@ function sameFile(a: BigIntStats, b: BigIntStats) {
     a.mtimeNs === b.mtimeNs && a.ctimeNs === b.ctimeNs;
 }
 
+async function directoryChain(directory: string) {
+  const {root} = path.parse(directory);
+  const parts = directory.slice(root.length).split(path.sep).filter(Boolean);
+  const prefixes = [root];
+  for (const part of parts) prefixes.push(path.join(prefixes[prefixes.length - 1], part));
+  const snapshots = [];
+  for (const prefix of prefixes) {
+    const info = await fs.lstat(prefix, {bigint: true});
+    assert.ok(info.isDirectory() && !info.isSymbolicLink());
+    snapshots.push(info);
+  }
+  return snapshots;
+}
+
+function sameDirectoryChain(left: BigIntStats[], right: BigIntStats[]) {
+  return left.length === right.length && left.every((info, index) =>
+    info.ino !== 0n && info.ino === right[index].ino && info.dev === right[index].dev);
+}
+
+async function inspectDirectory(direct: string) {
+  if (process.platform === 'win32') assert.match(direct, /^[A-Za-z]:\\/);
+  const chain = await directoryChain(direct);
+  const canonical = await fs.realpath(direct);
+  if (path.relative(direct, canonical)) {
+    assert.equal(process.platform, 'win32');
+    assert.equal(path.relative(path.parse(direct).root, path.parse(canonical).root), '');
+    // Win32 can expand a real 8.3 name without traversing a link.
+    assert.ok(sameDirectoryChain(chain, await directoryChain(canonical)));
+  }
+  return {canonical, chain, leaf: chain[chain.length - 1]};
+}
+
+function isRegularEvidenceFile(info: BigIntStats) {
+  return info.isFile() && info.nlink === 1n;
+}
+
 async function readRegular(file: string): Promise<Buffer> {
   const before = await fs.lstat(file, {bigint: true});
-  assert.ok(before.isFile() && before.nlink === 1n && before.size <= BigInt(maxBytes));
+  assert.ok(isRegularEvidenceFile(before) && before.size <= BigInt(maxBytes));
   const flags = constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0);
   const handle = await fs.open(file, flags);
   try {
     const opened = await handle.stat({bigint: true});
-    assert.ok(opened.isFile() && sameFile(opened, before));
+    assert.ok(isRegularEvidenceFile(opened) && sameFile(opened, before));
     const bytes = Buffer.alloc(Number(opened.size));
     const read = await handle.read(bytes, 0, bytes.length, 0);
     assert.equal(read.bytesRead, bytes.length);
-    assert.ok(sameFile(opened, await handle.stat({bigint: true})));
+    const final = await handle.stat({bigint: true});
+    const named = await fs.lstat(file, {bigint: true});
+    assert.ok(isRegularEvidenceFile(final) && sameFile(opened, final));
+    assert.ok(isRegularEvidenceFile(named) && sameFile(final, named));
     return bytes;
   } finally {
     await handle.close();
@@ -87,16 +126,16 @@ async function readBrowserEvidence(directory: string, pin: string) {
   assert.ok(parts && path.isAbsolute(directory));
   const [,checkout,receiptHash] = parts;
   const direct = path.resolve(directory);
-  const before = await fs.lstat(direct,{bigint:true});
-  assert.ok(before.isDirectory());
-  assert.equal(path.relative(direct,await fs.realpath(direct)),'');
-  const receiptBytes = await readRegular(path.join(direct,'receipt.json'));
+  const before = await inspectDirectory(direct);
+  const receiptBytes = await readRegular(path.join(before.canonical,'receipt.json'));
   assert.equal(digest(receiptBytes),receiptHash);
   const receipt = JSON.parse(receiptBytes.toString('utf8'));
   assert.equal(receipt.checkout,checkout);
   assert.equal(receipt.exit_code,0);
-  const bytes = await readRegular(path.join(direct,'report.json'));
-  assert.ok(sameFile(before, await fs.lstat(direct,{bigint:true})));
+  const bytes = await readRegular(path.join(before.canonical,'report.json'));
+  const after = await inspectDirectory(direct);
+  assert.equal(path.relative(before.canonical, after.canonical), '');
+  assert.ok(sameDirectoryChain(before.chain, after.chain) && sameFile(before.leaf, after.leaf));
   const reportHash = digest(bytes);
   assert.equal(reportHash,receipt.report_sha256);
   await verifyCommitPair(checkout,receipt.approved_ref);
