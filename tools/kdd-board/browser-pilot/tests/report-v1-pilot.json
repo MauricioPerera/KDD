@@ -1,0 +1,167 @@
+{
+  "schemaVersion": "report-1",
+  "run": {
+    "id": "01a21037-0296-77ae-a314-d14bf7b6155d",
+    "specVersion": "0.1",
+    "runner": {
+      "name": "e2e",
+      "version": "0.24.0"
+    },
+    "status": "passed",
+    "exitCode": 0,
+    "startedAt": "2026-11-25T00:59:30.969Z",
+    "finishedAt": "2026-11-25T00:59:41.114Z",
+    "project": {
+      "id": "unportable-ec00062a450a6b05bb57b75f9a407efe",
+      "configDigest": "019b12abedec016a273a1fc6bc7b04658e10a6af178de7c19ab8a5f50e6871b9"
+    },
+    "environment": {
+      "ci": true,
+      "trustNoticeShown": false,
+      "os": "win32 10.0.26200",
+      "arch": "x64",
+      "runtime": "node v24.16.0"
+    },
+    "targets": [
+      {
+        "id": "web",
+        "index": 0,
+        "platform": "web",
+        "baseOrigin": "http://127.0.0.1:1",
+        "environment": "test",
+        "engine": {
+          "name": "web",
+          "version": "0.16.1",
+          "spiVersion": 1
+        },
+        "capabilities": [
+          "actions",
+          "artifacts",
+          "browser",
+          "computed-style",
+          "keyboard",
+          "location",
+          "observation",
+          "pointer",
+          "state"
+        ],
+        "artifactCapabilities": [
+          "screenshot",
+          "video"
+        ],
+        "stateCapability": true
+      }
+    ],
+    "serialGroups": [],
+    "results": [
+      {
+        "id": "10ca90f6e2c277afb8d6e8a4f63a98a3a88db10f07ac71c957312d69436f6910",
+        "testId": "tests/handoff.e2e.ts::ready%20candidate%20requires%20human%20approval",
+        "kind": "test",
+        "declarationIndex": 0,
+        "titlePath": [
+          "ready candidate requires human approval"
+        ],
+        "file": "tests/handoff.e2e.ts",
+        "source": {
+          "file": "tests/handoff.e2e.ts",
+          "line": 8,
+          "column": 1
+        },
+        "targetId": "web",
+        "platform": "web",
+        "agent": "default",
+        "repeat": 0,
+        "tags": [],
+        "selected": true,
+        "status": "passed",
+        "attempts": [
+          {
+            "id": "01a21037-06db-7756-b795-4d825377b47a",
+            "index": 0,
+            "status": "passed",
+            "startedAt": "2026-11-25T00:59:31.419Z",
+            "durationMs": 6728,
+            "artifacts": [],
+            "secondaryErrors": [],
+            "cleanup": "complete",
+            "environment": {
+              "browser": "chromium 159.0.8154.6",
+              "user agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/159.0.8154.6 Safari/537.36"
+            },
+            "steps": []
+          }
+        ]
+      },
+      {
+        "id": "2f6f675cd81aa46fa75f9e623209b6d8a9c31f0cc444afcde9bd824dab114306",
+        "testId": "tests/handoff.e2e.ts::missing%20evidence%20stays%20pending",
+        "kind": "test",
+        "declarationIndex": 1,
+        "titlePath": [
+          "missing evidence stays pending"
+        ],
+        "file": "tests/handoff.e2e.ts",
+        "source": {
+          "file": "tests/handoff.e2e.ts",
+          "line": 19,
+          "column": 1
+        },
+        "targetId": "web",
+        "platform": "web",
+        "agent": "default",
+        "repeat": 0,
+        "tags": [],
+        "selected": true,
+        "status": "passed",
+        "attempts": [
+          {
+            "id": "01a21037-2125-7198-97e5-0b3485b7172a",
+            "index": 0,
+            "status": "passed",
+            "startedAt": "2026-11-25T00:59:38.149Z",
+            "durationMs": 2605,
+            "artifacts": [],
+            "secondaryErrors": [],
+            "cleanup": "complete",
+            "environment": {
+              "browser": "chromium 159.0.8154.6",
+              "user agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/159.0.8154.6 Safari/537.36"
+            },
+            "steps": []
+          }
+        ]
+      }
+    ],
+    "errors": [],
+    "summary": {
+      "discovered": 2,
+      "selected": 2,
+      "executed": 2,
+      "passed": 2,
+      "failed": 0,
+      "interrupted": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    "limits": {
+      "maxAgentContextBytes": 16384,
+      "maxLedgerBytes": 8192,
+      "maxObservationBytes": 262144,
+      "maxEventsPerStep": 1000,
+      "maxModelTokensPerCall": 64000
+    },
+    "usage": {
+      "discoveredResults": 2,
+      "maxAgentContextBytes": 0,
+      "maxLedgerBytes": 0,
+      "maxObservationBytes": 0,
+      "artifactBytes": 0,
+      "downloads": 0,
+      "events": 0,
+      "modelTokens": 0,
+      "maxModelCallsInStep": 0,
+      "maxActionStepsInStep": 0
+    }
+  }
+}

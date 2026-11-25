@@ -65,6 +65,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Diario Git del tablero](./contracts/board-git-journal.md)
 - [Interfaz Git del tablero](./contracts/board-git-ui.md)
 - [Relevo de revision en Board](./contracts/board-review-handoff.md)
+- [Piloto Chromium del relevo](./contracts/board-browser-pilot.md)
 - [Contratos de Desarrollo](./contracts/)
   - [Ejecutor de autoridad local](./contracts/local-authority.md) — permisos aplicados antes del IO.
   - [Planificador del sprint](./contracts/sprint-planner.md) — relaciones, ciclos, bloqueos y prioridades.

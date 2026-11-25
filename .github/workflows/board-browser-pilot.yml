@@ -1,0 +1,122 @@
+name: Board browser pilot
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/board-browser-pilot.yml'
+      - 'tools/kdd-board/browser-pilot/**'
+
+permissions:
+  contents: read
+
+jobs:
+  chromium:
+    name: Board Chromium (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      KDD_PILOT_APPROVED_REF: '467deac32c22b5df3d64275a0cfd4078ba4d06ac'
+      KDD_PILOT_CHECKOUT_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.KDD_PILOT_CHECKOUT_REF }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.16.0'
+          package-manager-cache: false
+
+      - name: Install both locked packages
+        shell: pwsh
+        run: |
+          npm ci --prefix tools/kdd-board --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Board package installation failed' }
+          npm ci --prefix tools/kdd-board/browser-pilot --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Browser package installation failed' }
+
+      - name: Install the repository-pinned report schema validator
+        run: >-
+          python -m pip install --require-hashes --only-binary=:all: -r tools/context-v03/requirements.txt
+
+      - name: Prepare system libraries on Ubuntu
+        if: runner.os == 'Linux'
+        run: node tools/kdd-board/browser-pilot/node_modules/playwright-core/cli.js install-deps chromium
+
+      - name: Measure cold and prepared Chromium and verify negative controls
+        shell: pwsh
+        run: |
+          $checkout = (git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $checkout -cne $env:KDD_PILOT_CHECKOUT_REF) {
+            throw 'The checkout does not match the requested commit'
+          }
+          $work = Join-Path $env:RUNNER_TEMP 'kdd-board-browser'
+          $evidence = Join-Path $work 'evidence'
+          New-Item -ItemType Directory $evidence | Out-Null
+          $env:KDD_PYTHON = Get-Command python -CommandType Application | Select-Object -First 1 -ExpandProperty Source
+          $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $work 'chromium'
+          $installer = 'tools/kdd-board/browser-pilot/node_modules/playwright-core/cli.js'
+          $runner = 'tools/kdd-board/browser-pilot/run.mjs'
+          $schema = 'tools/kdd-board/browser-pilot/node_modules/e2e/schema/report-v1.schema.json'
+          $check = 'import json, sys; from pathlib import Path; from jsonschema import Draft202012Validator; schema, report = [json.loads(Path(p).read_bytes()) for p in sys.argv[1:]]; Draft202012Validator(schema).validate(report)'
+          if (Test-Path -LiteralPath $env:PLAYWRIGHT_BROWSERS_PATH) { throw 'Expected an empty browser cache' }
+
+          $passes = @()
+          foreach ($pass in @('cold', 'warm')) {
+            $clock = [Diagnostics.Stopwatch]::StartNew()
+            node $installer install --only-shell chromium
+            if ($LASTEXITCODE -ne 0) { throw 'Pinned Chromium installation failed' }
+            $prepare = $clock.Elapsed.TotalMilliseconds
+            $clock.Restart()
+            $output = Join-Path $evidence $pass
+            $verdict = node $runner --approved-ref $env:KDD_PILOT_APPROVED_REF --output $output
+            $code = $LASTEXITCODE
+            $elapsed = $clock.Elapsed.TotalMilliseconds
+            $verdict | Write-Host
+            if ($code -ne 0) { throw "Chromium run failed for $pass" }
+            $status = $verdict | ConvertFrom-Json
+            $receipt = Get-Content -LiteralPath (Join-Path $output 'receipt.json') -Raw | ConvertFrom-Json
+            if (!$status.ok -or $receipt.checkout -cne $checkout -or $receipt.approved_ref -cne $env:KDD_PILOT_APPROVED_REF) {
+              throw "Invalid receipt identity for $pass"
+            }
+            $report = Join-Path $output 'report.json'
+            if ((Get-FileHash -LiteralPath $report).Hash.ToLowerInvariant() -cne $receipt.report_sha256) {
+              throw "Report digest differs from receipt for $pass"
+            }
+            python -c $check $schema $report
+            if ($LASTEXITCODE -ne 0) { throw "Report schema validation failed for $pass" }
+            $passes += @{pass = $pass; prepare_ms = $prepare; command_ms = $elapsed;
+              browser_ms = $receipt.browser_ms; run_id = $receipt.run_id; ids = $receipt.ids;
+              report_sha256 = $receipt.report_sha256}
+          }
+          if ($passes[0].run_id -ceq $passes[1].run_id -or $passes[0].report_sha256 -ceq $passes[1].report_sha256 -or
+              ($passes[0].ids -join ',') -cne ($passes[1].ids -join ',')) {
+            throw 'Each pass must have fresh evidence with the same inventory'
+          }
+          node --test tools/kdd-board/browser-pilot/tests/pilot-live.test.mjs |
+            Tee-Object -FilePath (Join-Path $evidence 'contramuestras.log')
+          if ($LASTEXITCODE -ne 0) { throw 'A live control failed' }
+
+          @{checkout = $checkout; approved_ref = $env:KDD_PILOT_APPROVED_REF;
+            platform = $env:RUNNER_OS; passes = $passes; live_controls = 'passed'} |
+            ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $evidence 'measurements.json') -Encoding utf8
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: board-browser-${{ matrix.os }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kdd-board-browser/evidence
+          if-no-files-found: ignore
+          retention-days: 14

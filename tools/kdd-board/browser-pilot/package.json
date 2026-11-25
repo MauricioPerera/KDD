@@ -1,0 +1,11 @@
+{
+  "name": "kdd-board-browser-pilot",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "24.16.0" },
+  "devDependencies": {
+    "@e2e-dev/core": "0.24.0",
+    "@e2e-dev/web": "0.16.1",
+    "e2e": "0.24.0"
+  }
+}
