@@ -64,7 +64,7 @@ jobs:
           $work = Join-Path $env:RUNNER_TEMP 'kdd-board-browser'
           $evidence = Join-Path $work 'evidence'
           New-Item -ItemType Directory $evidence | Out-Null
-          $env:KDD_PYTHON = (Get-Command python -CommandType Application).Source
+          $env:KDD_PYTHON = Get-Command python -CommandType Application | Select-Object -First 1 -ExpandProperty Source
           $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $work 'chromium'
           $installer = 'tools/kdd-board/browser-pilot/node_modules/playwright-core/cli.js'
           $runner = 'tools/kdd-board/browser-pilot/run.mjs'
