@@ -32,6 +32,7 @@ Guardar `<CANDIDATO>.json` con el v1 original. Pulsar **Consultar revision**
 o leer `GET /api/tasks/ID/review-handoff`. Mover la seleccion anterior a
 `previous` al cambiar de SHA.
 [Relevo](contracts/board-review-handoff.md) y [aprobacion humana](baseline-risk-review.md).
+El [piloto optativo Chromium](contracts/board-browser-pilot.md) verifica el relevo con Git y Board reales.
 
 ## Vault y modo legacy
 
