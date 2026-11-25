@@ -50,10 +50,10 @@ function approvedRef() {
   return ref;
 }
 
-test('the normal command generates fresh Chromium evidence bound to this checkout', t => {
-  const output = path.join(temporary(t), 'evidence');
-  const approved = approvedRef();
+function runFresh(output, approved) {
+  const started = Date.now();
   const result = invoke(process.execPath, [runner, '--approved-ref', approved, '--output', output]);
+  const finished = Date.now();
   assert.deepEqual(verdict(result, true).ids, ids);
   const raw = fs.readFileSync(path.join(output, 'report.json'));
   const report = JSON.parse(raw);
@@ -65,6 +65,10 @@ test('the normal command generates fresh Chromium evidence bound to this checkou
   assert.equal(receipt.report_sha256, sha256(raw));
   assert.equal(receipt.run_id, report.run.id);
   assert.notEqual(receipt.run_id, knownReport.run.id);
+  const recordedStart = Date.parse(report.run.startedAt);
+  const recordedEnd = Date.parse(report.run.finishedAt);
+  assert.ok(started <= recordedStart && recordedStart <= recordedEnd && recordedEnd <= finished,
+    'Report must have started and finished during this invocation');
   assert.equal(receipt.exit_code, 0);
   assert.deepEqual(receipt.ids, ids);
   assert.deepEqual(receipt.runtime, pins);
@@ -80,6 +84,26 @@ test('the normal command generates fresh Chromium evidence bound to this checkou
   ]) {
     assert.equal(receipt.inputs[relative], sha256(fs.readFileSync(path.join(repo, relative))), relative);
   }
+  return receipt.run_id;
+}
+
+test('two normal invocations generate distinct fresh Chromium evidence bound to the same checkout', t => {
+  const root = temporary(t);
+  const approved = approvedRef();
+  const first = runFresh(path.join(root, 'first'), approved);
+  const second = runFresh(path.join(root, 'second'), approved);
+  assert.notEqual(first, second);
+});
+
+test('the normal command rejects an existing commit without the pilot baseline', t => {
+  const output = path.join(temporary(t), 'evidence');
+  const history = invoke('git', ['rev-list', '--max-parents=0', 'HEAD']);
+  assert.equal(history.status, 0, history.stderr);
+  const root = history.stdout.trim().split(/\s+/)[0];
+  const contract = 'knowledge/contracts/board-browser-pilot.md';
+  assert.notEqual(invoke('git', ['cat-file', '-e', `${root}:${contract}`]).status, 0);
+  verdict(invoke(process.execPath, [runner, '--approved-ref', root, '--output', output]), false);
+  assert.equal(fs.existsSync(path.join(output, 'receipt.json')), false);
 });
 
 test('the normal command leaves a destination with a previous green report intact', t => {

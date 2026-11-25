@@ -18,8 +18,8 @@ budget:
   nesting_max: 4
   params_max: 4
 tests: tools/kdd-board/tests/browser-pilot-receipt.test.mjs
-tests_sha256: 'beb5983ac0c7516b9433e5177b3096d9474af08a8d7649ab781a763a755b719a'
-touch_only: ['tools/kdd-board/browser-pilot/run.mjs', 'tools/kdd-board/browser-pilot/README.md', 'knowledge/board-git.md', '.github/workflows/board-browser-pilot.yml']
+tests_sha256: '2b357bea1ba1bc9153920e0721928bc2c4135ef1ff8b7bf8fb3542f39b1fd300'
+touch_only: ['tools/kdd-board/browser-pilot/run.mjs', 'tools/kdd-board/browser-pilot/README.md', 'knowledge/board-git.md', 'knowledge/casos-reales.md', '.github/workflows/board-browser-pilot.yml']
 deps_allowed: ['node', 'python', 'git', 'e2e', '@e2e-dev/web']
 forbids: ['llm']
 ---
@@ -36,8 +36,9 @@ Acreditar el [relevo de revision](board-review-handoff.md) por navegador real co
 
 - Repositorio Git temporal con datos sinteticos y dos candidatos. Comprobar en el navegador el estado, los SHAs y la aprobacion pendiente, y comparar refs, indice y estado de trabajo del repositorio de tareas antes y despues de consultar ambos candidatos.
 - La ejecucion real exige los pins de Node, paquetes y ejecutable Chromium. El verificador de reportes funciona con Node 24 del CI normal. Preparar fuera del checkout una raiz e2e aislada con salida nueva dentro de esa raiz. Los procesos del piloto reciben solo el entorno local necesario y datos sinteticos. Ejecutar con cero modelos, reintentos o filtros.
-- Ejecutar codigo y oraculos del checkout identificado, sin cambios locales en los archivos ejecutados. Los oraculos coinciden con el baseline aprobado. Exigir salida real cero, estados y contadores coherentes de `report-1`, corrida distinta, exactamente los dos IDs previstos y un intento aprobado por ID. Guardar los hashes de config, manifiestos, locks, pins, fixture, escenario y oraculos. Ante una salida preexistente, rechazar sin escribir ni sobrescribir evidencia.
+- Ejecutar codigo del checkout identificado y cotejar los oraculos con los blobs del SHA aprobado. Rechazar un SHA existente sin esos oraculos. Exigir salida cero, estados y contadores coherentes de `report-1`, ID unico por ejecucion, fechas dentro de la invocacion y los dos IDs previstos con un intento aprobado en la version Chromium fijada. Guardar hashes de los archivos fijados. Rechazar una salida preexistente sin sobrescribirla.
 - Rechazar fallo real de la asercion, seleccion vacia y reporte verde anterior. Correr dos pasadas del mismo SHA en Ubuntu y Windows. Medir preparacion fria y ejecucion con navegador disponible. Conservar el CI principal, sus dos pasadas, cobertura, umbrales y protecciones.
+- Para publicar, mantener Pages bajo su limite. Si hace falta reducir el indice de casos historicos, conservar sus anclas y el archivo con los relatos y la evidencia.
 
 ## Examples
 

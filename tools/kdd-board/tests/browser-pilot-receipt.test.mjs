@@ -108,6 +108,9 @@ for (const [label, mutate] of [
   ['a nonzero token count', run => { run.usage.modelTokens = 1; }],
   ['a different Node used to produce the report', run => { run.environment.runtime = 'node v24.0.0'; }],
   ['a different web engine version', run => { run.targets[0].engine.version = '0.0.0'; }],
+  ['a different Chromium version in an attempt', run => {
+    run.results[0].attempts[0].environment.browser = 'chromium 158.0.0.0';
+  }],
   ...['failed', 'interrupted', 'flaky', 'skipped'].map(field => [
     `a nonzero ${field} count`, run => { run.summary[field] = 1; },
   ]),
