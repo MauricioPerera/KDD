@@ -7,6 +7,7 @@ import path from 'node:path';
 const execute = promisify(execFile);
 const cli = fileURLToPath(new URL('../../../scripts/tasks.py', import.meta.url));
 const reviewCli = fileURLToPath(new URL('../../../scripts/board_review_handoff.py', import.meta.url));
+const evidenceCli = fileURLToPath(new URL('../../../scripts/board_test_evidence.py', import.meta.url));
 export const transitions: Record<string, Record<string, string>> = {
   backlog: {ready:'ready'}, ready: {in_progress:'start'},
   in_progress: {needs_human_input:'block', done:'finish'}, needs_human_input: {ready:'resume'}, done: {},
@@ -45,6 +46,7 @@ const coordinatorReasons:Record<string,string>={
   TASK_MAIN:'run mutations on main',TASK_DIRTY:'commit or preserve local changes before retrying',
   TASK_LOCK:'another coordinator owns the task lock',TASK_RACE:'main changed; refresh before retrying',
   TASK_BRANCH:'task branch is missing, rewritten or already exists',TASK_EVIDENCE:'task evidence is invalid',
+  TASK_EVIDENCE_INVALID:'task evidence is invalid',
   TASK_APPROVAL:'an explicit approved ancestor and unchanged oracle are required',TASK_CONTRACT:'contract is invalid',
   TASK_GIT:'Git operation failed',TASK_TESTS:'contract tests failed or could not complete',
   TASK_PERIMETER:'implementation exceeds the approved scope',
@@ -162,6 +164,10 @@ export class GitTaskStore {
       throw new BoardGitError('No se pudo verificar el relevo de revision',409,'REVIEW_HANDOFF_INVALID');
     }
     return result;
+  }
+
+  async evidence(id: string): Promise<unknown> {
+    return JSON.parse(await this.command(['-B', evidenceCli, '--repo-root', this.root, identifier(id)]));
   }
 
   async contracts(): Promise<{id:string; title:string}[]> {

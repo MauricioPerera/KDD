@@ -163,6 +163,8 @@ document.getElementById('btn-agent-tools').addEventListener('click', () => {
 document.getElementById('tab-board').addEventListener('click', () => switchView('board'));
 document.getElementById('tab-dashboard').addEventListener('click', () => switchView('dashboard'));
 document.getElementById('tab-docs').addEventListener('click', () => switchView('docs'));
+const browserEvidenceTab = document.querySelector?.('#tab-browser-evidence');
+browserEvidenceTab?.addEventListener('click', () => switchView('browser-evidence'));
 document.getElementById('tab-task').addEventListener('click', () => {
   if (selectedTaskId) switchView('task');
 });
@@ -172,6 +174,7 @@ window.switchView = function (viewName) {
   document.getElementById('tab-board').classList.toggle('active', viewName === 'board');
   document.getElementById('tab-dashboard').classList.toggle('active', viewName === 'dashboard');
   document.getElementById('tab-docs').classList.toggle('active', viewName === 'docs');
+  browserEvidenceTab?.classList.toggle('active', viewName === 'browser-evidence');
   const tabTask = document.getElementById('tab-task');
   tabTask.classList.toggle('active', viewName === 'task');
   tabTask.classList.toggle('hidden', viewName !== 'task' && !selectedTaskId);
@@ -180,6 +183,7 @@ window.switchView = function (viewName) {
   document.getElementById('view-dashboard').classList.toggle('hidden', viewName !== 'dashboard');
   document.getElementById('view-task-detail').classList.toggle('hidden', viewName !== 'task');
   document.getElementById('view-docs').classList.toggle('hidden', viewName !== 'docs');
+  document.querySelector?.('#view-browser-evidence')?.classList.toggle('hidden', viewName !== 'browser-evidence');
 
   if (viewName === 'dashboard') {
     renderDashboard();
@@ -187,7 +191,45 @@ window.switchView = function (viewName) {
   if (viewName === 'docs') {
     initDocsView();
   }
+  if (viewName === 'browser-evidence') loadBrowserEvidence();
 };
+
+function browserEvidenceHtml(data) {
+  if (data.status === 'unavailable') return '<p>Paquete de Chromium pendiente de configuración.</p>';
+  const rows = data.cases.map(item => `<tr>
+    <th scope="row"><code>${escapeHtml(item.id)}</code></th>
+    <td>${item.status === 'passed' ? 'PASS' : escapeHtml(item.status)}</td>
+    <td>Intento ${escapeHtml(String(item.attempt + 1))}</td>
+    <td>${escapeHtml(String(item.duration_ms))} ms</td>
+    <td>Sin adjuntos</td>
+  </tr>`).join('');
+  return `<p>Paquete local cotejado</p>
+    <dl class="browser-evidence-meta">
+      <dt>Commit probado</dt><dd><code>${escapeHtml(data.checkout)}</code></dd>
+      <dt>SHA aprobado</dt><dd><code>${escapeHtml(data.approved_ref)}</code></dd>
+      <dt>Corrida</dt><dd><code>${escapeHtml(data.run_id)}</code></dd>
+      <dt>Huella de receipt.json</dt><dd><code>${escapeHtml(data.receipt_sha256)}</code></dd>
+      <dt>Huella de report.json</dt><dd><code>${escapeHtml(data.report_sha256)}</code></dd>
+    </dl>
+    <div class="browser-evidence-table"><table>
+      <thead><tr><th scope="col">Caso</th><th scope="col">Resultado</th><th scope="col">Intento</th><th scope="col">Duración</th><th scope="col">Adjuntos</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+async function loadBrowserEvidence() {
+  const panel = document.getElementById('browser-evidence-result');
+  if (panel.getAttribute('aria-busy') === 'true') return;
+  panel.setAttribute('aria-busy','true');
+  panel.textContent = 'Consultando evidencia…';
+  try {
+    panel.innerHTML = browserEvidenceHtml(await apiJson('/api/board/evidence/browser-pilot'));
+  } catch (error) {
+    panel.textContent = error.message;
+  } finally {
+    panel.setAttribute('aria-busy','false');
+  }
+}
 
 // Close buttons
 document.querySelectorAll('[data-close]').forEach((btn) => {
@@ -213,6 +255,7 @@ function loadTasks() {
 async function fetchTasks() {
   try {
     if (window.KddGitBoard) await window.KddGitBoard.configure(apiJson);
+    document.querySelector?.('#tab-browser-evidence')?.classList.toggle('hidden', window.KddGitBoard?.mode !== 'git');
     if (window.KddGitBoard?.mode !== 'git') await loadContractCatalog();
     const res = await apiFetch('/api/tasks');
     const tasks = await res.json();
