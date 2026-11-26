@@ -89,6 +89,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
   - [Gate de diagramas Mermaid (flowchart, Python puro)](./contracts/diagram-gate.md)
   - [Gate que ejecuta el test_command de cada contrato (Nivel 1)](./contracts/test-command-gate.md)
   - [Gate confiable para PR y referencia aprobada](./contracts/trusted-pr-gate.md)
+  - [Edicion de Pages y nombres de importacion protegidos](./contracts/trusted-pages-import-scope.md)
   - [Enforcement determinista de budgets](./contracts/budget-enforcement.md)
   - [Auditoria del diff contra contrato aprobado](./contracts/change-contract-audit.md)
   - [Adaptadores multilenguaje del auditor de cambios](./contracts/change-contract-languages.md)
