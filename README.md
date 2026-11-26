@@ -1,8 +1,4 @@
-# KDD Template (Knowledge-Driven Development)
-
-[![validate-contracts](https://github.com/MauricioPerera/KDD/actions/workflows/validate.yml/badge.svg)](https://github.com/MauricioPerera/KDD/actions/workflows/validate.yml)
-
-<a href="https://www.producthunt.com/products/kdd-knowledge-driven-development?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-kdd" target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1198446&theme=dark&t=1784571286941"><img alt="KDD - Govern AI agents with deterministic gates. No LLM judging. | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1198446&theme=light&t=1784571617560"></picture></a>
+# KDD (Knowledge-Driven Development)
 
 [English](#english) | [Español](#español) | [Português](#português)
 
@@ -10,19 +6,34 @@
 
 ## English
 
-🌐 **[Landing page](https://mauricioperera.github.io/KDD/)** — a visual walkthrough of the methodology (EN/ES toggle).
+**Knowledge-Driven Development** is a way to build software with people and AI agents. The team keeps project decisions and rules alongside the code. Each task draws on the knowledge it needs, defines how to check the change, and leaves a result someone else can review or pick up.
 
-For the dated implementation status and evidence, see [verified KDD status](knowledge/estado-actual-kdd.md).
-The November 6, 2026 snapshot records PRs #161/#164 integrated, two passes of
-2,118 test IDs on Ubuntu and Windows, and the matching Pages deployment.
-Windows performance acceptance remains open under the documented <480 s criterion.
+### Example · Checking an international payment
+
+1. **Keep the rule.** The team records that each country has its own payment limit and that the recipient must be verified.
+2. **Define the task.** The developer or agent gets the relevant rules and the scope of the change, even in a new session.
+3. **Agree on the tests before coding.** A payment at the limit passes if it meets the other rules. Above the limit, it fails.
+4. **Review the result.** Run the agreed tests and retain the result so the team can decide whether to accept the change.
+
+[Payment rules](knowledge/data_models/payment_limits.md) · [Task](knowledge/contracts/validate-payment-limit.md) · [Tests](tests/test_payment_limit.py)
+
+[![validate-contracts](https://github.com/MauricioPerera/KDD/actions/workflows/validate.yml/badge.svg)](https://github.com/MauricioPerera/KDD/actions/workflows/validate.yml)
+
+<a href="https://www.producthunt.com/products/kdd-knowledge-driven-development?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-kdd" target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1198446&theme=dark&t=1784571286941"><img alt="KDD on Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1198446&theme=light&t=1784571617560"></picture></a>
+
+See the [visual walkthrough](https://mauricioperera.github.io/KDD/) in English, Spanish, or Portuguese.
+
+See [verified KDD status](knowledge/estado-actual-kdd.md) for implementation evidence by revision.
 The [Pages guide](site/README.md) explains PR builds, local previews and deployment
 from the exact CI inventory; the counter measures test IDs, including declared skips.
 
-This is a template repository for projects that implement the **Knowledge-Driven Development (KDD)** methodology, which unifies:
-  * **Behavior contracts (optional):** Versioned `behavior/v1` properties, checked deterministically before any candidate code is run. The [behavior contract specification](knowledge/behavior-contract-spec.md) defines the schema, evidence boundary, and limits.
+### What the KDD template includes
+
+This repository provides a template for applying the method.
+
 - **OKF (Open Knowledge Format):** A minimalist format for structuring knowledge, design, and architecture as markdown files with YAML frontmatter. The normative spec for OKF nodes lives in [`knowledge/OKF-SPEC.md`](knowledge/OKF-SPEC.md).
 - **CCDD (Contract-Driven Development):** A methodology for governing development with ephemeral AI agents through strict contracts and deterministic thresholds (complexity, frozen tests).
+- **Behavior contracts (optional):** Versioned `behavior/v1` properties, checked deterministically before any candidate code is run. The [behavior contract specification](knowledge/behavior-contract-spec.md) defines the schema, evidence boundary, and limits.
 - **Security (Capa 3):** Governs security findings with the same declarative rule engine as the other domains. Sealed `scan-manifest.json`/`findings.json`/`coverage.json` artifacts (schemas and sealer vendored from [openai/codex-security](https://github.com/openai/codex-security), Apache-2.0) are audited by [`examples/rules/security-findings.rules.json`](examples/rules/security-findings.rules.json); see [`knowledge/data_models/security_findings.md`](knowledge/data_models/security_findings.md) and the model-agnostic production skill at [`.agents/skills/kdd-security-scan/`](.agents/skills/kdd-security-scan/SKILL.md).
 - **Compliance/licenses (Capa 3):** Governs dependency license-compatibility findings with the same rule engine, natively (no vendoring needed). Sealed `findings.json` artifacts are audited by [`examples/rules/compliance-findings.rules.json`](examples/rules/compliance-findings.rules.json); see [`knowledge/data_models/compliance_findings.md`](knowledge/data_models/compliance_findings.md) and the production skill at [`.agents/skills/kdd-compliance-scan/`](.agents/skills/kdd-compliance-scan/SKILL.md).
 - **Privacy/PII (Capa 3):** Governs personal-data findings and their legal basis with the same rule engine, natively. Sealed `findings.json` artifacts are audited by [`examples/rules/privacy-findings.rules.json`](examples/rules/privacy-findings.rules.json); see [`knowledge/data_models/privacy_findings.md`](knowledge/data_models/privacy_findings.md) and the production skill at [`.agents/skills/kdd-privacy-scan/`](.agents/skills/kdd-privacy-scan/SKILL.md).
@@ -166,22 +177,33 @@ KDD upstream uses **semantic versioning**; its releases are in [`CHANGELOG.md`](
 
 ## Español
 
-El [estado verificable de KDD](knowledge/estado-actual-kdd.md) reúne el alcance y
-la evidencia por fecha. El corte del 6 de noviembre de 2026 registra PR161/164
-integrados, dos pasadas de 2118 IDs en Ubuntu/Windows y Pages verificado.
-La aceptacion de rendimiento Windows sigue abierta bajo el criterio <480 s.
+**KDD es desarrollo orientado al conocimiento.** El equipo guarda junto al código las decisiones y reglas del proyecto. Cada tarea usa las que necesita, define cómo se comprobará el cambio y deja un resultado que otra persona puede revisar o retomar. Así pueden colaborar personas y agentes de IA.
+
+### Ejemplo · Validar un pago internacional
+
+1. **Guardar la regla.** El equipo registra que cada país tiene su propio límite de pago y que el beneficiario debe estar verificado.
+2. **Preparar el encargo.** La persona o el agente recibe las reglas relevantes y el alcance del cambio, incluso si empieza en una sesión nueva.
+3. **Acordar las pruebas antes de programar.** Un pago en el límite se acepta si cumple las demás reglas. Por encima del límite se rechaza.
+4. **Revisar el resultado.** Se ejecutan las pruebas acordadas y se conserva el resultado para que el equipo decida si acepta el cambio.
+
+[Reglas de pago](knowledge/data_models/payment_limits.md) · [Encargo](knowledge/contracts/validate-payment-limit.md) · [Pruebas](tests/test_payment_limit.py)
+
+El [estado verificable de KDD](knowledge/estado-actual-kdd.md) reúne el alcance y la evidencia por revisión.
 La [guía de Pages](site/README.md) explica los builds de
 PR, el preview local y el despliegue con el inventario exacto del CI; el contador
 representa IDs de pruebas, incluidas las omisiones declaradas.
 
 Para una explicación de KDD sin tecnicismos, consulta [`docs/KDD-PARA-PERSONAS.md`](docs/KDD-PARA-PERSONAS.md).
 
-🌐 **[Landing page](https://mauricioperera.github.io/KDD/)** — un recorrido visual de la metodología (toggle EN/ES).
+Consulta el [recorrido visual](https://mauricioperera.github.io/KDD/) en español, inglés o portugués.
 
-Este repositorio plantilla es para proyectos que implementan la metodología **Knowledge-Driven Development (KDD)**, la cual unifica:
-  * **Contratos de comportamiento (opcionales):** Propiedades versionadas `behavior/v1`, verificadas determinísticamente antes de ejecutar código candidato. La [especificación](knowledge/behavior-contract-spec.md) define el esquema, la evidencia y sus límites.
+### Qué incluye la plantilla de KDD
+
+Este repositorio ofrece una plantilla para aplicar la metodología.
+
 - **OKF (Open Knowledge Format):** Un formato minimalista para estructurar el conocimiento, diseño y arquitectura como archivos markdown con frontmatter YAML. La spec normativa de los nodos OKF está en [`knowledge/OKF-SPEC.md`](knowledge/OKF-SPEC.md).
 - **CCDD (Contract-Driven Development):** Una metodología para gobernar el desarrollo con agentes de IA efímeros mediante contratos estrictos y umbrales deterministas (complejidad, tests congelados).
+- **Contratos de comportamiento (opcionales):** Propiedades versionadas `behavior/v1`, verificadas determinísticamente antes de ejecutar código candidato. La [especificación](knowledge/behavior-contract-spec.md) define el esquema, la evidencia y sus límites.
 - **Seguridad (Capa 3):** Gobierna hallazgos de seguridad con el mismo motor de reglas declarativo que los demás dominios. Los artefactos sellados `scan-manifest.json`/`findings.json`/`coverage.json` (schemas y sellador vendorizados de [openai/codex-security](https://github.com/openai/codex-security), Apache-2.0) se auditan con [`examples/rules/security-findings.rules.json`](examples/rules/security-findings.rules.json); ver [`knowledge/data_models/security_findings.md`](knowledge/data_models/security_findings.md) y la skill de producción agnóstica de modelo en [`.agents/skills/kdd-security-scan/`](.agents/skills/kdd-security-scan/SKILL.md).
 - **Compliance/licencias (Capa 3):** Gobierna hallazgos de compatibilidad de licencias de dependencias con el mismo motor de reglas, de forma nativa (sin vendoring). Los artefactos sellados `findings.json` se auditan con [`examples/rules/compliance-findings.rules.json`](examples/rules/compliance-findings.rules.json); ver [`knowledge/data_models/compliance_findings.md`](knowledge/data_models/compliance_findings.md) y la skill de producción en [`.agents/skills/kdd-compliance-scan/`](.agents/skills/kdd-compliance-scan/SKILL.md).
 - **Privacidad/PII (Capa 3):** Gobierna hallazgos de datos personales y su base legal con el mismo motor de reglas, de forma nativa. Los artefactos sellados `findings.json` se auditan con [`examples/rules/privacy-findings.rules.json`](examples/rules/privacy-findings.rules.json); ver [`knowledge/data_models/privacy_findings.md`](knowledge/data_models/privacy_findings.md) y la skill de producción en [`.agents/skills/kdd-privacy-scan/`](.agents/skills/kdd-privacy-scan/SKILL.md).
@@ -270,17 +292,28 @@ KDD upstream usa **versionado semántico**; sus releases están en [`CHANGELOG.m
 
 ## Português
 
-O [estado verificável do KDD](knowledge/estado-actual-kdd.md) reúne o escopo e a
-evidência por data. O corte de 6 de novembro de 2026 registra PRs #161/#164
-integrados, duas passagens de 2118 IDs no Ubuntu/Windows e Pages verificado.
-A aceitação de desempenho no Windows segue aberta pelo critério <480 s.
+**KDD é desenvolvimento orientado pelo conhecimento.** A equipe mantém as decisões e regras do projeto junto ao código. Cada tarefa usa as regras de que precisa, define como verificar a mudança e deixa um resultado que outra pessoa pode revisar ou retomar. Assim, pessoas e agentes de IA podem colaborar.
+
+### Exemplo · Validar um pagamento internacional
+
+1. **Registrar a regra.** A equipe registra que cada país tem seu próprio limite de pagamento e que o beneficiário precisa estar verificado.
+2. **Preparar a tarefa.** A pessoa ou o agente recebe as regras relevantes e o escopo da mudança, mesmo em uma nova sessão.
+3. **Combinar os testes antes de programar.** Um pagamento no limite é aceito se cumprir as demais regras. Acima do limite, ele é rejeitado.
+4. **Revisar o resultado.** Os testes combinados são executados e o resultado fica disponível para a equipe decidir se aceita a mudança.
+
+[Regras de pagamento](knowledge/data_models/payment_limits.md) · [Tarefa](knowledge/contracts/validate-payment-limit.md) · [Testes](tests/test_payment_limit.py)
+
+O [estado verificável do KDD](knowledge/estado-actual-kdd.md) reúne o escopo e a evidência por revisão.
 O [guia de Pages](site/README.md) explica builds de PR,
 preview local e publicação com o inventário exato do CI; o contador representa
 IDs de testes, incluindo as omissões declaradas.
 
-🌐 **[Landing page](https://mauricioperera.github.io/KDD/)** — um passeio visual pela metodologia (alternância EN/ES/PT).
+Veja o [guia visual](https://mauricioperera.github.io/KDD/) em português, inglês ou espanhol.
 
-Este é um repositório-modelo para projetos que implementam a metodologia **Knowledge-Driven Development (KDD)**, que unifica:
+### O que o modelo do KDD inclui
+
+Este repositório oferece um modelo para aplicar a metodologia.
+
 - **OKF (Open Knowledge Format):** Um formato minimalista para estruturar conhecimento, design e arquitetura como arquivos markdown com frontmatter YAML. A especificação normativa dos nós OKF está em [`knowledge/OKF-SPEC.md`](knowledge/OKF-SPEC.md).
 - **CCDD (Contract-Driven Development):** Uma metodologia para governar o desenvolvimento com agentes de IA efêmeros por meio de contratos estritos e limiares determinísticos (complexidade, testes congelados).
 - **Segurança (Camada 3):** Governa achados de segurança com o mesmo motor de regras declarativo dos demais domínios. Os artefatos selados `scan-manifest.json`/`findings.json`/`coverage.json` (schemas e selador vendorizados de [openai/codex-security](https://github.com/openai/codex-security), Apache-2.0) são auditados por [`examples/rules/security-findings.rules.json`](examples/rules/security-findings.rules.json); veja [`knowledge/data_models/security_findings.md`](knowledge/data_models/security_findings.md) e a skill de produção agnóstica de modelo em [`.agents/skills/kdd-security-scan/`](.agents/skills/kdd-security-scan/SKILL.md).

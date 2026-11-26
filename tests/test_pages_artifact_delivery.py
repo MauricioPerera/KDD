@@ -7,8 +7,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-from threading import Thread
-from time import sleep
+from threading import Event, Thread
 import unittest
 
 import yaml
@@ -31,25 +30,36 @@ NODE_RUNNER = r"""
 const fs = require('node:fs');
 const fixture = JSON.parse(fs.readFileSync(0, 'utf8'));
 const realFetch = globalThis.fetch;
+const controller = fixture.abortAt ? new AbortController() : null;
 let waitSignal;
-globalThis.fetch = (input, options) => {
+globalThis.fetch = async (input, options) => {
   const url = new URL(input);
   if (url.origin !== 'https://results.example.invalid') throw new Error('Unexpected service origin');
   if (fixture.checkDeadline && (!waitSignal || options.signal !== waitSignal))
     throw new Error('Lookup lacks the common 30-second deadline');
-  return realFetch(new URL(url.pathname + url.search, fixture.address), options);
+  const response = await realFetch(new URL(url.pathname + url.search, fixture.address), options);
+  if (fixture.abortAt === 'headers') controller.abort();
+  return response;
 };
-// Shorten the test's real wall-clock deadline while checking the production bound.
 const realTimeout = AbortSignal.timeout;
 AbortSignal.timeout = ms => {
   if (!fixture.checkDeadline || ms !== 30000) return realTimeout(ms);
   if (waitSignal) throw new Error('Lookup restarted the common deadline');
-  waitSignal = realTimeout(fixture.deadline);
+  waitSignal = controller ? controller.signal : realTimeout(ms);
   return waitSignal;
 };
+function requireForStep(name) {
+  const module = require(name);
+  if (fixture.abortAt !== 'wait' || name !== 'node:timers/promises') return module;
+  return {setTimeout(ms, value, options) {
+    if (options?.signal !== waitSignal) throw new Error('Retry lacks the common deadline');
+    controller.abort();
+    return module.setTimeout(ms, value, options);
+  }};
+}
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 const run = new AsyncFunction('require', 'core', fixture.script);
-run(require, {info: console.log, warning: console.warn}).catch(error => {
+run(requireForStep, {info: console.log, warning: console.warn}).catch(error => {
   console.error(error.message);
   process.exitCode = 1;
 });
@@ -59,6 +69,7 @@ run(require, {info: console.log, warning: console.warn}).catch(error => {
 @contextmanager
 def service(responses):
     requests = []
+    release_body = Event()
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_args):
@@ -67,17 +78,17 @@ def service(responses):
         def do_POST(self):
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             requests.append((self.path, self.headers.get("Authorization"), self.headers.get_content_type(), body))
-            code, payload, *delay = responses[min(len(requests) - 1, len(responses) - 1)]
-            if delay:
-                sleep(delay[0])
+            code, payload, *hold_body = responses[min(len(requests) - 1, len(responses) - 1)]
             raw = json.dumps(payload).encode()
             self.send_response(code)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(raw)))
-            self.end_headers()
             try:
+                self.end_headers()
+                if hold_body:
+                    release_body.wait()
                 self.wfile.write(raw)
-            except (BrokenPipeError, ConnectionResetError):
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                 pass
 
     with ThreadingHTTPServer(("127.0.0.1", 0), Handler) as server:
@@ -86,6 +97,7 @@ def service(responses):
         try:
             yield "http://127.0.0.1:" + str(server.server_port), requests
         finally:
+            release_body.set()
             server.shutdown()
             worker.join(timeout=2)
 
@@ -101,7 +113,7 @@ class PagesArtifactDelivery(unittest.TestCase):
         self.assertEqual(len(ready), 1, "Pages needs exactly one artifact readiness step")
         return ready[0]
 
-    def execute(self, responses, *, deadline=5000, origin=ORIGIN, script=None):
+    def execute(self, responses, *, abort_at=None, origin=ORIGIN, script=None):
         if not shutil.which("node"):
             self.skipTest("Node is required by the Pages workflow")
         check_deadline = script is None
@@ -113,7 +125,7 @@ class PagesArtifactDelivery(unittest.TestCase):
         with service(responses) as (address, requests):
             result = subprocess.run(
                 ["node", "-e", NODE_RUNNER],
-                input=json.dumps(dict(address=address, script=script, deadline=deadline,
+                input=json.dumps(dict(address=address, script=script, abortAt=abort_at,
                                       checkDeadline=check_deadline)),
                 cwd=ROOT, env=env, encoding="utf-8", capture_output=True, timeout=12,
             )
@@ -207,13 +219,13 @@ class PagesArtifactDelivery(unittest.TestCase):
                 self.assertEqual(len(requests), 1)
 
     def test_empty_service_eventually_times_out(self):
-        result, requests = self.execute([(200, {"artifacts": []})], deadline=350)
+        result, requests = self.execute([(200, {"artifacts": []})], abort_at="wait")
         self.assertNotEqual(result.returncode, 0)
         self.assertRegex(result.stderr.lower(), "30 s|30000|timed out")
         self.assertGreaterEqual(len(requests), 1)
 
     def test_deadline_aborts_a_slow_lookup_before_accepting_its_result(self):
-        result, requests = self.execute([(200, {"artifacts": [MATCH]}, 2)], deadline=900)
+        result, requests = self.execute([(200, {"artifacts": [MATCH]}, True)], abort_at="headers")
         self.assertNotEqual(result.returncode, 0)
         self.assertRegex(result.stderr.lower(), "30 s|30000|timed out")
         self.assertEqual(len(requests), 1)
