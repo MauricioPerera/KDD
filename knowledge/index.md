@@ -250,6 +250,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 - [Aprobaciones, mutacion y formatos de Board](audit-remediation-approval-mutation-board.md)
 - [Identidad nativa de aprobaciones](contracts/task-approval-identity.md)
 - [Controles reales de mutacion](contracts/mutation-control-evidence.md)
+- [Prueba de regresion entre dos commits](contracts/regression-proof.md)
 - [Formatos SHA del tablero](contracts/board-sha-formats.md)
 - [Lecturas frescas y acotadas de main](contracts/task-main-read-budget.md)
 - [Contencion, identidad y coste de CI](audit-mutation-approval-ci.md)
