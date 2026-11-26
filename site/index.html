@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>KDD — Knowledge-Driven Development</title>
-<meta name="description" content="A methodology that seals a contract's tests before an AI agent writes a line. The verdict comes from a deterministic gate, never the model." />
+<title data-i18n="page.title">KDD — Knowledge-Driven Development</title>
+<meta name="description" data-i18n-content="page.description" content="Knowledge-Driven Development helps people and AI agents use project decisions, agree on tests, and leave results others can review." />
 <link rel="icon" href="assets/kdd-logo.svg" type="image/svg+xml">
 <meta property="og:image" content="https://mauricioperera.github.io/KDD/assets/kdd-logo.svg">
 <style>
@@ -166,14 +166,19 @@
   }
   .hero-grid{ max-width:1100px; margin:0 auto; display:grid; grid-template-columns:1.05fr .95fr; gap:3rem; align-items:center; }
   @media (max-width: 980px){ .hero-grid{ grid-template-columns:1fr; } }
-  .eyebrow{
-    font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; text-transform:uppercase;
-    color:var(--seal); display:flex; align-items:center; gap:.6em; margin-bottom:1.1rem;
-  }
-  .eyebrow::before{ content:""; width:1.6em; height:1px; background:var(--seal); display:inline-block; }
   .hero h1{ font-size:clamp(2.1rem, 4vw, 3rem); line-height:1.15; color:var(--ink-text); }
-  .hero h1 em{ font-style:normal; color:var(--seal); }
   .hero p.lead{ color:var(--ink-text-dim); font-size:1.08rem; max-width:52ch; margin:1.25rem 0 2rem; }
+  .hero .payment-example{
+    min-width:0; padding:clamp(1rem, 3vw, 2rem); border:1px solid var(--ink-line);
+    border-top:2px solid var(--seal); border-radius:6px; background:#141B24;
+    scroll-margin-top:4rem;
+  }
+  .payment-example ol{ display:grid; gap:.85rem; margin:0; padding-left:1.4rem; color:var(--ink-text-dim); }
+  .payment-example li{ padding-left:.25rem; }
+  .payment-example li::marker{ color:var(--seal); }
+  .payment-example strong{ color:var(--ink-text); }
+  .payment-example a{ display:inline-block; margin-top:1rem; color:var(--seal); }
+  .flow-demo{ margin-top:1.5rem; }
   .cta-row{ display:flex; gap:.9rem; flex-wrap:wrap; }
   .btn{
     font-family:var(--sans); font-weight:600; font-size:.92rem; padding:.75em 1.3em;
@@ -349,19 +354,19 @@
   <header class="mobile-bar">
     <div class="mobile-mark"><span class="dot">◆</span> KDD</div>
     <div class="mobile-actions">
-      <div class="lang-toggle" role="group" aria-label="Language">
-        <button type="button" data-set-lang="en" aria-pressed="true">EN</button>
-        <button type="button" data-set-lang="es" aria-pressed="false">ES</button>
-        <button type="button" data-set-lang="pt" aria-pressed="false">PT</button>
+      <div class="lang-toggle" role="group" aria-label="Language" data-i18n-aria-label="a11y.language">
+        <button type="button" data-set-lang="en" aria-pressed="true" lang="en" aria-label="English">EN</button>
+        <button type="button" data-set-lang="es" aria-pressed="false" lang="es" aria-label="Español">ES</button>
+        <button type="button" data-set-lang="pt" aria-pressed="false" lang="pt" aria-label="Português">PT</button>
       </div>
-      <button type="button" class="hamburger" id="menu-btn" aria-expanded="false" aria-controls="mobile-nav-panel" aria-label="Menu">
+      <button type="button" class="hamburger" id="menu-btn" aria-expanded="false" aria-controls="mobile-nav-panel" aria-label="Menu" data-i18n-aria-label="a11y.menu">
         <span class="bar"></span><span class="bar"></span><span class="bar"></span>
       </button>
     </div>
   </header>
-  <nav class="mobile-nav-panel" id="mobile-nav-panel" aria-label="Case index" hidden>
-    <a href="#problem"><span class="tag">A</span><span data-i18n="nav.a">The problem</span></a>
-    <a href="#pillars"><span class="tag">B</span><span data-i18n="nav.b">Two pillars</span></a>
+  <nav class="mobile-nav-panel" id="mobile-nav-panel" aria-label="Page sections" data-i18n-aria-label="a11y.sections" hidden>
+    <a href="#problem"><span class="tag">A</span><span data-i18n="nav.a">Payment example</span></a>
+    <a href="#pillars"><span class="tag">B</span><span data-i18n="nav.b">Knowledge and contracts</span></a>
     <a href="#flow"><span class="tag">C</span><span data-i18n="nav.c">The file moves</span></a>
     <a href="#terminal"><span class="tag">D</span><span data-i18n="nav.d">The terminal</span></a>
     <a href="#numbers"><span class="tag">E</span><span data-i18n="nav.e">By the numbers</span></a>
@@ -371,11 +376,11 @@
   </nav>
 
   <!-- desktop: persistent sidebar (hidden <960px) -->
-  <nav class="rail" aria-label="Case index">
+  <nav class="rail" aria-label="Page sections" data-i18n-aria-label="a11y.sections">
     <div class="rail-mark"><span class="dot">◆</span> KDD</div>
     <ul class="rail-index">
-      <li><a href="#problem"><span class="tag">A</span><span data-i18n="nav.a">The problem</span></a></li>
-      <li><a href="#pillars"><span class="tag">B</span><span data-i18n="nav.b">Two pillars</span></a></li>
+      <li><a href="#problem"><span class="tag">A</span><span data-i18n="nav.a">Payment example</span></a></li>
+      <li><a href="#pillars"><span class="tag">B</span><span data-i18n="nav.b">Knowledge and contracts</span></a></li>
       <li><a href="#flow"><span class="tag">C</span><span data-i18n="nav.c">The file moves</span></a></li>
       <li><a href="#terminal"><span class="tag">D</span><span data-i18n="nav.d">The terminal</span></a></li>
       <li><a href="#numbers"><span class="tag">E</span><span data-i18n="nav.e">By the numbers</span></a></li>
@@ -383,10 +388,10 @@
       <li><a href="#domains"><span class="tag">G</span><span data-i18n="nav.g">Domains sealed</span></a></li>
       <li><a href="#family"><span class="tag">H</span><span data-i18n="nav.h">The family</span></a></li>
     </ul>
-    <div class="lang-toggle" role="group" aria-label="Language">
-      <button type="button" data-set-lang="en" aria-pressed="true">EN</button>
-      <button type="button" data-set-lang="es" aria-pressed="false">ES</button>
-      <button type="button" data-set-lang="pt" aria-pressed="false">PT</button>
+    <div class="lang-toggle" role="group" aria-label="Language" data-i18n-aria-label="a11y.language">
+      <button type="button" data-set-lang="en" aria-pressed="true" lang="en" aria-label="English">EN</button>
+      <button type="button" data-set-lang="es" aria-pressed="false" lang="es" aria-label="Español">ES</button>
+      <button type="button" data-set-lang="pt" aria-pressed="false" lang="pt" aria-label="Português">PT</button>
     </div>
   </nav>
 
@@ -395,36 +400,31 @@
     <section class="hero">
       <div class="hero-grid">
         <div>
-          <span class="eyebrow" data-i18n="hero.eyebrow">Knowledge-Driven Development</span>
-          <h1 data-i18n-html="hero.h1">The verdict comes from a machine.<br>Not from the model.</h1>
-          <p class="lead" data-i18n="hero.lead">KDD seals a contract's tests before an AI agent ever touches the target. A deterministic gate — a script, not an opinion — decides if the work stands.</p>
+          <h1 data-i18n="hero.h1">Knowledge-Driven Development</h1>
+          <p class="lead" data-i18n="hero.lead">Keep project decisions and rules alongside the code. People and AI agents use them to prepare tasks, agree on tests, and leave results the team can review.</p>
           <div class="cta-row">
-            <a class="btn btn-primary" href="https://github.com/MauricioPerera/KDD" data-i18n="hero.cta1">View on GitHub</a>
-            <a class="btn btn-ghost" href="https://github.com/MauricioPerera/KDD#readme" data-i18n="hero.cta2">Read the README</a>
+            <a class="btn btn-primary" href="#problem" data-i18n="hero.cta1">See the payment example</a>
+            <a class="btn btn-ghost" href="https://github.com/MauricioPerera/KDD#readme" data-i18n="hero.cta2">Get started on GitHub</a>
           </div>
-          <div class="ph-badge" style="margin-top:1.1rem;"><span class="ph-light"><a href="https://www.producthunt.com/products/kdd-knowledge-driven-development?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-kdd" target="_blank" rel="noopener noreferrer"><img alt="KDD - Govern AI agents with deterministic gates. No LLM judging. | Product Hunt" width="250" height="54" loading="lazy" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1198446&amp;theme=light&amp;t=1784571617560"></a></span><span class="ph-dark"><a href="https://www.producthunt.com/products/kdd-knowledge-driven-development?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-kdd" target="_blank" rel="noopener noreferrer"><img alt="KDD - Govern AI agents with deterministic gates. No LLM judging. | Product Hunt" width="250" height="54" loading="lazy" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1198446&amp;theme=dark&amp;t=1784571286941"></a></span></div>
         </div>
-        <div class="term" id="hero-term">
-          <div class="term-bar"><span></span><span></span><span></span></div>
-          <div class="term-body" id="hero-term-body"></div>
-        </div>
-      </div>
-    </section>
-
-    <section id="problem">
-      <div class="col">
-        <span class="exhibit-tag" data-i18n="problem.tag">Exhibit A</span>
-        <h2 data-i18n="problem.h2">The problem no demo shows you</h2>
-        <p data-i18n="problem.p1">AI agents write code fast. Nothing in that sentence tells you whether the code is correct, safe, or stayed inside its assigned scope.</p>
-        <p data-i18n="problem.p2">Today, verifying that is still a human doing it by hand — reading the diff, re-running the tests, checking the file list — every single time, for every task.</p>
+        <section class="payment-example" id="problem" aria-labelledby="payment-title">
+          <h2 id="payment-title" data-i18n="example.title">Checking an international payment</h2>
+          <ol>
+            <li><strong data-i18n="example.rule">Save the rule.</strong> <span data-i18n="example.ruleText">Each country has its own limit. The recipient must be verified.</span></li>
+            <li><strong data-i18n="example.task">Prepare the task.</strong> <span data-i18n="example.taskText">Give the developer or agent the rules and the scope of the change.</span></li>
+            <li><strong data-i18n="example.tests">Agree on the tests before coding.</strong> <span data-i18n="example.testsText">An otherwise valid payment at the limit passes. Above the limit, it fails.</span></li>
+            <li><strong data-i18n="example.result">Review the result.</strong> <span data-i18n="example.resultText">Run those tests and keep the result so the team can decide whether to accept the change.</span></li>
+          </ol>
+          <a href="knowledge/contracts/validate-payment-limit.md" data-i18n="example.link">Read the payment task</a>
+        </section>
       </div>
     </section>
 
     <section id="pillars">
       <div class="col-wide">
         <span class="exhibit-tag" data-i18n="pillars.tag">Exhibit B</span>
-        <h2 data-i18n="pillars.h2">Two pillars, nine domains</h2>
-        <p class="lead" data-i18n="pillars.lead">Code contracts and rule contracts both live under CCDD's frozen-contract discipline. Seven more domains — security findings (vendored, model-agnostic), and license/compliance, privacy/PII, accessibility, dependency-EOL, observability, and test-coverage findings (all native) — reuse the same rule engine as the rest (see <a href="#domains">Exhibit G</a>).</p>
+        <h2 data-i18n="pillars.h2">How knowledge becomes a task</h2>
+        <p class="lead" data-i18n="pillars.lead">The payment rules belong in the project knowledge. The task points to those rules and specifies how the team will check the change.</p>
         <div class="pillars">
           <div class="pillar">
             <span class="mark">OKF</span>
@@ -442,14 +442,18 @@
       <div class="col-wide">
         <span class="exhibit-tag" data-i18n="flow.tag">Exhibit C</span>
         <h2 data-i18n="flow.h2">How a contract moves through the file</h2>
-        <p data-i18n="flow.p" style="margin-bottom:0">Evidence before belief, at every step. The gate's exit code is the only opinion that counts.</p>
+        <p data-i18n="flow.p" style="margin-bottom:0">Automated checks report whether the change passes the agreed tests. The team reviews that evidence before accepting it.</p>
+        <div class="term flow-demo" id="hero-term">
+          <div class="term-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div class="term-body" id="hero-term-body"></div>
+        </div>
         <div class="flow" id="flow-anim">
           <div class="flow-line"><div class="fill" id="flow-fill"></div></div>
-          <div class="step" data-i="0"><div class="node">1</div><div class="label" data-i18n="flow.s1">Recon</div></div>
-          <div class="step" data-i="1"><div class="node">2</div><div class="label" data-i18n="flow.s2">Spec</div></div>
-          <div class="step" data-i="2"><div class="node">🔒</div><div class="label" data-i18n="flow.s3">Seal (sha256)</div></div>
+          <div class="step" data-i="0"><div class="node">1</div><div class="label" data-i18n="flow.s1">Explore</div></div>
+          <div class="step" data-i="1"><div class="node">2</div><div class="label" data-i18n="flow.s2">Define</div></div>
+          <div class="step" data-i="2"><div class="node">🔒</div><div class="label" data-i18n="flow.s3">Seal the tests</div></div>
           <div class="step" data-i="3"><div class="node">3</div><div class="label" data-i18n="flow.s4">Delegate</div></div>
-          <div class="step" data-i="4"><div class="node">4</div><div class="label" data-i18n="flow.s5">Gate</div></div>
+          <div class="step" data-i="4"><div class="node">4</div><div class="label" data-i18n="flow.s5">Verify</div></div>
         </div>
         <div style="text-align:center;">
           <span class="verdict-stamp" id="verdict-stamp" data-i18n="flow.verdict">VERDICT: PASS</span>
@@ -622,6 +626,7 @@
           <a class="btn btn-ghost" href="https://github.com/MauricioPerera/KDD/releases" data-i18n="closing.cta2">See the releases</a>
           <a class="btn btn-ghost" href="support.html" data-i18n="closing.cta3">Support</a>
         </div>
+        <div class="ph-badge" style="margin-top:1.1rem;"><span class="ph-light"><a href="https://www.producthunt.com/products/kdd-knowledge-driven-development?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-kdd" target="_blank" rel="noopener noreferrer"><img alt="KDD on Product Hunt" data-i18n-alt="a11y.productHunt" width="250" height="54" loading="lazy" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1198446&amp;theme=light&amp;t=1784571617560"></a></span><span class="ph-dark"><a href="https://www.producthunt.com/products/kdd-knowledge-driven-development?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-kdd" target="_blank" rel="noopener noreferrer"><img alt="KDD on Product Hunt" data-i18n-alt="a11y.productHunt" width="250" height="54" loading="lazy" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1198446&amp;theme=dark&amp;t=1784571286941"></a></span></div>
         <div class="credit">— Mauricio Perera</div>
       </div>
     </section>
@@ -640,22 +645,27 @@
       "fam2.plane.game":"Game data","fam2.rel.game":"game-protocol uses my hybrid contract for game data and evolves via OKF.",
       "fam2.tag":"Exhibit H","fam2.h2":"One DNA, six planes","fam2.p":"We all share the same DNA — a machine-verifiable layer, a human-judgeable layer, and deterministic validation — each of us on a different plane; I am the methodology that ties the levels together.","fam2.core":"The shared contract","fam2.coresub":"2-layer doc · deterministic check","fam2.here":"you are here","fam2.plane.ccdd":"Context","fam2.plane.gate":"Static code","fam2.plane.taskmd":"Live outcome","fam2.plane.kdd":"Method","fam2.plane.design":"Visual","fam2.rel.ccdd":"The base: versioned, notarized context that anchors everything.","fam2.rel.gate":"Level 2: the frozen oracle that seals the static code.","fam2.rel.taskmd":"The dynamic end: verifies completion against the live system.","fam2.rel.kdd":"You are here: I am the methodology that ties the whole family.","fam2.rel.design":"Our cousin: shares the DNA, owns the visual identity.","nav.h":"The family",
       "a11y.skip":"Skip to content",
-      "nav.a":"The problem","nav.b":"Two pillars","nav.c":"The file moves","nav.d":"The terminal",
+      "a11y.language":"Language","a11y.menu":"Menu","a11y.sections":"Page sections","a11y.productHunt":"KDD on Product Hunt",
+      "page.title":"KDD — Knowledge-Driven Development",
+      "page.description":"Knowledge-Driven Development helps people and AI agents use project decisions, agree on tests, and leave results others can review.",
+      "nav.a":"Payment example","nav.b":"Knowledge and contracts","nav.c":"The file moves","nav.d":"The terminal",
       "nav.e":"By the numbers","nav.f":"The boundary","nav.g":"Domains sealed",
-      "hero.eyebrow":"Knowledge-Driven Development",
-      "hero.h1":"The verdict comes from a machine.<br>Not from the model.",
-      "hero.lead":"KDD seals a contract's tests before an AI agent ever touches the target. A deterministic gate — a script, not an opinion — decides if the work stands.",
-      "hero.cta1":"View on GitHub","hero.cta2":"Read the README",
-      "problem.tag":"Exhibit A","problem.h2":"The problem no demo shows you",
-      "problem.p1":"AI agents write code fast. Nothing in that sentence tells you whether the code is correct, safe, or stayed inside its assigned scope.",
-      "problem.p2":"Today, verifying that is still a human doing it by hand — reading the diff, re-running the tests, checking the file list — every single time, for every task.",
-      "pillars.tag":"Exhibit B","pillars.h2":"Two pillars, nine domains",
-      "pillars.lead":"Code contracts and rule contracts both live under CCDD's frozen-contract discipline. Seven more domains — security findings (vendored, model-agnostic), and license/compliance, privacy/PII, accessibility, dependency-EOL, observability, and test-coverage findings (all native) — reuse the same rule engine as the rest (see Exhibit G).",
+      "hero.h1":"Knowledge-Driven Development",
+      "hero.lead":"Keep project decisions and rules alongside the code. People and AI agents use them to prepare tasks, agree on tests, and leave results the team can review.",
+      "hero.cta1":"See the payment example","hero.cta2":"Get started on GitHub",
+      "example.title":"Checking an international payment",
+      "example.rule":"Save the rule.","example.ruleText":"Each country has its own limit. The recipient must be verified.",
+      "example.task":"Prepare the task.","example.taskText":"Give the developer or agent the rules and the scope of the change.",
+      "example.tests":"Agree on the tests before coding.","example.testsText":"An otherwise valid payment at the limit passes. Above the limit, it fails.",
+      "example.result":"Review the result.","example.resultText":"Run those tests and keep the result so the team can decide whether to accept the change.",
+      "example.link":"Read the payment task",
+      "pillars.tag":"Exhibit B","pillars.h2":"How knowledge becomes a task",
+      "pillars.lead":"The payment rules belong in the project knowledge. The task points to those rules and specifies how the team will check the change.",
       "pillars.okf":"Open Knowledge Format. Your project's data models, decisions, and architecture live as versioned markdown nodes an agent can traverse — not prose it has to guess at.",
       "pillars.ccdd":"The frozen contract. A task carries a signature, invariants, and a test file. The tests are hash-sealed before any agent touches the target — edit them, and the seal breaks the build.",
       "flow.tag":"Exhibit C","flow.h2":"How a contract moves through the file",
-      "flow.p":"Evidence before belief, at every step. The gate's exit code is the only opinion that counts.",
-      "flow.s1":"Recon","flow.s2":"Spec","flow.s3":"Seal (sha256)","flow.s4":"Delegate","flow.s5":"Gate",
+      "flow.p":"Automated checks report whether the change passes the agreed tests. The team reviews that evidence before accepting it.",
+      "flow.s1":"Explore","flow.s2":"Define","flow.s3":"Seal the tests","flow.s4":"Delegate","flow.s5":"Verify",
       "flow.verdict":"VERDICT: PASS",
       "term2.tag":"Exhibit D","term2.h2":"The orchestrator trusts no one's fixtures but its own",
       "term2.n1t":"The gate passes clean.","term2.n1":"Six skills, zero errors — the developer's work looks done.",
@@ -701,35 +711,40 @@
     },
     es: {
       "fam2.plane.game":"Datos de juego","fam2.rel.game":"game-protocol usa mi contrato híbrido para datos de juego y evoluciona vía OKF.",
-      "fam2.tag":"Exhibit H","fam2.h2":"Un ADN, seis planos","fam2.p":"Todos compartimos el mismo ADN — una capa verificable por máquina, una capa juzgable por humano y validación determinista — cada uno en un plano distinto; yo soy la metodología que ata los niveles.","fam2.core":"El contrato compartido","fam2.coresub":"Doc de 2 capas · chequeo determinista","fam2.here":"estás aquí","fam2.plane.ccdd":"Contexto","fam2.plane.gate":"Código estático","fam2.plane.taskmd":"Resultado en vivo","fam2.plane.kdd":"Método","fam2.plane.design":"Visual","fam2.rel.ccdd":"La base: contexto versionado y notariado que ancla todo.","fam2.rel.gate":"Nivel 2: el oráculo congelado que sella el código estático.","fam2.rel.taskmd":"El final dinámico: verifica la tarea contra el sistema vivo.","fam2.rel.kdd":"Estás aquí: soy la metodología que ata a toda la familia.","fam2.rel.design":"Nuestro primo: comparte el ADN, tiene la identidad visual.","nav.h":"La familia",
+      "fam2.tag":"Sección H","fam2.h2":"Un ADN, seis planos","fam2.p":"Todos compartimos el mismo ADN — una capa verificable por máquina, una capa juzgable por humano y validación determinista — cada uno en un plano distinto; yo soy la metodología que ata los niveles.","fam2.core":"El contrato compartido","fam2.coresub":"Doc de 2 capas · chequeo determinista","fam2.here":"estás aquí","fam2.plane.ccdd":"Contexto","fam2.plane.gate":"Código estático","fam2.plane.taskmd":"Resultado en vivo","fam2.plane.kdd":"Método","fam2.plane.design":"Visual","fam2.rel.ccdd":"La base: contexto versionado y notariado que ancla todo.","fam2.rel.gate":"Nivel 2: el oráculo congelado que sella el código estático.","fam2.rel.taskmd":"El final dinámico: verifica la tarea contra el sistema vivo.","fam2.rel.kdd":"Estás aquí: soy la metodología que ata a toda la familia.","fam2.rel.design":"Nuestro primo: comparte el ADN, tiene la identidad visual.","nav.h":"La familia",
       "a11y.skip":"Ir al contenido",
-      "nav.a":"El problema","nav.b":"Dos pilares","nav.c":"El expediente avanza","nav.d":"La terminal",
+      "a11y.language":"Idioma","a11y.menu":"Menú","a11y.sections":"Secciones de la página","a11y.productHunt":"KDD en Product Hunt",
+      "page.title":"KDD — Desarrollo orientado al conocimiento",
+      "page.description":"El desarrollo orientado al conocimiento ayuda a personas y agentes de IA a usar las decisiones del proyecto, acordar pruebas y dejar resultados revisables.",
+      "nav.a":"Ejemplo de pagos","nav.b":"Conocimiento y contratos","nav.c":"El expediente avanza","nav.d":"La terminal",
       "nav.e":"En números","nav.f":"El límite","nav.g":"Dominios sellados",
-      "hero.eyebrow":"Knowledge-Driven Development",
-      "hero.h1":"El veredicto lo da una máquina.<br>No el modelo.",
-      "hero.lead":"KDD sella los tests de un contrato antes de que un agente de IA toque el target. Un gate determinista — un script, no una opinión — decide si el trabajo queda.",
-      "hero.cta1":"Ver en GitHub","hero.cta2":"Leer el README",
-      "problem.tag":"Exhibit A","problem.h2":"El problema que ningún demo muestra",
-      "problem.p1":"Los agentes de IA escriben código rápido. Nada en esa frase te dice si el código es correcto, seguro, o se quedó dentro de su alcance asignado.",
-      "problem.p2":"Hoy, verificar eso lo sigue haciendo un humano a mano — leyendo el diff, corriendo los tests de nuevo, revisando la lista de archivos — cada vez, para cada tarea.",
-      "pillars.tag":"Exhibit B","pillars.h2":"Dos pilares, nueve dominios",
-      "pillars.lead":"Los contratos de código y los contratos de reglas viven bajo la misma disciplina de contrato congelado de CCDD. Siete dominios más — hallazgos de seguridad (vendorizado, agnóstico de modelo), y hallazgos de compliance/licencias, privacidad/PII, accesibilidad, vigencia de dependencias, observabilidad y cobertura de tests (todos nativos) — reutilizan el mismo motor de reglas que el resto (ver Exhibit G).",
+      "hero.h1":"Desarrollo orientado al conocimiento",
+      "hero.lead":"El equipo guarda junto al código las decisiones y reglas del proyecto. Las personas y los agentes de IA las usan para preparar tareas, acordar las pruebas y dejar resultados que el equipo pueda revisar.",
+      "hero.cta1":"Ver el ejemplo de pagos","hero.cta2":"Empezar en GitHub",
+      "example.title":"Validar un pago internacional",
+      "example.rule":"Guardar la regla.","example.ruleText":"Cada país tiene su propio límite. El beneficiario debe estar verificado.",
+      "example.task":"Preparar el encargo.","example.taskText":"La persona o el agente recibe las reglas y el alcance del cambio.",
+      "example.tests":"Acordar las pruebas antes de programar.","example.testsText":"Un pago en el límite se acepta si cumple las demás reglas. Por encima del límite se rechaza.",
+      "example.result":"Revisar el resultado.","example.resultText":"Se ejecutan las pruebas y se conserva el resultado para que el equipo decida si acepta el cambio.",
+      "example.link":"Leer el encargo de pagos",
+      "pillars.tag":"Sección B","pillars.h2":"Cómo se usa el conocimiento en una tarea",
+      "pillars.lead":"Las reglas de pago forman parte del conocimiento del proyecto. El encargo enlaza esas reglas y especifica cómo comprobar el cambio.",
       "pillars.okf":"Open Knowledge Format. El conocimiento de tu proyecto — modelos de datos, decisiones, arquitectura — vive como nodos markdown versionados que un agente puede recorrer, no prosa que tiene que adivinar.",
       "pillars.ccdd":"El contrato congelado. Una tarea lleva firma, invariantes y un archivo de tests. Los tests quedan sellados por hash antes de que cualquier agente toque el target — si los edita, el sello rompe el build.",
-      "flow.tag":"Exhibit C","flow.h2":"Cómo avanza un contrato por el expediente",
-      "flow.p":"Evidencia antes que creencia, en cada paso. El exit code del gate es la única opinión que cuenta.",
-      "flow.s1":"Recon","flow.s2":"Spec","flow.s3":"Sello (sha256)","flow.s4":"Delegar","flow.s5":"Gate",
+      "flow.tag":"Sección C","flow.h2":"Cómo avanza un contrato por el expediente",
+      "flow.p":"Las comprobaciones automáticas indican si el cambio pasa las pruebas acordadas. El equipo revisa esa evidencia antes de aceptarlo.",
+      "flow.s1":"Explorar","flow.s2":"Definir","flow.s3":"Sellar las pruebas","flow.s4":"Delegar","flow.s5":"Verificar",
       "flow.verdict":"VEREDICTO: PASS",
-      "term2.tag":"Exhibit D","term2.h2":"El orquestador no confía en las fixtures de nadie más que las propias",
+      "term2.tag":"Sección D","term2.h2":"El orquestador no confía en las fixtures de nadie más que las propias",
       "term2.n1t":"El gate pasa limpio.","term2.n1":"Seis skills, cero errores — el trabajo del dev se ve terminado.",
       "term2.n2t":"Entonces el revisor lo rompe.","term2.n2":"Sobre una copia descartable, con su propia fixture — nunca la del dev — para ver si el gate de verdad se da cuenta.",
       "term2.n3t":"Se da cuenta.","term2.n3":"Recién ahí el veredicto queda en pie.",
-      "numbers.tag":"Exhibit E","numbers.h2":"En números, según el último CI exitoso",
+      "numbers.tag":"Sección E","numbers.h2":"En números, según el último CI exitoso",
       "numbers.p":"Las cifras provienen del repositorio actual y de su ejecución de CI.","numbers.evidence":"Ver la evidencia de CI","numbers.legacy":"Por qué los reportes históricos siguen en SKIP",
       "numbers.s1":"reportes históricos de proyecto (SKIP)","numbers.s2":"gates deterministas de Nivel 1, cero llamadas a un LLM",
       "numbers.s3":"familias declarativas de reglas","numbers.s4":"casos en el inventario de CI",
       "numbers.s5":"clases de frontera mapeadas, con honestidad",
-      "boundary.tag":"Exhibit F","boundary.h2":"Qué se sella, qué queda fuera",
+      "boundary.tag":"Sección F","boundary.h2":"Qué se sella, qué queda fuera",
       "boundary.p":"La frontera honesta es parte del método, no un hueco en él.",
       "boundary.yesh":"Se puede sellar",
       "boundary.yes1":"Funciones puras, verificadas contra tests que nadie puede editar en silencio",
@@ -740,7 +755,7 @@
       "boundary.no1":"Qué hace un servidor en vivo por la red — eso necesita un sistema corriendo, no un hash",
       "boundary.no2":"Si una edición \"se lee bien\" — el tono y el juicio siguen siendo de un humano",
       "boundary.no3":"El agente mismo. KDD contrata el artefacto que un agente produce, nunca su comportamiento.",
-      "domains.tag":"Exhibit G","domains.h2":"Dominios sellados hasta ahora",
+      "domains.tag":"Sección G","domains.h2":"Dominios sellados hasta ahora",
       "domains.d1t":"Cumplimiento de pagos","domains.d1s":"Límites por país, verificación de beneficiario",
       "domains.d2t":"Control de fronteras","domains.d2s":"Reglas cruzadas, probadas en un segundo dominio",
       "domains.d3t":"Política de workflows","domains.d3s":"Reglas por nodo sobre grafos de automatización",
@@ -760,39 +775,44 @@
       "domains.d17t":"Hallazgos de cobertura de tests","domains.d17s":"Sellador de gaps de cobertura — complementa, no duplica, el oráculo congelado",
       "closing.h2":"Leé el expediente vos mismo",
       "closing.p":"Licencia MIT. Cada afirmación de esta página está commiteada en el repositorio que la respalda.",
-      "closing.cta1":"Abrir el repositorio","closing.cta2":"Ver los releases","closing.cta3":"Soporte"
+      "closing.cta1":"Abrir el repositorio","closing.cta2":"Ver las versiones","closing.cta3":"Soporte"
     },
     pt: {
       "fam2.plane.game":"Dados de jogo","fam2.rel.game":"game-protocol usa meu contrato híbrido para dados de jogo e evolui via OKF.",
-      "fam2.tag":"Exhibit H","fam2.h2":"Um DNA, seis planos","fam2.p":"Todos compartilham o mesmo DNA — uma camada verificável por máquina, uma camada julgável por humano e validação determinística — cada um em um plano distinto; eu sou a metodologia que ata os níveis.","fam2.core":"O contrato compartilhado","fam2.coresub":"Doc de 2 camadas · verificação determinista","fam2.here":"você está aqui","fam2.plane.ccdd":"Contexto","fam2.plane.gate":"Código estático","fam2.plane.taskmd":"Resultado ao vivo","fam2.plane.kdd":"Método","fam2.plane.design":"Visual","fam2.rel.ccdd":"A base: contexto versionado e notarizado que ancora tudo.","fam2.rel.gate":"Nível 2: o oráculo congelado que sela o código estático.","fam2.rel.taskmd":"O final dinâmico: verifica a tarefa contra o sistema vivo.","fam2.rel.kdd":"Você está aqui: sou a metodologia que ata toda a família.","fam2.rel.design":"Nosso primo: compartilha o DNA, tem a identidade visual.","nav.h":"A família",
+      "fam2.tag":"Seção H","fam2.h2":"Um DNA, seis planos","fam2.p":"Todos compartilham o mesmo DNA — uma camada verificável por máquina, uma camada julgável por humano e validação determinística — cada um em um plano distinto; eu sou a metodologia que ata os níveis.","fam2.core":"O contrato compartilhado","fam2.coresub":"Doc de 2 camadas · verificação determinista","fam2.here":"você está aqui","fam2.plane.ccdd":"Contexto","fam2.plane.gate":"Código estático","fam2.plane.taskmd":"Resultado ao vivo","fam2.plane.kdd":"Método","fam2.plane.design":"Visual","fam2.rel.ccdd":"A base: contexto versionado e notarizado que ancora tudo.","fam2.rel.gate":"Nível 2: o oráculo congelado que sela o código estático.","fam2.rel.taskmd":"O final dinâmico: verifica a tarefa contra o sistema vivo.","fam2.rel.kdd":"Você está aqui: sou a metodologia que ata toda a família.","fam2.rel.design":"Nosso primo: compartilha o DNA, tem a identidade visual.","nav.h":"A família",
       "a11y.skip":"Pular para o conteúdo",
-      "nav.a":"O problema","nav.b":"Dois pilares","nav.c":"O expediente avança","nav.d":"O terminal",
+      "a11y.language":"Idioma","a11y.menu":"Menu","a11y.sections":"Seções da página","a11y.productHunt":"KDD no Product Hunt",
+      "page.title":"KDD — Desenvolvimento orientado pelo conhecimento",
+      "page.description":"O desenvolvimento orientado pelo conhecimento ajuda pessoas e agentes de IA a usar as decisões do projeto, combinar testes e deixar resultados que podem ser revisados.",
+      "nav.a":"Exemplo de pagamento","nav.b":"Conhecimento e contratos","nav.c":"O expediente avança","nav.d":"O terminal",
       "nav.e":"Em números","nav.f":"O limite","nav.g":"Domínios selados",
-      "hero.eyebrow":"Knowledge-Driven Development",
-      "hero.h1":"O veredito vem de uma máquina.<br>Não do modelo.",
-      "hero.lead":"O KDD sela os testes de um contrato antes de qualquer agente de IA tocar o alvo. Um gate determinístico — um script, não uma opinião — decide se o trabalho fica de pé.",
-      "hero.cta1":"Ver no GitHub","hero.cta2":"Ler o README",
-      "problem.tag":"Exhibit A","problem.h2":"O problema que nenhum demo mostra",
-      "problem.p1":"Agentes de IA escrevem código rápido. Nada nessa frase te diz se o código está correto, é seguro, ou ficou dentro do escopo atribuído.",
-      "problem.p2":"Hoje, verificar isso ainda é um humano fazendo à mão — lendo o diff, rodando os testes de novo, revisando a lista de arquivos — toda vez, para cada tarefa.",
-      "pillars.tag":"Exhibit B","pillars.h2":"Dois pilares, nove domínios",
-      "pillars.lead":"Contratos de código e contratos de regras vivem sob a mesma disciplina de contrato congelado do CCDD. Mais sete domínios — achados de segurança (vendorizado, agnóstico de modelo), e achados de compliance/licenças, privacidade/PII, acessibilidade, vigência de dependências, observabilidade e cobertura de testes (todos nativos) — reutilizam o mesmo motor de regras dos demais (ver Exhibit G).",
+      "hero.h1":"Desenvolvimento orientado pelo conhecimento",
+      "hero.lead":"A equipe mantém as decisões e regras do projeto junto ao código. Pessoas e agentes de IA as usam para preparar tarefas, combinar os testes e deixar resultados que a equipe possa revisar.",
+      "hero.cta1":"Ver o exemplo de pagamento","hero.cta2":"Começar no GitHub",
+      "example.title":"Validar um pagamento internacional",
+      "example.rule":"Registrar a regra.","example.ruleText":"Cada país tem seu próprio limite. O beneficiário precisa estar verificado.",
+      "example.task":"Preparar a tarefa.","example.taskText":"A pessoa ou o agente recebe as regras e o escopo da mudança.",
+      "example.tests":"Combinar os testes antes de programar.","example.testsText":"Um pagamento no limite é aceito se cumprir as demais regras. Acima do limite, ele é rejeitado.",
+      "example.result":"Revisar o resultado.","example.resultText":"Os testes são executados e o resultado fica disponível para a equipe decidir se aceita a mudança.",
+      "example.link":"Ler a tarefa de pagamento",
+      "pillars.tag":"Seção B","pillars.h2":"Como usar o conhecimento em uma tarefa",
+      "pillars.lead":"As regras de pagamento fazem parte do conhecimento do projeto. A tarefa aponta para essas regras e especifica como verificar a mudança.",
       "pillars.okf":"Open Knowledge Format. Os modelos de dados, decisões e arquitetura do seu projeto vivem como nós markdown versionados que um agente pode percorrer — não prosa que ele precisa adivinhar.",
       "pillars.ccdd":"O contrato congelado. Uma tarefa carrega assinatura, invariantes e um arquivo de testes. Os testes ficam selados por hash antes de qualquer agente tocar o alvo — edite-os, e o selo quebra o build.",
-      "flow.tag":"Exhibit C","flow.h2":"Como um contrato avança pelo expediente",
-      "flow.p":"Evidência antes da crença, em cada etapa. O exit code do gate é a única opinião que conta.",
-      "flow.s1":"Recon","flow.s2":"Spec","flow.s3":"Selo (sha256)","flow.s4":"Delegar","flow.s5":"Gate",
+      "flow.tag":"Seção C","flow.h2":"Como um contrato avança pelo expediente",
+      "flow.p":"As verificações automáticas mostram se a mudança passou nos testes combinados. A equipe revisa essa evidência antes de aceitá-la.",
+      "flow.s1":"Explorar","flow.s2":"Definir","flow.s3":"Selar os testes","flow.s4":"Delegar","flow.s5":"Verificar",
       "flow.verdict":"VEREDITO: PASS",
-      "term2.tag":"Exhibit D","term2.h2":"O orquestrador não confia nas fixtures de ninguém além das próprias",
+      "term2.tag":"Seção D","term2.h2":"O orquestrador não confia nas fixtures de ninguém além das próprias",
       "term2.n1t":"O gate passa limpo.","term2.n1":"Seis skills, zero erros — o trabalho do dev parece pronto.",
       "term2.n2t":"Então o revisor quebra.","term2.n2":"Em uma cópia descartável, com sua própria fixture — nunca a do dev — para ver se o gate realmente percebe.",
       "term2.n3t":"Ele percebe.","term2.n3":"Só então o veredito se mantém.",
-      "numbers.tag":"Exhibit E","numbers.h2":"Em números, segundo o último CI bem-sucedido",
+      "numbers.tag":"Seção E","numbers.h2":"Em números, segundo o último CI bem-sucedido",
       "numbers.p":"Os números vêm do repositório atual e da sua execução de CI.","numbers.evidence":"Ver a evidência de CI","numbers.legacy":"Por que os relatórios históricos continuam como SKIP",
       "numbers.s1":"relatórios históricos de projeto (SKIP)","numbers.s2":"gates determinísticos de Nível 1, zero chamadas a um LLM",
       "numbers.s3":"famílias declarativas de regras","numbers.s4":"casos no inventário de CI",
       "numbers.s5":"classes de fronteira mapeadas, com honestidade",
-      "boundary.tag":"Exhibit F","boundary.h2":"O que é selado, o que fica de fora",
+      "boundary.tag":"Seção F","boundary.h2":"O que é selado, o que fica de fora",
       "boundary.p":"A fronteira honesta é parte do método, não uma lacuna nele.",
       "boundary.yesh":"Pode ser selado",
       "boundary.yes1":"Funções puras, verificadas contra testes que ninguém pode editar em silêncio",
@@ -803,7 +823,7 @@
       "boundary.no1":"O que um servidor em produção faz pela rede — isso precisa de um sistema rodando, não um hash",
       "boundary.no2":"Se uma edição \"lê bem\" — tom e julgamento continuam sendo decisão humana",
       "boundary.no3":"O próprio agente. O KDD contrata o artefato que um agente produz, nunca o comportamento do agente.",
-      "domains.tag":"Exhibit G","domains.h2":"Domínios selados até agora",
+      "domains.tag":"Seção G","domains.h2":"Domínios selados até agora",
       "domains.d1t":"Conformidade de pagamentos","domains.d1s":"Limites por país, verificação de beneficiário",
       "domains.d2t":"Controle de fronteiras","domains.d2s":"Regras cruzadas, provadas em um segundo domínio",
       "domains.d3t":"Política de workflows","domains.d3s":"Regras por nó sobre grafos de automação",
@@ -823,7 +843,7 @@
       "domains.d17t":"Achados de cobertura de testes","domains.d17s":"Selador de gaps de cobertura — complementa, não duplica, o oráculo congelado",
       "closing.h2":"Leia o expediente você mesmo",
       "closing.p":"Licenciado sob MIT. Cada afirmação desta página está commitada no repositório que a sustenta.",
-      "closing.cta1":"Abrir o repositório","closing.cta2":"Ver os releases","closing.cta3":"Suporte"
+      "closing.cta1":"Abrir o repositório","closing.cta2":"Ver as versões","closing.cta3":"Suporte"
     }
   };
 
@@ -835,9 +855,12 @@
       var k = el.getAttribute("data-i18n");
       if (dict[k] !== undefined) el.textContent = dict[k];
     });
-    document.querySelectorAll("[data-i18n-html]").forEach(function(el){
-      var k = el.getAttribute("data-i18n-html");
-      if (dict[k] !== undefined) el.innerHTML = dict[k];
+    ["aria-label", "alt", "content"].forEach(function(attribute){
+      var marker = "data-i18n-" + attribute;
+      document.querySelectorAll("[" + marker + "]").forEach(function(el){
+        var k = el.getAttribute(marker);
+        if (dict[k] !== undefined) el.setAttribute(attribute, dict[k]);
+      });
     });
     document.querySelectorAll(".lang-toggle button").forEach(function(b){
       b.setAttribute("aria-pressed", b.getAttribute("data-set-lang") === lang ? "true" : "false");
@@ -862,7 +885,7 @@
       {c:"comment", t:"# re-delegate: \"off-by-one at the country cap\""},
       {c:"p", t:"$ python -m unittest tests/test_payment_limit.py"},
       {c:"ok", t:"OK"},
-      {c:"seal", t:"GATE VERDICT: PASS — orchestrator commits"}
+      {c:"seal", t:"CHECKS PASSED — review the change"}
     ],
     es: [
       {c:"p", t:"$ python scripts/validate_contracts.py --hash tests/test_payment_limit.py"},
@@ -873,7 +896,7 @@
       {c:"comment", t:"# re-delegación: \"off-by-one en el tope del país\""},
       {c:"p", t:"$ python -m unittest tests/test_payment_limit.py"},
       {c:"ok", t:"OK"},
-      {c:"seal", t:"VEREDICTO DEL GATE: PASS — el orquestador commitea"}
+      {c:"seal", t:"PRUEBAS SUPERADAS — revisar el cambio"}
     ],
     pt: [
       {c:"p", t:"$ python scripts/validate_contracts.py --hash tests/test_payment_limit.py"},
@@ -884,7 +907,7 @@
       {c:"comment", t:"# re-delegação: \"off-by-one no teto do país\""},
       {c:"p", t:"$ python -m unittest tests/test_payment_limit.py"},
       {c:"ok", t:"OK"},
-      {c:"seal", t:"VEREDITO DO GATE: PASS — o orquestrador commita"}
+      {c:"seal", t:"TESTES APROVADOS — revisar a mudança"}
     ]
   };
   var ANN_LINES = {
@@ -1037,7 +1060,7 @@
   /* ---------- init ---------- */
   var saved = null;
   try{ saved = localStorage.getItem("kdd-lang"); }catch(e){}
-  applyLang(saved === "es" || saved === "en" ? saved : "en");
+  applyLang(saved === "es" || saved === "pt" ? saved : "en");
 })();
 </script>
 </body>
