@@ -73,6 +73,10 @@ Todos corren localmente y en CI (`.github/workflows/validate.yml`, matriz `ubunt
 
 [Guía y uso](contracts/forbids-audit.md).
 
+## Prueba local de regresión
+
+[Uso y evidencia de la comparación con un oráculo sellado](../docs/reports/PRUEBA-LOCAL-REGRESION.md).
+
 ## Nivel 2 — Opcional (si el entorno del agente lo tiene)
 
 El motor CCDD puede usarse por [integracion nativa](./native-level2.md), sin MCP,
