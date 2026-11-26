@@ -34,6 +34,13 @@ o leer `GET /api/tasks/ID/review-handoff`. Mover la seleccion anterior a
 [Relevo](contracts/board-review-handoff.md) y [aprobacion humana](baseline-risk-review.md).
 El [piloto optativo Chromium](contracts/board-browser-pilot.md) verifica el relevo con Git y Board reales.
 
+## Consultar evidencia de pruebas
+
+Abre **Consultar evidencia** en el detalle de una tarea Git. La pestaña
+**Evidencia Chromium** consulta un paquete local configurado por el operador.
+Consulta la [guía del visor y la verificación del PR #223](../docs/reports/KDD-BOARD-TEST-EVIDENCE.md)
+para interpretar los recibos, los casos y los alias de Windows.
+
 ## Vault y modo legacy
 
 El vault `.kdd-board/vault.env` usa texto plano y exige exclusion Git persistente.
