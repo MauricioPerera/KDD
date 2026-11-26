@@ -1,7 +1,7 @@
 {
   "name": "kdd-codex",
   "version": "1.2.0",
-  "description": "A deterministic KDD workflow skill for planning, implementation, and verification.",
+  "description": "Use project decisions to prepare software changes and check the result with agreed tests.",
   "author": {
     "name": "Mauricio Perera",
     "url": "https://github.com/MauricioPerera/KDD"
@@ -12,8 +12,8 @@
   "license": "MIT",
   "interface": {
     "displayName": "KDD for Codex",
-    "shortDescription": "Plan, build, and verify work with deterministic KDD contracts.",
-    "longDescription": "Guides developers through Knowledge-Driven Development with scoped contracts, deterministic validation, and evidence-led completion. This version is skill-only and does not send data or connect to external services.",
+    "shortDescription": "Knowledge-Driven Development",
+    "longDescription": "Use the decisions and rules saved alongside your code to prepare a task, agree on tests, and keep results the team can review. For a payment change, Codex can read the country limits and recipient rules, use them to prepare the task and its tests, and report the results. This is a skill-only plugin and does not send data or connect to external services.",
     "developerName": "Mauricio Perera",
     "category": "Productivity",
     "capabilities": [
