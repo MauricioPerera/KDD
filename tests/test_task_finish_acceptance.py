@@ -16,34 +16,53 @@ VIEW_CONTRACT = TaskProject.contract(2)
 PRIMARY = 'tests/test_feature1.py'
 PYTHON_CHECK = 'tests/test_feature1_policy.py'
 NODE_TEST = 'tests/test_view.test.mjs'
+NODE_CHECK = 'tests/test_view_policy.test.mjs'
+PROBES = ('PYTHON', 'PYTHON_POLICY', 'NODE', 'NODE_POLICY')
 OBLIGATIONS = ('signature', 'dependencies', 'budget', 'forbids', 'invariants')
 MATRIX = {(path, key) for path in (TASK_CONTRACT, VIEW_CONTRACT)
           for key in ('oracle-execution', *OBLIGATIONS)}
-PRIMARY_PROBE = '''
+def _python_probe(kind):
+    return '''
 def setUpModule():
     import os
     from pathlib import Path
-    with Path(os.environ["KDD_FINISH_PYTHON_PROBE"]).open("a", encoding="utf-8") as stream:
-        stream.write("executed\\n")
-'''
-PYTHON_ORACLE = TaskProject.oracle(1) + PRIMARY_PROBE
+    import subprocess
+    head = subprocess.check_output(
+        ["git", "--no-replace-objects", "rev-parse", "HEAD"], encoding="ascii").strip()
+    with Path(os.environ["KDD_FINISH_%s_PROBE"]).open("a", encoding="utf-8") as stream:
+        stream.write(head + "\\n")
+''' % kind
+
+
+PYTHON_ORACLE = TaskProject.oracle(1) + _python_probe('PYTHON')
 PYTHON_POLICY = '''import unittest
 from src.feature1 import f1
 
 class ProductPolicy(unittest.TestCase):
     def test_value_policy(self):
         self.assertEqual(f1(8), 8)
-'''
-VIEW_ORACLE = '''import assert from 'node:assert/strict';
+''' + _python_probe('PYTHON_POLICY')
+
+
+def _view_oracle(kind, symbol, argument, expected, message):
+    return '''import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
 import {appendFileSync} from 'node:fs';
 import {test} from 'node:test';
-import {label} from '../src/view.ts';
+import {%s} from '../src/view.ts';
 
-test('the TypeScript view meets the approved label', () => {
-  appendFileSync(process.env.KDD_FINISH_NODE_PROBE, 'executed\\n');
-  assert.equal(label(3), 'Vista 3', 'companion view label');
+test(%s, () => {
+  const head = execFileSync('git', ['--no-replace-objects', 'rev-parse', 'HEAD'],
+    {encoding: 'ascii'}).trim();
+  appendFileSync(process.env.KDD_FINISH_%s_PROBE, head + '\\n');
+  assert.equal(%s(%s), %s, %s);
 });
-'''
+''' % (symbol, json.dumps(message), kind, symbol, argument,
+       json.dumps(expected), json.dumps(message))
+
+
+VIEW_ORACLE = _view_oracle('NODE', 'label', '3', 'Vista 3', 'primary TypeScript label')
+VIEW_POLICY = _view_oracle('NODE_POLICY', 'heading', '', 'Resultado', 'companion view policy')
 
 
 def _metadata(text, values):
@@ -80,7 +99,7 @@ def _view_contract():
             raise AssertionError(f'The TypeScript fixture template changed: {before}')
         text = text.replace(before, after, 1)
     return _metadata(text, {'language': 'typescript', 'test_runner': 'node-test',
-                            'test_timeout': 30, 'oracle_files': repr([NODE_TEST])})
+                            'test_timeout': 30, 'oracle_files': repr([NODE_TEST, NODE_CHECK, 'package.json'])})
 
 
 def _entry(path, runner, oracle, command):
@@ -94,7 +113,7 @@ def _entry(path, runner, oracle, command):
 def _put_policy(project, include_task):
     entries = [
         _entry(TASK_CONTRACT, 'python-unittest', PYTHON_CHECK, f'python -m unittest {PYTHON_CHECK}'),
-        _entry(VIEW_CONTRACT, 'node-test', NODE_TEST, f'node --test {NODE_TEST}'),
+        _entry(VIEW_CONTRACT, 'node-test', NODE_CHECK, f'node --test {NODE_CHECK}'),
     ]
     policy = {'schema_version': 1, 'implementation': ['src/feature1.py'],
               'pm': ['knowledge/tasks/TASK-001.md'], 'contracts': entries if include_task else entries[1:]}
@@ -106,24 +125,31 @@ class FinishAcceptance(unittest.TestCase):
         area = tempfile.TemporaryDirectory(prefix='kdd-close-acceptance-')
         self.addCleanup(area.cleanup)
         self.directory = Path(area.name)
-        self.python_probe = self.directory / 'python.log'
-        self.node_probe = self.directory / 'node.log'
+        self.probes = {name: self.directory / f'{name.lower()}.log' for name in PROBES}
 
-    def prepare(self, *, policy=POLICY, include_task=True, label='Vista '):
+    def prepare(self, *, policy=POLICY, include_task=True, heading='Resultado'):
         project = TaskProject(self.directory / 'project')
         for name in ('verify_acceptance.py', 'validation_runtime.py', 'board_test_evidence.py'):
             shutil.copyfile(ROOT / 'scripts' / name, project.root / 'scripts' / name)
         project.write(PRIMARY, PYTHON_ORACLE)
         project.write(PYTHON_CHECK, PYTHON_POLICY)
         project.write(TASK_CONTRACT, _python_contract(policy))
-        source = f'export function label(value: number): string {{ return {json.dumps(label)} + value; }}'
-        project.write('src/view.ts', source + '\n')
+        project.write('package.json', '{"type":"module"}\n')
+        project.write('src/view.ts',
+                      'export function label(value: number): string { return "Vista " + value; }\n'
+                      f'export function heading(): string {{ return {json.dumps(heading)}; }}\n')
         project.write(NODE_TEST, VIEW_ORACLE)
+        project.write(NODE_CHECK, VIEW_POLICY)
         project.write(VIEW_CONTRACT, _view_contract())
         _put_policy(project, include_task)
+        quality = project.policy()
+        quality['protected'].extend([
+            'scripts/oracle_inventory.py', PYTHON_CHECK, VIEW_CONTRACT, NODE_TEST,
+            NODE_CHECK, 'package.json', POLICY,
+        ])
+        project.write('quality/product.json', json.dumps(quality) + '\n')
         project.ref = project.commit('Temporary reviewed contracts, oracles and acceptance policy')
-        project.env.update(KDD_FINISH_PYTHON_PROBE=str(self.python_probe),
-                           KDD_FINISH_NODE_PROBE=str(self.node_probe))
+        project.env.update({f'KDD_FINISH_{name}_PROBE': str(path) for name, path in self.probes.items()})
         project.create(1)
         project.act('start', 1, '--assignee', 'fixture worker')
         project.implement(1)
@@ -134,15 +160,44 @@ class FinishAcceptance(unittest.TestCase):
         self.assertTrue(path.is_file())
         return json.loads(path.read_text(encoding='utf-8'))
 
-    def rejected(self, project, diagnostic):
+    def runs(self, kind):
+        path = self.probes[kind]
+        return path.read_text(encoding='utf-8').splitlines() if path.exists() else []
+
+    def rejected(self, project, diagnostic, *arguments):
         before = project.snapshot()
-        run = project.act('finish', 1, check=False)
+        run = project.act('finish', 1, *arguments, check=False)
         self.assertNotEqual(run.returncode, 0, 'finish published a closure without acceptance')
         self.assertIn('TASK_ACCEPTANCE', run.stdout + run.stderr)
         self.assertIn(diagnostic, run.stdout + run.stderr)
         self.assertEqual(project.snapshot(), before)
         self.assertEqual(project.act('show', 1)['status'], 'in_progress')
         self.assertEqual(list((project.root / 'docs/task-evidence').glob('*.json')), [])
+
+    def check_bad_receipts(self, project, closed, report, board_command):
+        task_path = 'knowledge/tasks/TASK-001.md'
+        evidence_path = closed['task']['evidence']
+        node = (project.root / task_path).read_text(encoding='utf-8')
+        original_digest = closed['task']['evidence_sha256']
+        snapshot = [sys.executable, 'scripts/validate_tasks.py', '--head-ref', 'main']
+        for variant in ('missing', 'wrong-tested-commit'):
+            with self.subTest(receipt=variant):
+                invalid = dict(report)
+                if variant == 'missing':
+                    invalid.pop('acceptance')
+                else:
+                    invalid['acceptance'] = dict(report['acceptance'], tested_commit=project.ref)
+                content = json.dumps(invalid, ensure_ascii=True, sort_keys=True, indent=2) + '\n'
+                digest = hashlib.sha256(content.encode('utf-8')).hexdigest()
+                project.write(evidence_path, content)
+                project.write(task_path, node.replace(original_digest, digest, 1))
+                project.commit('Synthetic inconsistent acceptance evidence for read-only validation')
+                journal = project.command(snapshot, check=False)
+                self.assertNotEqual(journal.returncode, 0)
+                self.assertIn('TASK_ACCEPTANCE', journal.stdout + journal.stderr)
+                board = project.command(board_command, check=False)
+                self.assertNotEqual(board.returncode, 0)
+                self.assertIn('TASK_EVIDENCE_INVALID', board.stderr)
 
     def test_legacy_task_keeps_one_primary_run_and_its_file_receipt(self):
         project = self.prepare(policy=None)
@@ -154,13 +209,20 @@ class FinishAcceptance(unittest.TestCase):
         self.assertEqual(report['schema_version'], 2)
         self.assertNotIn('acceptance', report)
         self.assertEqual(report['oracle_results'][PRIMARY], {'executed': 2, 'skipped': 0, 'ok': True})
-        self.assertEqual(self.python_probe.read_text(encoding='utf-8').splitlines(), ['executed'])
-        self.assertFalse(self.node_probe.exists())
+        self.assertEqual(self.runs('PYTHON'), [tested])
+        self.assertTrue(all(not self.runs(kind) for kind in PROBES[1:]))
+
+    def test_opted_in_default_finish_requires_the_explicit_acceptance_command(self):
+        project = self.prepare()
+        self.rejected(project, '--verify-acceptance')
+        self.assertTrue(all(not self.runs(kind) for kind in PROBES))
 
     def test_mixed_matrix_closes_with_two_real_passes_and_a_board_summary(self):
         project = self.prepare()
         tested = project.git('rev-parse', 'HEAD')
-        closed = project.act('finish', 1)
+        result = project.act('finish', 1, '--verify-acceptance', check=False)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        closed = json.loads(result.stdout)
         report = self.receipt(project, closed)
         self.assertEqual(closed['task']['status'], 'done')
         self.assertEqual(report['schema_version'], 2)
@@ -185,8 +247,16 @@ class FinishAcceptance(unittest.TestCase):
                     self.assertRegex(attempt['case_ids_sha256'], r'^[0-9a-f]{64}$')
                     self.assertRegex(attempt['output_sha256'], r'^[0-9a-f]{64}$')
                 self.assertEqual(passes[0]['case_ids_sha256'], passes[1]['case_ids_sha256'])
-        self.assertEqual(self.python_probe.read_text(encoding='utf-8').splitlines(), ['executed'] * 2)
-        self.assertGreaterEqual(len(self.node_probe.read_text(encoding='utf-8').splitlines()), 2)
+        self.assertEqual(self.runs('PYTHON'), [tested] * 2)
+        self.assertEqual(self.runs('NODE'), [tested] * 2)
+        for kind in ('PYTHON_POLICY', 'NODE_POLICY'):
+            runs = self.runs(kind)
+            self.assertGreaterEqual(len(runs), 2)
+            self.assertEqual(set(runs), {tested})
+        digests = {attempts[0]['case_ids_sha256'] for attempts in checks.values()}
+        self.assertEqual(len(digests), 4)
+        self.assertEqual(checks[(TASK_CONTRACT, 'oracle-execution')][1]['output_sha256'],
+                         report['output_sha256'])
         self.assertEqual(report['oracle_results'][PRIMARY], {'executed': 2, 'skipped': 0, 'ok': True})
         project.command([sys.executable, 'scripts/validate_tasks.py', '--base-ref', project.ref, '--head-ref', 'main'])
         audit = project.quality()
@@ -197,23 +267,25 @@ class FinishAcceptance(unittest.TestCase):
         self.assertEqual(board['tested_commit'], tested)
         self.assertEqual(board['acceptance'], {'policy': POLICY, 'policy_sha256': digest,
                                                'passes': 2, 'checks': len(MATRIX)})
+        self.check_bad_receipts(project, closed, report, command)
 
     def test_failing_companion_view_keeps_task_in_progress(self):
-        project = self.prepare(label='Etiquetado pendiente ')
-        self.rejected(project, VIEW_CONTRACT)
-        self.assertTrue(self.node_probe.is_file(), 'the companion runner must actually execute')
+        project = self.prepare(heading='Pendiente')
+        tested = project.git('rev-parse', 'HEAD')
+        self.rejected(project, VIEW_CONTRACT, '--verify-acceptance')
+        self.assertEqual(self.runs('PYTHON'), [tested] * 2)
+        self.assertEqual(self.runs('NODE'), [tested] * 2)
+        self.assertTrue(self.runs('NODE_POLICY'), 'the failed policy check must actually execute')
 
     def test_missing_policy_at_approved_commit_blocks_before_oracles(self):
         project = self.prepare(policy='missing-acceptance.json')
-        self.rejected(project, 'missing-acceptance.json')
-        self.assertFalse(self.python_probe.exists())
-        self.assertFalse(self.node_probe.exists())
+        self.rejected(project, 'missing-acceptance.json', '--verify-acceptance')
+        self.assertTrue(all(not self.runs(kind) for kind in PROBES))
 
     def test_policy_without_the_task_contract_blocks_before_oracles(self):
         project = self.prepare(include_task=False)
-        self.rejected(project, TASK_CONTRACT)
-        self.assertFalse(self.python_probe.exists())
-        self.assertFalse(self.node_probe.exists())
+        self.rejected(project, TASK_CONTRACT, '--verify-acceptance')
+        self.assertTrue(all(not self.runs(kind) for kind in PROBES))
 
     def test_policy_changed_on_main_is_rejected(self):
         project = self.prepare()
@@ -221,9 +293,8 @@ class FinishAcceptance(unittest.TestCase):
         policy['contracts'].reverse()
         project.write(POLICY, json.dumps(policy) + '\n')
         project.commit('Local policy changed after its review')
-        self.rejected(project, POLICY)
-        self.assertFalse(self.python_probe.exists())
-        self.assertFalse(self.node_probe.exists())
+        self.rejected(project, POLICY, '--verify-acceptance')
+        self.assertTrue(all(not self.runs(kind) for kind in PROBES))
 
 
 if __name__ == '__main__':
