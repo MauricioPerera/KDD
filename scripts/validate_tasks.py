@@ -100,27 +100,22 @@ def _proof_perimeter(root, task, report):
     return []
 
 
-def _receipt_object(pairs):
-    result = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError('TASK_EVIDENCE: duplicate JSON key: ' + key)
-        result[key] = value
-    return result
-
-
 def _evidence(root, ref, task, metadata):
     content = journal.blob(root, ref, task['evidence'])
     if proof.digest(content) != task['evidence_sha256']:
         return ['TASK_EVIDENCE: artifact digest mismatch']
-    report = json.loads(content, object_pairs_hook=_receipt_object)
+    report = json.loads(content, object_pairs_hook=proof.json_object)
     if not isinstance(report, dict):
         return ['TASK_EVIDENCE: expected an object']
     if not journal.ancestor(root, task['verified_ref'], journal.commit_sha(root, ref)):
         return ['TASK_EVIDENCE: tested commit is not an ancestor']
     findings = (_proof_fields(root, task, report, metadata) + _proof_refs(root, task, report)
                 + _proof_output(report, metadata))
-    return findings or _proof_perimeter(root, task, report)
+    findings = findings or _proof_perimeter(root, task, report)
+    if not findings and 'acceptance_policy' in metadata:
+        plan = journal._acceptance_plan(root, task, metadata, task['verified_ref'])
+        proof.check_acceptance_receipt(report, plan.identity, plan.checks, task['contract'])
+    return findings
 
 
 _snapshot_observation = ContextVar('task_snapshot_observation', default=None)

@@ -7,8 +7,9 @@ from pathlib import Path
 import sys
 
 import task_git as journal
+from task_evidence import json_object
 from task_model import TaskError, parse_task, task_path
-from validate_tasks import _evidence, _receipt_object
+from validate_tasks import _evidence
 
 
 _MAX_RECEIPT = 4 * 1024 * 1024
@@ -43,7 +44,8 @@ def _read_receipt(root, commit, task):
     metadata = journal.contract_metadata(root, task, task['verified_ref'], committed_only=True)
     if _evidence(root, commit, task, metadata):
         raise TaskError('Invalid task receipt')
-    return json.loads(journal.blob(root, commit, path), object_pairs_hook=_receipt_object)
+    report = json.loads(journal.blob(root, commit, path), object_pairs_hook=json_object)
+    return report, 'acceptance_policy' in metadata
 
 
 def project_evidence(root, task_id):
@@ -57,8 +59,8 @@ def project_evidence(root, task_id):
         identity = {'task_id': task_id, 'observed_commit': commit}
         if task['status'] != 'done':
             return {'status': 'pending', **identity}
-        report = _read_receipt(root, commit, task)
-        return {
+        report, requires_acceptance = _read_receipt(root, commit, task)
+        response = {
             'status': 'available',
             **identity,
             'approved_ref': task['approved_ref'],
@@ -66,6 +68,11 @@ def project_evidence(root, task_id):
             'artifact': {'path': task['evidence'], 'sha256': task['evidence_sha256']},
             'receipt': _receipt_projection(report),
         }
+        if requires_acceptance:
+            acceptance = report['acceptance']
+            response['acceptance'] = {'policy': acceptance['policy'], 'policy_sha256': acceptance['policy_sha256'],
+                                      'passes': 2, 'checks': len(acceptance['checks'])}
+        return response
 
 
 def main(argv=None):

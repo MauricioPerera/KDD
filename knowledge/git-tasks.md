@@ -61,6 +61,24 @@ Un archivo seleccionado sin casos, una omision o un error impiden el cierre.
 Los recibos v1 de un archivo conservan su lectura historica.
 Las consultas leen blobs de main, incluso ejecutadas desde task/TASK-001.
 
+### Cerrar con una política de aceptación
+
+Para exigir la [matriz de aceptación](acceptance.md), declarar
+`acceptance_policy: acceptance.json` en el contrato de la tarea. El SHA
+aprobado debe contener esa política e incluir el propio contrato en la
+matriz. Tras integrar la rama, ejecutar:
+
+```text
+python scripts/tasks.py finish TASK-001 --verify-acceptance
+```
+
+Cada obligación ejecutable pasa dos veces sobre el mismo commit, con el
+mismo inventario de casos y el timeout de su comando. El recibo v2 conserva
+el resultado de la segunda pasada del oráculo principal y añade las huellas
+de la política, los resultados y los inventarios por obligación. Un fallo
+conserva la tarea en curso. Board consulta el resumen del recibo después del
+cierre por CLI. [Contrato de cierre](contracts/task-finish-acceptance.md)
+
 ### Seleccionar varios oraculos
 
 El contrato incluye el archivo primario en `tests` y en el comando una sola
@@ -102,8 +120,9 @@ rutas POSIX y no es compatible con todas las verificaciones existentes.
 El control de transiciones es un paso adicional, opt-in para proyectos
 adoptantes; no cambia el conjunto fijo de 19 gates del despachador.
 
-El runner de finish tiene un limite de 120 segundos y falla sin cerrar si
-se agota. Para la suite completa de infraestructura de esta plantilla, CI
+El oráculo del cierre sin política de aceptación tiene un límite de 120
+segundos y falla sin cerrar si se agota. Para la suite completa de
+infraestructura de esta plantilla, CI
 usa `validate_test_commands.py knowledge/contracts . --timeout 600`: el
 contrato init-project ejecuta ademas una suite completa tras inicializar
 una copia y puede superar el timeout predeterminado de 180 segundos en Windows.

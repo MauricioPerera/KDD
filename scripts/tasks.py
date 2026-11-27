@@ -24,6 +24,8 @@ def _parser():
     commands['create'].add_argument('--depends-on', action='append', default=[])
     commands['ready'].add_argument('--approved-ref', required=True)
     commands['start'].add_argument('--assignee', required=True)
+    commands['finish'].add_argument('--verify-acceptance', action='store_true',
+                                    help='run the acceptance policy named by the approved contract')
     for name in ('block', 'resume'):
         commands[name].add_argument('--reason', required=True)
     return parser

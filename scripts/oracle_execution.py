@@ -187,8 +187,8 @@ def _execute(selection, root, timeout, run, result, *, record_ids=False):
     return result
 
 
-def execute_oracle(metadata, repo_root, timeout=180, *, record_ids=False, allow_node_ids=False):
-    """Return fail-closed execution results and counts from managed runners."""
+def _managed_oracle(metadata, repo_root, timeout, run, id_options):
+    record_ids, allow_node_ids = id_options
     result = _result()
     try:
         root = Path(repo_root).resolve(strict=True)
@@ -196,13 +196,23 @@ def execute_oracle(metadata, repo_root, timeout=180, *, record_ids=False, allow_
         if record_ids and runner != 'python-unittest' and not allow_node_ids:
             raise ValueError('Oracle receipts require python-unittest')
         result['runtime_version'] = sys.version.split()[0] if runner == 'python-unittest' else None
-        return _execute((runner, names, files, None), root, timeout, subprocess.run, result,
+        return _execute((runner, names, files, None), root, timeout, run, result,
                         record_ids=record_ids)
     except subprocess.TimeoutExpired:
         result['error'] = 'timeout'
     except (ValueError, OSError, KeyError, TypeError) as exc:
         result.update(exit_code=1, error=str(exc))
     return result
+
+
+def execute_oracle(metadata, repo_root, timeout=180, *, record_ids=False, allow_node_ids=False):
+    """Return fail-closed execution results and counts from managed runners."""
+    return _managed_oracle(metadata, repo_root, timeout, subprocess.run, (record_ids, allow_node_ids))
+
+
+def execute_acceptance_oracle(metadata, repo_root, timeout, run):
+    """Record Python or Node case IDs using the acceptance caller's executor."""
+    return _managed_oracle(metadata, repo_root, timeout, run or subprocess.run, (True, True))
 
 
 def execute_task_oracle(runner, interpreter, oracle, repo_root, timeout, run):
