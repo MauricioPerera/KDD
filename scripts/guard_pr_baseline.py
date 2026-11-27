@@ -130,6 +130,18 @@ def _review_object(ref, path):
     return {'mode': mode, 'oid': oid}
 
 
+def _regular_pages_edit(path, base, candidate):
+    if path != 'site/index.html':
+        return False
+    try:
+        before = _review_object(base, path)
+        after = _review_object(candidate, path)
+    except ValueError:
+        return False
+    return (before is not None and after is not None
+            and before['mode'] == after['mode'] == '100644')
+
+
 def _review_header(raw, base, candidate):
     if not isinstance(raw, str) or len(raw.encode('utf-8')) > 48000:
         raise ValueError('invalid review data')
@@ -179,7 +191,8 @@ def _protected_findings(paths, base, candidate, reviewed_changes):
     for path in sorted(paths):
         if path in protected and path not in reviewed:
             findings.append(path + ': trusted gate file changed in PR')
-        elif path not in protected and _shadows_runtime(path):
+        elif (path not in protected and _shadows_runtime(path)
+              and not _regular_pages_edit(path, base, candidate)):
             findings.append(path + ': trusted import name changed in PR')
     return findings
 

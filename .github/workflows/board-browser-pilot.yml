@@ -108,6 +108,10 @@ jobs:
             Tee-Object -FilePath (Join-Path $evidence 'contramuestras.log')
           if ($LASTEXITCODE -ne 0) { throw 'A live control failed' }
 
+          node --test tools/kdd-board/browser-pilot/tests/evidence-browser.test.mjs |
+            Tee-Object -FilePath (Join-Path $evidence 'visor.log')
+          if ($LASTEXITCODE -ne 0) { throw 'A Board evidence viewer case failed' }
+
           @{checkout = $checkout; approved_ref = $env:KDD_PILOT_APPROVED_REF;
             platform = $env:RUNNER_OS; passes = $passes; live_controls = 'passed'} |
             ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $evidence 'measurements.json') -Encoding utf8

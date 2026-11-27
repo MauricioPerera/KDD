@@ -1,0 +1,657 @@
+{
+  "schemaVersion": "report-1",
+  "run": {
+    "id": "01a213b3-7efd-7967-bb76-2ee573829426",
+    "specVersion": "0.1",
+    "runner": {
+      "name": "e2e",
+      "version": "0.24.0"
+    },
+    "status": "passed",
+    "exitCode": 0,
+    "startedAt": "2026-11-25T17:14:20.700Z",
+    "finishedAt": "2026-11-25T17:14:28.527Z",
+    "project": {
+      "id": "unportable-85b7cc4097b5889c802d61a7c6c82c2b",
+      "configDigest": "a346be158035c3f79201cfed4b07097d75198e92d30d058f1fff252f8805a8ba"
+    },
+    "environment": {
+      "ci": true,
+      "trustNoticeShown": false,
+      "os": "win32 10.0.26200",
+      "arch": "x64",
+      "runtime": "node v24.16.0"
+    },
+    "targets": [
+      {
+        "id": "web",
+        "index": 0,
+        "platform": "web",
+        "baseOrigin": "http://127.0.0.1:52995",
+        "environment": "test",
+        "engine": {
+          "name": "web",
+          "version": "0.16.1",
+          "spiVersion": 1
+        },
+        "capabilities": [
+          "actions",
+          "artifacts",
+          "browser",
+          "computed-style",
+          "keyboard",
+          "location",
+          "observation",
+          "pointer",
+          "state"
+        ],
+        "artifactCapabilities": [
+          "screenshot",
+          "video"
+        ],
+        "stateCapability": true
+      }
+    ],
+    "serialGroups": [],
+    "results": [
+      {
+        "id": "10ca90f6e2c277afb8d6e8a4f63a98a3a88db10f07ac71c957312d69436f6910",
+        "testId": "tests/handoff.e2e.ts::ready%20candidate%20requires%20human%20approval",
+        "kind": "test",
+        "declarationIndex": 0,
+        "titlePath": [
+          "ready candidate requires human approval"
+        ],
+        "file": "tests/handoff.e2e.ts",
+        "source": {
+          "file": "tests/handoff.e2e.ts",
+          "line": 8,
+          "column": 1
+        },
+        "targetId": "web",
+        "platform": "web",
+        "agent": "default",
+        "repeat": 0,
+        "tags": [],
+        "selected": true,
+        "status": "passed",
+        "attempts": [
+          {
+            "id": "01a213b3-8248-78c0-8896-d7884b84a046",
+            "index": 0,
+            "status": "passed",
+            "startedAt": "2026-11-25T17:14:21.128Z",
+            "durationMs": 4911,
+            "artifacts": [],
+            "secondaryErrors": [],
+            "cleanup": "complete",
+            "environment": {
+              "browser": "chromium 159.0.8154.6",
+              "user agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/159.0.8154.6 Safari/537.36"
+            },
+            "steps": [
+              {
+                "id": "01a213b3-8248-78c0-8896-d7884b84a046:0",
+                "index": 0,
+                "kind": "app",
+                "api": "app.open",
+                "label": "/#token=synthetic-browser-pilot-token",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:22.909Z",
+                "durationMs": 886,
+                "events": [],
+                "artifacts": [],
+                "screen": {
+                  "location": "http://127.0.0.1:52995/",
+                  "nodes": 24,
+                  "changes": []
+                },
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "id": "01a213b3-8248-78c0-8896-d7884b84a046:1",
+                "index": 1,
+                "kind": "locator",
+                "api": "locator.click",
+                "label": "getByText(\"Relevo listo\")",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:23.796Z",
+                "durationMs": 761,
+                "events": [
+                  {
+                    "kind": "engine",
+                    "name": "tap",
+                    "startedAt": "2026-11-25T17:14:23.796Z",
+                    "durationMs": 761,
+                    "status": "passed",
+                    "detail": "tap node \"Relevo listo\" (appeared after 610ms)"
+                  }
+                ],
+                "artifacts": [],
+                "screen": {
+                  "location": "http://127.0.0.1:52995/",
+                  "nodes": 15,
+                  "since": 0,
+                  "changes": [
+                    "added button \"🔍 Detalle de Tarea\"",
+                    "removed text=\"📋 Backlog\"",
+                    "removed text=\"0\"",
+                    "removed text=\"⚡ Ready for Agent\"",
+                    "removed text=\"0\"",
+                    "removed text=\"🔄 In Progress\"",
+                    "removed text=\"0\"",
+                    "removed text=\"🛑 Needs Human Input\"",
+                    "removed text=\"0\"",
+                    "removed text=\"✅ Done\"",
+                    "removed text=\"0\""
+                  ]
+                },
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "id": "01a213b3-8248-78c0-8896-d7884b84a046:2",
+                "index": 2,
+                "kind": "assertion",
+                "api": "expect.toBeVisible",
+                "label": "getByRole(\"heading\", name: \"TASK-001: Relevo listo\")",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:24.559Z",
+                "durationMs": 707,
+                "events": [
+                  {
+                    "kind": "poll",
+                    "name": "expect",
+                    "startedAt": "2026-11-25T17:14:24.559Z",
+                    "durationMs": 706,
+                    "status": "passed",
+                    "count": 9,
+                    "detail": "no node (0 matches) x8 -> at 706ms default states (1 match)"
+                  }
+                ],
+                "artifacts": [],
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "id": "01a213b3-8248-78c0-8896-d7884b84a046:3",
+                "index": 3,
+                "kind": "locator",
+                "api": "locator.click",
+                "label": "getByRole(\"button\", name: \"Consultar revisión\")",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:25.266Z",
+                "durationMs": 44,
+                "events": [
+                  {
+                    "kind": "engine",
+                    "name": "tap",
+                    "startedAt": "2026-11-25T17:14:25.266Z",
+                    "durationMs": 44,
+                    "status": "passed",
+                    "detail": "tap button \"Consultar revisión\""
+                  }
+                ],
+                "artifacts": [],
+                "screen": {
+                  "location": "http://127.0.0.1:52995/",
+                  "nodes": 47,
+                  "since": 1,
+                  "changes": [
+                    "added button \"Volver al tablero\"",
+                    "added heading \"TASK-001: Relevo listo\"",
+                    "added text=\"Tarea sintetica de navegador\"",
+                    "added text=\"Estado en main\"",
+                    "added text=\"backlog\"",
+                    "added text=\"Rama\"",
+                    "added text=\"task/TASK-001\"",
+                    "added text=\"Contrato\"",
+                    "added text=\"knowledge/contracts/sample_task.md\"",
+                    "added text=\"Propietario\"",
+                    "added text=\"Sin asignar\"",
+                    "added text=\"Dependencias\""
+                  ],
+                  "more": 20
+                },
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "id": "01a213b3-8248-78c0-8896-d7884b84a046:4",
+                "index": 4,
+                "kind": "assertion",
+                "api": "expect.toBeVisible",
+                "label": "getByText(\"Revisión lista\")",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:25.310Z",
+                "durationMs": 713,
+                "events": [
+                  {
+                    "kind": "poll",
+                    "name": "expect",
+                    "startedAt": "2026-11-25T17:14:25.310Z",
+                    "durationMs": 713,
+                    "status": "passed",
+                    "count": 10,
+                    "detail": "no node (0 matches) x9 -> at 713ms default states (1 match)"
+                  }
+                ],
+                "artifacts": [],
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "id": "01a213b3-8248-78c0-8896-d7884b84a046:5",
+                "index": 5,
+                "kind": "assertion",
+                "api": "expect.toBeVisible",
+                "label": "getByText(\"b8e9be1055dac57fb0ec14b5ad51812692145e9d\")",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:26.023Z",
+                "durationMs": 4,
+                "events": [
+                  {
+                    "kind": "poll",
+                    "name": "expect",
+                    "startedAt": "2026-11-25T17:14:26.023Z",
+                    "durationMs": 3,
+                    "status": "passed",
+                    "count": 1
+                  }
+                ],
+                "artifacts": [],
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "id": "01a213b3-8248-78c0-8896-d7884b84a046:6",
+                "index": 6,
+                "kind": "assertion",
+                "api": "expect.toBeVisible",
+                "label": "getByText(\"Pendiente de aprobación humana del candidato.\")",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:26.027Z",
+                "durationMs": 3,
+                "events": [
+                  {
+                    "kind": "poll",
+                    "name": "expect",
+                    "startedAt": "2026-11-25T17:14:26.027Z",
+                    "durationMs": 3,
+                    "status": "passed",
+                    "count": 1
+                  }
+                ],
+                "artifacts": [],
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "id": "01a213b3-8248-78c0-8896-d7884b84a046:7",
+                "index": 7,
+                "kind": "assertion",
+                "api": "expect.toBeEnabled",
+                "label": "getByRole(\"button\", name: \"Consultar revisión\")",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:26.030Z",
+                "durationMs": 3,
+                "events": [
+                  {
+                    "kind": "poll",
+                    "name": "expect",
+                    "startedAt": "2026-11-25T17:14:26.030Z",
+                    "durationMs": 3,
+                    "status": "passed",
+                    "count": 1
+                  }
+                ],
+                "artifacts": [],
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "2f6f675cd81aa46fa75f9e623209b6d8a9c31f0cc444afcde9bd824dab114306",
+        "testId": "tests/handoff.e2e.ts::missing%20evidence%20stays%20pending",
+        "kind": "test",
+        "declarationIndex": 1,
+        "titlePath": [
+          "missing evidence stays pending"
+        ],
+        "file": "tests/handoff.e2e.ts",
+        "source": {
+          "file": "tests/handoff.e2e.ts",
+          "line": 19,
+          "column": 1
+        },
+        "targetId": "web",
+        "platform": "web",
+        "agent": "default",
+        "repeat": 0,
+        "tags": [],
+        "selected": true,
+        "status": "passed",
+        "attempts": [
+          {
+            "id": "01a213b3-9578-76a0-b9c4-da70e2acb227",
+            "index": 0,
+            "status": "passed",
+            "startedAt": "2026-11-25T17:14:26.040Z",
+            "durationMs": 2415,
+            "artifacts": [],
+            "secondaryErrors": [],
+            "cleanup": "complete",
+            "environment": {
+              "browser": "chromium 159.0.8154.6",
+              "user agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/159.0.8154.6 Safari/537.36"
+            },
+            "steps": [
+              {
+                "id": "01a213b3-9578-76a0-b9c4-da70e2acb227:0",
+                "index": 0,
+                "kind": "app",
+                "api": "app.open",
+                "label": "/#token=synthetic-browser-pilot-token",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:26.047Z",
+                "durationMs": 146,
+                "events": [],
+                "artifacts": [],
+                "screen": {
+                  "location": "http://127.0.0.1:52995/",
+                  "nodes": 24,
+                  "changes": []
+                },
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "id": "01a213b3-9578-76a0-b9c4-da70e2acb227:1",
+                "index": 1,
+                "kind": "locator",
+                "api": "locator.click",
+                "label": "getByText(\"Relevo pendiente\")",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:26.194Z",
+                "durationMs": 866,
+                "events": [
+                  {
+                    "kind": "engine",
+                    "name": "tap",
+                    "startedAt": "2026-11-25T17:14:26.194Z",
+                    "durationMs": 866,
+                    "status": "passed",
+                    "detail": "tap node \"Relevo pendiente\" (appeared after 808ms)"
+                  }
+                ],
+                "artifacts": [],
+                "screen": {
+                  "location": "http://127.0.0.1:52995/",
+                  "nodes": 15,
+                  "since": 0,
+                  "changes": [
+                    "added button \"🔍 Detalle de Tarea\"",
+                    "removed text=\"📋 Backlog\"",
+                    "removed text=\"0\"",
+                    "removed text=\"⚡ Ready for Agent\"",
+                    "removed text=\"0\"",
+                    "removed text=\"🔄 In Progress\"",
+                    "removed text=\"0\"",
+                    "removed text=\"🛑 Needs Human Input\"",
+                    "removed text=\"0\"",
+                    "removed text=\"✅ Done\"",
+                    "removed text=\"0\""
+                  ]
+                },
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "id": "01a213b3-9578-76a0-b9c4-da70e2acb227:2",
+                "index": 2,
+                "kind": "assertion",
+                "api": "expect.toBeVisible",
+                "label": "getByRole(\"heading\", name: \"TASK-002: Relevo pendiente\")",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:27.061Z",
+                "durationMs": 520,
+                "events": [
+                  {
+                    "kind": "poll",
+                    "name": "expect",
+                    "startedAt": "2026-11-25T17:14:27.061Z",
+                    "durationMs": 520,
+                    "status": "passed",
+                    "count": 7,
+                    "detail": "no node (0 matches) x6 -> at 520ms default states (1 match)"
+                  }
+                ],
+                "artifacts": [],
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "id": "01a213b3-9578-76a0-b9c4-da70e2acb227:3",
+                "index": 3,
+                "kind": "locator",
+                "api": "locator.click",
+                "label": "getByRole(\"button\", name: \"Consultar revisión\")",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:27.581Z",
+                "durationMs": 46,
+                "events": [
+                  {
+                    "kind": "engine",
+                    "name": "tap",
+                    "startedAt": "2026-11-25T17:14:27.581Z",
+                    "durationMs": 46,
+                    "status": "passed",
+                    "detail": "tap button \"Consultar revisión\""
+                  }
+                ],
+                "artifacts": [],
+                "screen": {
+                  "location": "http://127.0.0.1:52995/",
+                  "nodes": 47,
+                  "since": 1,
+                  "changes": [
+                    "added button \"Volver al tablero\"",
+                    "added heading \"TASK-002: Relevo pendiente\"",
+                    "added text=\"Tarea sintetica de navegador\"",
+                    "added text=\"Estado en main\"",
+                    "added text=\"backlog\"",
+                    "added text=\"Rama\"",
+                    "added text=\"task/TASK-002\"",
+                    "added text=\"Contrato\"",
+                    "added text=\"knowledge/contracts/sample_task.md\"",
+                    "added text=\"Propietario\"",
+                    "added text=\"Sin asignar\"",
+                    "added text=\"Dependencias\""
+                  ],
+                  "more": 20
+                },
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "id": "01a213b3-9578-76a0-b9c4-da70e2acb227:4",
+                "index": 4,
+                "kind": "assertion",
+                "api": "expect.toBeVisible",
+                "label": "getByText(\"Pendiente de revisión\")",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:27.627Z",
+                "durationMs": 814,
+                "events": [
+                  {
+                    "kind": "poll",
+                    "name": "expect",
+                    "startedAt": "2026-11-25T17:14:27.627Z",
+                    "durationMs": 814,
+                    "status": "passed",
+                    "count": 11,
+                    "detail": "no node (0 matches) x10 -> at 814ms default states (1 match)"
+                  }
+                ],
+                "artifacts": [],
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "id": "01a213b3-9578-76a0-b9c4-da70e2acb227:5",
+                "index": 5,
+                "kind": "assertion",
+                "api": "expect.toBeVisible",
+                "label": "getByText(\"a441938631264ba1cc8182f58eb4a17325f26b82\")",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:28.442Z",
+                "durationMs": 4,
+                "events": [
+                  {
+                    "kind": "poll",
+                    "name": "expect",
+                    "startedAt": "2026-11-25T17:14:28.442Z",
+                    "durationMs": 4,
+                    "status": "passed",
+                    "count": 1
+                  }
+                ],
+                "artifacts": [],
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "id": "01a213b3-9578-76a0-b9c4-da70e2acb227:6",
+                "index": 6,
+                "kind": "assertion",
+                "api": "expect.toHaveCount",
+                "label": "getByText(\"Revisión lista\")",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:28.446Z",
+                "durationMs": 3,
+                "events": [
+                  {
+                    "kind": "poll",
+                    "name": "expect",
+                    "startedAt": "2026-11-25T17:14:28.446Z",
+                    "durationMs": 3,
+                    "status": "passed",
+                    "count": 1
+                  }
+                ],
+                "artifacts": [],
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              },
+              {
+                "id": "01a213b3-9578-76a0-b9c4-da70e2acb227:7",
+                "index": 7,
+                "kind": "assertion",
+                "api": "expect.toBeEnabled",
+                "label": "getByRole(\"button\", name: \"Consultar revisión\")",
+                "status": "passed",
+                "startedAt": "2026-11-25T17:14:28.449Z",
+                "durationMs": 3,
+                "events": [
+                  {
+                    "kind": "poll",
+                    "name": "expect",
+                    "startedAt": "2026-11-25T17:14:28.449Z",
+                    "durationMs": 3,
+                    "status": "passed",
+                    "count": 1
+                  }
+                ],
+                "artifacts": [],
+                "source": {
+                  "file": "unknown",
+                  "line": 1,
+                  "column": 1
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "errors": [],
+    "summary": {
+      "discovered": 2,
+      "selected": 2,
+      "executed": 2,
+      "passed": 2,
+      "failed": 0,
+      "interrupted": 0,
+      "flaky": 0,
+      "skipped": 0
+    },
+    "limits": {
+      "maxAgentContextBytes": 16384,
+      "maxLedgerBytes": 8192,
+      "maxObservationBytes": 262144,
+      "maxEventsPerStep": 1000,
+      "maxModelTokensPerCall": 64000
+    },
+    "usage": {
+      "discoveredResults": 2,
+      "maxAgentContextBytes": 0,
+      "maxLedgerBytes": 0,
+      "maxObservationBytes": 0,
+      "artifactBytes": 0,
+      "downloads": 0,
+      "events": 14,
+      "modelTokens": 0,
+      "maxModelCallsInStep": 0,
+      "maxActionStepsInStep": 0
+    }
+  }
+}

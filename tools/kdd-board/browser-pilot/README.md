@@ -38,6 +38,33 @@ node --test tools/kdd-board/browser-pilot/tests/pilot-live.test.mjs
 
 El workflow optativo **Board browser pilot** permite ejecución manual y se ejecuta en los PR que cambian el piloto o el propio workflow. Conserva reportes y recibos de una pasada en frío y otra con el navegador preparado por sistema. Comprueba los reportes con el esquema de la versión fijada y ejecuta el control live. El workflow principal de KDD usa la prueba del recibo sin instalar Chromium.
 
+## Consultar la evidencia en Board
+
+Abre **Consultar evidencia** en una tarea Git para ver el recibo del cierre,
+su huella y los SHA consultado, probado y aprobado. Los recibos v1 presentan
+el total y los v2 agregan el conteo por archivo.
+
+Para abrir **Evidencia Chromium**, elige un paquete local generado por el
+piloto y fija estas variables antes de arrancar Board con un proyecto Git.
+
+- `KDD_BOARD_BROWSER_EVIDENCE_DIR` contiene la ruta absoluta a la carpeta
+  de `receipt.json` y `report.json`.
+- `KDD_BOARD_BROWSER_EVIDENCE_PIN` contiene el SHA del checkout y el SHA-256
+  de los bytes de `receipt.json`, separados por `:`. Toma ambos del paquete
+  original que quieres cotejar.
+
+El panel muestra el resultado, intento y duración de los dos casos. La huella
+del reporte corresponde a la corrida completa. El perfil actual admite listas
+vacías de adjuntos en intentos y pasos. Puedes verificar ambos paneles desde
+una copia de KDD con su historial e instalación de Chromium fijada.
+
+```text
+node --test tools/kdd-board/browser-pilot/tests/evidence-browser.test.mjs
+```
+
+El [contrato del visor](../../../knowledge/contracts/board-test-evidence.md)
+define los campos que se proyectan y las comprobaciones de identidad.
+
 ## Proponer pasos con Goldfish
 
 Prepara un proyecto e2e temporal y entrega al Goldfish solo el contrato, el SHA y el descriptor de la instancia sintética. Usa el e2e del lock para iniciar el MCP stdio, con una sesión nueva acotada a esa instancia.

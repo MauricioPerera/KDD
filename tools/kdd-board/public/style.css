@@ -52,6 +52,26 @@
 .git-task li { margin: 0.6rem 0; }
 .git-task button:disabled { opacity: 0.5; cursor: wait; }
 
+.browser-evidence-meta {
+  display: grid;
+  grid-template-columns: minmax(8rem, auto) minmax(0, 1fr);
+  gap: .5rem 1rem;
+  margin: 1rem 0;
+  overflow-wrap: anywhere;
+}
+.browser-evidence-meta dt { color: var(--text-muted); }
+.browser-evidence-table { overflow-x: auto; }
+.browser-evidence-table table { border-collapse: collapse; width: 100%; }
+.browser-evidence-table th,
+.browser-evidence-table td {
+  padding: .65rem;
+  border: 1px solid var(--border-subtle);
+  text-align: left;
+}
+.browser-evidence-table thead { background: var(--bg-column); }
+.browser-evidence-table td { white-space: nowrap; }
+#git-evidence-result:not(:empty) { margin-top: .75rem; }
+
 * {
   box-sizing: border-box;
   margin: 0;
