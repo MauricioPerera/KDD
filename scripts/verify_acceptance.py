@@ -168,8 +168,12 @@ def _run(row, metadata, root, timeout, recheck, run):
     return True
 
 
-def verify_acceptance(repo_root, policy_path, approved_ref, *, run=None):
+def verify_acceptance(repo_root, policy_path, approved_ref):
     """Verify an approved policy; failure always returns an unapproved matrix."""
+    return _verify_acceptance(repo_root, policy_path, approved_ref, None)
+
+
+def _verify_acceptance(repo_root, policy_path, approved_ref, run):
     result = {'schema_version': 1, 'ok': False, 'state': 'structure_invalid', 'contracts': []}
     try:
         root = Path(repo_root).resolve(strict=True)

@@ -86,8 +86,9 @@ def _proof_fields(root, task, report, metadata):
     expected = {'task_id': task['task_id'],
                 'tested_commit': task['verified_ref'], 'approved_ref': task['approved_ref'],
                 'command': metadata['test_command']}
-    for field, path in [('contract_sha256', task['contract']),
-                        ('target_sha256', metadata['target']), ('oracle_sha256', metadata['tests'])]:
+    revisions = task['approved_ref'], task['verified_ref']
+    expected['target_sha256'] = journal.target_digest(root, revisions, metadata)
+    for field, path in [('contract_sha256', task['contract']), ('oracle_sha256', metadata['tests'])]:
         expected[field] = proof.digest(proof.normalized(journal.blob(root, task['verified_ref'], path)))
     return ['TASK_EVIDENCE: mismatch in ' + k for k, v in expected.items() if report.get(k) != v]
 

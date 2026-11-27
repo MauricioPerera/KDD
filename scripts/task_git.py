@@ -1287,8 +1287,10 @@ def _compare_finish_artifacts(root, revision, names, committed=None):
 
 
 def _finish_artifacts(root, task, metadata, revision):
-    names = sorted({task['contract'], metadata['tests'], metadata['target'],
-                    task_path(task['task_id'])})
+    artifacts = {task['contract'], metadata['tests'], task_path(task['task_id'])}
+    if 'acceptance_policy' not in metadata:
+        artifacts.add(metadata['target'])
+    names = sorted(artifacts)
     try:
         committed = blobs(root, revision, names)
     except TaskError:
@@ -1297,6 +1299,21 @@ def _finish_artifacts(root, task, metadata, revision):
         _compare_finish_artifacts(root, revision, names)
         raise
     _compare_finish_artifacts(root, revision, names, committed)
+
+
+def target_digest(root, revisions, metadata, *, check_checkout=False):
+    approved, revision = revisions
+    name = metadata['target']
+    if 'acceptance_policy' not in metadata:
+        return proof.digest(proof.normalized(blob(root, revision, name)))
+    expected = _oracle_artifacts(root, revision, (name,))
+    binary = _oracle_binary_paths(root, approved, (name,))
+    if check_checkout and _different_oracle(_checkout_oracles(root, expected), expected, binary):
+        raise TaskError('TASK_ACCEPTANCE: checkout file differs from tested commit: ' + name)
+    content = expected[name]
+    if name not in binary and b'\0' not in content:
+        content = content.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+    return proof.digest(content)
 
 
 def _acceptance_policy_paths(policy):
@@ -1328,6 +1345,17 @@ def _acceptance_entries(policy):
     return entries
 
 
+def _acceptance_required(data):
+    extra = data.get('acceptance_obligations', [])
+    if not isinstance(extra, list) or not all(
+            isinstance(name, str) and name.strip() and '\x00' not in name for name in extra):
+        raise ValueError('Invalid additional acceptance obligations')
+    required = proof.ACCEPTANCE_CHECKS | set(extra)
+    if required & proof.ACCEPTANCE_INTERNAL:
+        raise ValueError('Internal obligations cannot be overridden')
+    return required
+
+
 def _acceptance_obligations(path, data, checks):
     from oracle_inventory import inventory_paths
     inventory = inventory_paths(data, required=True)
@@ -1338,9 +1366,13 @@ def _acceptance_obligations(path, data, checks):
         name = check['obligation']
         if not isinstance(name, str) or name in names or check['tests'] not in inventory:
             raise ValueError('Invalid, repeated or unprotected obligation in ' + path)
+        if check['test_runner'] not in ('python-unittest', 'node-test'):
+            raise ValueError('Unsupported obligation runner in ' + path)
+        timeout = check['timeout']
+        if type(timeout) is not int or not 0 < timeout <= 3600:
+            raise ValueError('Invalid obligation timeout in ' + path)
         names.add(name)
-    required = proof.ACCEPTANCE_CHECKS | set(data.get('acceptance_obligations', []))
-    if required & proof.ACCEPTANCE_INTERNAL or names != required:
+    if names != _acceptance_required(data):
         raise ValueError('Incomplete obligation inventory in ' + path)
     return {(path, name) for name in names | {'oracle-execution'}}
 
@@ -1356,6 +1388,8 @@ def _acceptance_scope(root, revisions, policy, entries):
         data, _ = parse_frontmatter(source.decode('utf-8'))
         if not isinstance(data, dict) or data.get('type') != 'Task Contract':
             raise ValueError('Invalid acceptance contract: ' + path)
+        if data.get('test_runner') not in ('python-unittest', 'node-test'):
+            raise ValueError('Acceptance requires a managed contract runner: ' + path)
         files.add(exact_path(data.get('target')))
         rows.update(_acceptance_obligations(path, data, entries[path]))
     return tuple(sorted(files)), frozenset(rows)
@@ -1412,11 +1446,11 @@ def _acceptance_failure(result):
 
 
 def _finish_acceptance(root, task, metadata, plan):
-    from verify_acceptance import verify_acceptance
+    from verify_acceptance import _verify_acceptance
     snapshot = _acceptance_snapshot(root, plan)
     identity = plan.identity
     run = partial(proof.subprocess.run, stdin=proof.subprocess.DEVNULL)
-    result = verify_acceptance(root, identity['policy'], identity['approved_ref'], run=run)
+    result = _verify_acceptance(root, identity['policy'], identity['approved_ref'], run)
     if result['state'] != 'acceptance_approved' or result['ok'] is not True:
         raise TaskError('TASK_ACCEPTANCE: ' + _acceptance_failure(result))
     if (result['approved_ref'] != identity['approved_ref'] or result['policy_sha256'] != identity['policy_sha256']
@@ -1459,7 +1493,8 @@ def _finish(root, task, options, head):
     report.update(task_id=task['task_id'], tested_commit=head,
                   branch_tip=tip, approved_ref=task['approved_ref'], perimeter=perimeter,
                   contract_sha256=proof.digest(proof.normalized(blob(root, head, task['contract']))),
-                  target_sha256=proof.digest(proof.normalized(blob(root, head, metadata['target']))),
+                  target_sha256=target_digest(root, (task['approved_ref'], head), metadata,
+                                              check_checkout=True),
                   oracle_sha256=proof.digest(proof.normalized(blob(root, head, metadata['tests']))))
     content = json.dumps(report, ensure_ascii=True, sort_keys=True, indent=2) + '\n'
     task.update(verified_ref=head, evidence=evidence,
