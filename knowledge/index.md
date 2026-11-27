@@ -4,6 +4,7 @@ Bienvenido a la base de conocimiento del proyecto. El formato de los nodos está
 
 ## Referencia
 - [Revision proporcional antes del baseline](./baseline-risk-review.md)
+- [Aceptación obligatoria en el cierre de tareas](./contracts/task-finish-acceptance.md)
 - [Delegación efímera con Goldfish](./delegacion-efimera-goldfish.md)
 - [Vigencia de oráculos](./contracts/traceability-oracle-freshness.md)
 - [Criterios de cierre en CI](./contracts/completion-tested-criteria.md)
