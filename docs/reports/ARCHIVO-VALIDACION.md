@@ -216,3 +216,165 @@ reutilizable se activa con `change_contract_path`; usa el mismo
 activarse para PRs de implementacion cuya diferencia desde ese baseline sea
 la tarea declarada; un PR que agregue otros archivos necesita otro contrato o
 un alcance revisado. Sin esa entrada el paso informa SKIP.
+
+## Inventario historico de 49 excesos Python
+
+```text
+ERROR [BUDGET_CYCLOMATIC] assemble-context.md:_validate_contract: cyclomatic_max=39 excede cyclomatic_max=10
+ERROR [BUDGET_CYCLOMATIC] assemble-context.md:_assemble_okf_nodes: cyclomatic_max=11 excede cyclomatic_max=10
+ERROR [BUDGET_CYCLOMATIC] assemble-context.md:assemble: cyclomatic_max=28 excede cyclomatic_max=10
+ERROR [BUDGET_NESTING] assemble-context.md:assemble: nesting_max=6 excede nesting_max=4
+ERROR [BUDGET_CYCLOMATIC] attestation-gate.md:validate_report: cyclomatic_max=19 excede cyclomatic_max=16
+ERROR [BUDGET_NESTING] attestation-gate.md:validate_report: nesting_max=5 excede nesting_max=4
+ERROR [BUDGET_CYCLOMATIC] benchmark-gates.md:main: cyclomatic_max=15 excede cyclomatic_max=10
+ERROR [BUDGET_NESTING] benchmark-gates.md:main: nesting_max=5 excede nesting_max=4
+ERROR [BUDGET_CYCLOMATIC] changelog-gate.md:validate_changelog: cyclomatic_max=12 excede cyclomatic_max=10
+ERROR [BUDGET_CYCLOMATIC] check-agent-wiring.md:check_agent_wiring: cyclomatic_max=27 excede cyclomatic_max=10
+ERROR [BUDGET_CYCLOMATIC] check-graph.md:find_graph_cycles: cyclomatic_max=12 excede cyclomatic_max=10
+ERROR [BUDGET_CYCLOMATIC] commit-message-gate.md:main: cyclomatic_max=13 excede cyclomatic_max=10
+ERROR [BUDGET_NESTING] commit-message-gate.md:main: nesting_max=5 excede nesting_max=4
+ERROR [BUDGET_CYCLOMATIC] diagram-gate.md:parse_gantt: cyclomatic_max=17 excede cyclomatic_max=14
+ERROR [BUDGET_CYCLOMATIC] diagram-gate.md:_validate_flowchart: cyclomatic_max=17 excede cyclomatic_max=14
+ERROR [BUDGET_CYCLOMATIC] diagram-gate.md:_validate_gantt: cyclomatic_max=15 excede cyclomatic_max=14
+ERROR [BUDGET_CYCLOMATIC] diagram-gate.md:_validate_journey: cyclomatic_max=17 excede cyclomatic_max=14
+ERROR [BUDGET_NESTING] diagram-gate.md:main: nesting_max=5 excede nesting_max=4
+ERROR [BUDGET_CYCLOMATIC] evidence-hardening.md:main: cyclomatic_max=13 excede cyclomatic_max=12
+ERROR [BUDGET_CYCLOMATIC] forbids-audit.md:audit_contract: cyclomatic_max=13 excede cyclomatic_max=12
+ERROR [BUDGET_CYCLOMATIC] forbids-audit.md:main: cyclomatic_max=13 excede cyclomatic_max=12
+ERROR [BUDGET_NESTING] forbids-audit.md:main: nesting_max=5 excede nesting_max=4
+ERROR [BUDGET_NESTING] lint-ascii.md:_find_docstrings: nesting_max=5 excede nesting_max=4
+ERROR [BUDGET_CYCLOMATIC] lint-ascii.md:_lint_file: cyclomatic_max=15 excede cyclomatic_max=10
+ERROR [BUDGET_NESTING] lint-ascii.md:_lint_file: nesting_max=6 excede nesting_max=4
+ERROR [BUDGET_PARAMS] pages-build.md:update_landing: params_max=5 excede params_max=4
+ERROR [BUDGET_CYCLOMATIC] pages-build.md:build_pages: cyclomatic_max=13 excede cyclomatic_max=12
+ERROR [BUDGET_CYCLOMATIC] perimeter-gate.md:_parse_block: cyclomatic_max=11 excede cyclomatic_max=10
+ERROR [BUDGET_CYCLOMATIC] rules-gate.md:_validate_golden_forma: cyclomatic_max=20 excede cyclomatic_max=10
+ERROR [BUDGET_CYCLOMATIC] rules-gate.md:validate_rules: cyclomatic_max=12 excede cyclomatic_max=10
+ERROR [BUDGET_NESTING] seal-audit.md:main: nesting_max=5 excede nesting_max=4
+ERROR [BUDGET_CYCLOMATIC] skills-gate.md:_parse_block: cyclomatic_max=11 excede cyclomatic_max=10
+ERROR [BUDGET_CYCLOMATIC] skills-gate.md:validate_skills: cyclomatic_max=27 excede cyclomatic_max=10
+ERROR [BUDGET_CYCLOMATIC] ux-page-gate.md:_check_contrast: cyclomatic_max=17 excede cyclomatic_max=12
+ERROR [BUDGET_CYCLOMATIC] validate-article.md:validate_article: cyclomatic_max=34 excede cyclomatic_max=10
+ERROR [BUDGET_NESTING] validate-article.md:validate_article: nesting_max=6 excede nesting_max=3
+ERROR [BUDGET_CYCLOMATIC] validate-okf.md:_parse_block: cyclomatic_max=11 excede cyclomatic_max=10
+ERROR [BUDGET_CYCLOMATIC] validate-okf.md:_validate_frontmatter: cyclomatic_max=16 excede cyclomatic_max=10
+ERROR [BUDGET_NESTING] validate-okf.md:_validate_frontmatter: nesting_max=6 excede nesting_max=4
+ERROR [BUDGET_NESTING] validate-okf.md:_reachable_from_index: nesting_max=5 excede nesting_max=4
+ERROR [BUDGET_CYCLOMATIC] validate-payment-limit.md:validate_payment_limit: cyclomatic_max=13 excede cyclomatic_max=10
+ERROR [BUDGET_NESTING] validate-payment-limit.md:validate_payment_limit: nesting_max=4 excede nesting_max=3
+ERROR [BUDGET_CYCLOMATIC] validate-rules.md:_check_type: cyclomatic_max=12 excede cyclomatic_max=10
+ERROR [BUDGET_NESTING] validate-rules.md:_check_type: nesting_max=5 excede nesting_max=4
+ERROR [BUDGET_CYCLOMATIC] validate-rules.md:_check_bounds: cyclomatic_max=15 excede cyclomatic_max=10
+ERROR [BUDGET_NESTING] validate-rules.md:_check_bounds: nesting_max=5 excede nesting_max=4
+ERROR [BUDGET_CYCLOMATIC] validate-rules.md:evaluate: cyclomatic_max=38 excede cyclomatic_max=10
+ERROR [BUDGET_NESTING] validate-rules.md:evaluate: nesting_max=5 excede nesting_max=4
+ERROR [BUDGET_CYCLOMATIC] validate-specs.md:validate_file: cyclomatic_max=13 excede cyclomatic_max=10
+```
+
+## Diagnostico del tiempo de CI en octubre de 2026
+
+Medición del árbol `af680c1fd251b080c154ab2eacf62d74434a4451`. El [nodo de diagnóstico](../../knowledge/ci-diagnostico-2026-10.md) conserva su alcance y sus enlaces.
+
+### Medicion en GitHub Actions
+
+El [run 40648566045](https://github.com/MauricioPerera/KDD/actions/runs/40648566045)
+paso para ese arbol. Los jobs de validacion y Board corrieron en Ubuntu y
+Windows; la suite principal ejecuto dos pasadas por sistema con 1.636 IDs.
+Cada pasada declaro 9 skips en Windows y 10 en Ubuntu; esos IDs incluyen
+casos omitidos y no equivalen a 1.636 casos aprobados.
+
+| Medida | Windows | Ubuntu |
+| --- | ---: | ---: |
+| Job validate | 37 min 56 s | 7 min 2 s |
+| Comandos de contratos | 17 min 53 s | 2 min 30 s |
+| Suite, primera pasada | 9 min 26 s | 2 min 4 s |
+| Suite, segunda pasada | 9 min 12 s | 2 min 3 s |
+| Job Board | 1 min 11 s | 23 s |
+
+En Windows, los tres pasos consecutivos de contratos y suites sumaron
+36 min 31 s, alrededor del 96 % del job. Son tiempos de pared por paso, no
+la suma de los procesos que trabajan en paralelo. Esta muestra no demuestra
+por si sola la causa de la diferencia entre sistemas.
+
+El gate agrupo 121 contratos en 119 comandos unicos dentro de su invocacion.
+Un cruce estatico entre selectores de contratos e inventario detecto 1.483 IDs
+potencialmente compartidos con las suites. No acredita que todos se ejecutaran
+en ambos contextos ni que sus garantias sean equivalentes; los skips y la copia
+inicializada deben analizarse por separado.
+En Windows, `init-project` se ejecuto en exclusiva antes del pool de cuatro
+workers; sus 16 casos informaron 415,209 s de unittest. Ubuntu informo
+121,621 s para esos casos, sin la misma exclusividad. Ese tiempo incluye la
+creacion y validacion de un proyecto real y la suite en su copia. La
+[exclusividad y limites de recursos](../../knowledge/contracts/ci-contract-resources.md)
+responden a timeouts observados; no se ha demostrado que retirarlos sea seguro.
+
+Para ese mismo run, la salida de unittest permite atribuir tiempos parciales a
+110 contratos por sistema, pero no reconstruir todos los intervalos de los
+119 procesos: el resultado del gate se imprime al terminar el lote y sus
+reportes temporales por comando no se publicaron. Los tiempos de unittest no
+incluyen necesariamente todo el proceso. No es posible identificar el camino
+critico completo de ese gate con esos datos.
+
+### Perfil local de la copia inicializada
+
+Una ejecucion local Windows con Python 3.11.15, parsers fijados y actionlint
+verificado paso los 16 casos de `init-project` en 379,459 s. La suite de la
+copia tardo 370,348 s: 120 modulos, 1.530 IDs esperados y ejecutados, 73 skips
+declarados y cero errores. Esta copia tiene su propio inventario; no equivale
+a una de las dos pasadas de la plantilla original. Los skips incluyen casos
+de plantilla que no aplican y SDK o dependencias ausentes de ese entorno.
+
+Otra ejecucion local envolvio el runner para registrar los intervalos de sus
+120 workers. De 391,484 s entre el primer inicio y el ultimo final, cuatro
+workers estuvieron activos 384,500 s. Tras el inicio del ultimo modulo
+restaron 7,781 s. El envoltorio llamo `run_suite` directamente, sin el proceso
+supervisor habitual, y agrego escritura de diagnostico. La ocupacion de
+workers no mide uso de CPU ni de disco; es una muestra local, no CI remoto.
+
+En esta muestra, la falta de modulos disponibles para repartir no explica una
+gran cola final. Reordenarlos podria cambiar la contencion y los tiempos: un
+modelo con duraciones fijas no demuestra ahorro. La instrumentacion y las
+cargas locales impiden extrapolar sus porcentajes a los runners de GitHub.
+
+Dos intentos locales anteriores fallaron por preparacion del entorno y
+fixtures: uno carecia de actionlint y otro de los parsers requeridos. Se
+conservaron como fallos de diagnostico, no como pruebas verdes ni como fallos
+del CI de referencia. Los reportes y trazas crudas de esta investigacion
+quedaron en `.agents/logs/`, que es local e ignorado por Git; este nodo no
+afirma que esten disponibles en un clon nuevo.
+
+### Costes de operaciones Git y lectura de tareas
+
+Una traza local del piloto de cuatro tareas registro 2.145 procesos Git; 22
+llamadas a `git log` coincidieron con la lectura de historiales bajo el arbol
+de Board. Una consulta de historial de un fixture concreto lanzo 10 procesos
+Git por CLI y 7 mediante la llamada directa; devolvieron las mismas cuatro
+entradas con `main` estable. No se midio un ahorro del job completo.
+
+La CLI lee las tareas antes de solicitar el historial, que vuelve a comprobar
+su existencia. En un clon aislado, al cambiar `main` entre lecturas, los dos
+caminos produjeron errores distintos: `TASK_MISSING` y `TASK_GIT`. El ensayo
+no ejecuto Board HTTP. Una modificacion debe definir primero la semantica de
+errores y carreras y preservar la frescura de refs y la auditoria historica.
+Ver [presupuesto de lectura de main](../../knowledge/contracts/task-main-read-budget.md) y
+[coste de lectura del historial](../../knowledge/task-history-read-cost.md).
+
+### Preguntas abiertas y siguiente medicion
+
+1. Registrar por comando y por worker inicio, fin, veredicto y contexto para
+   identificar el camino critico real, sin interpretar la suma de procesos
+   concurrentes como tiempo de pared. La instrumentacion necesita validar
+   su coste y confiabilidad antes de afectar el CI.
+2. Perfilar las fases y recursos de las integraciones mas largas, manteniendo
+   las pruebas reales, las esperas de terminacion y sus limites. Ni el coste
+   local de una copia ni el numero de procesos prueba una causa del CI remoto.
+3. Comparar varias muestras equivalentes antes y despues: SHA, evento,
+   intento, SO, versiones, inventarios, skips y fallos; reportar job critico,
+   tiempo total y suma de jobs por separado. No atribuir causalidad a
+   diferencias de runner, cache o cantidad de pruebas no controladas.
+4. Para cualquier cambio futuro, definir primero contratos y oraculos,
+   preservar Ubuntu/Windows, cobertura y dos pasadas, y seguir la
+   [aprobacion de calidad](../../knowledge/quality-approval.md) y el
+   [protocolo de medicion](../../knowledge/ci-runtime.md). Esta investigacion no autoriza
+   cambios de runtime, protecciones ni reutilizacion de resultados entre
+   pasadas.

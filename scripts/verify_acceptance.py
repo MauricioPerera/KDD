@@ -11,7 +11,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-from oracle_execution import declared_timeout, execute_oracle
+from oracle_execution import declared_timeout, execute_acceptance_oracle
 from oracle_inventory import approved_binary_paths, inventory_paths, local_file
 from validate_contracts import parse_frontmatter, validate_file
 from validation_runtime import prepare_runtime
@@ -142,11 +142,11 @@ def _matrix(item, data, protected, snapshot):
             'obligations': [{'obligation': name, 'status': 'NOT_RUN', 'evidence': []} for name in required]}
 
 
-def _run(row, metadata, root, timeout, recheck):
+def _run(row, metadata, root, timeout, recheck, run):
     row['status'] = 'FAIL'
     inventory = None
     for iteration in (1, 2):
-        outcome = execute_oracle(metadata, root, timeout, record_ids=True, allow_node_ids=True)
+        outcome = execute_acceptance_oracle(metadata, root, timeout, run)
         receipt = {'iteration': iteration, 'command': metadata['test_command'],
                    'runner': metadata['test_runner'], 'exit_code': outcome['exit_code'],
                    'executed_tests': outcome['executed_tests'], 'error': outcome['error'],
@@ -170,6 +170,10 @@ def _run(row, metadata, root, timeout, recheck):
 
 def verify_acceptance(repo_root, policy_path, approved_ref):
     """Verify an approved policy; failure always returns an unapproved matrix."""
+    return _verify_acceptance(repo_root, policy_path, approved_ref, None)
+
+
+def _verify_acceptance(repo_root, policy_path, approved_ref, run):
     result = {'schema_version': 1, 'ok': False, 'state': 'structure_invalid', 'contracts': []}
     try:
         root = Path(repo_root).resolve(strict=True)
@@ -198,7 +202,7 @@ def verify_acceptance(repo_root, policy_path, approved_ref):
                                                                'error': 'Required obligation has no approved check'}])
                 result['error'] = 'Missing required obligations: ' + ', '.join(sorted(missing))
                 return result
-            if not _run(rows['oracle-execution'], data, root, declared_timeout(data), recheck):
+            if not _run(rows['oracle-execution'], data, root, declared_timeout(data), recheck, run):
                 return result
         result['state'] = 'tests_approved'
         for matrix, (_, data, checks) in zip(result['contracts'], contracts):
@@ -206,7 +210,7 @@ def verify_acceptance(repo_root, policy_path, approved_ref):
             for name in sorted(checks):
                 check = checks[name]
                 metadata = dict(check, oracle_files=inventory_paths(data, required=True))
-                if not _run(rows[name], metadata, root, check['timeout'], recheck):
+                if not _run(rows[name], metadata, root, check['timeout'], recheck, run):
                     return result
         recheck()
         result.update(ok=True, state='acceptance_approved')

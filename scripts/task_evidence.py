@@ -1,13 +1,18 @@
 """Run a recognized sealed oracle; this executor is trusted, not a sandbox."""
 from functools import partial
 import hashlib
+import json
 import os
 from pathlib import Path
 import re
 import shlex
 import subprocess as _process_api
 
-from task_model import TaskError
+from task_model import TaskError, valid_sha
+
+
+ACCEPTANCE_CHECKS = frozenset(('signature', 'dependencies', 'budget', 'forbids', 'invariants'))
+ACCEPTANCE_INTERNAL = frozenset(('oracle-integrity', 'oracle-execution', 'perimeter'))
 
 
 class _ContainedProcessAPI:
@@ -34,6 +39,15 @@ def digest(content):
 
 def normalized(content):
     return content.replace('\r\n', '\n').replace('\r', '\n')
+
+
+def json_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('TASK_EVIDENCE: duplicate JSON key: ' + key)
+        result[key] = value
+    return result
 
 
 def oracle_path(metadata):
@@ -131,9 +145,86 @@ def execute(metadata, root, timeout=120):
     output = result['stdout'] + result['stderr']
     if not result['ok']:
         raise TaskError('TASK_TESTS: failing or zero recognized tests\n' + output[-1500:])
+    return _receipt(metadata, root, runner, files, result)
+
+
+def _receipt(metadata, root, runner, files, result):
     rows = result['evidence']['files']
     recorded = {name: rows[str((Path(root) / name).resolve())] for name in files}
     return {'schema_version': 2, 'command': metadata['test_command'], 'runner': runner,
             'exit_code': result['exit_code'], 'passed_tests': result['executed_tests'],
             'stdout': result['stdout'], 'stderr': result['stderr'],
-            'oracle_results': recorded, 'output_sha256': digest(output)}
+            'oracle_results': recorded, 'output_sha256': digest(result['stdout'] + result['stderr'])}
+
+
+def _pass_receipt(root, attempt):
+    ids = {Path(name).relative_to(root).as_posix(): sorted(cases)
+           for name, cases in attempt['runner_evidence']['case_ids'].items()}
+    inventory = json.dumps(ids, sort_keys=True, separators=(',', ':'))
+    return {'iteration': attempt['iteration'], 'executed': attempt['executed_tests'],
+            'case_ids_sha256': digest(inventory), 'output_sha256': attempt['output_sha256']}
+
+
+def acceptance_receipt(metadata, root, matrix, identity, contract):
+    """Reuse the second primary run and retain compact evidence for each row."""
+    checks, primaries = [], {}
+    for item in matrix['contracts']:
+        for row in item['obligations']:
+            name = row['obligation']
+            if name in ('oracle-integrity', 'perimeter'):
+                continue
+            checks.append({'contract': item['path'], 'obligation': name,
+                           'passes': [_pass_receipt(root, p) for p in row['evidence']]})
+            if name == 'oracle-execution':
+                primaries[item['path']] = row['evidence'][1]
+    primary = primaries[contract]
+    outcome = {**primary, 'evidence': primary['runner_evidence']}
+    _, runner, files = selection(metadata)
+    report = _receipt(metadata, root, runner, files, outcome)
+    report['acceptance'] = dict(identity, checks=checks)
+    return report
+
+
+def _acceptance_pass(attempt, iteration):
+    keys = {'iteration', 'executed', 'case_ids_sha256', 'output_sha256'}
+    if not isinstance(attempt, dict) or attempt.keys() != keys:
+        return False
+    return (type(attempt['iteration']) is int and attempt['iteration'] == iteration
+            and type(attempt['executed']) is int and attempt['executed'] > 0
+            and all(valid_sha(attempt[field]) and len(attempt[field]) == 64
+                    for field in ('case_ids_sha256', 'output_sha256')))
+
+
+def _accepted_rows(checks):
+    if not isinstance(checks, list):
+        raise TaskError('TASK_ACCEPTANCE: checks must be a list')
+    rows = {}
+    for row in checks:
+        if not isinstance(row, dict) or set(row) != {'contract', 'obligation', 'passes'}:
+            raise TaskError('TASK_ACCEPTANCE: invalid obligation record')
+        key = row['contract'], row['obligation']
+        if not all(isinstance(value, str) for value in key) or key in rows:
+            raise TaskError('TASK_ACCEPTANCE: invalid or repeated obligation')
+        passes = row['passes']
+        if not isinstance(passes, list) or len(passes) != 2 or not all(
+                _acceptance_pass(attempt, index) for index, attempt in enumerate(passes, 1)):
+            raise TaskError('TASK_ACCEPTANCE: expected two complete passes for ' + ' / '.join(key))
+        if any(passes[0][name] != passes[1][name] for name in ('executed', 'case_ids_sha256')):
+            raise TaskError('TASK_ACCEPTANCE: case inventory differs between passes')
+        rows[key] = passes[1]
+    return rows
+
+
+def check_acceptance_receipt(report, identity, expected, contract):
+    accepted = report.get('acceptance')
+    if report['schema_version'] != 2 or not isinstance(accepted, dict) or (
+            set(accepted) != set(identity) | {'checks'}
+            or any(accepted[field] != value for field, value in identity.items())):
+        raise TaskError('TASK_ACCEPTANCE: absent receipt or identity differs from Git')
+    rows = _accepted_rows(accepted['checks'])
+    if rows.keys() != expected:
+        raise TaskError('TASK_ACCEPTANCE: receipt differs from approved obligation inventory')
+    primary = rows[contract, 'oracle-execution']
+    if (primary['executed'] != report['passed_tests']
+            or primary['output_sha256'] != report['output_sha256']):
+        raise TaskError('TASK_ACCEPTANCE: primary result differs from second acceptance pass')

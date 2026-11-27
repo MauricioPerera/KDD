@@ -2,6 +2,7 @@
 from contextlib import contextmanager
 from contextvars import ContextVar
 import fnmatch
+from functools import partial
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -29,6 +30,13 @@ class _PerimeterContext(NamedTuple):
     base: str
     tip: str
     tested: str
+
+
+class _AcceptancePlan(NamedTuple):
+    identity: dict
+    policy_bytes: bytes
+    files: tuple
+    checks: frozenset
 
 
 @contextmanager
@@ -1279,8 +1287,10 @@ def _compare_finish_artifacts(root, revision, names, committed=None):
 
 
 def _finish_artifacts(root, task, metadata, revision):
-    names = sorted({task['contract'], metadata['tests'], metadata['target'],
-                    task_path(task['task_id'])})
+    artifacts = {task['contract'], metadata['tests'], task_path(task['task_id'])}
+    if 'acceptance_policy' not in metadata:
+        artifacts.add(metadata['target'])
+    names = sorted(artifacts)
     try:
         committed = blobs(root, revision, names)
     except TaskError:
@@ -1289,6 +1299,166 @@ def _finish_artifacts(root, task, metadata, revision):
         _compare_finish_artifacts(root, revision, names)
         raise
     _compare_finish_artifacts(root, revision, names, committed)
+
+
+def target_digest(root, revisions, metadata, *, check_checkout=False):
+    approved, revision = revisions
+    name = metadata['target']
+    if 'acceptance_policy' not in metadata:
+        return proof.digest(proof.normalized(blob(root, revision, name)))
+    expected = _oracle_artifacts(root, revision, (name,))
+    binary = _oracle_binary_paths(root, approved, (name,))
+    if check_checkout and _different_oracle(_checkout_oracles(root, expected), expected, binary):
+        raise TaskError('TASK_ACCEPTANCE: checkout file differs from tested commit: ' + name)
+    content = expected[name]
+    if name not in binary and b'\0' not in content:
+        content = content.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+    return proof.digest(content)
+
+
+def _acceptance_policy_paths(policy):
+    from oracle_inventory import exact_path
+    for name in ('implementation', 'pm'):
+        paths = policy[name]
+        if not isinstance(paths, list) or len(set(map(exact_path, paths))) != len(paths):
+            raise ValueError('Invalid or repeated policy path in ' + name)
+    if set(policy['implementation']) & set(policy['pm']):
+        raise ValueError('Implementation and PM paths must be disjoint')
+
+
+def _acceptance_entries(policy):
+    from oracle_inventory import exact_path
+    if (not isinstance(policy, dict) or set(policy) != {'schema_version', 'implementation', 'pm', 'contracts'}
+            or type(policy['schema_version']) is not int or policy['schema_version'] != 1):
+        raise ValueError('Invalid acceptance policy schema')
+    _acceptance_policy_paths(policy)
+    entries = {}
+    if not isinstance(policy['contracts'], list):
+        raise ValueError('Expected a list of acceptance contracts')
+    for item in policy['contracts']:
+        if not isinstance(item, dict) or set(item) != {'path', 'checks'} or not isinstance(item['checks'], list):
+            raise ValueError('Invalid acceptance contract')
+        path = exact_path(item['path'])
+        if path in entries:
+            raise ValueError('Repeated acceptance contract: ' + path)
+        entries[path] = item['checks']
+    return entries
+
+
+def _acceptance_required(data):
+    extra = data.get('acceptance_obligations', [])
+    if not isinstance(extra, list) or not all(
+            isinstance(name, str) and name.strip() and '\x00' not in name for name in extra):
+        raise ValueError('Invalid additional acceptance obligations')
+    required = proof.ACCEPTANCE_CHECKS | set(extra)
+    if required & proof.ACCEPTANCE_INTERNAL:
+        raise ValueError('Internal obligations cannot be overridden')
+    return required
+
+
+def _acceptance_obligations(path, data, checks):
+    from oracle_inventory import inventory_paths
+    inventory = inventory_paths(data, required=True)
+    names = set()
+    for check in checks:
+        if not isinstance(check, dict) or set(check) != {'obligation', 'tests', 'test_runner', 'test_command', 'timeout'}:
+            raise ValueError('Invalid obligation in ' + path)
+        name = check['obligation']
+        if not isinstance(name, str) or name in names or check['tests'] not in inventory:
+            raise ValueError('Invalid, repeated or unprotected obligation in ' + path)
+        if check['test_runner'] not in ('python-unittest', 'node-test'):
+            raise ValueError('Unsupported obligation runner in ' + path)
+        timeout = check['timeout']
+        if type(timeout) is not int or not 0 < timeout <= 3600:
+            raise ValueError('Invalid obligation timeout in ' + path)
+        names.add(name)
+    if names != _acceptance_required(data):
+        raise ValueError('Incomplete obligation inventory in ' + path)
+    return {(path, name) for name in names | {'oracle-execution'}}
+
+
+def _acceptance_scope(root, revisions, policy, entries):
+    from oracle_inventory import exact_path
+    approved, tested = revisions
+    snapshots = _oracle_snapshots(root, tuple(dict.fromkeys(revisions)), entries)
+    files, rows = set(policy['implementation']), set()
+    for path, source in snapshots[approved].items():
+        if source != snapshots[tested][path]:
+            raise ValueError('Contract differs from approval: ' + path)
+        data, _ = parse_frontmatter(source.decode('utf-8'))
+        if not isinstance(data, dict) or data.get('type') != 'Task Contract':
+            raise ValueError('Invalid acceptance contract: ' + path)
+        if data.get('test_runner') not in ('python-unittest', 'node-test'):
+            raise ValueError('Acceptance requires a managed contract runner: ' + path)
+        files.add(exact_path(data.get('target')))
+        rows.update(_acceptance_obligations(path, data, entries[path]))
+    return tuple(sorted(files)), frozenset(rows)
+
+
+def _acceptance_plan(root, task, metadata, revision):
+    """Load the checkout-independent part of task acceptance from original Git objects."""
+    from oracle_inventory import exact_path
+    name = metadata['acceptance_policy']
+    approved = task['approved_ref']
+    revisions = approved, revision
+    try:
+        path = exact_path(name)
+        snapshots = _oracle_snapshots(root, tuple(dict.fromkeys(revisions)), [path])
+        raw = snapshots[approved][path]
+        if raw != snapshots[revision][path]:
+            raise ValueError('Policy differs from approval')
+        policy = json.loads(raw.decode('utf-8'), object_pairs_hook=proof.json_object)
+        entries = _acceptance_entries(policy)
+        if task['contract'] not in entries:
+            raise ValueError('Policy must include ' + task['contract'])
+        files, rows = _acceptance_scope(root, revisions, policy, entries)
+    except (TaskError, OSError, ValueError, TypeError, KeyError) as error:
+        raise TaskError('TASK_ACCEPTANCE: {}: {}'.format(name, error)) from error
+    identity = {'policy': path, 'policy_sha256': proof.digest(raw), 'approved_ref': approved,
+                'tested_commit': revision}
+    return _AcceptancePlan(identity, raw, files, rows)
+
+
+def _acceptance_snapshot(root, plan):
+    path = plan.identity['policy']
+    if proof.normalized(safe_path(root, path).read_text(encoding='utf-8')) != proof.normalized(
+            plan.policy_bytes.decode('utf-8')):
+        raise TaskError('TASK_ACCEPTANCE: checkout policy differs from approval: ' + path)
+    expected = _oracle_artifacts(root, plan.identity['tested_commit'], plan.files)
+    binary = _oracle_binary_paths(root, plan.identity['approved_ref'], plan.files)
+    current = _checkout_oracles(root, expected)
+    changed = _different_oracle(current, expected, binary)
+    if changed:
+        raise TaskError('TASK_ACCEPTANCE: checkout file differs from tested commit: ' + changed)
+    return {name: proof.digest(raw) for name, raw in current.items()}
+
+
+def _acceptance_failure(result):
+    if result.get('error'):
+        return result['error']
+    for contract in result['contracts']:
+        for row in contract['obligations']:
+            if row['status'] == 'FAIL':
+                detail = row['evidence'][-1]
+                reason = detail.get('error') or 'oracle exited with code ' + str(detail.get('exit_code'))
+                return ' / '.join((contract['path'], row['obligation'], reason))
+    return 'acceptance did not complete'
+
+
+def _finish_acceptance(root, task, metadata, plan):
+    from verify_acceptance import _verify_acceptance
+    snapshot = _acceptance_snapshot(root, plan)
+    identity = plan.identity
+    run = partial(proof.subprocess.run, stdin=proof.subprocess.DEVNULL)
+    result = _verify_acceptance(root, identity['policy'], identity['approved_ref'], run)
+    if result['state'] != 'acceptance_approved' or result['ok'] is not True:
+        raise TaskError('TASK_ACCEPTANCE: ' + _acceptance_failure(result))
+    if (result['approved_ref'] != identity['approved_ref'] or result['policy_sha256'] != identity['policy_sha256']
+            or result['implementation_hashes'] != snapshot or _acceptance_snapshot(root, plan) != snapshot):
+        raise TaskError('TASK_ACCEPTANCE: policy or tested checkout changed during acceptance')
+    report = proof.acceptance_receipt(metadata, root, result, identity, task['contract'])
+    proof.check_acceptance_receipt(report, identity, plan.checks, task['contract'])
+    return report
 
 
 def _finish(root, task, options, head):
@@ -1306,7 +1476,15 @@ def _finish(root, task, options, head):
     metadata = contract_metadata(root, task, head)
     perimeter = task_perimeter(root, task, head, tip)
     _finish_artifacts(root, task, metadata, head)
-    report = proof.execute(metadata, root, options.get('timeout', 120))
+    if 'acceptance_policy' in metadata:
+        if not options.get('verify_acceptance'):
+            raise TaskError('TASK_ACCEPTANCE: finish this task with --verify-acceptance')
+        plan = _acceptance_plan(root, task, metadata, head)
+        report = _finish_acceptance(root, task, metadata, plan)
+    else:
+        if options.get('verify_acceptance'):
+            raise TaskError('TASK_ACCEPTANCE: approved contract does not declare acceptance_policy')
+        report = proof.execute(metadata, root, options.get('timeout', 120))
     _clean_main(root, head)
     if commit_sha(root, task['branch']) != tip:
         raise TaskError('TASK_RACE: implementation tip changed during verification')
@@ -1315,7 +1493,8 @@ def _finish(root, task, options, head):
     report.update(task_id=task['task_id'], tested_commit=head,
                   branch_tip=tip, approved_ref=task['approved_ref'], perimeter=perimeter,
                   contract_sha256=proof.digest(proof.normalized(blob(root, head, task['contract']))),
-                  target_sha256=proof.digest(proof.normalized(blob(root, head, metadata['target']))),
+                  target_sha256=target_digest(root, (task['approved_ref'], head), metadata,
+                                              check_checkout=True),
                   oracle_sha256=proof.digest(proof.normalized(blob(root, head, metadata['tests']))))
     content = json.dumps(report, ensure_ascii=True, sort_keys=True, indent=2) + '\n'
     task.update(verified_ref=head, evidence=evidence,
