@@ -1,10 +1,11 @@
-"""Exercise acceptance-gated task closure with Git and both managed runners."""
+"""Exercise task_git closure through the CLI with Git and both managed runners."""
 import hashlib
 import json
 from pathlib import Path
 import shutil
 import sys
 import tempfile
+import time
 import unittest
 
 from tests.test_generated_task_evidence import ROOT, TaskProject
@@ -21,6 +22,8 @@ PROBES = ('PYTHON', 'PYTHON_POLICY', 'NODE', 'NODE_POLICY')
 OBLIGATIONS = ('signature', 'dependencies', 'budget', 'forbids', 'invariants')
 MATRIX = {(path, key) for path in (TASK_CONTRACT, VIEW_CONTRACT)
           for key in ('oracle-execution', *OBLIGATIONS)}
+
+
 def _python_probe(kind):
     return '''
 def setUpModule():
@@ -42,6 +45,28 @@ class ProductPolicy(unittest.TestCase):
     def test_value_policy(self):
         self.assertEqual(f1(8), 8)
 ''' + _python_probe('PYTHON_POLICY')
+
+PIPE_CHILD = '''import os
+from pathlib import Path
+import time
+
+marker = Path(os.environ['KDD_FINISH_PIPE_PROBE'])
+late_at = time.monotonic() + 8
+marker.write_text(str(late_at), encoding='utf-8')
+time.sleep(max(0, late_at - time.monotonic()))
+marker.with_suffix('.late').touch()
+'''
+
+WAITING_POLICY = '''import subprocess
+import sys
+import time
+import unittest
+
+class WaitingPolicy(unittest.TestCase):
+    def test_waits_with_an_inherited_pipe(self):
+        subprocess.Popen([sys.executable, '-I', '-B', '-c', %r])
+        time.sleep(25)
+''' % PIPE_CHILD + _python_probe('PYTHON_POLICY')
 
 
 def _view_oracle(kind, symbol, argument, expected, message):
@@ -102,20 +127,21 @@ def _view_contract():
                             'test_timeout': 30, 'oracle_files': repr([NODE_TEST, NODE_CHECK, 'package.json'])})
 
 
-def _entry(path, runner, oracle, command):
+def _entry(path, runner, oracle, command, timeout=30):
     return {'path': path, 'checks': [
         {'obligation': name, 'tests': oracle, 'test_runner': runner,
-         'test_command': command, 'timeout': 30}
+         'test_command': command, 'timeout': timeout}
         for name in OBLIGATIONS
     ]}
 
 
-def _put_policy(project, include_task):
+def _put_policy(project, include_task, wait_for_timeout):
     entries = [
-        _entry(TASK_CONTRACT, 'python-unittest', PYTHON_CHECK, f'python -m unittest {PYTHON_CHECK}'),
+        _entry(TASK_CONTRACT, 'python-unittest', PYTHON_CHECK, f'python -m unittest {PYTHON_CHECK}',
+               timeout=5 if wait_for_timeout else 30),
         _entry(VIEW_CONTRACT, 'node-test', NODE_CHECK, f'node --test {NODE_CHECK}'),
     ]
-    policy = {'schema_version': 1, 'implementation': ['src/feature1.py'],
+    policy = {'schema_version': 1, 'implementation': ['src/feature1.py', 'src/view.ts'],
               'pm': ['knowledge/tasks/TASK-001.md'], 'contracts': entries if include_task else entries[1:]}
     project.write(POLICY, json.dumps(policy) + '\n')
 
@@ -127,12 +153,12 @@ class FinishAcceptance(unittest.TestCase):
         self.directory = Path(area.name)
         self.probes = {name: self.directory / f'{name.lower()}.log' for name in PROBES}
 
-    def prepare(self, *, policy=POLICY, include_task=True, heading='Resultado'):
+    def prepare(self, *, policy=POLICY, include_task=True, heading='Resultado', wait_for_timeout=False):
         project = TaskProject(self.directory / 'project')
         for name in ('verify_acceptance.py', 'validation_runtime.py', 'board_test_evidence.py'):
             shutil.copyfile(ROOT / 'scripts' / name, project.root / 'scripts' / name)
         project.write(PRIMARY, PYTHON_ORACLE)
-        project.write(PYTHON_CHECK, PYTHON_POLICY)
+        project.write(PYTHON_CHECK, WAITING_POLICY if wait_for_timeout else PYTHON_POLICY)
         project.write(TASK_CONTRACT, _python_contract(policy))
         project.write('package.json', '{"type":"module"}\n')
         project.write('src/view.ts',
@@ -141,7 +167,7 @@ class FinishAcceptance(unittest.TestCase):
         project.write(NODE_TEST, VIEW_ORACLE)
         project.write(NODE_CHECK, VIEW_POLICY)
         project.write(VIEW_CONTRACT, _view_contract())
-        _put_policy(project, include_task)
+        _put_policy(project, include_task, wait_for_timeout)
         quality = project.policy()
         quality['protected'].extend([
             'scripts/oracle_inventory.py', PYTHON_CHECK, VIEW_CONTRACT, NODE_TEST,
@@ -250,9 +276,7 @@ class FinishAcceptance(unittest.TestCase):
         self.assertEqual(self.runs('PYTHON'), [tested] * 2)
         self.assertEqual(self.runs('NODE'), [tested] * 2)
         for kind in ('PYTHON_POLICY', 'NODE_POLICY'):
-            runs = self.runs(kind)
-            self.assertGreaterEqual(len(runs), 2)
-            self.assertEqual(set(runs), {tested})
+            self.assertEqual(self.runs(kind), [tested] * (2 * len(OBLIGATIONS)))
         digests = {attempts[0]['case_ids_sha256'] for attempts in checks.values()}
         self.assertEqual(len(digests), 4)
         self.assertEqual(checks[(TASK_CONTRACT, 'oracle-execution')][1]['output_sha256'],
@@ -295,6 +319,31 @@ class FinishAcceptance(unittest.TestCase):
         project.commit('Local policy changed after its review')
         self.rejected(project, POLICY, '--verify-acceptance')
         self.assertTrue(all(not self.runs(kind) for kind in PROBES))
+
+    def test_approved_companion_target_must_match_the_tested_commit(self):
+        project = self.prepare()
+        target = 'src/view.ts'
+        project.git('update-index', '--assume-unchanged', target)
+        view = project.root / target
+        with view.open('a', encoding='utf-8') as stream:
+            stream.write('// local drift\n')
+        self.assertEqual(project.git('status', '--porcelain'), '')
+        self.rejected(project, target, '--verify-acceptance')
+        self.assertTrue(all(not self.runs(kind) for kind in PROBES))
+
+    def test_obligation_timeout_cleans_the_child_that_inherits_output(self):
+        project = self.prepare(wait_for_timeout=True)
+        marker = self.directory / 'child.ready'
+        project.env['KDD_FINISH_PIPE_PROBE'] = str(marker)
+        tested = project.git('rev-parse', 'HEAD')
+        self.rejected(project, 'timeout', '--verify-acceptance')
+        self.assertEqual(self.runs('PYTHON'), [tested] * 2)
+        self.assertEqual(self.runs('NODE'), [tested] * 2)
+        self.assertEqual(self.runs('PYTHON_POLICY'), [tested])
+        self.assertTrue(marker.is_file(), 'the timed-out runner must actually start the child')
+        late_at = float(marker.read_text(encoding='utf-8'))
+        time.sleep(max(0, late_at + .25 - time.monotonic()))
+        self.assertFalse(marker.with_suffix('.late').exists(), 'child survived the row timeout')
 
 
 if __name__ == '__main__':
