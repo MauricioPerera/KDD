@@ -3,6 +3,7 @@
 import argparse
 import ast
 import hashlib
+import json
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
@@ -167,32 +168,65 @@ def comparisons(root, before, after, directory):
         yield path, target, budget, old, blob_id(after, target)
 
 
-def overruns(contract, target, budget, original, candidate):
+def overruns(contract, target, budget, original, candidate, *, measurements=None):
     findings = []
     for name, current in sorted(candidate.items()):
         previous = original.get(name)
         if current == previous:
             continue
-        print('MEASURE %s %s:%s %s' % (contract, target, name, current[1]))
-        for key, limit in budget.items():
-            value = current[1][key]
-            if value > limit and (previous is None or value > previous[1][key]):
+        metrics = current[1]
+        exceeded = {key: limit for key, limit in budget.items() if metrics[key] > limit}
+        if measurements is None:
+            print('MEASURE %s %s:%s %s' % (contract, target, name, metrics))
+        else:
+            measurements.append(dict(contract=contract, function=name, metrics=metrics,
+                                     limits=budget, within_budget=not exceeded))
+        for key, limit in exceeded.items():
+            value = metrics[key]
+            if previous is None or value > previous[1][key]:
                 findings.append('ERROR [%s] %s %s:%s %s=%s exceeds %s' %
                                 (_RULES[key], contract, target, name, key, value, limit))
     return findings
 
 
-def audit(root, directory, base, head):
+def changed_files(before, after):
+    files = {}
+    for path in sorted(before.keys() | after.keys()):
+        if before.get(path) == after.get(path):
+            continue
+        if path not in after:
+            status = 'deleted'
+        elif not path.lower().endswith('.py'):
+            status = 'not_python'
+        else:
+            status = 'no_python_contract'
+        files[path] = dict(path=path, status=status, contracts=[], measurements=[])
+    return files
+
+
+def audit(root, directory, base, head, *, receipt=False):
     compare_refs(root, base, head)
-    jobs = list(comparisons(root, tree(root, base), tree(root, head), directory))
+    before, after = tree(root, base), tree(root, head)
+    jobs = list(comparisons(root, before, after, directory))
     contents = blobs(root, (oid for job in jobs for oid in job[-2:] if oid))
+    files = changed_files(before, after) if receipt else {}
     parsed = {}
     findings = []
     for contract, target, budget, old, new in jobs:
         for oid in (old, new):
             if oid is not None and oid not in parsed:
                 parsed[oid] = functions(contents[oid], target)
-        findings.extend(overruns(contract, target, budget, parsed.get(old, {}), parsed[new]))
+        entry = files.get(target)
+        measurements = entry['measurements'] if entry is not None else None
+        findings.extend(overruns(contract, target, budget, parsed.get(old, {}), parsed[new],
+                                 measurements=measurements))
+        if entry is not None:
+            entry['contracts'].append(contract)
+            entry['status'] = 'measured' if measurements else 'no_changed_functions'
+    if receipt:
+        return dict(schema_version=1, base_ref=base, head_ref=head,
+                    regression_status='FAIL' if findings else 'PASS',
+                    files=list(files.values()), findings=findings)
     return findings
 
 
@@ -202,13 +236,18 @@ def main():
     parser.add_argument('--repo-root', default='.')
     parser.add_argument('--base-ref', required=True)
     parser.add_argument('--head-ref', required=True)
+    parser.add_argument('--json', action='store_true', help='emit a complete measurement receipt')
     args = parser.parse_args()
     try:
-        findings = audit(Path(args.repo_root).resolve(strict=True),
-                         exact_path(args.contracts_dir), args.base_ref, args.head_ref)
+        result = audit(Path(args.repo_root).resolve(strict=True),
+                       exact_path(args.contracts_dir), args.base_ref, args.head_ref, receipt=args.json)
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         print('FAIL changed budgets: ' + str(error), file=sys.stderr)
         return 1
+    if args.json:
+        print(json.dumps(result, sort_keys=True, separators=(',', ':')))
+        return int(bool(result['findings']))
+    findings = result
     for finding in findings:
         print(finding)
     print('%s: %s changed Python budget finding(s)' %
