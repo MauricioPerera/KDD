@@ -15,6 +15,35 @@ export const transitions: Record<string, Record<string, string>> = {
 export type GitTask = Record<string, any> & {id:string; task_id:string; status:string; sourceRef:'main'};
 export type JournalEntry = {commit:string; status:string; reason:string};
 type Mutation = {commit:string; task:GitTask};
+type CommandMode = 'operation' | 'snapshot' | 'acceptance';
+type AcceptanceContext = {
+  task: GitTask;
+  journal: JournalEntry[];
+  observed_commit: string;
+  requires_acceptance: boolean;
+};
+export type AcceptanceClosure = {
+  tested_commit: string;
+  approved_ref: string;
+  closed_commit: string;
+  receipt_sha256: string;
+};
+export type AcceptanceSnapshot = {
+  status: string;
+  approved_ref: string;
+  observed_commit: string;
+  requires_acceptance: boolean;
+  closure?: AcceptanceClosure;
+};
+type EvidenceProjection = {
+  status: 'pending' | 'available';
+  task_id: string;
+  observed_commit: string;
+  tested_commit?: string;
+  approved_ref?: string;
+  artifact?: {path: string; sha256: string};
+  acceptance?: {passes: number; checks: number};
+};
 
 export class BoardGitError extends Error {
   status: number;
@@ -103,27 +132,30 @@ export class GitTaskStore {
   readonly root: string;
   constructor(projectDir: string) {this.root = path.resolve(projectDir);}
 
-  private async command(args: string[], binary=process.env.KDD_PYTHON || 'python', snapshot=false): Promise<string> {
+  private async command(args: string[], binary=process.env.KDD_PYTHON || 'python', mode: CommandMode = 'operation'): Promise<string> {
     const env: NodeJS.ProcessEnv = {...process.env,PYTHONUTF8:'1',PYTHONDONTWRITEBYTECODE:'1'};
     delete env.NODE_TEST_CONTEXT;
     delete env.KDD_BOARD_TOKEN;
+    const timeout = {operation: 180_000, snapshot: 360_000, acceptance: 0}[mode];
     try {
       const {stdout} = await execute(binary,args,{cwd:this.root,encoding:'utf8',
-        timeout:snapshot ? 360_000 : 180_000,maxBuffer:(snapshot ? 16 : 8)*1024*1024,windowsHide:true,env});
+        timeout,maxBuffer:(mode === 'snapshot' ? 16 : 8)*1024*1024,windowsHide:true,env});
       return stdout;
     } catch (error: any) {
       const message = String(error.stderr || error.message || 'Coordinator failed').trim();
       const code = message.match(/\bTASK_[A-Z_]+(?=:)/)?.[0] || (binary === 'git' ? 'TASK_GIT' : 'TASK_UNAVAILABLE');
       const status = code === 'TASK_MISSING' ? 404 : binary === 'git' || /TASK_(MAIN|DIRTY|LOCK|RACE|BRANCH|EVIDENCE|APPROVAL|CONTRACT|DEPENDENCIES|GIT|TESTS|INTEGRATION|PERIMETER)/.test(code) ? 409 : 400;
-      if (error.killed || typeof error.code !== 'number' || !coordinatorReasons[code]) {
+      const reason = mode === 'acceptance' && code === 'TASK_ACCEPTANCE'
+        ? 'acceptance verification failed' : coordinatorReasons[code];
+      if (error.killed || typeof error.code !== 'number' || !reason) {
         throw new BoardGitError('Git coordinator unavailable',503,'TASK_UNAVAILABLE');
       }
-      throw new BoardGitError(code+': '+coordinatorReasons[code],status,code);
+      throw new BoardGitError(code+': '+reason,status,code);
     }
   }
 
   private async query(args: string[]): Promise<any> {
-    return JSON.parse(await this.command([cli,'--repo-root',this.root,...args,'--json'],undefined,args[0] === 'snapshot'));
+    return JSON.parse(await this.command([cli,'--repo-root',this.root,...args,'--json'],undefined,args[0] === 'snapshot' ? 'snapshot' : 'operation'));
   }
 
   private async git(...args: string[]) {return (await this.command(['--literal-pathspecs','-C',this.root,...args],'git')).trim();}
@@ -166,8 +198,47 @@ export class GitTaskStore {
     return result;
   }
 
-  async evidence(id: string): Promise<unknown> {
+  async evidence(id: string): Promise<EvidenceProjection> {
     return JSON.parse(await this.command(['-B', evidenceCli, '--repo-root', this.root, identifier(id)]));
+  }
+
+  async snapshotAcceptance(id: string): Promise<AcceptanceSnapshot> {
+    const context: AcceptanceContext = await this.query(['snapshot',identifier(id),'--acceptance-context']);
+    const {task, observed_commit, requires_acceptance} = context;
+    const snapshot = {status:task.status, approved_ref:task.approved_ref, observed_commit, requires_acceptance};
+    if (!requires_acceptance || task.status !== 'done') return snapshot;
+    return {...snapshot, closure:await this.acceptanceClosure(id,context)};
+  }
+
+  private async acceptanceClosure(id: string, context: AcceptanceContext): Promise<AcceptanceClosure> {
+    const {task, journal, observed_commit} = context;
+    const receipt = await this.evidence(id);
+    if (receipt.observed_commit !== observed_commit) {
+      throw new BoardGitError('TASK_RACE: main changed during evidence read; refresh',409);
+    }
+    const invalid = () => new BoardGitError('TASK_EVIDENCE_INVALID: task acceptance receipt is invalid',409);
+    const closed = journal.find(entry => entry.status === 'done')?.commit;
+    const artifact = receipt.artifact;
+    if (!closed || receipt.status !== 'available' || receipt.task_id !== id || !artifact ||
+        receipt.tested_commit !== task.verified_ref || receipt.approved_ref !== task.approved_ref ||
+        receipt.acceptance?.passes !== 2 || receipt.acceptance.checks < 1) throw invalid();
+
+    // Authenticate the original closing edge and the receipt bytes that it published.
+    const [commit, published, current] = await Promise.all([
+      this.git('--no-replace-objects','cat-file','commit',closed),
+      this.git('--no-replace-objects','ls-tree',closed,'--',artifact.path),
+      this.git('--no-replace-objects','ls-tree',observed_commit,'--',artifact.path),
+    ]);
+    const parents = commit.split('\n\n',1)[0].split('\n').filter(line => line.startsWith('parent '));
+    if (parents.length !== 1 || parents[0] !== 'parent ' + receipt.tested_commit ||
+        !published || published !== current) throw invalid();
+    return {tested_commit:task.verified_ref, approved_ref:task.approved_ref,
+      closed_commit:closed, receipt_sha256:artifact.sha256};
+  }
+
+  async finishAcceptance(id: string, testedCommit: string): Promise<void> {
+    await this.command([cli,'--repo-root',this.root,'finish',identifier(id),'--verify-acceptance',
+      '--expected-head',testedCommit,'--json'],undefined,'acceptance');
   }
 
   async contracts(): Promise<{id:string; title:string}[]> {

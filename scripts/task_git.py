@@ -750,15 +750,23 @@ def _snapshot_journal(root, ref, path):
     return entries
 
 
-def snapshot(root, task_id):
+def snapshot(root, task_id, *, acceptance_context=False):
     """Return a task and its journal from one observed commit of main."""
     with object_cache():
-        revision = commit_sha(root, 'main')
+        revision = commit_sha(root, 'refs/heads/main' if acceptance_context else 'main')
         nodes = _read_nodes(root, revision)
         path = task_path(task_id)
         if task_id not in nodes:
             raise TaskError('TASK_MISSING: ' + task_id)
-        return {'task': nodes[task_id][0], 'journal': _snapshot_journal(root, revision, path)}
+        task = nodes[task_id][0]
+        result = {'task': task, 'journal': _snapshot_journal(root, revision, path)}
+        if acceptance_context:
+            metadata = {}
+            if task['approved_ref']:
+                text = _approved_contract_text(root, task['approved_ref'], task['contract'])
+                metadata, _ = parse_frontmatter(text)
+            result.update(observed_commit=revision, requires_acceptance='acceptance_policy' in metadata)
+        return result
 
 
 def _checked_main(root, toplevel, expected):
@@ -1505,6 +1513,12 @@ def _finish(root, task, options, head):
 def _prepare(root, operation, task_id, options):
     from validate_tasks import validate_snapshot
     head = _initial_head(root) if operation in ('ready', 'finish') else _clean_main(root)
+    expected_head = options.get('expected_head')
+    if operation == 'finish' and expected_head is not None:
+        if not valid_sha(expected_head) or not options.get('verify_acceptance'):
+            raise TaskError('TASK_INPUT: --expected-head requires a full SHA and --verify-acceptance')
+        if expected_head != head:
+            raise TaskError('TASK_RACE: main differs from --expected-head')
     findings = validate_snapshot(root, head)
     if findings:
         raise TaskError('; '.join(findings))
