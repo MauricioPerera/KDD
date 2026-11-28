@@ -291,7 +291,7 @@
   async function render(task,api,refresh) {
     const fields = ['git-approved-ref','git-assignee','git-reason','git-next-status'];
     if (selectedId === task.id && (pending || fields.some(id=>node(id) === document.activeElement))) return;
-    const opening = node('view-task-detail')?.classList.contains?.('hidden');
+    const opening = node('view-task-detail')?.classList?.contains?.('hidden');
     if (selectedId !== task.id) {
       reviewState = {};
       evidenceState = {};
