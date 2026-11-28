@@ -95,3 +95,6 @@ El resultado final se obtuvo con las ejecuciones de ambos sistemas y los
 dos archivos completos para esa revisión.
 
 [Flujo automatizado para nuevas revisiones](CODEX-VPS-BASELINE-AUTOMATION.md).
+
+El [piloto de relevo en KDD-Board](KDD-BOARD-RELEVO-PILOTO.md) comprobó
+la consulta del v1 de `a7e1c84` desde otra sesión.
