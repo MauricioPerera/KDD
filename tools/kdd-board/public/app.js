@@ -1103,7 +1103,7 @@ window.loadDocItem = async function (id) {
             frontmatter.budget
               ? `<div style="display:flex; gap:0.6rem; flex-wrap:wrap; font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); background:rgba(0,0,0,0.25); padding:0.4rem 0.6rem; border-radius:4px;">
                   <span>Budget:</span>
-                  ${typeof frontmatter.budget === 'object' ? Object.entries(frontmatter.budget).map(([k, v]) => `<span>${k}: <strong>${v}</strong></span>`).join(' &bull; ') : `<span>${frontmatter.budget}</span>`}
+                  ${typeof frontmatter.budget === 'object' ? Object.entries(frontmatter.budget).map(([k, v]) => `<span>${escapeHtml(k)}: <strong>${escapeHtml(v)}</strong></span>`).join(' &bull; ') : `<span>${escapeHtml(frontmatter.budget)}</span>`}
                 </div>`
               : ''
           }
