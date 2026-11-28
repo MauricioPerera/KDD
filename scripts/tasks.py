@@ -26,6 +26,9 @@ def _parser():
     commands['start'].add_argument('--assignee', required=True)
     commands['finish'].add_argument('--verify-acceptance', action='store_true',
                                     help='run the acceptance policy named by the approved contract')
+    commands['finish'].add_argument('--expected-head', help='require this exact commit under the task lock')
+    commands['snapshot'].add_argument('--acceptance-context', action='store_true',
+                                     help='include the observed commit and approved acceptance policy status')
     for name in ('block', 'resume'):
         commands[name].add_argument('--reason', required=True)
     return parser
@@ -33,7 +36,7 @@ def _parser():
 
 def _query(root, args):
     if args.command == 'snapshot':
-        return journal.snapshot(root, args.task_id)
+        return journal.snapshot(root, args.task_id, acceptance_context=args.acceptance_context)
     tasks = journal.read_tasks(root)
     if args.command == 'list':
         return [tasks[key] for key in sorted(tasks)]

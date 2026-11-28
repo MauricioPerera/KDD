@@ -11,6 +11,7 @@
   let pending = false;
   let reviewState = {};
   let evidenceState = {};
+  let acceptanceState = {};
 
   async function configure(api) {
     if (!configuration) configuration = (async () => {
@@ -130,7 +131,9 @@
       <dt>Recibo Git</dt><dd><code>${escape(artifact.path)}</code></dd>
       <dt>Huella del recibo</dt><dd><code>${escape(artifact.sha256)}</code></dd>
       <dt>Ejecutor</dt><dd>${escape(receipt.runner)}</dd>
-      <dt>Casos</dt><dd>${total}</dd>
+      <dt>Casos del oráculo</dt><dd>${total}</dd>
+      ${data.acceptance ? `<dt>Pasadas de aceptación</dt><dd>${escape(data.acceptance.passes)}</dd>
+      <dt>Obligaciones de aceptación</dt><dd>${escape(data.acceptance.checks)}</dd>` : ''}
     </dl>${files}<p>Detalle por caso no registrado</p>`;
   }
 
@@ -155,6 +158,75 @@
       state.loading = false;
       if (state === evidenceState) paintEvidence();
     }
+  }
+
+  function acceptanceHtml(task) {
+    if (task.status !== 'in_progress' && task.status !== 'done') return '';
+    return `<section id="git-acceptance" aria-labelledby="git-acceptance-heading" hidden>
+      <h3 id="git-acceptance-heading">Aceptación de la entrega</h3>
+      <p id="git-acceptance-commit"></p>
+      <p id="git-acceptance-result" role="status" aria-live="polite"></p>
+      <button type="button" class="btn btn-primary" id="git-acceptance-start" hidden>Verificar aceptación y cerrar</button>
+      <button type="button" class="btn" id="git-acceptance-check">Consultar estado</button>
+    </section>`;
+  }
+
+  function acceptanceMessage(result) {
+    if (!result) return '';
+    if (result.state === 'running') return 'Verificando la aceptación.';
+    if (result.state === 'failed') return `Aceptación fallida para ${result.tested_commit}. ${result.error_code}`;
+    if (result.state === 'done') return `Cierre confirmado en Git. ${result.closed_commit}`;
+    return 'Pendiente de ejecutar la aceptación.';
+  }
+
+  function paintAcceptance(task) {
+    const section = node('git-acceptance');
+    if (!section || !['in_progress','done'].includes(task.status)) return;
+    const {result, loading, error} = acceptanceState;
+    section.hidden = !result?.requires_acceptance && !error;
+    const start = node('git-acceptance-start');
+    start.hidden = !result?.requires_acceptance || task.status !== 'in_progress' ||
+      result.state === 'running' || result.state === 'done';
+    start.disabled = Boolean(loading || error);
+    node('git-acceptance-check').disabled = Boolean(loading);
+    const tested = result && (start.hidden ? result.tested_commit : result.observed_commit);
+    node('git-acceptance-commit').textContent = tested ? `Commit de aceptación: ${tested}` : '';
+    node('git-acceptance-result').textContent = error || acceptanceMessage(result);
+
+    const select = node('git-next-status');
+    const legacyFinish = select?.querySelector?.('option[value="done"]');
+    if (legacyFinish && result?.requires_acceptance) {
+      legacyFinish.disabled = true;
+      if (select.value === 'done') {
+        select.value = 'needs_human_input';
+        updateFields(task);
+      }
+    }
+  }
+
+  async function loadAcceptance(task,api,refresh,start=false) {
+    const state = acceptanceState;
+    if (state.loading) return;
+    state.loading = true;
+    state.requestedStatus = task.status;
+    state.error = '';
+    paintAcceptance(task);
+    const url = '/api/tasks/' + encodeURIComponent(task.id) + '/acceptance';
+    try {
+      const previous = state.result;
+      const result = start ? await api(url,{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({tested_commit:previous.observed_commit,
+          ...(previous.state === 'failed' && previous.tested_commit === previous.observed_commit ? {retry:true} : {})}),
+      }) : await api(url);
+      state.result = result;
+    } catch (error) {
+      state.error = error.message;
+    } finally {
+      state.loading = false;
+      if (state === acceptanceState) paintAcceptance(task);
+    }
+    if (state === acceptanceState && task.status !== 'done' && state.result?.state === 'done') await refresh();
   }
 
   function updateFields(task) {
@@ -202,6 +274,7 @@
         <dt>Commit verificado</dt><dd><code>${escape(detail.verified_ref || 'Pendiente')}</code></dd>
         <dt>Evidencia</dt><dd><code>${escape(detail.evidence || 'Pendiente')}</code></dd></dl>
         ${actionFields(detail)}<p id="git-action-result" role="status" aria-live="polite"></p>
+        ${acceptanceHtml(detail)}
         <section aria-labelledby="git-review-heading">
           <h3 id="git-review-heading">Revisión del candidato</h3>
           <button type="button" class="btn" id="git-review-load">Consultar revisión</button>
@@ -218,9 +291,11 @@
   async function render(task,api,refresh) {
     const fields = ['git-approved-ref','git-assignee','git-reason','git-next-status'];
     if (selectedId === task.id && (pending || fields.some(id=>node(id) === document.activeElement))) return;
+    const opening = node('view-task-detail')?.classList.contains?.('hidden');
     if (selectedId !== task.id) {
       reviewState = {};
       evidenceState = {};
+      acceptanceState = {};
     }
     selectedId = task.id;
     try {
@@ -235,6 +310,14 @@
       const evidenceButton = node('git-evidence-load');
       if (evidenceButton) evidenceButton.onclick = () => loadEvidence(task.id, api);
       paintEvidence();
+      if (['in_progress','done'].includes(detail.status)) {
+        node('git-acceptance-start').onclick = () => loadAcceptance(detail,api,refresh,true);
+        node('git-acceptance-check').onclick = () => loadAcceptance(detail,api,refresh);
+        paintAcceptance(detail);
+        if (opening || acceptanceState.requestedStatus !== detail.status) {
+          void loadAcceptance(detail,api,refresh);
+        }
+      }
       if ((edges[detail.status] || []).length) {
         node('git-transition-form').onsubmit = event => submit(event,detail,api,refresh);
         node('git-next-status').onchange = () => updateFields(detail);
